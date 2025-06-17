@@ -5,8 +5,6 @@ pub mod operation_cache;
 pub mod rate_limiting;
 #[cfg(feature = "redis")]
 pub mod redis;
-#[cfg(feature = "wasi")]
-pub mod wasi;
 
 pub use entity_cache::memory::InMemoryEntityCache;
 #[cfg(feature = "redis")]

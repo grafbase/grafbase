@@ -12,6 +12,7 @@ pub(crate) struct ExtensionConfig<T = toml::Value> {
     pub pool: PoolConfig,
     pub wasm: WasmConfig,
     pub guest_config: T,
+    pub can_skip_sending_events: bool,
 }
 
 #[derive(Default)]
@@ -28,7 +29,11 @@ pub(crate) struct WasmConfig {
     pub environment_variables: bool,
 }
 
-pub(super) fn load_extensions_config(extension_catalog: &ExtensionCatalog, config: &Config) -> Vec<ExtensionConfig> {
+pub(super) fn load_extensions_config(
+    extension_catalog: &ExtensionCatalog,
+    config: &Config,
+    can_skip_sending_events: bool,
+) -> Vec<ExtensionConfig> {
     let mut wasm_extensions = Vec::with_capacity(extension_catalog.len());
 
     for (id, extension) in extension_catalog.iter_with_id() {
@@ -61,6 +66,7 @@ pub(super) fn load_extensions_config(extension_catalog: &ExtensionCatalog, confi
                 .cloned()
                 .unwrap_or_else(|| toml::Value::Table(Default::default())),
             sdk_version: manifest.sdk_version.clone(),
+            can_skip_sending_events,
         });
     }
 

@@ -5,7 +5,6 @@ pub mod cursor;
 pub mod entity_cache;
 pub mod extension;
 pub mod fetch;
-pub mod hooks;
 pub mod kv;
 pub mod operation_cache;
 pub mod rate_limiting;

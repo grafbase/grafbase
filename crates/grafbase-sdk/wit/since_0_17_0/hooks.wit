@@ -3,6 +3,7 @@ interface hooks {
     use error.{error-response};
     use headers.{headers};
     use shared-context.{shared-context};
+    use event-queue.{event-queue};
 
     /// Hook function called when processing an incoming request
     ///
@@ -23,5 +24,6 @@ interface hooks {
         context: shared-context,
         status: u16,
         headers: headers,
+        event-queue: event-queue,
     ) -> result<_, string>;
 }

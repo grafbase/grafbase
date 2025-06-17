@@ -5,21 +5,18 @@ use runtime::{entity_cache::EntityCache, extension::ExtensionRuntime, kv::KvStor
 
 use crate::CachedOperation;
 
-pub type WasmContext<R> = <<R as Runtime>::Hooks as runtime::hooks::Hooks>::Context;
-pub type WasmExtensionContext<R> = <<R as Runtime>::Extensions as ExtensionRuntime>::Context;
+pub type ExtensionContext<R> = <<R as Runtime>::Extensions as ExtensionRuntime>::Context;
 
 pub trait Runtime: Send + Sync + 'static {
-    type Hooks: runtime::hooks::Hooks;
     type Fetcher: runtime::fetch::Fetcher;
     type OperationCache: runtime::operation_cache::OperationCache<Arc<CachedOperation>>;
-    type Extensions: ExtensionRuntime<Context = <Self::Hooks as runtime::hooks::Hooks>::Context>;
-    type Authenticate: runtime::authentication::Authenticate<WasmExtensionContext<Self>>;
+    type Extensions: ExtensionRuntime;
+    type Authenticate: runtime::authentication::Authenticate<ExtensionContext<Self>>;
 
     fn fetcher(&self) -> &Self::Fetcher;
     fn kv(&self) -> &KvStore;
     fn trusted_documents(&self) -> &runtime::trusted_documents_client::Client;
     fn metrics(&self) -> &EngineMetrics;
-    fn hooks(&self) -> &Self::Hooks;
     fn operation_cache(&self) -> &Self::OperationCache;
     fn rate_limiter(&self) -> &RateLimiter;
     fn sleep(&self, duration: std::time::Duration) -> impl Future<Output = ()> + Send;

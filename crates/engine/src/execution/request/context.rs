@@ -1,11 +1,7 @@
 use grafbase_telemetry::grafbase_client::Client;
 use runtime::authentication::LegacyToken;
 
-use crate::{
-    Runtime,
-    engine::WasmContext,
-    graphql_over_http::{ContentType, ResponseFormat},
-};
+use crate::graphql_over_http::{ContentType, ResponseFormat};
 
 /// Context only used early in the request processing before generating the RequestContext used
 /// everywhere else. Contrary to the RequestContext this one never fails to be created.
@@ -37,7 +33,6 @@ pub(crate) struct RequestContext<ExtensionContext> {
 /// Context associated with a single operation within an HTTP request.
 /// Every single operation, whether in a websocket session or batch request will have its own
 /// GraphqlContext.
-pub(crate) struct GraphqlRequestContext<R: Runtime> {
-    pub wasm_context: WasmContext<R>,
+pub(crate) struct GraphqlRequestContext {
     pub subgraph_default_headers_override: Option<http::HeaderMap>,
 }

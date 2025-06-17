@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use operation::{Operation, RawVariables, Variables};
-use runtime::hooks::Hooks;
 
 use crate::{
     ErrorCode, Runtime,
@@ -17,7 +16,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
         &mut self,
         document: OperationDocument<'_>,
         variables: RawVariables,
-    ) -> Result<PreparedOperation, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
+    ) -> Result<PreparedOperation, Response> {
         if document.content.len() >= self.schema().settings.executable_document_limit_bytes {
             let error = GraphqlError::new(
                 "Executable document exceeded the maximum configured size",

@@ -1,18 +1,14 @@
 use bytes::Bytes;
+use event_queue::{CacheStatus, ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder, RequestExecution};
 use grafbase_telemetry::{
     graphql::GraphqlResponseStatus,
     span::subgraph::{SubgraphGraphqlRequestSpan, SubgraphHttpRequestSpan, SubgraphRequestSpanBuilder},
 };
-use runtime::{
-    fetch::FetchRequest,
-    hooks::{
-        CacheStatus, ExecutedSubgraphRequest, ExecutedSubgraphRequestBuilder, Hooks, SubgraphRequestExecutionKind,
-    },
-};
+use runtime::fetch::FetchRequest;
 use schema::GraphqlEndpoint;
 use std::{ops::Deref, time::Instant};
 use tower::retry::budget::TpsBudget;
-use tracing::{Instrument, Span};
+use tracing::Span;
 
 use grafbase_telemetry::{
     graphql::SubgraphResponseStatus,
@@ -23,12 +19,7 @@ use grafbase_telemetry::{
     },
 };
 
-use crate::{
-    Engine, Runtime,
-    execution::{ExecutionContext, RequestHooks},
-    resolver::ResolverResult,
-    response::ResponsePartBuilder,
-};
+use crate::{Engine, Runtime, execution::ExecutionContext, resolver::ResolverResult, response::ResponsePartBuilder};
 
 #[derive(Clone)]
 pub(crate) struct SubgraphContext<'ctx, R: Runtime> {
@@ -58,12 +49,13 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         span: SubgraphRequestSpanBuilder<'_>,
     ) -> Self {
         let executed_request_builder =
-            ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), "POST", endpoint.url().as_str());
+            ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), http::Method::POST, endpoint.url().as_str());
 
         let retry_budget = match span.operation_type {
             "mutation" => ctx.engine.get_retry_budget_for_mutation(endpoint.id),
             _ => ctx.engine.get_retry_budget_for_non_mutation(endpoint.id),
         };
+
         let span = span.build();
 
         Self {
@@ -95,18 +87,11 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         self.endpoint
     }
 
-    pub fn hooks(&self) -> RequestHooks<'ctx, R::Hooks> {
-        self.execution_context().hooks()
-    }
-
     pub fn retry_budget(&self) -> Option<&TpsBudget> {
         self.retry_budget
     }
 
-    pub async fn finalize(
-        self,
-        response_part: ResponsePartBuilder<'ctx>,
-    ) -> ResolverResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput> {
+    pub async fn finalize(self, response_part: ResponsePartBuilder<'ctx>) -> ResolverResult<'ctx> {
         let duration = self.start.elapsed();
 
         if let Some(status) = self.status {
@@ -121,21 +106,7 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
             );
         }
 
-        let on_subgraph_response_hook_output = self
-            .ctx
-            .hooks()
-            .on_subgraph_response(self.executed_request_builder.build(duration))
-            .instrument(self.span.span.clone())
-            .await
-            .inspect_err(|e| {
-                tracing::error!("error in on-subgraph-response hook: {e}");
-            })
-            .ok();
-
-        ResolverResult {
-            response_part,
-            on_subgraph_response_hook_output,
-        }
+        ResolverResult { response_part }
     }
 
     pub(super) fn increment_inflight_requests(&mut self) {
@@ -154,20 +125,20 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
     }
 
     pub(super) fn record_cache_hit(&mut self) {
-        self.executed_request_builder.set_cache_status(CacheStatus::Hit);
+        self.executed_request_builder.cache_status(CacheStatus::Hit);
         self.metrics().record_subgraph_cache_hit(SubgraphCacheHitAttributes {
             name: self.endpoint.subgraph_name().to_string(),
         });
     }
 
     pub(super) fn record_cache_partial_hit(&mut self) {
-        self.executed_request_builder.set_cache_status(CacheStatus::PartialHit);
+        self.executed_request_builder.cache_status(CacheStatus::PartialHit);
         self.metrics()
             .record_subgraph_cache_partial_hit(self.endpoint.subgraph_name().to_string());
     }
 
     pub(super) fn record_cache_miss(&mut self) {
-        self.executed_request_builder.set_cache_status(CacheStatus::Miss);
+        self.executed_request_builder.cache_status(CacheStatus::Miss);
         self.metrics().record_subgraph_cache_miss(SubgraphCacheMissAttributes {
             name: self.endpoint.subgraph_name().to_string(),
         });
@@ -200,8 +171,8 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         });
     }
 
-    pub(super) fn push_request_execution(&mut self, kind: SubgraphRequestExecutionKind) {
-        self.executed_request_builder.push_execution(kind)
+    pub(super) fn push_request_execution(&mut self, kind: RequestExecution) {
+        self.executed_request_builder.push_execution(kind);
     }
 
     pub(super) fn record_http_response(&mut self, response: &http::Response<Bytes>) {
@@ -212,10 +183,6 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
             },
             response.body().len(),
         );
-    }
-
-    pub(super) fn set_as_hook_error(&mut self) {
-        self.status = Some(SubgraphResponseStatus::HookError);
     }
 
     pub(super) fn set_as_http_error(&mut self, status_code: Option<http::StatusCode>) {
@@ -231,6 +198,6 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
 
     pub(super) fn set_graphql_response_status(&mut self, status: GraphqlResponseStatus) {
         self.status = Some(SubgraphResponseStatus::WellFormedGraphqlResponse(status));
-        self.executed_request_builder.set_graphql_response_status(status);
+        self.executed_request_builder.graphql_response_status(status);
     }
 }

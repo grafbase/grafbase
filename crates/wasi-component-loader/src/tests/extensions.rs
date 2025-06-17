@@ -3,7 +3,6 @@ use std::{path::PathBuf, sync::Arc};
 use crate::{
     SharedContext,
     extension::{ExtensionConfig, ExtensionLoader, WasmConfig},
-    tests::create_shared_resources,
 };
 use engine_schema::Schema;
 use extension_catalog::{ExtensionId, TypeDiscriminants};
@@ -29,11 +28,8 @@ async fn single_call_caching_auth() {
 
     assert!(config.location.exists());
 
-    let (shared, _) = create_shared_resources();
-
     let loader = ExtensionLoader::new(
         Arc::new(Schema::from_sdl_or_panic("").await),
-        shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Authentication,
@@ -44,6 +40,7 @@ async fn single_call_caching_auth() {
             guest_config: Some(json!({
                 "cache_config": "test"
             })),
+            can_skip_sending_events: false,
         },
     )
     .unwrap();
@@ -89,11 +86,8 @@ async fn single_call_caching_auth_invalid() {
     };
 
     assert!(config.location.exists());
-    let (shared, _) = create_shared_resources();
-
     let loader = ExtensionLoader::new(
         Arc::new(Schema::empty().await),
-        shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Authentication,
@@ -104,6 +98,7 @@ async fn single_call_caching_auth_invalid() {
             guest_config: Some(json!({
                 "cache_config": "test"
             })),
+            can_skip_sending_events: false,
         },
     )
     .unwrap();
@@ -144,11 +139,8 @@ async fn multiple_cache_calls() {
     };
 
     assert!(config.location.exists());
-    let (shared, _) = create_shared_resources();
-
     let loader = ExtensionLoader::new(
         Arc::new(Schema::from_sdl_or_panic("").await),
-        shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Authentication,
@@ -159,6 +151,7 @@ async fn multiple_cache_calls() {
             guest_config: Some(json!({
                 "cache_config": "test"
             })),
+            can_skip_sending_events: false,
         },
     )
     .unwrap();
@@ -242,11 +235,8 @@ async fn on_request_hook() {
 
     assert!(config.location.exists());
 
-    let (shared, _) = create_shared_resources();
-
     let loader = ExtensionLoader::new(
         Arc::new(Schema::from_sdl_or_panic("").await),
-        shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Hooks,
@@ -255,6 +245,7 @@ async fn on_request_hook() {
             pool: Default::default(),
             wasm: config,
             guest_config: Option::<toml::Value>::None,
+            can_skip_sending_events: false,
         },
     )
     .unwrap();
@@ -283,11 +274,8 @@ async fn on_response_hook() {
 
     assert!(config.location.exists());
 
-    let (shared, _) = create_shared_resources();
-
     let loader = ExtensionLoader::new(
         Arc::new(Schema::from_sdl_or_panic("").await),
-        shared,
         ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Hooks,
@@ -296,6 +284,7 @@ async fn on_response_hook() {
             pool: Default::default(),
             wasm: config,
             guest_config: Option::<toml::Value>::None,
+            can_skip_sending_events: false,
         },
     )
     .unwrap();

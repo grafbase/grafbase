@@ -10,7 +10,6 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-enumflags2 = { workspace = true, features = ["serde"] }
 grafbase-workspace-hack.workspace = true
 semver = { workspace = true, features = ["serde"] }
 serde.workspace = true

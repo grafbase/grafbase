@@ -1,5 +1,5 @@
 use crate::{
-    Error, SharedContext, cbor,
+    Error, cbor,
     extension::{InputList, api::wit},
     resources::Lease,
 };
@@ -12,13 +12,10 @@ use super::{
 use engine_error::{ErrorCode, GraphqlError};
 use engine_schema::{ExtensionDirective, FieldDefinition};
 use futures::stream::BoxStream;
-use runtime::{
-    extension::{Data, FieldResolverExtension},
-    hooks::Anything,
-};
+use runtime::extension::{Anything, Data, FieldResolverExtension};
 use std::future::Future;
 
-impl FieldResolverExtension<SharedContext> for WasmExtensions {
+impl FieldResolverExtension for WasmExtensions {
     #[allow(clippy::manual_async_fn)]
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,

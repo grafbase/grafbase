@@ -28,8 +28,8 @@ pub use grafbase::sdk::authorization_types::{
 pub use grafbase::sdk::cache::*;
 pub use grafbase::sdk::error::{Error, ErrorResponse};
 pub use grafbase::sdk::event_queue::{
-    CacheStatus, Event, EventQueue, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, FieldError,
-    GraphqlResponseStatus, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
+    CacheStatus, Event, EventQueue, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, ExtensionEvent,
+    FieldError, GraphqlResponseStatus, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
 };
 pub use grafbase::sdk::grpc::*;
 pub use grafbase::sdk::headers::*;

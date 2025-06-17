@@ -6,7 +6,7 @@ use serde::ser::SerializeMap;
 
 use crate::response::{ExecutedResponse, RefusedRequestResponse, RequestErrorResponse, Response};
 
-impl<OnOperationResponseHookOutput> serde::Serialize for Response<OnOperationResponseHookOutput> {
+impl serde::Serialize for Response {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,

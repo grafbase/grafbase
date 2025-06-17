@@ -34,5 +34,6 @@ world sdk {
         // Schema for each subgraph, with relevant data for each extension type.
         schemas: list<tuple<string, schema>>,
         configuration: list<u8>,
+        can-skip-sending-events: bool,
     ) -> result<_, string>;
 }

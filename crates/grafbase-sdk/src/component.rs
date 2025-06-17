@@ -13,14 +13,18 @@ use crate::{
 
 pub use error::SdkError;
 pub(crate) use extension::*;
-pub(crate) use state::{queue_event, register_extension};
+pub(crate) use state::{can_skip_sending_events, queue_event, register_extension};
 
 pub(crate) struct Component;
 
 impl Guest for Component {
-    fn init(subgraph_schemas: Vec<(String, Schema)>, configuration: Vec<u8>) -> Result<(), String> {
+    fn init(
+        subgraph_schemas: Vec<(String, Schema)>,
+        configuration: Vec<u8>,
+        can_skip_sending_events: bool,
+    ) -> Result<(), String> {
         let config = Configuration::new(configuration);
-        state::init(subgraph_schemas, config).map_err(|e| e.to_string())
+        state::init(subgraph_schemas, config, can_skip_sending_events).map_err(|e| e.to_string())
     }
 }
 

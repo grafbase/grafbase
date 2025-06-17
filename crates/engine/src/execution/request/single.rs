@@ -6,12 +6,11 @@ use grafbase_telemetry::{
     span::graphql::GraphqlOperationSpan,
 };
 use operation::Request;
-use runtime::hooks::Hooks;
 use tracing::Instrument;
 
 use crate::{
     Engine, Runtime,
-    engine::{WasmContext, WasmExtensionContext},
+    engine::ExtensionContext,
     prepare::PrepareContext,
     response::{ErrorCode, GraphqlError, Response},
 };
@@ -21,18 +20,18 @@ use super::{RequestContext, default_response_extensions, response_extension_for_
 impl<R: Runtime> Engine<R> {
     pub(super) async fn execute_single(
         self: &Arc<Self>,
-        request_context: &Arc<RequestContext<WasmExtensionContext<R>>>,
-        wasm_context: WasmContext<R>,
+        request_context: &Arc<RequestContext<ExtensionContext<R>>>,
         request: Request,
-    ) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
+    ) -> Response {
         let start = Instant::now();
         let span = GraphqlOperationSpan::default();
 
         async {
-            let ctx = PrepareContext::new(self, request_context, wasm_context);
+            let ctx = PrepareContext::new(self, request_context);
             let response = ctx.execute_single(request).await;
             let status = response.graphql_status();
             let errors_count_by_code = response.error_code_counter().to_vec();
+
             span.record_response(status, &errors_count_by_code);
 
             if let Some(operation) = response.operation_attributes().cloned() {
@@ -67,7 +66,7 @@ impl<R: Runtime> Engine<R> {
 }
 
 impl<R: Runtime> PrepareContext<'_, R> {
-    async fn execute_single(mut self, request: Request) -> Response<<R::Hooks as Hooks>::OnOperationResponseOutput> {
+    async fn execute_single(mut self, request: Request) -> Response {
         let operation = match self.prepare_operation(request).await {
             Ok(operation) => operation,
             Err(response) => {
@@ -76,6 +75,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
         };
 
         let attributes = operation.attributes();
+
         let extensions =
             response_extension_for_prepared_operation::<R>(self.schema(), self.request_context, &operation);
 
@@ -84,6 +84,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 "Subscriptions are only suported on streaming transports. Try making a request with SSE or WebSockets",
                 ErrorCode::BadRequest,
             );
+
             return Response::request_error([error])
                 .with_operation_attributes(attributes)
                 .with_extensions(extensions);

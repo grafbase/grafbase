@@ -10,7 +10,7 @@ pub use dispatch::*;
 pub use impls::*;
 pub use test::*;
 
-const EXTENSIONS_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/data/extensions/crates");
+pub(crate) const EXTENSIONS_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/data/extensions/crates");
 const PLACEHOLDER_EXTENSION_DIR: &str =
     concat!(env!("CARGO_MANIFEST_DIR"), "/data/extensions/crates/placeholder/build");
 

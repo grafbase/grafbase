@@ -4,8 +4,6 @@ mod instance;
 mod loader;
 mod pool;
 
-use crate::resources::SharedResources;
-
 use dashmap::DashMap;
 use engine_error::GraphqlError;
 use engine_schema::Schema;
@@ -38,15 +36,16 @@ struct WasiExtensionsInner {
 
 impl WasmExtensions {
     pub async fn new(
-        shared_resources: &SharedResources,
         extension_catalog: &ExtensionCatalog,
         gateway_config: &Config,
         schema: &Arc<Schema>,
     ) -> crate::Result<Self> {
-        let extensions = config::load_extensions_config(extension_catalog, gateway_config);
+        // FIXME: Rely on hook configuration to define whether events can be skipped or not
+        let can_skip_sending_events = false;
+        let extensions = config::load_extensions_config(extension_catalog, gateway_config, can_skip_sending_events);
 
         Ok(Self(Arc::new(WasiExtensionsInner {
-            instance_pools: create_pools(schema, shared_resources, extensions).await?,
+            instance_pools: create_pools(schema, extensions).await?,
             subscriptions: Default::default(),
         })))
     }
@@ -70,11 +69,7 @@ impl WasmExtensions {
     }
 }
 
-async fn create_pools(
-    schema: &Arc<Schema>,
-    shared_resources: &SharedResources,
-    extensions: Vec<ExtensionConfig>,
-) -> crate::Result<Vec<Pool>> {
+async fn create_pools(schema: &Arc<Schema>, extensions: Vec<ExtensionConfig>) -> crate::Result<Vec<Pool>> {
     let parallelism = std::thread::available_parallelism()
         .ok()
         // Each extensions takes quite a lot of CPU.
@@ -87,12 +82,11 @@ async fn create_pools(
     let mut pools = stream::iter(extensions.into_iter().map(|config| async {
         tracing::info!("Loading extension {}", config.manifest_id);
 
-        let shared = shared_resources.clone();
         std::future::ready(()).await;
 
         let id = config.id;
         let max_pool_size = config.pool.max_size;
-        let loader = ExtensionLoader::new(Arc::clone(schema), shared, config)?;
+        let loader = ExtensionLoader::new(Arc::clone(schema), config)?;
         let pool = Pool::new(loader, max_pool_size);
 
         // Load immediately an instance to check they can initialize themselves correctly.

@@ -3,7 +3,6 @@ use std::{path::PathBuf, sync::Arc};
 use engine::{CachedOperation, Engine};
 use extension_catalog::ExtensionCatalog;
 use futures_lite::{StreamExt, pin};
-use runtime_local::wasi::hooks::{AccessLogSender, HooksWasi};
 use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
@@ -40,15 +39,11 @@ impl GatewayEngineReloader {
         // In federated dev this is None.  We should probably merge this
         // functionality into gateway_config above at some point...
         hot_reload_config_path: Option<PathBuf>,
-        hooks: HooksWasi,
-        access_log: AccessLogSender,
         access_token: Option<AccessToken>,
         extension_catalog: &ExtensionCatalog,
     ) -> crate::Result<Self> {
         let context = Context {
             hot_reload_config_path,
-            hooks,
-            access_log,
             access_token,
         };
 
@@ -93,8 +88,6 @@ impl GatewayEngineReloader {
 #[derive(Clone)]
 struct Context {
     hot_reload_config_path: Option<PathBuf>,
-    hooks: HooksWasi,
-    access_log: AccessLogSender,
     access_token: Option<AccessToken>,
 }
 
@@ -154,8 +147,6 @@ async fn build_new_engine(
         graph_definition,
         &config,
         context.hot_reload_config_path,
-        context.hooks,
-        context.access_log,
         context.access_token.as_ref(),
         extension_catalog,
     )

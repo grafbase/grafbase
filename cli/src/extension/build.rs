@@ -7,7 +7,7 @@ use std::{
 };
 
 use anyhow::Context;
-use extension::{BitFlags, ExtensionPermission, FieldResolverType, Manifest, ResolverType, Type};
+use extension::{ExtensionPermission, FieldResolverType, Manifest, ResolverType, Type};
 use extension_toml::{ExtensionToml, ExtensionType};
 use semver::Version;
 
@@ -237,22 +237,22 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
         None => None,
     };
 
-    let mut permissions = BitFlags::default();
+    let mut permissions = Vec::new();
 
     if extension_toml.permissions.network {
-        permissions |= ExtensionPermission::Network;
+        permissions.push(ExtensionPermission::Network);
     }
 
     if extension_toml.permissions.stdout {
-        permissions |= ExtensionPermission::Stdout;
+        permissions.push(ExtensionPermission::Stdout);
     }
 
     if extension_toml.permissions.stderr {
-        permissions |= ExtensionPermission::Stderr;
+        permissions.push(ExtensionPermission::Stderr);
     }
 
     if extension_toml.permissions.environment_variables {
-        permissions |= ExtensionPermission::EnvironmentVariables;
+        permissions.push(ExtensionPermission::EnvironmentVariables);
     }
 
     let manifest = Manifest {

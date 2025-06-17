@@ -9,22 +9,30 @@ pub use authentication::*;
 pub use authorization::*;
 use bytes::Bytes;
 use error::GraphqlError;
+use event_queue::EventQueue;
 pub use field_resolver::*;
 pub use hooks::*;
 pub use resolver::*;
 pub use selection_set_resolver::*;
 
+pub trait Anything<'a>: serde::Serialize + Send + 'a {}
+impl<'a, T> Anything<'a> for T where T: serde::Serialize + Send + 'a {}
+
 pub trait ExtensionRuntime:
     AuthenticationExtension<Self::Context>
     + AuthorizationExtension<Self::Context>
-    + FieldResolverExtension<Self::Context>
+    + FieldResolverExtension
     + SelectionSetResolverExtension
     + ResolverExtension<Self::Context>
     + Send
     + Sync
     + 'static
 {
-    type Context: Send + Sync + 'static;
+    type Context: ExtensionContext;
+}
+
+pub trait ExtensionContext: Default + Send + Sync + 'static {
+    fn event_queue(&self) -> &EventQueue;
 }
 
 #[derive(Debug, Clone)]

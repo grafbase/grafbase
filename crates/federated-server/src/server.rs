@@ -1,4 +1,3 @@
-mod access_logs;
 mod cors;
 mod csrf;
 mod engine_reloader;
@@ -9,19 +8,18 @@ mod health;
 mod state;
 mod trusted_documents_client;
 
-use extension_catalog::Extension;
 pub(crate) use gateway::CreateExtensionCatalogError;
 use gateway::{EngineWatcher, create_extension_catalog::create_extension_catalog};
 pub use graph_fetch_method::GraphFetchMethod;
+use runtime::extension::HooksExtension;
 pub use state::ServerState;
 
-use runtime_local::wasi::hooks::{self, ComponentLoader, HooksWasi};
 use tokio_util::sync::CancellationToken;
 use ulid::Ulid;
 
 use axum::{Router, extract::State, response::IntoResponse, routing::get};
 use engine_axum::{
-    middleware::{HooksLayer, ResponseHookLayer, TelemetryLayer},
+    middleware::{HooksLayer, TelemetryLayer},
     websocket::{WebsocketAccepter, WebsocketService},
 };
 use engine_reloader::GatewayEngineReloader;
@@ -33,7 +31,7 @@ use tower_http::{
     compression::{CompressionLayer, DefaultPredicate, Predicate as _, predicate::NotForContentType},
     cors::CorsLayer,
 };
-use wasi_component_loader::{AccessLogSender, extension::WasmHooks, resources::SharedResources};
+use wasi_component_loader::extension::WasmHooks;
 
 /// Start parameter for the gateway.
 pub struct ServeConfig {
@@ -107,40 +105,13 @@ pub async fn serve(
     let path = config.graph.path.clone();
     #[allow(unused)]
     let tls = config.tls.clone();
-
-    let meter = grafbase_telemetry::metrics::meter_from_global_provider();
-    let pending_logs_counter = meter.i64_up_down_counter("grafbase.gateway.access_log.pending").build();
-
-    let (access_log_sender, access_log_receiver) =
-        hooks::create_access_log_channel(config.gateway.access_logs.lossy_log(), pending_logs_counter.clone());
-
-    let is_access_log_enabled = config.gateway.access_logs.enabled;
-
-    if is_access_log_enabled {
-        access_logs::start(&config.gateway.access_logs, access_log_receiver, pending_logs_counter)?;
-    }
-
-    let hooks_loader = config
-        .hooks
-        .clone()
-        .map(ComponentLoader::hooks)
-        .transpose()
-        .map_err(|e| crate::Error::InternalError(e.to_string()))?
-        .flatten();
-
-    let max_pool_size = config.hooks.as_ref().and_then(|config| config.max_pool_size);
-    let hooks = HooksWasi::new(hooks_loader, max_pool_size, &meter, access_log_sender.clone()).await;
-
     let graph_stream = fetch_method.into_stream().await?;
-
     let (extension_catalog, hooks_extension) = create_extension_catalog(&config).await?;
 
     let update_handler = GatewayEngineReloader::spawn(
         config_receiver,
         graph_stream,
         config_hot_reload.then_some(config_path).flatten(),
-        hooks.clone(),
-        access_log_sender.clone(),
         grafbase_access_token,
         &extension_catalog,
     )
@@ -152,16 +123,19 @@ pub async fn serve(
         .filter(|m| m.enabled)
         .map(|m| format!("http://{listen_address}{}", m.path));
 
+    let hooks = WasmHooks::new(&config, hooks_extension)
+        .await
+        .map_err(|e| crate::Error::InternalError(e.to_string()))?;
+
     let (router, ct) = router(
         config,
         update_handler.engine_watcher(),
         server_runtime.clone(),
-        hooks_extension,
-        access_log_sender.clone(),
+        hooks,
         |router| {
             // Currently we're doing those after CORS handling in the request as we don't care
             // about pre-flight requests.
-            router.layer(ResponseHookLayer::new(hooks)).layer(TelemetryLayer::new(
+            router.layer(TelemetryLayer::new(
                 grafbase_telemetry::metrics::meter_from_global_provider(),
                 Some(listen_address),
             ))
@@ -176,10 +150,6 @@ pub async fn serve(
             let result = bind(listen_address, &path, router, tls.as_ref(), server_runtime, mcp_url).await;
         }
     }
-    // Once all pending requests have been dealt with, we shutdown everything else left (telemetry, logs)
-    if is_access_log_enabled {
-        access_log_sender.graceful_shutdown().await;
-    }
 
     if let Some(ct) = ct {
         ct.cancel();
@@ -188,12 +158,11 @@ pub async fn serve(
     result
 }
 
-pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
+pub async fn router<R: engine::Runtime, SR: ServerRuntime, H: HooksExtension>(
     config: gateway_config::Config,
     engine: EngineWatcher<R>,
     server_runtime: SR,
-    hooks_extension: Option<Extension>,
-    access_log_sender: AccessLogSender,
+    hooks: H,
     inject_layers_before_cors: impl FnOnce(axum::Router<()>) -> axum::Router<()>,
 ) -> crate::Result<(axum::Router, Option<CancellationToken>)> {
     let path = &config.graph.path;
@@ -248,16 +217,6 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime>(
     if config.csrf.enabled {
         router = csrf::inject_layer(router, &config.csrf);
     }
-
-    let hooks = WasmHooks::new(
-        &SharedResources {
-            access_log: access_log_sender.clone(),
-        },
-        &config,
-        hooks_extension,
-    )
-    .await
-    .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
     router = router.layer(HooksLayer::new(hooks));
 

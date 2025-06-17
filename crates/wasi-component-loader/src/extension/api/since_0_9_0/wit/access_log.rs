@@ -1,26 +1,17 @@
 use wasmtime::component::Resource;
 
-use crate::{AccessLogMessage, AccessLogSender, WasiState};
+use crate::WasiState;
 
 pub use super::grafbase::sdk::access_log::*;
 
 impl Host for WasiState {}
 
 impl HostAccessLog for WasiState {
-    async fn send(&mut self, data: Vec<u8>) -> wasmtime::Result<Result<(), LogError>> {
-        let data = AccessLogMessage::Data(data);
-
-        Ok(self.access_log().send(data).inspect_err(|err| match err {
-            LogError::ChannelFull(_) => {
-                tracing::error!("access log channel is over capacity");
-            }
-            LogError::ChannelClosed => {
-                tracing::error!("access log channel closed");
-            }
-        }))
+    async fn send(&mut self, _: Vec<u8>) -> wasmtime::Result<Result<(), LogError>> {
+        todo!("sorry, we do not have this anymore.")
     }
 
-    async fn drop(&mut self, _: Resource<AccessLogSender>) -> wasmtime::Result<()> {
+    async fn drop(&mut self, _: Resource<()>) -> wasmtime::Result<()> {
         // Singleton that is never allocated
         Ok(())
     }

@@ -17,6 +17,7 @@ static mut INIT_FN: Option<InitFn> = None;
 static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;
 static mut SUBSCRIPTION: Option<SubscriptionState> = None;
 static mut CONTEXT: Option<wit::SharedContext> = None;
+static mut CAN_SKIP_SENDING_EVENTS: bool = false;
 
 enum SubscriptionState {
     Uninitialized {
@@ -28,11 +29,16 @@ enum SubscriptionState {
 
 /// Initializes the resolver extension with the provided directives using the closure
 /// function created with the `register_extension!` macro.
-pub(super) fn init(subgraph_schemas: Vec<(String, wit::Schema)>, config: Configuration) -> Result<(), Error> {
+pub(super) fn init(
+    subgraph_schemas: Vec<(String, wit::Schema)>,
+    config: Configuration,
+    can_skip_sending_events: bool,
+) -> Result<(), Error> {
     // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
     unsafe {
         let init = std::mem::take(&mut INIT_FN).expect("Resolver extension not initialized correctly.");
         EXTENSION = Some(init(subgraph_schemas, config)?);
+        CAN_SKIP_SENDING_EVENTS = can_skip_sending_events;
     }
 
     Ok(())
@@ -58,15 +64,22 @@ where
     res
 }
 
+#[allow(unused)]
 pub(crate) fn current_context() -> &'static wit::SharedContext {
     // SAFETY: We are in a single-threaded environment, this function is internal.
     unsafe { CONTEXT.as_ref().expect("Context not initialized") }
 }
 
-pub(crate) fn queue_event(name: &str, log: &[u8]) {
+// Coarse grained event filtering. Arbitrary logic can be
+// used to select only some events on the host side afterwards.
+pub(crate) fn can_skip_sending_events() -> bool {
+    unsafe { CAN_SKIP_SENDING_EVENTS }
+}
+
+pub(crate) fn queue_event(name: &str, data: &[u8]) {
     // SAFETY: This is mutated only by us before extension is called.
-    if let Some(queue) = unsafe { CONTEXT.as_ref().map(|q| q.event_queue()) } {
-        queue.push(name, log);
+    if let Some(ctx) = unsafe { CONTEXT.as_ref() } {
+        ctx.push_event(name, data);
     }
 }
 

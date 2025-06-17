@@ -2,7 +2,7 @@ use grafbase_telemetry::otel::{opentelemetry::trace::TraceContextExt, tracing_op
 use schema::{AccessControl, HeaderAccessControl, Schema};
 
 use crate::{
-    engine::{Runtime, WasmExtensionContext},
+    engine::{ExtensionContext, Runtime},
     prepare::PreparedOperation,
     response::{GrafbaseResponseExtension, ResponseExtensions},
 };
@@ -35,7 +35,7 @@ pub(crate) fn should_include_grafbase_response_extension(schema: &Schema, header
 
 pub(crate) fn default_response_extensions<R: Runtime>(
     schema: &Schema,
-    ctx: &RequestContext<WasmExtensionContext<R>>,
+    ctx: &RequestContext<ExtensionContext<R>>,
 ) -> ResponseExtensions {
     let mut ext = ResponseExtensions::default();
     if ctx.include_grafbase_response_extension {
@@ -51,7 +51,7 @@ pub(crate) fn default_response_extensions<R: Runtime>(
 
 pub(crate) fn response_extension_for_prepared_operation<R: Runtime>(
     schema: &Schema,
-    ctx: &RequestContext<WasmExtensionContext<R>>,
+    ctx: &RequestContext<ExtensionContext<R>>,
     operation: &PreparedOperation,
 ) -> ResponseExtensions {
     let mut ext = default_response_extensions::<R>(schema, ctx);

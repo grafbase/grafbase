@@ -10,9 +10,8 @@ use runtime_local::{
     operation_cache::{RedisOperationCache, TieredOperationCache},
     rate_limiting::{in_memory::key_based::InMemoryRateLimiter, redis::RedisRateLimiter},
     redis::{RedisPoolFactory, RedisTlsConfig},
-    wasi::hooks::HooksWasi,
 };
-use wasi_component_loader::{AccessLogSender, extension::WasmExtensions, resources::SharedResources};
+use wasi_component_loader::extension::WasmExtensions;
 
 use crate::hot_reload::ConfigWatcher;
 
@@ -23,7 +22,6 @@ pub struct GatewayRuntime {
     pub(super) trusted_documents: runtime::trusted_documents_client::Client,
     kv: runtime::kv::KvStore,
     metrics: EngineMetrics,
-    hooks: HooksWasi,
     pub(crate) extensions: WasmExtensions,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
@@ -38,8 +36,6 @@ impl GatewayRuntime {
         schema: &Arc<Schema>,
         hot_reload_config_path: Option<PathBuf>,
         version_id: Option<ulid::Ulid>,
-        hooks: HooksWasi,
-        access_log: AccessLogSender,
     ) -> Result<GatewayRuntime, crate::Error> {
         tracing::debug!("Build engine runtime.");
 
@@ -94,14 +90,9 @@ impl GatewayRuntime {
         let operation_cache = operation_cache(gateway_config, &mut redis_factory)?;
 
         tracing::debug!("Building extensions");
-        let extensions = WasmExtensions::new(
-            &SharedResources { access_log },
-            extension_catalog,
-            gateway_config,
-            schema,
-        )
-        .await
-        .map_err(|e| crate::Error::InternalError(e.to_string()))?;
+        let extensions = WasmExtensions::new(extension_catalog, gateway_config, schema)
+            .await
+            .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
         let kv = InMemoryKvStore::runtime();
 
@@ -113,7 +104,6 @@ impl GatewayRuntime {
             fetcher: NativeFetcher::new(gateway_config).map_err(|e| crate::Error::FetcherConfigError(e.to_string()))?,
             kv,
             trusted_documents: runtime::trusted_documents_client::Client::new(()),
-            hooks,
             extensions,
             metrics: EngineMetrics::build(&meter, version_id.map(|id| id.to_string())),
             rate_limiter,
@@ -127,7 +117,6 @@ impl GatewayRuntime {
 }
 
 impl engine::Runtime for GatewayRuntime {
-    type Hooks = HooksWasi;
     type Fetcher = NativeFetcher;
     type OperationCache = TieredOperationCache<Arc<CachedOperation>>;
     type Extensions = WasmExtensions;
@@ -143,10 +132,6 @@ impl engine::Runtime for GatewayRuntime {
 
     fn kv(&self) -> &runtime::kv::KvStore {
         &self.kv
-    }
-
-    fn hooks(&self) -> &HooksWasi {
-        &self.hooks
     }
 
     fn operation_cache(&self) -> &Self::OperationCache {

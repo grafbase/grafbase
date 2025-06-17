@@ -1,7 +1,7 @@
 use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    gateway::{AuthorizationExt, AuthorizationTestExtension, DynHookContext, Gateway},
+    gateway::{AuthorizationExt, AuthorizationTestExtension, ExtContext, Gateway},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
@@ -14,7 +14,7 @@ impl AuthorizationTestExtension for MultiDirectives {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        _wasm_context: DynHookContext,
+        _ctx: &ExtContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         _token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
@@ -52,7 +52,7 @@ impl AuthorizationTestExtension for MultiDirectivesBis {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        _wasm_context: DynHookContext,
+        _ctx: &ExtContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         _token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,

@@ -11,7 +11,7 @@ repository.workspace = true
 
 [dependencies]
 crossbeam-queue.workspace = true
-extension-catalog.workspace = true
+enumflags2.workspace = true
 grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
 http.workspace = true

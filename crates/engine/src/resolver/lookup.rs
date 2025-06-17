@@ -1,6 +1,5 @@
 use futures::{FutureExt as _, future::BoxFuture};
 use operation::{Operation, OperationContext};
-use runtime::hooks::Hooks;
 use schema::{LookupResolverDefinition, ResolverDefinitionVariant};
 
 use crate::{
@@ -72,7 +71,7 @@ impl LookupResolver {
         plan: Plan<'ctx>,
         parent_objects: ParentObjects<'_>,
         response_part: ResponsePartBuilder<'ctx>,
-    ) -> BoxFuture<'f, ResolverResult<'ctx, <R::Hooks as Hooks>::OnSubgraphResponseOutput>>
+    ) -> BoxFuture<'f, ResolverResult<'ctx>>
     where
         'ctx: 'f,
     {
@@ -83,10 +82,7 @@ impl LookupResolver {
                     let fut = resolver.execute_guest_batch_lookup(ctx, plan, parent_objects, response_part);
                     async move {
                         let response_part = fut.await;
-                        ResolverResult {
-                            response_part,
-                            on_subgraph_response_hook_output: None,
-                        }
+                        ResolverResult { response_part }
                     }
                     .boxed()
                 }
@@ -94,10 +90,7 @@ impl LookupResolver {
                     let fut = resolver.execute_batch_lookup(ctx, plan, parent_objects, response_part);
                     async move {
                         let response_part = fut.await;
-                        ResolverResult {
-                            response_part,
-                            on_subgraph_response_hook_output: None,
-                        }
+                        ResolverResult { response_part }
                     }
                     .boxed()
                 }
@@ -109,10 +102,7 @@ impl LookupResolver {
                     let fut = resolver.execute_host_batch_lookup(ctx, plan, parent_objects, response_part);
                     async move {
                         let response_part = fut.await;
-                        ResolverResult {
-                            response_part,
-                            on_subgraph_response_hook_output: None,
-                        }
+                        ResolverResult { response_part }
                     }
                     .boxed()
                 }

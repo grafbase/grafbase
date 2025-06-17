@@ -52,8 +52,8 @@ use crate::{SdkError, wit};
 ///
 /// # Arguments
 ///
-/// * `event_name` - The name of the event to be logged. Used in event filtering.
-/// * `log` - The log data to be sent. Must implement `serde::Serialize`.
+/// * `name` - The name of the event to be logged. Used in event filtering.
+/// * `data` - The log data to be sent. Must implement `serde::Serialize`.
 ///
 /// # Returns
 ///
@@ -67,26 +67,28 @@ use crate::{SdkError, wit};
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// #[derive(Serialize)]
-/// struct UserAction {
-///     action: String,
-///     user_id: String,
+/// struct UserAction<'a> {
+///     action: &'a str,
+///     user_id: &'a str,
 /// }
 ///
 /// let action = UserAction {
-///     action: "login".to_string(),
-///     user_id: "user123".to_string(),
+///     action: "login",
+///     user_id: "user123"
 /// };
 ///
 /// event_queue::send("user_action", action)?;
 /// # Ok(())
 /// # }
 /// ```
-pub fn send<T>(event_name: &str, log: T) -> Result<(), SdkError>
+pub fn send<T>(name: &str, data: T) -> Result<(), SdkError>
 where
     T: serde::Serialize,
 {
-    let log = minicbor_serde::to_vec(log)?;
-    crate::component::queue_event(event_name, &log);
+    if !crate::component::can_skip_sending_events() {
+        let data = minicbor_serde::to_vec(data)?;
+        crate::component::queue_event(name, &data);
+    }
 
     Ok(())
 }
@@ -122,7 +124,7 @@ pub enum Event {
     /// An HTTP request that was executed.
     Http(ExecutedHttpRequest),
     /// A custom extension log entry with serialized data.
-    Extension(ExtensionLogEntry),
+    Extension(ExtensionEvent),
 }
 
 impl From<wit::Event> for Event {
@@ -131,7 +133,7 @@ impl From<wit::Event> for Event {
             wit::Event::Operation(executed_operation) => Self::Operation(executed_operation.into()),
             wit::Event::Subgraph(executed_subgraph_request) => Self::Subgraph(executed_subgraph_request.into()),
             wit::Event::Http(executed_http_request) => Self::Http(executed_http_request.into()),
-            wit::Event::Extension(items) => Self::Extension(ExtensionLogEntry(items)),
+            wit::Event::Extension(items) => Self::Extension(ExtensionEvent(items)),
         }
     }
 }
@@ -161,14 +163,14 @@ impl ExecutedOperation {
     ///
     /// This includes parsing, validation, and query planning time.
     pub fn prepare_duration(&self) -> Duration {
-        Duration::from_millis(self.0.prepare_duration_ms)
+        Duration::from_nanos(self.0.prepare_duration_ns)
     }
 
     /// Returns the total duration of the operation execution.
     ///
     /// This includes the actual execution time after preparation.
     pub fn duration(&self) -> Duration {
-        Duration::from_millis(self.0.duration_ms)
+        Duration::from_nanos(self.0.duration_ns)
     }
 
     /// Indicates whether a cached execution plan was used for this operation.
@@ -262,7 +264,7 @@ impl ExecutedSubgraphRequest {
 
     /// Returns the total duration of all execution attempts.
     pub fn total_duration(&self) -> Duration {
-        Duration::from_millis(self.0.total_duration_ms)
+        Duration::from_nanos(self.0.total_duration_ns)
     }
 
     /// Indicates whether any errors were encountered during the subgraph request.
@@ -311,12 +313,12 @@ pub struct SubgraphResponse(wit::SubgraphResponse);
 impl SubgraphResponse {
     /// Returns the time taken to establish a connection to the subgraph.
     pub fn connection_time(&self) -> Duration {
-        Duration::from_millis(self.0.connection_time_ms)
+        Duration::from_nanos(self.0.connection_time_ns)
     }
 
     /// Returns the time taken to receive the complete response from the subgraph.
     pub fn response_time(&self) -> Duration {
-        Duration::from_millis(self.0.response_time_ms)
+        Duration::from_nanos(self.0.response_time_ns)
     }
 
     /// Returns the HTTP status code of the subgraph response.
@@ -390,9 +392,19 @@ impl From<wit::ExecutedHttpRequest> for ExecutedHttpRequest {
 /// Extension logs allow custom data to be included in the event queue stream.
 /// The data is serialized using CBOR format and can be deserialized into
 /// the appropriate type.
-pub struct ExtensionLogEntry(Vec<u8>);
+pub struct ExtensionEvent(wit::ExtensionEvent);
 
-impl ExtensionLogEntry {
+impl ExtensionEvent {
+    /// Event name
+    pub fn event_name(&self) -> &str {
+        &self.0.event_name
+    }
+
+    /// Extension name which produced this event
+    pub fn extension_name(&self) -> &str {
+        &self.0.extension_name
+    }
+
     /// Deserializes the extension log data into the specified type.
     ///
     /// # Type Parameters
@@ -417,7 +429,7 @@ impl ExtensionLogEntry {
     /// }
     ///
     /// // Assuming we have an ExtensionLogEntry
-    /// let log_entry: ExtensionLogEntry = // ... obtained from elsewhere
+    /// let log_entry: ExtensionEvent = // ... obtained from elsewhere
     /// # todo!();
     ///
     /// match log_entry.deserialize::<CustomLog>() {
@@ -429,11 +441,11 @@ impl ExtensionLogEntry {
     ///     }
     /// }
     /// ```
-    pub fn deserialize<T>(&self) -> Result<T, SdkError>
+    pub fn deserialize<'de, T>(&'de self) -> Result<T, SdkError>
     where
-        T: for<'de> serde::Deserialize<'de>,
+        T: serde::Deserialize<'de>,
     {
-        let data = minicbor_serde::from_slice(&self.0)?;
+        let data = minicbor_serde::from_slice(&self.0.data)?;
 
         Ok(data)
     }

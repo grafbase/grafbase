@@ -132,12 +132,9 @@ impl<'ctx> ResponseBuilder<'ctx> {
         }
     }
 
-    pub fn build<OnOperationResponseHookOutput>(
-        mut self,
-        operation_attributes: GraphqlOperationAttributes,
-        on_operation_response_output: OnOperationResponseHookOutput,
-    ) -> Response<OnOperationResponseHookOutput> {
+    pub fn build(mut self, operation_attributes: GraphqlOperationAttributes) -> Response {
         self.error_parts.push(self.errors);
+
         Response::Executed(ExecutedResponse {
             schema: self.schema.clone(),
             operation: self.operation.clone(),
@@ -147,7 +144,6 @@ impl<'ctx> ResponseBuilder<'ctx> {
                 parts: self.data_parts,
             }),
             errors: self.error_parts,
-            on_operation_response_output: Some(on_operation_response_output),
             extensions: Default::default(),
         })
     }

@@ -2796,6 +2796,7 @@ dependencies = [
 name = "hooks"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "grafbase-sdk 0.17.0",
  "indoc",
  "insta",

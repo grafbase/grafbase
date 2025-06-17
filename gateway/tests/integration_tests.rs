@@ -1,4 +1,3 @@
-mod access_logs;
 mod entity_caching;
 mod hooks;
 mod mocks;

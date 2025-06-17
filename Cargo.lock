@@ -2811,6 +2811,7 @@ dependencies = [
  "engine-query-solver",
  "engine-schema",
  "engine-walker",
+ "event-queue",
  "extension-catalog",
  "fixedbitset",
  "futures",
@@ -3085,7 +3086,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba2f4b465f5318854c6f8dd686ede6c0a9dc67d4b1ac241cf0eb51521a309147"
 dependencies = [
  "enumflags2_derive",
- "serde",
 ]
 
 [[package]]
@@ -3199,7 +3199,7 @@ name = "event-queue"
 version = "0.1.0"
 dependencies = [
  "crossbeam-queue",
- "extension-catalog",
+ "enumflags2",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "http 1.3.1",
@@ -3231,7 +3231,6 @@ dependencies = [
 name = "extension"
 version = "0.0.0"
 dependencies = [
- "enumflags2",
  "grafbase-workspace-hack",
  "semver 1.0.26",
  "serde",
@@ -5451,6 +5450,7 @@ dependencies = [
  "engine-auth",
  "engine-axum",
  "engine-schema",
+ "event-queue",
  "extension-catalog",
  "federated-server",
  "futures",
@@ -8377,6 +8377,7 @@ dependencies = [
  "engine",
  "engine-schema",
  "enumflags2",
+ "event-queue",
  "extension-catalog",
  "futures-util",
  "fxhash",

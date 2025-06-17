@@ -8,18 +8,17 @@ use engine::{CachedOperation, Schema};
 use engine_auth::AuthenticationService;
 use extension_catalog::Extension;
 use gateway_config::Config;
-use grafbase_telemetry::metrics::{self, EngineMetrics, meter_from_global_provider};
+use grafbase_telemetry::metrics::{self, EngineMetrics};
 use runtime::{entity_cache::EntityCache, fetch::dynamic::DynamicFetcher, trusted_documents_client};
 use runtime_local::{
     InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher,
-    rate_limiting::in_memory::key_based::InMemoryRateLimiter, wasi::hooks::HooksWasi,
+    rate_limiting::in_memory::key_based::InMemoryRateLimiter,
 };
 use tokio::sync::watch;
 
 pub use context::*;
 pub use extension::*;
 pub use hooks::*;
-use wasi_component_loader::{ComponentLoader, resources::SharedResources};
 
 pub struct TestRuntime {
     pub fetcher: DynamicFetcher,
@@ -27,19 +26,17 @@ pub struct TestRuntime {
     pub kv: runtime::kv::KvStore,
     pub operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
     pub metrics: EngineMetrics,
-    pub hooks: DynamicHooks,
-    pub hooks_extension: Option<Extension>,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
     pub entity_cache: InMemoryEntityCache,
     pub extensions: ExtensionsDispatcher,
     pub authentication: engine_auth::AuthenticationService<ExtensionsDispatcher>,
+    pub hooks: TestHooks,
 }
 
 pub(super) struct TestRuntimeBuilder {
     pub trusted_documents: Option<trusted_documents_client::Client>,
-    pub hooks: Option<DynamicHooks>,
-    pub hooks_extension: Option<Extension>,
     pub fetcher: Option<DynamicFetcher>,
+    pub hooks_extension: Option<Extension>,
     pub extensions: ExtensionsBuilder,
 }
 
@@ -48,33 +45,15 @@ impl TestRuntimeBuilder {
         self,
         config: &mut Config,
         schema: &Arc<Schema>,
-        shared_resources: SharedResources,
     ) -> Result<TestRuntime, String> {
         let TestRuntimeBuilder {
             trusted_documents,
-            hooks,
             hooks_extension,
             fetcher,
             extensions,
         } = self;
 
-        let (extensions, catalog) = extensions
-            .build_and_ingest_catalog_into_config(config, schema, shared_resources.clone())
-            .await?;
-
-        let hooks = if let Some(hooks_config) = config.hooks.clone() {
-            let loader = ComponentLoader::hooks(hooks_config)
-            .ok()
-            .flatten()
-            .expect("Wasm examples weren't built, please run:\ncd crates/wasi-component-loader/examples && cargo build --target wasm32-wasip2");
-
-            let meter = meter_from_global_provider();
-            let hooks = HooksWasi::new(Some(loader), None, &meter, shared_resources.access_log.clone()).await;
-
-            DynamicHooks::wrap(hooks)
-        } else {
-            hooks.unwrap_or_default()
-        };
+        let (extensions, catalog) = extensions.build_and_ingest_catalog_into_config(config, schema).await?;
 
         let kv = InMemoryKvStore::runtime();
         let authentication = engine_auth::AuthenticationService::new(config, &catalog, extensions.clone(), &kv);
@@ -88,13 +67,12 @@ impl TestRuntimeBuilder {
             trusted_documents: trusted_documents.unwrap_or_else(|| trusted_documents_client::Client::new(())),
             kv,
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
-            hooks,
-            hooks_extension,
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
             operation_cache: InMemoryOperationCache::default(),
             extensions,
             authentication,
+            hooks: TestHooks::new(config, hooks_extension).await,
         })
     }
 }
@@ -102,34 +80,35 @@ impl TestRuntimeBuilder {
 impl Default for TestRuntime {
     fn default() -> Self {
         let (_, rx) = watch::channel(Default::default());
+
         let fetcher =
             DynamicFetcher::wrap(NativeFetcher::new(&Config::default()).expect("couldnt construct NativeFetcher"));
-        let hooks = DynamicHooks::default();
+
         let kv = InMemoryKvStore::runtime();
+
         let authentication = engine_auth::AuthenticationService::new(
             &Config::default(),
             &Default::default(),
             ExtensionsDispatcher::default(),
             &kv,
         );
+
         Self {
             fetcher,
             trusted_documents: trusted_documents_client::Client::new(()),
             kv,
             operation_cache: InMemoryOperationCache::default(),
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
-            hooks,
-            hooks_extension: None,
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
             extensions: ExtensionsDispatcher::default(),
+            hooks: TestHooks::default(),
             authentication,
         }
     }
 }
 
 impl engine::Runtime for TestRuntime {
-    type Hooks = DynamicHooks;
     type Fetcher = DynamicFetcher;
     type OperationCache = InMemoryOperationCache<Arc<CachedOperation>>;
     type Extensions = ExtensionsDispatcher;
@@ -145,10 +124,6 @@ impl engine::Runtime for TestRuntime {
 
     fn trusted_documents(&self) -> &trusted_documents_client::Client {
         &self.trusted_documents
-    }
-
-    fn hooks(&self) -> &Self::Hooks {
-        &self.hooks
     }
 
     fn operation_cache(&self) -> &Self::OperationCache {

@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use operation::{RawVariables, Variables};
-use runtime::hooks::Hooks;
 
 use crate::{
     ErrorCode, Runtime,
@@ -16,7 +15,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
         &mut self,
         cached: Arc<CachedOperation>,
         variables: RawVariables,
-    ) -> Result<PreparedOperation, Response<<R::Hooks as Hooks>::OnOperationResponseOutput>> {
+    ) -> Result<PreparedOperation, Response> {
         // GraphQL-over-HTTP spec:
         //   GET requests MUST NOT be used for executing mutation operations. If the values of {query} and {operationName} indicate that
         //   a mutation operation is to be executed, the server MUST respond with error status code 405 (Method Not Allowed) and halt

@@ -2,9 +2,9 @@ mod bench;
 mod engine;
 mod router;
 
-use std::{any::TypeId, collections::HashSet, fmt::Display, fs, path::PathBuf, sync::Arc};
+use std::{any::TypeId, collections::HashSet, fmt::Display, fs, path::Path, sync::Arc};
 
-use crate::{TestTrustedDocument, mock_trusted_documents::MockTrustedDocumentsClient};
+use crate::{TestTrustedDocument, gateway::EXTENSIONS_DIR, mock_trusted_documents::MockTrustedDocumentsClient};
 pub use bench::*;
 use extension_catalog::Extension;
 use futures::{FutureExt, future::BoxFuture};
@@ -16,7 +16,7 @@ use runtime::{
 use tempfile::TempDir;
 
 use super::{
-    AnyExtension, DockerSubgraph, DynamicHooks, ExtensionsBuilder, Gateway, TestRuntime, TestRuntimeBuilder,
+    AnyExtension, DockerSubgraph, ExtensionsBuilder, Gateway, TestRuntime, TestRuntimeBuilder,
     subgraph::{Subgraph, Subgraphs},
 };
 
@@ -49,7 +49,6 @@ impl Default for GatewayBuilder {
             config: Default::default(),
             runtime: TestRuntimeBuilder {
                 trusted_documents: Default::default(),
-                hooks: Default::default(),
                 fetcher: Default::default(),
                 extensions: ExtensionsBuilder::new(extensions_dir),
                 hooks_extension: None,
@@ -115,8 +114,8 @@ impl GatewayBuilder {
         self
     }
 
-    pub async fn with_hook_extension(mut self, path: impl Into<PathBuf>) -> Self {
-        let path = path.into();
+    pub async fn with_hook_extension(mut self, name: &str) -> Self {
+        let path = Path::new(EXTENSIONS_DIR).join(name).join("build");
 
         let manifest_path = path.join("manifest.json");
         let manifest = fs::read_to_string(manifest_path).unwrap();
@@ -129,11 +128,6 @@ impl GatewayBuilder {
 
         self.runtime.hooks_extension = Some(extension);
 
-        self
-    }
-
-    pub fn with_mock_hooks(mut self, hooks: impl Into<DynamicHooks>) -> Self {
-        self.runtime.hooks = Some(hooks.into());
         self
     }
 
@@ -170,16 +164,13 @@ impl GatewayBuilder {
         )
         .await;
 
-        let hooks_extension = runtime.hooks_extension.clone();
-        let (engine, context) = self::engine::build(tmpdir.path(), federated_sdl, config, runtime, &subgraphs).await?;
-
-        let router = self::router::build(engine.clone(), gateway_config, hooks_extension).await;
+        let engine = self::engine::build(tmpdir.path(), federated_sdl, config, runtime, &subgraphs).await?;
+        let router = self::router::build(engine.clone(), gateway_config).await;
 
         Ok(Gateway {
             tmpdir: Arc::new(tmpdir),
             router,
             engine,
-            context: Arc::new(context),
             subgraphs,
         })
     }

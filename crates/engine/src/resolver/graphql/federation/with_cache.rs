@@ -2,7 +2,7 @@ use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
 use futures::future::join_all;
-use runtime::hooks::GraphqlResponseStatus;
+use grafbase_telemetry::graphql::GraphqlResponseStatus;
 use serde::{
     Deserializer,
     de::{DeserializeSeed, IgnoredAny, SeqAccess, Visitor},

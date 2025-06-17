@@ -1,11 +1,9 @@
 use std::{path::Path, str::FromStr, sync::Arc};
 
-use crate::gateway::{TestRuntimeBuilder, TestRuntimeContext, subgraph::Subgraphs};
+use crate::gateway::{TestRuntimeBuilder, subgraph::Subgraphs};
 use gateway_config::Config;
-use runtime_local::wasi::hooks;
 
 use engine::Engine;
-use wasi_component_loader::resources::SharedResources;
 
 use super::{TestConfig, TestRuntime};
 
@@ -15,7 +13,7 @@ pub(super) async fn build(
     mut config: TestConfig,
     runtime: TestRuntimeBuilder,
     subgraphs: &Subgraphs,
-) -> Result<(Arc<Engine<TestRuntime>>, TestRuntimeContext), String> {
+) -> Result<Arc<Engine<TestRuntime>>, String> {
     let federated_sdl = {
         let mut federated_graph = match federated_sdl {
             Some(sdl) => graphql_composition::FederatedGraph::from_sdl(&sdl).unwrap(),
@@ -71,12 +69,6 @@ pub(super) async fn build(
         sdl
     };
 
-    let counter = grafbase_telemetry::metrics::meter_from_global_provider()
-        .i64_up_down_counter("grafbase.gateway.access_log.pending")
-        .build();
-
-    let (access_log_sender, access_log_receiver) = hooks::create_access_log_channel(false, counter);
-
     if config.add_websocket_url {
         for subgraph in subgraphs.iter() {
             let name = subgraph.name();
@@ -102,20 +94,11 @@ pub(super) async fn build(
             .map_err(|err| err.to_string())?,
     );
 
-    let runtime = runtime
-        .finalize_runtime_and_config(
-            &mut config,
-            &schema,
-            SharedResources {
-                access_log: access_log_sender,
-            },
-        )
-        .await?;
+    let runtime = runtime.finalize_runtime_and_config(&mut config, &schema).await?;
 
     println!("=== CONFIG ===\n{:#?}\n", config);
 
     let engine = engine::Engine::new(schema, runtime).await;
-    let ctx = TestRuntimeContext { access_log_receiver };
 
-    Ok((Arc::new(engine), ctx))
+    Ok(Arc::new(engine))
 }
