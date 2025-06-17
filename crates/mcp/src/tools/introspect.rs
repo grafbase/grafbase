@@ -22,7 +22,11 @@ impl<R: engine::Runtime> Tool for IntrospectTool<R> {
         format!("Provide the complete GraphQL SDL for the requested types. Always use `{}` first to identify relevant fields before if information on a specific type was not explicitly requested. Continue using this tool until you have the definition of all nested types you intend to query.", SearchTool::<R>::name()).into()
     }
 
-    async fn call(&self, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {
+    async fn call(
+        &self,
+        parameters: Self::Parameters,
+        _http_headers: Option<http::HeaderMap>,
+    ) -> anyhow::Result<CallToolResult> {
         Ok(self.introspect(parameters.types).into())
     }
 

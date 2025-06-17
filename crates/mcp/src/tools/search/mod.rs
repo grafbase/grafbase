@@ -42,7 +42,11 @@ impl<R: engine::Runtime> Tool for SearchTool<R> {
         format!("Search for relevant fields to use in a GraphQL query. A list of matching fields with their score is returned with partial GraphQL SDL indicating how to query them. Use `{}` tool to request additional information on children field types if necessary to refine the selection set.", IntrospectTool::<R>::name()).into()
     }
 
-    async fn call(&self, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {
+    async fn call(
+        &self,
+        parameters: Self::Parameters,
+        _headers: Option<http::HeaderMap>,
+    ) -> anyhow::Result<CallToolResult> {
         let resp = self.schema_index.borrow().clone().search(parameters.keywords)?;
         Ok(SdlAndErrors {
             sdl: resp.sdl,

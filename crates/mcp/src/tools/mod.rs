@@ -9,20 +9,32 @@ pub use introspect::*;
 pub use search::*;
 use std::borrow::Cow;
 
-use rmcp::model::{CallToolResult, Content, ErrorCode, ErrorData, JsonObject, ToolAnnotations};
+use rmcp::{
+    RoleServer,
+    model::{CallToolResult, Content, ErrorCode, ErrorData, JsonObject, ToolAnnotations},
+    service::RequestContext,
+};
 
 pub(crate) trait Tool: Send + Sync + 'static {
     type Parameters: serde::de::DeserializeOwned + schemars::JsonSchema;
     fn name() -> &'static str;
     fn description(&self) -> Cow<'_, str>;
-    fn call(&self, parameters: Self::Parameters) -> impl Future<Output = anyhow::Result<CallToolResult>> + Send;
+    fn call(
+        &self,
+        parameters: Self::Parameters,
+        http_headers: Option<http::HeaderMap>,
+    ) -> impl Future<Output = anyhow::Result<CallToolResult>> + Send;
     fn annotations(&self) -> ToolAnnotations;
 }
 
 pub(crate) trait RmcpTool: Send + Sync + 'static {
     fn name(&self) -> &str;
     fn to_tool(&self) -> rmcp::model::Tool;
-    fn call(&self, parameters: Option<JsonObject>) -> BoxFuture<'_, Result<CallToolResult, ErrorData>>;
+    fn call(
+        &self,
+        parameters: Option<JsonObject>,
+        context: RequestContext<RoleServer>,
+    ) -> BoxFuture<'_, Result<CallToolResult, ErrorData>>;
 }
 
 impl<T: Tool> RmcpTool for T {
@@ -40,12 +52,20 @@ impl<T: Tool> RmcpTool for T {
             .annotate(self.annotations())
     }
 
-    fn call(&self, parameters: Option<JsonObject>) -> BoxFuture<'_, Result<CallToolResult, ErrorData>> {
+    fn call(
+        &self,
+        parameters: Option<JsonObject>,
+        mut context: RequestContext<RoleServer>,
+    ) -> BoxFuture<'_, Result<CallToolResult, ErrorData>> {
+        let http_headers = context
+            .extensions
+            .get_mut::<http::request::Parts>()
+            .map(|parts| std::mem::take(&mut parts.headers));
         Box::pin(async move {
             let parameters: T::Parameters =
                 serde_json::from_value(serde_json::Value::Object(parameters.unwrap_or_default()))
                     .map_err(|err| ErrorData::new(ErrorCode::INVALID_PARAMS, err.to_string(), None))?;
-            match Tool::call(self, parameters).await {
+            match Tool::call(self, parameters, http_headers).await {
                 Ok(data) => Ok(data),
                 Err(err) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, err.to_string(), None)),
             }

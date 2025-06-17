@@ -33,7 +33,7 @@ pub fn router<R: Runtime>(
             let mcp_server = server::McpServer::new(engine.clone(), execute_mutations).unwrap();
 
             let service = StreamableHttpService::new(
-                move || mcp_server.clone(),
+                move || Ok(mcp_server.clone()),
                 Arc::new(LocalSessionManager::default()),
                 StreamableHttpServerConfig {
                     sse_keep_alive: Some(Duration::from_secs(5)),

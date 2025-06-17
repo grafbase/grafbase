@@ -73,8 +73,12 @@ impl<R: engine::Runtime> Tool for ExecuteTool<R> {
         "Executes a GraphQL request. Additional GraphQL SDL may be provided upon errors.".into()
     }
 
-    async fn call(&self, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {
-        let EngineResponse { schema, json, mcp } = self.execute(parameters).await?;
+    async fn call(
+        &self,
+        parameters: Self::Parameters,
+        http_headers: Option<http::HeaderMap>,
+    ) -> anyhow::Result<CallToolResult> {
+        let EngineResponse { schema, json, mcp } = self.execute(parameters, http_headers).await?;
         let mut content = vec![Content::text(String::from_utf8(json).unwrap())];
         if let Some(McpResponseExtension { mut site_ids }) = mcp {
             if !site_ids.is_empty() {
@@ -116,7 +120,7 @@ impl<R: engine::Runtime> ExecuteTool<R> {
         }
     }
 
-    async fn execute(&self, request: Request) -> anyhow::Result<EngineResponse> {
+    async fn execute(&self, request: Request, http_headers: Option<http::HeaderMap>) -> anyhow::Result<EngineResponse> {
         let engine = self.engine.borrow().clone();
         let mut body = Vec::new();
         let mut serializer = minicbor_serde::Serializer::new(&mut body);
@@ -125,9 +129,16 @@ impl<R: engine::Runtime> ExecuteTool<R> {
         serializer.serialize_unit_as_null(true);
         request.serialize(&mut serializer)?;
 
-        let http_request = http::Request::builder()
-            .header("Content-Type", "application/cbor")
-            .header("Accept", "application/json")
+        let mut headers = http_headers.unwrap_or_default();
+
+        headers.insert("Content-Type", "application/cbor".parse().unwrap());
+        headers.insert("Accept", "application/json".parse().unwrap());
+
+        let mut http_request = http::Request::builder();
+
+        *http_request.headers_mut().unwrap() = headers;
+
+        let http_request = http_request
             .method(http::Method::POST)
             .extension(McpRequestContext {
                 execute_mutations: self.execute_mutations,

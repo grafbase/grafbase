@@ -104,8 +104,8 @@ impl Gateway {
         McpStream::new(self.router.clone(), path).await
     }
 
-    pub async fn mcp_http(&self, path: &str) -> McpHttpClient {
-        McpHttpClient::new(self.router.clone(), path).await
+    pub fn mcp_http(&self, path: &str) -> McpHttpClientBuilder {
+        McpHttpClientBuilder::new(self.router.clone(), path)
     }
 
     pub fn execute(&self, method: http::Method, path: &str, request: impl Into<GraphQlRequest>) -> TestRequest {

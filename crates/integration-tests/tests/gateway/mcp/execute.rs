@@ -1,4 +1,4 @@
-use graphql_mocks::dynamic::DynamicSchema;
+use graphql_mocks::{EchoSchema, dynamic::DynamicSchema};
 use integration_tests::{gateway::Gateway, runtime};
 use serde_json::json;
 
@@ -118,7 +118,7 @@ fn execute_mutation_is_rejected() {
 }
 
 #[test]
-fn execute_mutation_is_acepted_if_configured() {
+fn execute_mutation_is_accepted_if_configured() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_subgraph(
@@ -176,4 +176,58 @@ fn execute_mutation_is_acepted_if_configured() {
         }
         "#);
     });
+}
+
+#[tokio::test]
+async fn execute_with_header() {
+    let engine = Gateway::builder()
+        .with_subgraph(EchoSchema)
+        .with_toml_config(
+            r#"
+            [mcp]
+            enabled = true
+
+            [[headers]]
+            rule = "forward"
+            name = "authorization"
+
+            [[headers]]
+            rule = "forward"
+            name = "x-test"
+        "#,
+        )
+        .build()
+        .await;
+
+    let mut headers = http::HeaderMap::new();
+
+    headers.insert("AUTHORIZATION", "Bearer token".parse().unwrap());
+    headers.insert("x-test", "test".parse().unwrap());
+
+    let mut stream = engine.mcp_http("/mcp").with_headers(headers).await;
+
+    let response = stream
+        .call_tool(
+            "execute",
+            json!({"query": "query {
+                authorization: header(name: \"authorization\")
+                xTest: header(name: \"x-test\")
+            }"}),
+        )
+        .await;
+
+    insta::assert_json_snapshot!(&response, @r#"
+    {
+      "result": {
+        "content": [
+          {
+            "data": {
+              "authorization": "Bearer token",
+              "xTest": "test"
+            }
+          }
+        ]
+      }
+    }
+    "#);
 }
