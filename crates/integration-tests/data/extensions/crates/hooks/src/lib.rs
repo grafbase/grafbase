@@ -54,8 +54,6 @@ impl HooksExtension for Hooks {
         if let Some(ref name) = self.config.events_header_name {
             let mut events_json = Vec::new();
 
-            events_json.push(serde_json::json!("Hi! I'm a static event."));
-
             while let Some(event) = queue.pop() {
                 let event_json = match event {
                     Event::Operation(op) => {

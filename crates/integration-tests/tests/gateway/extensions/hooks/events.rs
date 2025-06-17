@@ -39,20 +39,26 @@ fn receive_events() {
         .decode(bytes)
         .unwrap_or_default();
     let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-    insta::assert_json_snapshot!(value, @r#"
+    insta::assert_json_snapshot!(value,
+        {
+            "[].duration_ms" => "[redacted]",
+            "[].prepare_duration_ms" => "[redacted]",
+            "[].total_duration_ms" => "[redacted]"
+        },
+        @r#"
     [
-      "Hi! I'm a static event.",
       {
         "cached_plan": false,
         "document": "query { header(name: \"\") }",
-        "duration_ms": 2,
+        "duration_ms": "[redacted]",
         "name": null,
-        "prepare_duration_ms": 0,
+        "prepare_duration_ms": "[redacted]",
         "status": {
           "type": "success"
         },
         "type": "operation"
       }
     ]
-    "#);
+    "#
+    );
 }
