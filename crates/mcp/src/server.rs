@@ -29,7 +29,7 @@ impl std::ops::Deref for McpServer {
 }
 
 impl McpServer {
-    pub fn new(engine: EngineWatcher<impl engine::Runtime>, execute_mutations: bool) -> anyhow::Result<Self> {
+    pub(crate) fn new(engine: EngineWatcher<impl engine::Runtime>, execute_mutations: bool) -> anyhow::Result<Self> {
         Ok(Self(Arc::new(McpServerInner {
             info: ServerInfo {
                 protocol_version: ProtocolVersion::V_2024_11_05,
@@ -65,10 +65,10 @@ impl ServerHandler for McpServer {
     async fn call_tool(
         &self,
         CallToolRequestParam { name, arguments }: CallToolRequestParam,
-        _: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
         if let Some(tool) = self.tools.iter().find(|tool| tool.name() == name) {
-            return tool.call(arguments).await;
+            return tool.call(arguments, context).await;
         }
 
         Err(ErrorData::new(

@@ -33,8 +33,38 @@ pub struct McpHttpClient {
     client: rmcp::service::RunningService<rmcp::service::RoleClient, rmcp::model::InitializeRequestParam>,
 }
 
+pub struct McpHttpClientBuilder {
+    pub(crate) router: Router,
+    pub(crate) path: String,
+    pub(crate) headers: http::HeaderMap,
+}
+
+impl McpHttpClientBuilder {
+    pub fn new(router: Router, path: impl Into<String>) -> Self {
+        Self {
+            router,
+            path: path.into(),
+            headers: Default::default(),
+        }
+    }
+
+    pub fn with_headers(mut self, headers: http::HeaderMap) -> Self {
+        self.headers = headers;
+        self
+    }
+}
+
+impl std::future::IntoFuture for McpHttpClientBuilder {
+    type Output = McpHttpClient;
+    type IntoFuture = Pin<Box<dyn std::future::Future<Output = Self::Output> + Send>>;
+
+    fn into_future(self) -> Self::IntoFuture {
+        Box::pin(async move { McpHttpClient::new(self.router, &self.path, self.headers).await })
+    }
+}
+
 #[derive(Debug, Clone)]
-struct RouterClient(Router);
+struct RouterClient(Router, http::HeaderMap);
 
 impl StreamableHttpClient for RouterClient {
     type Error = std::io::Error;
@@ -54,6 +84,11 @@ impl StreamableHttpClient for RouterClient {
             .uri(uri.as_ref())
             .header(ACCEPT, [EVENT_STREAM_MIME_TYPE, JSON_MIME_TYPE].join(", "))
             .header(CONTENT_TYPE, JSON_MIME_TYPE);
+
+        for (name, value) in &self.1 {
+            request_builder = request_builder.header(name, value);
+        }
+
         if let Some(auth_header) = auth_header {
             request_builder = request_builder.header("Authorization", format!("Bearer {auth_header}"));
         }
@@ -178,9 +213,9 @@ impl StreamableHttpClient for RouterClient {
 }
 
 impl McpHttpClient {
-    pub(crate) async fn new(router: Router, path: &str) -> Self {
+    pub(crate) async fn new(router: Router, path: &str, headers: http::HeaderMap) -> Self {
         let transport = StreamableHttpClientTransport::with_client(
-            RouterClient(router),
+            RouterClient(router, headers),
             StreamableHttpClientTransportConfig {
                 uri: Arc::from(format!("http://127.0.0.1{path}").into_boxed_str()),
                 retry_config: Arc::new(ExponentialBackoff::default()),
