@@ -1,0 +1,14 @@
+[subgraphs.countries]
+schema_path = "./subgraphs/countries/schema.graphql"
+
+[subgraphs.zendesk]
+schema_path = "./subgraphs/zendesk/schema.graphql"
+
+[subgraphs.geo-api]
+schema_path = "./subgraphs/geo-api/schema.graphql"
+
+[extensions.rest]
+version = "0.5"
+
+[extensions.geo]
+path = "./extensions/geo/build"

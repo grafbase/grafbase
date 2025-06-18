@@ -1,0 +1,5 @@
+version = "1"
+
+[[extensions]]
+name = "rest"
+version = "0.5.0"

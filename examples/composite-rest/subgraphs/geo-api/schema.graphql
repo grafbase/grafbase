@@ -1,0 +1,39 @@
+extend schema
+  @link(
+    url: "file:///var/lib/grafbase/extensions/geo/build"
+    import: ["@geo"]
+  )
+  @link(
+    url: "https://specs.grafbase.com/composite-schemas/v1"
+    import: ["@lookup", "@key", "@is", "@inaccessible", "@derive", "@require"]
+  )
+
+type Query {
+  commune(code: String): Commune @geo
+  departement(code: String): Departement @geo
+  region(code: String): Region @geo @lookup
+}
+
+type Commune {
+  code: String!
+  codeRegion: String! @inaccessible
+  region: Region! @derive @is(field: "{ code: codeRegion }")
+  codeDepartement: String! @inaccessible
+  departement(code: String! @require(field: "codeDepartement")): Departement! @geo
+  nom: String!
+  population: Int!
+}
+
+type Region @key(fields: "code") {
+  code: String!
+  nom: String!
+  chefLieu: String!
+}
+
+type Departement {
+  code: String!
+  nom: String!
+  codeRegion: String! @inaccessible
+  region: Region! @derive @is(field: "{ code: codeRegion }")
+  chefLieu: String!
+}
