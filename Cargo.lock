@@ -2237,9 +2237,9 @@ dependencies = [
 
 [[package]]
 name = "cynic"
-version = "3.10.0"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c99c59968c8aa7f90d84240ab6ded4d3864125ce36b5b044554542cebc974946"
+checksum = "8931dbf88c6bc3a09e4721b8342a34d73abb0586ef9e4cb10712c994617b3347"
 dependencies = [
  "cynic-proc-macros",
  "ref-cast",
@@ -2253,9 +2253,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-codegen"
-version = "3.10.0"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "332695dddff7f260dfda1e97502b6440d443816f576994548b7751494991d2e3"
+checksum = "728467a89a305811848807cbf2bf23d421c1e99052bf7700d08b17dd7b846a28"
 dependencies = [
  "cynic-parser",
  "darling",
@@ -2270,9 +2270,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-introspection"
-version = "3.10.0"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "599917874a01992b0bc254599da2bae33c066fc33a4fc99157c17d938221046c"
+checksum = "84855a1f755acfcfa0a810aad7c85cc9fe4b093cbd5d5a39c023b1d9431e4f40"
 dependencies = [
  "cynic",
  "cynic-codegen",
@@ -2316,9 +2316,9 @@ dependencies = [
 
 [[package]]
 name = "cynic-proc-macros"
-version = "3.10.0"
+version = "3.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7880789c425a73aff3ba286b2a9c794f330d4770769a42a1493d6175e4606c1"
+checksum = "8069a1fd8d13d09c56d22ec4096329ee5735d0296ac78b7a7c30a9c76537f4ba"
 dependencies = [
  "cynic-codegen",
  "darling",
@@ -6571,7 +6571,7 @@ version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51e219e79014df21a225b1860a479e2dcd7cbd9130f4defd4bd0e191ea31d67d"
 dependencies = [
- "base64 0.21.7",
+ "base64 0.22.1",
  "chrono",
  "getrandom 0.2.15",
  "http 1.3.1",
@@ -7408,7 +7408,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "syn 2.0.100",
