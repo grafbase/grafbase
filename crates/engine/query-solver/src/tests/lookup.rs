@@ -61,6 +61,8 @@ async fn direct_lookup_call() {
 
     let schema = Schema::builder(&sdl).extensions(None, &catalog).build().await.unwrap();
 
+    // The tricky part here is that one can easily end up using the lookup variant even though the
+    // field is resolvable because we need special treatment to handle nested resolvers.
     assert_solving_snapshots!(
         "direct_lookup_call",
         schema,

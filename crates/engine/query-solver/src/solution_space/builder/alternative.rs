@@ -154,7 +154,7 @@ where
                     None
                 }
             })
-            .map(|node| node.subgraph_id)
+            .map(|node| node.resolver_definition_id.walk(self.schema).subgraph_id())
             .collect::<Vec<_>>();
         subgraph_ids.sort_unstable();
         subgraph_ids.dedup();

@@ -3,6 +3,7 @@ mod basic;
 mod cycle;
 mod derive;
 mod entities;
+mod extension;
 mod flatten;
 mod inaccessible;
 mod interface;

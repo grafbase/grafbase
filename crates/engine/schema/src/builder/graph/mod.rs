@@ -122,6 +122,18 @@ impl GraphBuilder<'_> {
         }
     }
 
+    pub(crate) fn get_subgraph_id(&self, id: ResolverDefinitionId) -> SubgraphId {
+        match &self.graph[id] {
+            ResolverDefinitionRecord::FieldResolverExtension(record) => self.graph[record.directive_id].subgraph_id,
+            ResolverDefinitionRecord::GraphqlFederationEntity(record) => record.endpoint_id.into(),
+            ResolverDefinitionRecord::GraphqlRootField(record) => record.endpoint_id.into(),
+            ResolverDefinitionRecord::Introspection => SubgraphId::Introspection,
+            ResolverDefinitionRecord::Lookup(id) => self.get_subgraph_id(self.graph[*id].resolver_id),
+            ResolverDefinitionRecord::Extension(record) => record.subgraph_id.into(),
+            ResolverDefinitionRecord::SelectionSetResolverExtension(record) => record.subgraph_id.into(),
+        }
+    }
+
     pub(crate) fn type_name(&self, ty: TypeRecord) -> String {
         let name = &self.ctx[self.definition_name_id(ty.definition_id)];
         ty.wrapping.type_display(name).to_string()

@@ -131,6 +131,10 @@ fn add_lookup_entity_resolvers(
     batch: bool,
     lookup_keys: Vec<(FieldSetRecord, IdRange<ArgumentInjectionId>)>,
 ) {
+    let field_ids = match output {
+        EntityDefinitionId::Object(id) => graph[id].field_ids,
+        EntityDefinitionId::Interface(id) => graph[id].field_ids,
+    };
     let mut resolvers = Vec::new();
     for (key, injection_ids) in lookup_keys {
         debug_assert!(resolvers.is_empty());
@@ -146,10 +150,6 @@ fn add_lookup_entity_resolvers(
             resolvers.push(graph.resolver_definitions.len().into());
             graph.resolver_definitions.push(lookup_resolver_id.into());
         }
-        let field_ids = match output {
-            EntityDefinitionId::Object(id) => graph[id].field_ids,
-            EntityDefinitionId::Interface(id) => graph[id].field_ids,
-        };
         for field_id in field_ids {
             // If part of the key we can't be provided by this resolver.
             if key

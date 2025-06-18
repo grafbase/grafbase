@@ -65,9 +65,13 @@ struct Versions {
 }
 
 fn check_rust() -> anyhow::Result<()> {
-    let rustup = new_command("rustup").arg("--version").output()?;
+    let rustup_exists = new_command("rustup")
+        .arg("--version")
+        .output()
+        .map(|result| result.status.success())
+        .unwrap_or_default();
 
-    if !rustup.status.success() {
+    if !rustup_exists {
         anyhow::bail!(
             "A working rustup installation is required to build extensions. Please install it from https://rustup.rs/ before continuing."
         );
@@ -100,6 +104,18 @@ fn check_rust() -> anyhow::Result<()> {
 }
 
 fn install_wasm_target_if_needed() -> anyhow::Result<()> {
+    let rustc_exists = new_command("rustc")
+        .arg("--version")
+        .output()
+        .map(|result| result.status.success())
+        .unwrap_or_default();
+
+    if !rustc_exists {
+        anyhow::bail!(
+            "Rust must be installed to build extensions. Please install it from https://rustup.rs/ before continuing."
+        );
+    }
+
     let output = new_command("rustc")
         .arg("--print")
         .arg("sysroot")

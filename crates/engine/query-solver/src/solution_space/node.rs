@@ -1,9 +1,7 @@
 use std::borrow::Cow;
 
 use operation::OperationContext;
-use schema::{
-    DeriveDefinitionId, EntityDefinitionId, FieldDefinitionId, FieldSetRecord, ResolverDefinitionId, SubgraphId,
-};
+use schema::{DeriveDefinitionId, EntityDefinitionId, FieldDefinitionId, FieldSetRecord, ResolverDefinitionId};
 use walker::Walk as _;
 
 use crate::{FieldFlags, QueryFieldId, dot_graph::Attrs};
@@ -38,13 +36,13 @@ impl SpaceNode<'_> {
             )
             .into(),
             SpaceNode::ProvidableField(ProvidableField {
-                subgraph_id,
+                resolver_definition_id,
                 query_field_id,
                 only_providable,
                 derive: dervied_from_id,
                 ..
             }) => {
-                let subgraph = subgraph_id.walk(ctx).name();
+                let subgraph = resolver_definition_id.walk(ctx).subgraph().name();
                 let label = crate::query::dot_graph::short_field_label(ctx, &query[*query_field_id]);
 
                 match (only_providable, dervied_from_id) {
@@ -98,7 +96,7 @@ pub(crate) struct Resolver {
 
 #[derive(Debug, Clone)]
 pub(crate) struct ProvidableField<'ctx> {
-    pub subgraph_id: SubgraphId,
+    pub resolver_definition_id: ResolverDefinitionId,
     pub query_field_id: QueryFieldId,
     pub provides: Cow<'ctx, FieldSetRecord>,
     pub only_providable: bool,

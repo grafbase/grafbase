@@ -255,18 +255,23 @@ fn bind_selected_object_value<T: Target>(
         if fields.iter().any(|field| field.id == id) {
             continue;
         }
-        if let Some(default_value) = target_field.default_value(ctx) {
-            fields.push(BoundSelectedObjectField {
-                id,
-                value: SelectedValueOrField::DefaultValue(default_value),
-            });
-            continue;
-        } else if wrapping.is_non_null() {
-            return Err(format!(
-                "For {}, field '{}' is required but it's missing from the FieldSelectionMap",
-                target.display(ctx),
-                ctx[name_id]
-            ));
+        match target_field.on_missing_field(ctx) {
+            OnMissingField::DefaultValue(default_value) => {
+                fields.push(BoundSelectedObjectField {
+                    id,
+                    value: SelectedValueOrField::DefaultValue(default_value),
+                });
+            }
+            OnMissingField::Providable => continue,
+            OnMissingField::None => {
+                if wrapping.is_non_null() {
+                    return Err(format!(
+                        "For {}, field '{}' is required but it's missing from the FieldSelectionMap",
+                        target.display(ctx),
+                        ctx[name_id]
+                    ));
+                }
+            }
         }
     }
     Ok(BoundSelectedObjectValue { fields })

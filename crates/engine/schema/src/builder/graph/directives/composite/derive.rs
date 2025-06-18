@@ -3,8 +3,8 @@ use itertools::Itertools as _;
 
 use crate::{
     DeriveDefinitionRecord, DeriveMappingRecord, DeriveObjectFieldRecord, DeriveObjectRecord,
-    DeriveScalarAsFieldRecord, DirectiveSiteId, EntityDefinitionId, FieldDefinitionId, FieldSetRecord, Graph,
-    ResolverDefinitionId, ResolverDefinitionRecord, SubgraphId, TypeRecord,
+    DeriveScalarAsFieldRecord, DirectiveSiteId, EntityDefinitionId, FieldDefinitionId, FieldSetRecord, SubgraphId,
+    TypeRecord,
     builder::{
         BoundSelectedObjectField, BoundSelectedObjectValue, BoundSelectedValueEntry, DirectivesIngester, Error,
         GraphBuilder, PossibleCompositeEntityKey, SelectedValueOrField,
@@ -113,7 +113,7 @@ pub(super) fn ingest<'sdl>(
                 && !field
                     .resolver_ids
                     .iter()
-                    .any(|id| get_subgraph_id(&ingester.graph, *id) != subgraph_id)
+                    .any(|id| ingester.get_subgraph_id(*id) == subgraph_id)
             {
                 return Err((
                     format!(
@@ -147,18 +147,6 @@ struct DeriveContext<'a, 'sdl> {
     source_id: EntityDefinitionId,
     target: TypeRecord,
     possible_keys: &'a [PossibleCompositeEntityKey<'sdl>],
-}
-
-fn get_subgraph_id(graph: &Graph, id: ResolverDefinitionId) -> SubgraphId {
-    match &graph[id] {
-        ResolverDefinitionRecord::FieldResolverExtension(record) => graph[record.directive_id].subgraph_id,
-        ResolverDefinitionRecord::GraphqlFederationEntity(record) => record.endpoint_id.into(),
-        ResolverDefinitionRecord::GraphqlRootField(record) => record.endpoint_id.into(),
-        ResolverDefinitionRecord::Introspection => SubgraphId::Introspection,
-        ResolverDefinitionRecord::Lookup(id) => get_subgraph_id(graph, graph[*id].resolver_id),
-        ResolverDefinitionRecord::Extension(record) => record.subgraph_id.into(),
-        ResolverDefinitionRecord::SelectionSetResolverExtension(record) => record.subgraph_id.into(),
-    }
 }
 
 impl DeriveContext<'_, '_> {

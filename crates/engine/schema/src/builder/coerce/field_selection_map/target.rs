@@ -11,7 +11,13 @@ pub(super) trait Target: Copy {
     fn display(self, ctx: &GraphBuilder<'_>) -> String;
     fn type_definition(self, graph: &Graph) -> TypeDefinitionId;
     fn fields(self, ctx: &GraphBuilder<'_>) -> Vec<(StringId, (Self, Wrapping))>;
-    fn default_value(self, ctx: &GraphBuilder<'_>) -> Option<SchemaInputValueId>;
+    fn on_missing_field(self, ctx: &GraphBuilder<'_>) -> OnMissingField;
+}
+
+pub(super) enum OnMissingField {
+    None,
+    DefaultValue(SchemaInputValueId),
+    Providable,
 }
 
 #[derive(Clone, Copy)]
@@ -89,8 +95,11 @@ impl Target for InputTarget {
             .unwrap_or_default()
     }
 
-    fn default_value(self, ctx: &GraphBuilder<'_>) -> Option<SchemaInputValueId> {
-        ctx.graph[self.id()].default_value_id
+    fn on_missing_field(self, ctx: &GraphBuilder<'_>) -> OnMissingField {
+        match ctx.graph[self.id()].default_value_id {
+            Some(default_value_id) => OnMissingField::DefaultValue(default_value_id),
+            None => OnMissingField::None,
+        }
     }
 }
 
@@ -139,7 +148,16 @@ impl Target for (SubgraphId, FieldDefinitionId) {
             .unwrap_or_default()
     }
 
-    fn default_value(self, _ctx: &GraphBuilder<'_>) -> Option<SchemaInputValueId> {
-        None
+    fn on_missing_field(self, ctx: &GraphBuilder<'_>) -> OnMissingField {
+        let (subgraph_id, field_id) = self;
+        if ctx.graph[field_id]
+            .resolver_ids
+            .iter()
+            .any(|id| ctx.get_subgraph_id(*id) == subgraph_id)
+        {
+            OnMissingField::Providable
+        } else {
+            OnMissingField::None
+        }
     }
 }
