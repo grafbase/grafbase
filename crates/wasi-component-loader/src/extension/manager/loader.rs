@@ -18,27 +18,19 @@ impl ExtensionLoader {
     pub(crate) fn new<T: serde::Serialize>(schema: Arc<Schema>, config: ExtensionConfig<T>) -> crate::Result<Self> {
         let mut wasm_config = wasmtime::Config::new();
 
-        wasm_config.wasm_component_model(true).async_support(true).cache(
-            config
-                .wasm
-                .location
-                .parent()
-                // TODO: Properly expose Wasm cache. This is just a hack for our extensive
-                // extension tests suite... Wasmtime create a thread per cache, so we should just
-                // have one. In extensions test this doesn't matter as there is only one extension
-                // anyway.
-                .filter(|_| std::env::var("LOCAL_EXTENSION_WASM_CACHE").is_ok())
-                .and_then(|parent| {
-                    let dir = parent.join("cache");
-                    if std::fs::create_dir(&dir).is_ok() || std::fs::read_dir(&dir).is_ok() {
-                        let mut cfg = CacheConfig::new();
-                        cfg.with_directory(dir);
-                        wasmtime::Cache::new(cfg).ok()
-                    } else {
-                        None
-                    }
-                }),
-        );
+        wasm_config
+            .wasm_component_model(true)
+            .async_support(true)
+            .cache(config.wasm.location.parent().and_then(|parent| {
+                let dir = parent.join("cache");
+                if std::fs::create_dir(&dir).is_ok() || std::fs::read_dir(&dir).is_ok() {
+                    let mut cfg = CacheConfig::new();
+                    cfg.with_directory(dir);
+                    wasmtime::Cache::new(cfg).ok()
+                } else {
+                    None
+                }
+            }));
 
         let engine = Engine::new(&wasm_config)?;
         let component = Component::from_file(&engine, &config.wasm.location)?;

@@ -135,7 +135,7 @@ where
 
         let parent_subgraph_id = self.query.graph[parent.providable_field_or_root_ix]
             .as_providable_field()
-            .map(|field| field.subgraph_id);
+            .map(|field| field.resolver_definition_id.walk(self.schema).subgraph_id());
 
         // --
         // Try to plan this field with alternative resolvers if any exist.
@@ -145,6 +145,18 @@ where
             if could_be_provided_from_parent && Some(resolver_definition.subgraph_id()) == parent_subgraph_id {
                 continue;
             };
+
+            if resolver_definition.is_lookup()
+                && !self
+                    .is_field_connected_to_parent_resolver(
+                        resolver_definition.subgraph_id(),
+                        parent.output_type,
+                        field_definition,
+                    )
+                    .is_yes()
+            {
+                continue;
+            }
 
             // Try to find an existing resolver node if a sibling field already added it, otherwise
             // create one.
@@ -227,7 +239,7 @@ where
             };
 
             let providable_field = ProvidableField {
-                subgraph_id: resolver_definition.subgraph_id(),
+                resolver_definition_id: resolver_definition.id,
                 query_field_id,
                 provides: field_definition
                     .provides_for_subgraph(resolver_definition.subgraph_id())
@@ -288,6 +300,7 @@ where
         id: QueryFieldId,
         field_definition: FieldDefinition<'schema>,
     ) -> ParentProvideResult<'schema> {
+        let parent_subgraph_id = parent.resolver_definition_id.walk(self.schema).subgraph_id();
         if let Some(derive) = parent.derive {
             let Derive::Root { id: derive_id } = derive else {
                 unreachable!("Nested @derive fields aren't support yet.")
@@ -297,7 +310,7 @@ where
                 DeriveMapping::Object(derive_object) => {
                     if let Some(mapping) = derive_object.fields().find(|map| map.to_id == field_definition.id) {
                         ParentProvideResult::Providable(ProvidableField {
-                            subgraph_id: parent.subgraph_id,
+                            resolver_definition_id: parent.resolver_definition_id,
                             query_field_id: id,
                             provides: parent.provides.clone(),
                             only_providable: false,
@@ -312,7 +325,7 @@ where
                 DeriveMapping::ScalarAsField(mapping) => {
                     if mapping.field_id == field_definition.id {
                         ParentProvideResult::Providable(ProvidableField {
-                            subgraph_id: parent.subgraph_id,
+                            resolver_definition_id: parent.resolver_definition_id,
                             query_field_id: id,
                             provides: Default::default(),
                             only_providable: false,
@@ -325,20 +338,20 @@ where
             }
         } else if let Some(derive) = field_definition
             .derives()
-            .find(|derived| derived.subgraph_id == parent.subgraph_id)
+            .find(|derived| derived.subgraph_id == parent_subgraph_id)
         {
             ParentProvideResult::Providable(ProvidableField {
-                subgraph_id: parent.subgraph_id,
+                resolver_definition_id: parent.resolver_definition_id,
                 query_field_id: id,
                 provides: parent.provides.clone(),
                 only_providable: false,
                 derive: Some(Derive::Root { id: derive.id }),
             })
         } else if parent.only_providable {
-            self.find_in_provides(parent.subgraph_id, &parent.provides, id, field_definition)
+            self.find_in_provides(parent_subgraph_id, &parent.provides, id, field_definition)
                 .map(|provides| {
                     ParentProvideResult::Providable(ProvidableField {
-                        subgraph_id: parent.subgraph_id,
+                        resolver_definition_id: parent.resolver_definition_id,
                         query_field_id: id,
                         provides,
                         only_providable: true,
@@ -347,50 +360,26 @@ where
                 })
                 .unwrap_or_default()
         } else {
-            let subgraph_id = parent.subgraph_id;
-            let is_reachable = self.is_field_parent_object_reachable_in_subgraph_from_parent_output(
-                subgraph_id,
-                parent_output,
-                field_definition,
-            );
-
-            // Either it's a GraphQL endpoint and anything we can reach (within the subgraph) is necessarily provideable or it's a virtual
-            // one and we need to ensure there isn't any extension resolver defined for this field.
-            let doesnt_require_dedicated_resolver = subgraph_id.is_graphql_endpoint()
-                || field_definition.resolvers().all(|r| {
-                    r.subgraph_id() != subgraph_id
-                        || !matches!(
-                            r.as_ref(),
-                            ResolverDefinitionRecord::Extension(_)
-                                | ResolverDefinitionRecord::FieldResolverExtension(_)
-                                | ResolverDefinitionRecord::SelectionSetResolverExtension(_)
-                        )
-                });
-
-            if is_reachable
-                && doesnt_require_dedicated_resolver
-                && self.is_field_providable_in_subgraph(subgraph_id, field_definition)
-                && field_definition.requires_for_subgraph(subgraph_id).is_none()
-            {
-                ParentProvideResult::Providable(ProvidableField {
-                    subgraph_id,
+            match self.is_field_connected_to_parent_resolver(parent_subgraph_id, parent_output, field_definition) {
+                IsFieldConnectedToParentResolver::Yes => ParentProvideResult::Providable(ProvidableField {
+                    resolver_definition_id: parent.resolver_definition_id,
                     query_field_id: id,
                     provides: self
-                        .find_in_provides(subgraph_id, &parent.provides, id, field_definition)
+                        .find_in_provides(parent_subgraph_id, &parent.provides, id, field_definition)
                         .unwrap_or_else(|| {
                             field_definition
-                                .provides_for_subgraph(subgraph_id)
+                                .provides_for_subgraph(parent_subgraph_id)
                                 .map(|field_set| Cow::Borrowed(field_set.as_ref()))
                                 .unwrap_or(Cow::Borrowed(FieldSetRecord::empty()))
                         }),
                     only_providable: false,
                     derive: None,
-                })
-            } else {
-                self.find_in_provides(subgraph_id, &parent.provides, id, field_definition)
+                }),
+                IsFieldConnectedToParentResolver::No { is_reachable } => self
+                    .find_in_provides(parent_subgraph_id, &parent.provides, id, field_definition)
                     .map(|provides| {
                         ParentProvideResult::Providable(ProvidableField {
-                            subgraph_id,
+                            resolver_definition_id: parent.resolver_definition_id,
                             query_field_id: id,
                             provides,
                             only_providable: true,
@@ -403,8 +392,43 @@ where
                         } else {
                             ParentProvideResult::UnreachableObject
                         }
-                    })
+                    }),
             }
+        }
+    }
+
+    fn is_field_connected_to_parent_resolver(
+        &self,
+        parent_subgraph_id: SubgraphId,
+        parent_output: CompositeTypeId,
+        field_definition: FieldDefinition<'_>,
+    ) -> IsFieldConnectedToParentResolver {
+        let is_reachable = self.is_field_parent_object_reachable_in_subgraph_from_parent_output(
+            parent_subgraph_id,
+            parent_output,
+            field_definition,
+        );
+
+        // Either it's a GraphQL endpoint and anything we can reach (within the subgraph) is necessarily provideable or it's a virtual
+        // one and we need to ensure there isn't any extension resolver defined for this field.
+        let doesnt_require_dedicated_resolver = parent_subgraph_id.is_graphql_endpoint()
+            || field_definition.resolvers().all(|r| {
+                r.subgraph_id() != parent_subgraph_id
+                    || !matches!(
+                        r.as_ref(),
+                        ResolverDefinitionRecord::Extension(_)
+                            | ResolverDefinitionRecord::FieldResolverExtension(_)
+                            | ResolverDefinitionRecord::SelectionSetResolverExtension(_)
+                    )
+            });
+        if is_reachable
+            && doesnt_require_dedicated_resolver
+            && self.is_field_providable_in_subgraph(parent_subgraph_id, field_definition)
+            && field_definition.requires_for_subgraph(parent_subgraph_id).is_none()
+        {
+            IsFieldConnectedToParentResolver::Yes
+        } else {
+            IsFieldConnectedToParentResolver::No { is_reachable }
         }
     }
 
@@ -704,4 +728,15 @@ enum ParentProvideResult<'schema> {
     UnreachableObject,
     #[default]
     NotProvidable,
+}
+
+enum IsFieldConnectedToParentResolver {
+    Yes,
+    No { is_reachable: bool },
+}
+
+impl IsFieldConnectedToParentResolver {
+    fn is_yes(&self) -> bool {
+        matches!(self, IsFieldConnectedToParentResolver::Yes)
+    }
 }

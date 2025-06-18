@@ -61,6 +61,14 @@ fn ingest_before_federation_directives<'sdl>(
                 )
                     .into());
             }
+
+            if dir.arguments().any(|arg| arg.name() != "graph") {
+                return Err((
+                    "composite__lookup directive does not accept any arguments".to_string(),
+                    dir.arguments_span(),
+                )
+                    .into());
+            }
         }
         "composite__derive" => {
             if !matches!(def, sdl::SdlDefinition::FieldDefinition(_)) {
@@ -74,6 +82,13 @@ fn ingest_before_federation_directives<'sdl>(
                 )
                     .into());
             };
+            if dir.arguments().any(|arg| arg.name() != "graph") {
+                return Err((
+                    "composite__derive directive does not accept any arguments".to_string(),
+                    dir.arguments_span(),
+                )
+                    .into());
+            }
         }
         "composite__is" => match def {
             sdl::SdlDefinition::FieldDefinition(def) => {
