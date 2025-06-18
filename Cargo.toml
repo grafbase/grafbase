@@ -27,6 +27,7 @@ exclude = [
     "examples/authorization",
     "examples/grpc-extension/server",
     "examples/hooks-template",
+    "examples/composite-rest",
     "examples/query-plan",
 ]
 
@@ -308,6 +309,7 @@ debug = true
 # by telling cargo to optimize at the link stage (in addition to the
 # normal optimizations during the compilation stage)
 lto = "thin"
+debug = true
 
 # Boost snapshot diffing performance
 [profile.dev.package]

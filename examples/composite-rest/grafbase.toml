@@ -1,0 +1,7 @@
+[subgraphs.zendesk]
+schema_path = "./subgraphs/zendesk/schema.graphql"
+
+[extensions.rest]
+path = "/home/brabier/github/grafbase/extensions/extensions/rest/build"
+
+
