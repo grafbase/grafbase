@@ -47,6 +47,9 @@ interface headers {
         /// The names and values are always returned in the original casing and in
         /// the order in which they will be serialized for transport.
         entries: func() -> list<tuple<string,list<u8>>>;
+
+        /// Create new headers
+        new: static func() -> headers;
     }
 
     /// setting or appending to a `fields` resource.

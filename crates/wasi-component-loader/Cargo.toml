@@ -25,6 +25,7 @@ gateway-config.workspace = true
 grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
 http.workspace = true
+http-body-util.workspace = true
 minicbor-serde = { workspace = true, features = ["alloc"] }
 reqwest.workspace = true
 rskafka = { workspace = true, features = ["full"] }

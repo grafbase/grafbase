@@ -1,13 +1,12 @@
-use std::{str::FromStr as _, time::Duration};
+use std::time::Duration;
 
 use bytes::Bytes;
 use futures::{future::BoxFuture, stream::FuturesOrdered};
-use http::{HeaderName, HeaderValue};
 use tokio_stream::StreamExt as _;
 use wasmtime::component::Resource;
 
 pub use super::grafbase::sdk::http_client::*;
-use crate::{WasiState, extension::api::wit, http_client::send_request};
+use crate::{WasiState, http_client::send_request, resources::WasmOwnedOrLease};
 
 impl Host for WasiState {}
 
@@ -17,17 +16,25 @@ impl HostHttpClient for WasiState {
             return Ok(Err(HttpError::Connect("Network is disabled".into())));
         }
 
-        let request = match convert_http_request(self, request) {
+        let request = match convert_http_request(self, request)? {
             Ok(req) => req,
             Err(e) => return Ok(Err(e)),
         };
 
         let response = match send_request(request, self.request_durations().clone()).await {
             Ok(resp) => resp,
-            Err(e) => return Ok(Err(e.into())),
+            Err(e) => return Ok(Err(e)),
         };
 
-        Ok(convert_http_response(response).await)
+        let (parts, body) = response.into_parts();
+        let headers = self.push_resource(WasmOwnedOrLease::Owned(parts.headers))?;
+
+        Ok(Ok(HttpResponse {
+            status: parts.status.as_u16(),
+            headers,
+            // FIXME: Avoid unnecessary copy....
+            body: body.to_vec(),
+        }))
     }
 
     async fn execute_many(
@@ -35,31 +42,44 @@ impl HostHttpClient for WasiState {
         requests: Vec<HttpRequest>,
     ) -> wasmtime::Result<Vec<Result<HttpResponse, HttpError>>> {
         if !self.network_enabled() {
-            return Ok(vec![
-                Err(HttpError::Connect("Network is disabled".into()));
-                requests.len()
-            ]);
+            let err = HttpError::Connect("Network is disabled".into());
+            let mut results = Vec::with_capacity(requests.len());
+            for _ in 0..requests.len() {
+                results.push(Err(err.clone()));
+            }
+            return Ok(results);
         }
 
-        Ok(requests
+        requests
             .into_iter()
             .map(|request| convert_http_request(self, request))
-            .collect::<Vec<_>>()
+            .collect::<Result<Vec<_>, _>>()?
             .into_iter()
             .map(|request| {
                 let request_durations = self.request_durations().clone();
-                let fut: BoxFuture<'_, Result<HttpResponse, HttpError>> = match request {
-                    Ok(request) => Box::pin(async move {
-                        let response = send_request(request, request_durations).await?;
-                        convert_http_response(response).await
-                    }),
+                let fut: BoxFuture<'_, Result<http::Response<Bytes>, HttpError>> = match request {
+                    Ok(request) => Box::pin(send_request(request, request_durations)),
                     Err(e) => Box::pin(async move { Err(e) }),
                 };
                 fut
             })
             .collect::<FuturesOrdered<_>>()
             .collect::<Vec<_>>()
-            .await)
+            .await
+            .into_iter()
+            .map(move |response| match response {
+                Ok(response) => {
+                    let (parts, body) = response.into_parts();
+                    let headers = self.push_resource(WasmOwnedOrLease::Owned(parts.headers))?;
+                    Ok(Ok(HttpResponse {
+                        status: parts.status.as_u16(),
+                        headers,
+                        body: body.to_vec(),
+                    }))
+                }
+                Err(e) => Ok(Err(e)),
+            })
+            .collect::<Result<Vec<_>, _>>()
     }
 
     async fn drop(&mut self, _: Resource<HttpClient>) -> wasmtime::Result<()> {
@@ -71,7 +91,7 @@ impl HostHttpClient for WasiState {
 fn convert_http_request(
     state: &mut WasiState,
     request: HttpRequest,
-) -> Result<(reqwest::Client, reqwest::Request), HttpError> {
+) -> wasmtime::Result<Result<(reqwest::Client, reqwest::Request), HttpError>> {
     let HttpRequest {
         method,
         url,
@@ -80,57 +100,26 @@ fn convert_http_request(
         timeout_ms,
     } = request;
 
-    let mut req = state.http_client().request(method.into(), url).body(body);
+    let headers = state
+        .table
+        .delete(headers)?
+        .into_inner()
+        .expect("The guest doesn't receive a shared header, nor should it be able to create one.");
 
-    for (key, value) in headers {
-        let Ok(key) = HeaderName::from_str(&key) else {
-            return Err(HttpError::Request(format!("invalid header key: {key}")));
-        };
-
-        let Ok(value) = HeaderValue::from_str(&value) else {
-            return Err(HttpError::Request(format!("invalid header value: {value}")));
-        };
-
-        req = req.header(key, value);
-    }
+    let mut req = state
+        .http_client()
+        .request(method.into(), url)
+        .headers(headers)
+        .body(body);
 
     if let Some(timeout_ms) = timeout_ms {
         req = req.timeout(Duration::from_millis(timeout_ms));
     }
 
-    match req.build_split() {
+    Ok(match req.build_split() {
         (client, Ok(req)) => Ok((client, req)),
         (_, Err(e)) => Err(HttpError::Request(e.to_string())),
-    }
-}
-
-async fn convert_http_response(response: http::Response<Bytes>) -> Result<HttpResponse, HttpError> {
-    let (parts, body) = response.into_parts();
-    let headers = parts
-        .headers
-        .iter()
-        .flat_map(|(key, value)| {
-            let key = key.as_str().to_string();
-            let value = value.to_str().map(ToString::to_string).ok()?;
-            Some((key, value))
-        })
-        .collect();
-    Ok(HttpResponse {
-        status: parts.status.as_u16(),
-        headers,
-        version: parts.version.into(),
-        body: body.to_vec(),
     })
-}
-
-impl From<wit::HttpError> for HttpError {
-    fn from(value: wit::HttpError) -> Self {
-        match value {
-            wit::HttpError::Connect(message) => HttpError::Connect(message),
-            wit::HttpError::Request(message) => HttpError::Request(message),
-            wit::HttpError::Timeout => HttpError::Timeout,
-        }
-    }
 }
 
 impl From<HttpMethod> for reqwest::Method {

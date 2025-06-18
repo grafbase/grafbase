@@ -1,4 +1,6 @@
 interface http-client {
+    use headers.{headers};
+
     // A HTTP client.
     resource http-client {
         // Executes a request and returns the response, yielding the current future until finished.
@@ -14,7 +16,7 @@ interface http-client {
         // The URL to send the request to.
         url: string,
         // The headers to send with the request. Keys and values must be ASCII strings.
-        headers: list<tuple<string, string>>,
+        headers: headers,
         // The body of the request. If the body is set, the Content-Type header must be set.
         body: list<u8>,
         // The timeout in milliseconds for the request. If not set, no timeout is used.
@@ -47,10 +49,8 @@ interface http-client {
     record http-response {
         // The HTTP status code.
         status: u16,
-        // The HTTP version.
-        version: http-version,
         // The headers of the response.
-        headers: list<tuple<string, string>>,
+        headers: headers,
         // The body of the response.
         body: list<u8>,
     }

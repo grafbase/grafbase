@@ -1,13 +1,16 @@
 //! A module for executing HTTP requests.
 
-use std::string::FromUtf8Error;
+use std::{string::FromUtf8Error, time::Duration};
 
 pub use crate::wit::{HttpError, HttpMethod, HttpVersion};
 pub use http::{HeaderName, HeaderValue, Method, StatusCode};
 pub use serde_json::Error as JsonDeserializeError;
 pub use url::Url;
 
-use crate::wit::HttpClient;
+use crate::{
+    types::{AsHeaderName, AsHeaderValue, HttpHeaders},
+    wit::{self, HttpClient},
+};
 use serde::Serialize;
 
 /// Executes a single HTTP request and returns a result containing either an `HttpResponse` or an `HttpError`.
@@ -25,8 +28,8 @@ use serde::Serialize;
 ///
 /// This function returns a `Result<HttpResponse, HttpError>`, which represents either the successful response from the server
 /// (`HttpResponse`) or an error that occurred during the execution of the HTTP request (`HttpError`).
-pub fn execute(request: &HttpRequest) -> Result<HttpResponse, HttpError> {
-    HttpClient::execute(&request.0).map(HttpResponse)
+pub fn execute(request: HttpRequest) -> Result<HttpResponse, HttpError> {
+    HttpClient::execute(request.0).map(Into::into)
 }
 
 /// Executes multiple HTTP requests in a batch and returns their results.
@@ -46,9 +49,9 @@ pub fn execute(request: &HttpRequest) -> Result<HttpResponse, HttpError> {
 /// to the result of executing one of the batched requests. Each element will either contain an `HttpResponse`
 /// if the request was successful or an `HttpError` if there was an issue with that particular request.
 pub fn execute_many(requests: BatchHttpRequest) -> Vec<Result<HttpResponse, HttpError>> {
-    HttpClient::execute_many(&requests.requests)
+    HttpClient::execute_many(requests.requests)
         .into_iter()
-        .map(|r| r.map(HttpResponse))
+        .map(|r| r.map(Into::into))
         .collect()
 }
 
@@ -96,7 +99,7 @@ impl From<HttpMethod> for http::Method {
 
 /// A struct that represents an HTTP request.
 #[derive(Debug)]
-pub struct HttpRequest(crate::wit::HttpRequest);
+pub struct HttpRequest(wit::HttpRequest);
 
 impl HttpRequest {
     /// Constructs a new `HttpRequestBuilder` for sending a GET request to the specified URL.
@@ -227,32 +230,34 @@ impl HttpRequest {
     ///
     /// A builder object (`HttpRequestBuilder`) that can be used to further customize the HTTP request before execution.
     pub fn builder(url: Url, method: http::Method) -> HttpRequestBuilder {
-        HttpRequestBuilder(crate::wit::HttpRequest {
-            method: method.into(),
-            url: url.to_string(),
-            headers: Default::default(),
+        HttpRequestBuilder {
+            method,
+            url,
+            headers: wit::Headers::new().into(),
             body: Default::default(),
-            timeout_ms: Default::default(),
-        })
+            timeout: Default::default(),
+        }
     }
 }
 
 /// A builder for constructing an `HttpRequest`.
-pub struct HttpRequestBuilder(crate::wit::HttpRequest);
+pub struct HttpRequestBuilder {
+    url: Url,
+    method: http::Method,
+    headers: HttpHeaders,
+    body: Vec<u8>,
+    timeout: Option<Duration>,
+}
 
 impl HttpRequestBuilder {
-    /// Sets the URI for the HTTP request.
-    ///
-    /// # Arguments
-    ///
-    /// * `uri` - The new URL to which the request will be sent.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self, allowing further chaining of builder methods.
-    pub fn uri(mut self, uri: Url) -> Self {
-        self.0.url = uri.to_string();
-        self
+    /// Mutable access to the URL
+    pub fn url(&mut self) -> &mut url::Url {
+        &mut self.url
+    }
+
+    /// Mutable access to the HTTP headers of the request.
+    pub fn headers(&mut self) -> &mut HttpHeaders {
+        &mut self.headers
     }
 
     /// Adds a header to the HTTP request.
@@ -263,8 +268,9 @@ impl HttpRequestBuilder {
     /// * `value` - The value of the header.
     ///
     /// This method mutably modifies the builder, allowing headers to be added in sequence.
-    pub fn push_header(&mut self, name: impl Into<String>, value: impl Into<String>) {
-        self.0.headers.push((name.into(), value.into()));
+    pub fn header(&mut self, name: impl AsHeaderName, value: impl AsHeaderValue) -> &mut Self {
+        self.headers.append(name, value);
+        self
     }
 
     /// Sets a timeout for the HTTP request in milliseconds.
@@ -274,8 +280,9 @@ impl HttpRequestBuilder {
     /// * `timeout_ms` - The duration of the timeout in milliseconds.
     ///
     /// This method mutably modifies the builder, setting an optional timeout for the request.
-    pub fn set_timeout(&mut self, timeout_ms: u64) {
-        self.0.timeout_ms = Some(timeout_ms);
+    pub fn timeout(&mut self, timeout: Duration) -> &mut Self {
+        self.timeout = Some(timeout);
+        self
     }
 
     /// Sets a JSON body for the HTTP request and adds the appropriate `Content-Type` header.
@@ -290,9 +297,7 @@ impl HttpRequestBuilder {
     ///
     /// This method constructs a new `HttpRequest` with a JSON payload, returning it for execution.
     pub fn json<T: Serialize>(mut self, body: T) -> HttpRequest {
-        self.0
-            .headers
-            .push(("Content-Type".to_string(), "application/json".to_string()));
+        self.headers.append("Content-Type", "application/json");
 
         self.body(serde_json::to_vec(&body).unwrap())
     }
@@ -309,10 +314,7 @@ impl HttpRequestBuilder {
     ///
     /// This method constructs a new `HttpRequest` with a URL-encoded payload, returning it for execution.
     pub fn form<T: Serialize>(mut self, body: T) -> HttpRequest {
-        self.0.headers.push((
-            "Content-Type".to_string(),
-            "application/x-www-form-urlencoded".to_string(),
-        ));
+        self.headers.append("Content-Type", "application/x-www-form-urlencoded");
 
         self.body(serde_urlencoded::to_string(&body).unwrap().into_bytes())
     }
@@ -325,20 +327,26 @@ impl HttpRequestBuilder {
     ///
     /// This method constructs and returns a new `HttpRequest` with the specified body.
     pub fn body(mut self, body: Vec<u8>) -> HttpRequest {
-        self.0.body = body;
+        self.body = body;
         self.build()
     }
 
     /// Constructs a fully configured `HttpRequest` from the builder.
     pub fn build(self) -> HttpRequest {
-        HttpRequest(self.0)
+        HttpRequest(wit::HttpRequest {
+            method: self.method.into(),
+            url: self.url.to_string(),
+            headers: self.headers.into(),
+            body: self.body,
+            timeout_ms: self.timeout.map(|d| d.as_millis() as u64),
+        })
     }
 }
 
 /// A structure representing a batch of HTTP requests.
 pub struct BatchHttpRequest {
     /// A vector holding individual `crate::wit::HttpRequest` objects that are part of this batch.
-    pub(crate) requests: Vec<crate::wit::HttpRequest>,
+    pub(crate) requests: Vec<wit::HttpRequest>,
 }
 
 impl BatchHttpRequest {
@@ -371,27 +379,41 @@ impl Default for BatchHttpRequest {
 }
 
 /// A struct that represents an HTTP response.
-pub struct HttpResponse(crate::wit::HttpResponse);
+pub struct HttpResponse {
+    status_code: http::StatusCode,
+    headers: HttpHeaders,
+    body: Vec<u8>,
+}
+
+impl From<wit::HttpResponse> for HttpResponse {
+    fn from(response: wit::HttpResponse) -> Self {
+        Self {
+            status_code: http::StatusCode::from_u16(response.status).expect("Provided by the host"),
+            headers: response.headers.into(),
+            body: response.body,
+        }
+    }
+}
 
 impl HttpResponse {
     /// Returns the status code of the HTTP response.
     pub fn status(&self) -> http::StatusCode {
-        http::StatusCode::from_u16(self.0.status).expect("must be valid, this comes from reqwest")
+        self.status_code
     }
 
     /// Returns the headers of the HTTP response.
-    pub fn headers(&self) -> &[(String, String)] {
-        &self.0.headers
+    pub fn headers(&self) -> &HttpHeaders {
+        &self.headers
     }
 
     /// Returns the body of the HTTP response.
     pub fn body(&self) -> &[u8] {
-        &self.0.body
+        &self.body
     }
 
     /// Converts the HTTP response body into a `Vec<u8>`.
     pub fn into_bytes(self) -> Vec<u8> {
-        self.0.body
+        self.body
     }
 
     /// Attempts to convert the HTTP response body into a UTF-8 encoded `String`.
@@ -399,7 +421,7 @@ impl HttpResponse {
     /// This method takes ownership of the `HttpResponse` and returns a `Result<String, std::string::FromUtf8Error>`.
     /// It attempts to interpret the bytes in the body as a valid UTF-8 sequence.
     pub fn text(self) -> Result<String, FromUtf8Error> {
-        String::from_utf8(self.0.body)
+        String::from_utf8(self.body)
     }
 
     /// Attempts to deserialize the HTTP response body as JSON.
@@ -412,6 +434,6 @@ impl HttpResponse {
     where
         T: serde::de::Deserialize<'de>,
     {
-        serde_json::from_slice(&self.0.body)
+        serde_json::from_slice(&self.body)
     }
 }
