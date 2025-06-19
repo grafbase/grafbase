@@ -248,7 +248,7 @@ jobs:
           sudo ln -s /bin/g++ /bin/aarch64-linux-musl-g++
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@ab3728c7ba6948b9b429627f4d55a68842b27f18 # v2
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
         with:
           tool: nextest
 
@@ -565,7 +565,7 @@ jobs:
           components: clippy, rustfmt
 
       - name: Install cargo-nextest
-        uses: taiki-e/install-action@86c23eed46c17b80677df6d8151545ce3e236c61 # v2
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
         with:
           tool: nextest
 

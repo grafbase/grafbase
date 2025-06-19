@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install cargo-hakari
-        uses: taiki-e/install-action@86c23eed46c17b80677df6d8151545ce3e236c61 # v2
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
         with:
           tool: cargo-hakari
 
