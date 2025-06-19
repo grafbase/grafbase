@@ -3893,7 +3893,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.96.4"
+version = "0.97.0"
 dependencies = [
  "anyhow",
  "askama",
@@ -3983,7 +3983,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.40.0"
+version = "0.41.0"
 dependencies = [
  "anyhow",
  "ascii",
@@ -4093,7 +4093,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -4363,7 +4363,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-composition"
-version = "0.8.0"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "bitflags 2.9.0",
@@ -4457,7 +4457,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-wrapping-types"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "grafbase-workspace-hack",
  "serde",

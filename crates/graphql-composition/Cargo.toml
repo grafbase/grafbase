@@ -1,6 +1,6 @@
 [package]
 name = "graphql-composition"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2024"
 license = "MPL-2.0"
 description = "An implementation of GraphQL federated schema composition"
@@ -24,7 +24,7 @@ itertools.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 url.workspace = true
-wrapping.workspace = true
+wrapping = { version = "0.4.0", path = "../graphql-wrapping-types", package = "graphql-wrapping-types" }
 
 [dev-dependencies]
 anyhow.workspace = true
