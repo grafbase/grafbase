@@ -128,6 +128,10 @@ impl graphql_ws_client::graphql::GraphqlOperation for GraphQlRequest {
     type Error = serde_json::Error;
 
     fn decode(&self, data: serde_json::Value) -> Result<Self::Response, Self::Error> {
-        serde_json::from_value(data)
+        Ok(GraphqlResponse {
+            status: Default::default(),
+            headers: Default::default(),
+            body: data,
+        })
     }
 }

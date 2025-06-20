@@ -16,7 +16,7 @@ struct Config {
 }
 
 impl ResolverExtension for {{name}} {
-    fn new(subgraph_schemas: Vec<SubgraphSchema<'_>>, config: Configuration) -> Result<Self, Error> {
+    fn new(subgraph_schemas: Vec<SubgraphSchema>, config: Configuration) -> Result<Self, Error> {
         let config: Config = config.deserialize()?;
         Ok(Self { config })
     }

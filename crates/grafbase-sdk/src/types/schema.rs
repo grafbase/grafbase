@@ -10,6 +10,7 @@ pub(crate) struct IndexedSchema {
     name: String,
     directives: Vec<wit::Directive>,
     type_definitions: HashMap<DefinitionId, wit::TypeDefinition, BuildHasherDefault<FxHasher32>>,
+    field_definitions: HashMap<DefinitionId, wit::FieldDefinition, BuildHasherDefault<FxHasher32>>,
     root_types: wit::RootTypes,
 }
 
@@ -33,15 +34,23 @@ impl From<(String, wit::Schema)> for IndexedSchema {
                     (id, def)
                 })
                 .collect(),
+            field_definitions: schema
+                .field_definitions
+                .into_iter()
+                .map(|def| {
+                    let id = DefinitionId(def.id);
+                    (id, def)
+                })
+                .collect(),
             root_types: schema.root_types,
         }
     }
 }
 
 /// GraphQL schema
-pub struct SubgraphSchema<'a>(pub(crate) &'a IndexedSchema);
+pub struct SubgraphSchema(pub(crate) IndexedSchema);
 
-impl fmt::Debug for SubgraphSchema<'_> {
+impl fmt::Debug for SubgraphSchema {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("SubgraphSchema")
             .field("name", &self.subgraph_name())
@@ -54,79 +63,75 @@ impl fmt::Debug for SubgraphSchema<'_> {
     }
 }
 
-impl<'a> SubgraphSchema<'a> {
+impl SubgraphSchema {
     /// Name of the subgraph this schema belongs to
-    pub fn subgraph_name(&self) -> &'a str {
+    pub fn subgraph_name(&self) -> &str {
         &self.0.name
     }
 
     /// Iterator over the definitions in this schema
-    pub fn type_definitions(&self) -> impl ExactSizeIterator<Item = TypeDefinition<'a>> + 'a {
-        let schema = self.0;
+    pub fn type_definitions(&self) -> impl ExactSizeIterator<Item = TypeDefinition<'_>> {
+        let schema = &self.0;
         self.0.type_definitions.values().map(move |def| (schema, def).into())
     }
 
     /// Iterator over all object and interface fields in the schema
-    pub fn iter_fields(&self) -> impl Iterator<Item = FieldDefinition<'a>> + 'a {
-        let schema = self.0;
+    pub fn iter_fields(&self) -> impl Iterator<Item = FieldDefinition<'_>> {
+        let schema = &self.0;
         self.0
-            .type_definitions
+            .field_definitions
             .values()
-            .filter_map(move |def| match def {
-                wit::TypeDefinition::Object(obj) => Some((EntityDefinition::Object((schema, obj).into()), &obj.fields)),
-                wit::TypeDefinition::Interface(inf) => {
-                    Some((EntityDefinition::Interface((schema, inf).into()), &inf.fields))
-                }
-                _ => None,
-            })
-            .flat_map(move |(parent_entity, fields)| {
-                fields.iter().map(move |definition| FieldDefinition {
-                    definition,
-                    parent_entity,
-                    schema,
-                })
-            })
+            .map(|definition| FieldDefinition { schema, definition })
+    }
+
+    /// Retrieves a specific field definition by its unique identifier.
+    pub fn field_definition(&self, id: DefinitionId) -> Option<FieldDefinition<'_>> {
+        let schema = &self.0;
+        self.0.field_definitions.get(&id).map(move |def| FieldDefinition {
+            schema,
+            definition: def,
+        })
     }
 
     /// Retrieves a specific type definition by its unique identifier.
-    pub fn type_definition(&self, id: &DefinitionId) -> Option<TypeDefinition<'a>> {
-        let schema = self.0;
-        self.0.type_definitions.get(id).map(move |def| (schema, def).into())
+    pub fn type_definition(&self, id: DefinitionId) -> Option<TypeDefinition<'_>> {
+        let schema = &self.0;
+        self.0.type_definitions.get(&id).map(move |def| (schema, def).into())
     }
 
     /// Iterator over the directives applied to this schema
-    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'a>> + 'a {
+    pub fn directives(&self) -> impl ExactSizeIterator<Item = Directive<'_>> {
         self.0.directives.iter().map(Into::into)
     }
 
     /// Query type id definition if any. Subgraph schema may only contain mutations or add fields
     /// to external objects.
-    pub fn query(&self) -> Option<ObjectDefinition<'a>> {
+    pub fn query(&self) -> Option<ObjectDefinition<'_>> {
         self.0.root_types.query_id.map(|id| {
             let Some(wit::TypeDefinition::Object(def)) = self.0.type_definitions.get(&DefinitionId(id)) else {
                 unreachable!("Inconsitent schema");
             };
-            (self.0, def).into()
+            (&self.0, def).into()
         })
     }
 
     /// Mutation type definition id if any
-    pub fn mutation(&self) -> Option<ObjectDefinition<'a>> {
+    pub fn mutation(&self) -> Option<ObjectDefinition<'_>> {
         self.0.root_types.mutation_id.map(|id| {
             let Some(wit::TypeDefinition::Object(def)) = self.0.type_definitions.get(&DefinitionId(id)) else {
                 unreachable!("Inconsitent schema");
             };
-            (self.0, def).into()
+            (&self.0, def).into()
         })
     }
 
     /// Subscription type definition id if any
-    pub fn subscription(&self) -> Option<ObjectDefinition<'a>> {
+    pub fn subscription(&self) -> Option<ObjectDefinition<'_>> {
         self.0.root_types.subscription_id.map(|id| {
             let Some(wit::TypeDefinition::Object(def)) = self.0.type_definitions.get(&DefinitionId(id)) else {
                 unreachable!("Inconsitent schema");
             };
-            (self.0, def).into()
+            (&self.0, def).into()
         })
     }
 }
@@ -327,18 +332,16 @@ impl<'a> ObjectDefinition<'a> {
     /// Iterator over the fields defined in this object
     pub fn fields(&self) -> impl ExactSizeIterator<Item = FieldDefinition<'a>> + 'a {
         let schema = self.schema;
-        let parent_entity = EntityDefinition::Object(*self);
-        self.definition.fields.iter().map(move |field| FieldDefinition {
+        self.definition.field_ids.iter().map(move |id| FieldDefinition {
             schema,
-            parent_entity,
-            definition: field,
+            definition: &schema.field_definitions[&DefinitionId(*id)],
         })
     }
 
     /// Iterator over the interfaces implemented by this object
     pub fn interfaces(&self) -> impl ExactSizeIterator<Item = InterfaceDefinition<'a>> + 'a {
         let schema = self.schema;
-        self.definition.interfaces.iter().map(move |&id| {
+        self.definition.interface_ids.iter().map(move |&id| {
             let Some(wit::TypeDefinition::Interface(def)) = &schema.type_definitions.get(&DefinitionId(id)) else {
                 unreachable!("Inconsitent schema");
             };
@@ -403,10 +406,8 @@ impl<'a> InterfaceDefinition<'a> {
     /// Iterator over the fields defined in this interface
     pub fn fields(&self) -> impl ExactSizeIterator<Item = FieldDefinition<'a>> + 'a {
         let schema = self.schema;
-        let parent_entity = EntityDefinition::Interface(*self);
-        self.definition.fields.iter().map(move |field| FieldDefinition {
-            definition: field,
-            parent_entity,
+        self.definition.field_ids.iter().map(move |id| FieldDefinition {
+            definition: &schema.field_definitions[&DefinitionId(*id)],
             schema,
         })
     }
@@ -414,7 +415,7 @@ impl<'a> InterfaceDefinition<'a> {
     /// Iterator over the interfaces implemented by this interface
     pub fn interfaces(&self) -> impl ExactSizeIterator<Item = InterfaceDefinition<'a>> + 'a {
         let schema = self.schema;
-        self.definition.interfaces.iter().map(move |&id| {
+        self.definition.interface_ids.iter().map(move |&id| {
             let Some(wit::TypeDefinition::Interface(def)) = &schema.type_definitions.get(&DefinitionId(id)) else {
                 unreachable!("Inconsitent schema");
             };
@@ -637,7 +638,6 @@ impl<'a> InputObjectDefinition<'a> {
 #[derive(Clone, Copy)]
 pub struct FieldDefinition<'a> {
     pub(crate) schema: &'a IndexedSchema,
-    pub(crate) parent_entity: EntityDefinition<'a>,
     pub(crate) definition: &'a wit::FieldDefinition,
 }
 
@@ -672,7 +672,12 @@ impl<'a> FieldDefinition<'a> {
 
     /// Parent entity that this field belongs to
     pub fn parent_entity(&self) -> EntityDefinition<'a> {
-        self.parent_entity
+        let def = &self.schema.type_definitions[&DefinitionId(self.definition.parent_type_id)];
+        match def {
+            wit::TypeDefinition::Object(obj) => EntityDefinition::Object((self.schema, obj).into()),
+            wit::TypeDefinition::Interface(inf) => EntityDefinition::Interface((self.schema, inf).into()),
+            _ => unreachable!("Field definition parent type must be an object or interface"),
+        }
     }
 
     /// Type of value this field returns

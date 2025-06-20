@@ -28,7 +28,8 @@ use serde::Serialize;
 ///
 /// This function returns a `Result<HttpResponse, HttpError>`, which represents either the successful response from the server
 /// (`HttpResponse`) or an error that occurred during the execution of the HTTP request (`HttpError`).
-pub fn execute(request: HttpRequest) -> Result<HttpResponse, HttpError> {
+pub fn execute(request: impl Into<HttpRequest>) -> Result<HttpResponse, HttpError> {
+    let request: HttpRequest = request.into();
     HttpClient::execute(request.0).map(Into::into)
 }
 
@@ -340,6 +341,12 @@ impl HttpRequestBuilder {
             body: self.body,
             timeout_ms: self.timeout.map(|d| d.as_millis() as u64),
         })
+    }
+}
+
+impl From<HttpRequestBuilder> for HttpRequest {
+    fn from(builder: HttpRequestBuilder) -> Self {
+        builder.build()
     }
 }
 

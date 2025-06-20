@@ -3,9 +3,9 @@ mod authorization;
 mod field_resolver;
 mod hooks;
 mod resolver;
+mod schema;
 mod selection_set_resolver;
 
-use crate::extension::api::since_0_15_0::instance::utils::create_complete_subgraph_schemas;
 use anyhow::Context as _;
 use engine_schema::Schema;
 use extension_catalog::TypeDiscriminants;
@@ -21,7 +21,6 @@ use crate::{
 };
 
 use super::wit;
-use crate::extension::api::since_0_15_0::wit::schema as ws;
 
 pub struct SdkPre0_17_0 {
     pre: wit::SdkPre<crate::WasiState>,
@@ -29,7 +28,7 @@ pub struct SdkPre0_17_0 {
     #[allow(unused)]
     schema: Arc<Schema>,
     // self-reference to schema
-    subgraph_schemas: Vec<(&'static str, ws::Schema<'static>)>,
+    subgraph_schemas: Vec<(&'static str, wit::schema::Schema<'static>)>,
     can_skip_sending_events: bool,
 }
 
@@ -40,11 +39,11 @@ impl SdkPre0_17_0 {
         component: Component,
         mut linker: Linker<WasiState>,
     ) -> crate::Result<Self> {
-        let subgraph_schemas: Vec<(&str, ws::Schema<'_>)> = match config.r#type {
+        let subgraph_schemas: Vec<(&str, wit::schema::Schema<'_>)> = match config.r#type {
             TypeDiscriminants::Authentication | TypeDiscriminants::Authorization | TypeDiscriminants::Hooks => {
                 Vec::new()
             }
-            TypeDiscriminants::Resolver => create_complete_subgraph_schemas(&schema, config.id),
+            TypeDiscriminants::Resolver => schema::create_complete_subgraph_schemas(&schema, config.id),
             TypeDiscriminants::FieldResolver | TypeDiscriminants::SelectionSetResolver => {
                 unreachable!("Not supported anymore in the SDK.")
             }
@@ -54,7 +53,7 @@ impl SdkPre0_17_0 {
         //         mutability), so all refs we take are kept. Ideally we wouldn't use such
         //         tricks, but wasmtime bindgen requires either every argument or none at all
         //         to be references. And we definitely want references for most argumnets...
-        let subgraph_schemas: Vec<(&'static str, ws::Schema<'static>)> =
+        let subgraph_schemas: Vec<(&'static str, wit::schema::Schema<'static>)> =
             unsafe { std::mem::transmute(subgraph_schemas) };
 
         super::wit::shared_context::add_to_linker_impl(&mut linker)?;

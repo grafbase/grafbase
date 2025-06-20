@@ -6,8 +6,10 @@
 //! - Building and loading extensions
 
 mod config;
-mod runner;
+mod gateway;
+mod request;
 
-pub use config::{LogLevel, TestConfig, TestConfigBuilder};
-pub use grafbase_sdk_mock::{DynamicSchema, DynamicSubgraph, ExtensionOnlySubgraph};
-pub use runner::{QueryBuilder, TestRunner};
+pub use config::LogLevel;
+pub use gateway::{TestGateway, TestGatewayBuilder};
+pub use grafbase_sdk_mock::{GraphqlSubgraph, GraphqlSubgraphBuilder, VirtualSubgraph};
+pub use request::{GraphqlCollectedStreamingResponse, GraphqlRequest, GraphqlResponse, GraphqlStreamingResponse};

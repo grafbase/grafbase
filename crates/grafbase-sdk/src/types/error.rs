@@ -104,3 +104,13 @@ impl From<wit::Error> for Error {
         Error(err)
     }
 }
+
+impl From<wit::HttpError> for Error {
+    fn from(err: wit::HttpError) -> Self {
+        match err {
+            wit::HttpError::Timeout => "HTTP request timed out".into(),
+            wit::HttpError::Request(err) => format!("Request error: {err}").into(),
+            wit::HttpError::Connect(err) => format!("Connection error: {err}").into(),
+        }
+    }
+}

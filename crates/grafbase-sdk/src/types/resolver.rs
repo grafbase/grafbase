@@ -4,7 +4,7 @@ use serde::{Deserialize, de::DeserializeSeed};
 
 use crate::{
     SdkError,
-    types::{ArgumentsId, DefinitionId, Directive, Field, SelectionSet, Variables},
+    types::{ArgumentsId, DefinitionId, Directive, Field, FieldDefinition, SelectionSet, SubgraphSchema, Variables},
     wit,
 };
 
@@ -45,14 +45,16 @@ impl<'a> ResolvedField<'a> {
         self.subgraph_name
     }
 
-    /// Gets the alias of this field, if any
-    pub fn alias(&self) -> Option<&str> {
-        self.as_ref().alias()
-    }
-
     /// Gets the arguments ID of this field, if any
     pub fn arguments_id(&self) -> Option<ArgumentsId> {
         self.as_ref().arguments_id()
+    }
+
+    /// Definition of the field within the subgraph schema.
+    pub fn definition<'s>(&self, schema: &'s SubgraphSchema) -> FieldDefinition<'s> {
+        schema
+            .field_definition(self.definition_id())
+            .expect("Field definition not found, the wrong subgraph may have been used.")
     }
 
     /// Field definition id.

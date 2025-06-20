@@ -12,99 +12,139 @@ mod resolver;
 mod server;
 
 use std::{
-    path::{Path, PathBuf},
+    hash::{DefaultHasher, Hasher as _},
     sync::Arc,
 };
 
-pub use builder::DynamicSchemaBuilder;
+pub use builder::GraphqlSubgraphBuilder;
 pub use server::MockGraphQlServer;
 
-/// A dynamic GraphQL schema that can be built and executed at runtime.
+/// A dynamic subgraph implementation that can be started as a mock GraphQL server.
 #[derive(Debug, Clone)]
-pub struct DynamicSchema {
-    schema: async_graphql::dynamic::Schema,
-    sdl: String,
+pub struct GraphqlSubgraph {
+    executable_schema: async_graphql::dynamic::Schema,
+    schema: String,
+    name: String,
 }
 
-impl DynamicSchema {
+impl GraphqlSubgraph {
     /// Creates a builder for constructing a new dynamic subgraph schema from SDL.
     ///
     /// # Arguments
     ///
     /// * `sdl` - GraphQL schema definition language string to build from
-    pub fn builder(sdl: impl AsRef<str>) -> DynamicSchemaBuilder {
-        DynamicSchemaBuilder::new(sdl.as_ref())
+    pub fn with_schema(sdl: impl AsRef<str>) -> GraphqlSubgraphBuilder {
+        let sdl = sdl.as_ref();
+        GraphqlSubgraphBuilder::new(sdl.to_string(), anonymous_name(sdl))
     }
 
-    /// Executes a GraphQL request against this schema.
-    pub async fn execute(&self, request: async_graphql::Request) -> async_graphql::Response {
-        self.schema.execute(request).await
-    }
-
-    /// Returns the SDL (Schema Definition Language) string for this schema.
-    pub fn sdl(&self) -> &str {
-        &self.sdl
-    }
-}
-
-/// A dynamic subgraph implementation that can be started as a mock GraphQL server.
-#[derive(Debug, Clone)]
-pub struct DynamicSubgraph {
-    schema: DynamicSchema,
-    name: String,
-}
-
-impl DynamicSubgraph {
     /// Starts this subgraph as a mock GraphQL server.
     ///
     /// Returns a handle to the running server that can be used to stop it.
     pub async fn start(self) -> MockGraphQlServer {
-        MockGraphQlServer::new(self.name, Arc::new(self.schema)).await
+        MockGraphQlServer::new(self.name, Arc::new((self.executable_schema, self.schema))).await
     }
-}
 
-/// A subgraph that only contains extension definitions. We do not spawn a GraphQL server for this subgraph.
-#[derive(Debug, Clone)]
-pub struct ExtensionOnlySubgraph {
-    schema: DynamicSchema,
-    name: String,
-    extension_path: PathBuf,
-}
-
-impl ExtensionOnlySubgraph {
-    /// Returns the SDL (Schema Definition Language) string for this schema
-    pub fn sdl(&self) -> &str {
-        self.schema.sdl()
+    /// Returns the GraphQL schema in SDL (Schema Definition Language)
+    pub fn schema(&self) -> &str {
+        &self.schema
     }
 
     /// Returns the name of this subgraph
     pub fn name(&self) -> &str {
         &self.name
     }
+}
 
-    /// Returns the path to the extension definitions for this subgraph
-    pub fn extension_path(&self) -> &Path {
-        &self.extension_path
+/// A subgraph that only contains extension definitions. We do not spawn a GraphQL server for this subgraph.
+#[derive(Debug, Clone)]
+pub struct VirtualSubgraph {
+    schema: String,
+    name: String,
+}
+
+impl VirtualSubgraph {
+    /// Creates a new virtual subgraph with the given SDL and name.
+    pub fn new(name: &str, schema: &str) -> Self {
+        VirtualSubgraph {
+            name: name.to_string(),
+            schema: schema.to_string(),
+        }
+    }
+
+    /// Returns the GraphQL schema in SDL (Schema Definition Language)
+    pub fn schema(&self) -> &str {
+        &self.schema
+    }
+
+    /// Returns the name of this subgraph
+    pub fn name(&self) -> &str {
+        &self.name
     }
 }
 
 /// A mock subgraph that can either be a full dynamic GraphQL service or just extension definitions.
 #[derive(Debug, Clone)]
-pub enum MockSubgraph {
+pub enum Subgraph {
     /// A full dynamic subgraph that can be started as a GraphQL server
-    Dynamic(DynamicSubgraph),
+    Graphql(GraphqlSubgraph),
     /// A subgraph that only contains extension definitions and is not started as a server
-    ExtensionOnly(ExtensionOnlySubgraph),
+    Virtual(VirtualSubgraph),
 }
 
-impl From<DynamicSubgraph> for MockSubgraph {
-    fn from(subgraph: DynamicSubgraph) -> Self {
-        MockSubgraph::Dynamic(subgraph)
+impl From<GraphqlSubgraph> for Subgraph {
+    fn from(subgraph: GraphqlSubgraph) -> Self {
+        Subgraph::Graphql(subgraph)
     }
 }
 
-impl From<ExtensionOnlySubgraph> for MockSubgraph {
-    fn from(subgraph: ExtensionOnlySubgraph) -> Self {
-        MockSubgraph::ExtensionOnly(subgraph)
+impl From<GraphqlSubgraphBuilder> for Subgraph {
+    fn from(builder: GraphqlSubgraphBuilder) -> Self {
+        builder.build().into()
     }
+}
+
+impl From<VirtualSubgraph> for Subgraph {
+    fn from(subgraph: VirtualSubgraph) -> Self {
+        Subgraph::Virtual(subgraph)
+    }
+}
+
+impl<T: Into<Subgraph>> From<(String, T)> for Subgraph {
+    fn from((name, subgraph): (String, T)) -> Self {
+        (name.as_str(), subgraph).into()
+    }
+}
+
+impl<T: Into<Subgraph>> From<(&str, T)> for Subgraph {
+    fn from((name, subgraph): (&str, T)) -> Self {
+        match subgraph.into() {
+            Subgraph::Graphql(mut graphql_subgraph) => {
+                graphql_subgraph.name = name.to_string();
+                Subgraph::Graphql(graphql_subgraph)
+            }
+            Subgraph::Virtual(mut virtual_subgraph) => {
+                virtual_subgraph.name = name.to_string();
+                Subgraph::Virtual(virtual_subgraph)
+            }
+        }
+    }
+}
+
+impl From<String> for Subgraph {
+    fn from(sdl: String) -> Self {
+        sdl.as_str().into()
+    }
+}
+
+impl From<&str> for Subgraph {
+    fn from(schema: &str) -> Self {
+        Subgraph::Virtual(VirtualSubgraph::new(&anonymous_name(schema), schema))
+    }
+}
+
+fn anonymous_name(schema: &str) -> String {
+    let mut hasher = DefaultHasher::default();
+    hasher.write(schema.as_bytes());
+    format!("anonymous{:X}", hasher.finish())
 }

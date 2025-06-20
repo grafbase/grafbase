@@ -4093,10 +4093,11 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.17.2"
+version = "0.17.3"
 dependencies = [
  "anyhow",
  "async-tungstenite",
+ "bytes",
  "chrono",
  "document-features",
  "duct",
@@ -4109,13 +4110,16 @@ dependencies = [
  "graphql-ws-client",
  "hashbrown 0.15.2",
  "http 1.3.1",
+ "http-body-util",
  "indoc",
  "insta",
+ "itertools 0.14.0",
  "jaq-core",
  "jaq-json",
  "jaq-std",
  "minicbor-serde",
  "postcard",
+ "regex",
  "reqwest 0.12.15",
  "rust_decimal",
  "semver 1.0.26",
@@ -4128,7 +4132,6 @@ dependencies = [
  "time 0.3.41",
  "tokio",
  "toml",
- "tungstenite 0.26.2",
  "url",
  "uuid",
  "which 7.0.3",
@@ -4147,7 +4150,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk-mock"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-graphql",
@@ -6225,18 +6228,18 @@ dependencies = [
 
 [[package]]
 name = "minicbor"
-version = "0.26.4"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "acb9d59e79ad66121ab441a0d1950890906a41e01ae14145ecf8401aa8894f50"
+checksum = "50699691433ccd88fbe1f11e9155691d71fc363595109f35a92b77be2e0158f6"
 dependencies = [
  "minicbor-derive",
 ]
 
 [[package]]
 name = "minicbor-derive"
-version = "0.16.2"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a9882ef5c56df184b8ffc107fc6c61e33ee3a654b021961d790a78571bb9d67a"
+checksum = "512ce2c37128698ea15c99b3518936c78a8b112b92468e7b95b9fa045666ebd8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6245,9 +6248,9 @@ dependencies = [
 
 [[package]]
 name = "minicbor-serde"
-version = "0.4.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54e45e8beeefea1b8b6f52fa188a5b6ea3746c2885606af8d4d8bf31cee633fb"
+checksum = "a05d783cc8c3cdbde9f7ee9eeeef417810278e81fb6289634fdbc952d462fc23"
 dependencies = [
  "minicbor",
  "serde",

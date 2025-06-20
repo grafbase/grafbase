@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-sdk"
-version = "0.17.2"
+version = "0.17.3"
 description = "An SDK to implement extensions for the Grafbase Gateway"
 edition = "2024"
 license.workspace = true
@@ -26,10 +26,13 @@ test-utils = [
     "dep:graphql-composition",
     "dep:grafbase-sdk-mock",
     "dep:graphql-ws-client",
-    "dep:async-tungstenite",
     "dep:tokio",
-    "dep:tungstenite",
+    "dep:async-tungstenite",
     "dep:anyhow",
+    "dep:regex",
+    "dep:itertools",
+    "dep:http-body-util",
+    "dep:bytes",
 ]
 ## Utilities to use `jq`-like selection to process data in your extension like the [rest](https://grafbase.com/extensions/rest) extension.
 jq-selection = [
@@ -44,7 +47,7 @@ document-features = { version = "0.2" }
 fxhash = "0.2"
 grafbase-sdk-derive = { version = "0.5.0", path = "derive" }
 http = "1"
-minicbor-serde = { version = "0.4.1", features = ["alloc"] }
+minicbor-serde = { version = "0.5.0", features = ["alloc"] }
 postcard = { version = "1", features = ["use-std"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -62,24 +65,27 @@ jaq-std = { version = "2.1.0", optional = true }
 # test-utils
 anyhow = { workspace = true, optional = true }
 async-tungstenite = { workspace = true, optional = true, features = ["tokio-runtime"] }
+bytes = { workspace = true, optional = true }
 chrono.workspace = true
 duct = { workspace = true, optional = true }
 fslock = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
-grafbase-sdk-mock = { version = "0.1.2", path = "mock", optional = true }
+grafbase-sdk-mock = { version = "0.2.0", path = "mock", optional = true }
 graphql-composition = { version = "0.9.0", features = [
     "grafbase-extensions",
 ], optional = true, path = "../graphql-composition" }
 graphql-ws-client = { workspace = true, optional = true }
 hashbrown = { workspace = true, optional = true }
+http-body-util = { workspace = true, optional = true }
 indoc = { workspace = true, optional = true }
+itertools = { workspace = true, optional = true }
+regex = { workspace = true, optional = true }
 reqwest = { workspace = true, features = ["json"], optional = true }
 rust_decimal.workspace = true
 tempfile = { workspace = true, optional = true }
 time.workspace = true
 tokio = { workspace = true, features = ["net"], optional = true }
 toml = { workspace = true, optional = true }
-tungstenite = { workspace = true, optional = true }
 uuid.workspace = true
 which = { workspace = true, optional = true }
 zerocopy = { workspace = true, features = ["std"] }

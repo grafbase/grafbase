@@ -4,6 +4,7 @@ interface schema {
     record schema {
         // The IDs and this list have no relationship. They're not indices within this list.
         type-definitions: list<type-definition>,
+        field-definitions: list<field-definition>,
         directives: list<directive>,
         root-types: root-types,
     }
@@ -37,16 +38,16 @@ interface schema {
     record object-definition {
         id: definition-id,
         name: string,
-        interfaces: list<definition-id>,
-        fields: list<field-definition>,
+        interface-ids: list<definition-id>,
+        field-ids: list<definition-id>,
         directives: list<directive>
     }
 
     record interface-definition {
         id: definition-id,
         name: string,
-        interfaces: list<definition-id>,
-        fields: list<field-definition>,
+        interface-ids: list<definition-id>,
+        field-ids: list<definition-id>,
         directives: list<directive>
     }
 
@@ -75,6 +76,7 @@ interface schema {
         id: definition-id,
         name: string,
         ty: ty,
+        parent-type-id: definition-id,
         arguments: list<input-value-definition>,
         directives: list<directive>
     }
