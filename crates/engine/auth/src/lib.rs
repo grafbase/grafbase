@@ -119,6 +119,12 @@ impl<Extensions: ExtensionRuntime> runtime::authentication::Authenticate<Extensi
             }
         }
     }
+
+    fn public_metadata_endpoints(
+        &self,
+    ) -> impl Future<Output = Result<Vec<runtime::authentication::PublicMetadataEndpoint>, String>> + Send {
+        self.extensions.public_metadata(&self.authentication_extension_ids)
+    }
 }
 
 fn unauthenticated() -> ErrorResponse {

@@ -1,5 +1,6 @@
 //! Type definitions of the input and output data structures of the SDK.
 
+mod authentication;
 mod authorization;
 mod configuration;
 mod data;
@@ -17,6 +18,7 @@ mod selection_set;
 mod subscription_item;
 mod token;
 
+pub use self::authentication::*;
 pub use authorization::*;
 pub use configuration::*;
 pub use data::*;

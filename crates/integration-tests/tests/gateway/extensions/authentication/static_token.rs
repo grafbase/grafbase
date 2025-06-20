@@ -6,7 +6,7 @@ use integration_tests::{
     gateway::{AuthenticationExt, AuthenticationTestExtension, Gateway},
     runtime,
 };
-use runtime::extension::Token;
+use runtime::{authentication::PublicMetadataEndpoint, extension::Token};
 
 pub struct StaticToken(Result<Token, ErrorResponse>);
 
@@ -33,6 +33,10 @@ impl StaticToken {
 impl AuthenticationTestExtension for StaticToken {
     async fn authenticate(&self, _headers: &http::HeaderMap) -> Result<Token, ErrorResponse> {
         self.0.clone()
+    }
+
+    async fn public_metadata_endpoints(&self) -> Vec<PublicMetadataEndpoint> {
+        vec![]
     }
 }
 

@@ -59,4 +59,20 @@ impl AuthenticationExtension<SharedContext> for WasmExtensions {
 
         (Arc::into_inner(headers).unwrap(), result)
     }
+
+    async fn public_metadata(
+        &self,
+        extension_ids: &[ExtensionId],
+    ) -> Result<Vec<runtime::authentication::PublicMetadataEndpoint>, String> {
+        let mut endpoints = Vec::new();
+
+        for id in extension_ids {
+            let mut instance = self.get(*id).await.unwrap();
+
+            let mut new_endpoints = instance.public_metadata().await.map_err(|err| err.to_string())?;
+            endpoints.append(&mut new_endpoints);
+        }
+
+        Ok(endpoints)
+    }
 }

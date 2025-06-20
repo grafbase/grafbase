@@ -42,4 +42,36 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
             Ok((headers, token.into()))
         })
     }
+
+    fn public_metadata(
+        &mut self,
+    ) -> BoxFuture<'_, Result<Vec<runtime::authentication::PublicMetadataEndpoint>, crate::Error>> {
+        Box::pin(async move {
+            let result = self
+                .inner
+                .grafbase_sdk_authentication()
+                .call_public_metadata(&mut self.store)
+                .await??;
+
+            let store = self.store.data_mut();
+
+            let endpoints = result
+                .into_iter()
+                .map(|public_metadata_endpoint| {
+                    let headers = store
+                        .take_resource::<Headers>(public_metadata_endpoint.response_headers.rep())?
+                        .into_inner()
+                        .unwrap();
+
+                    crate::Result::<_>::Ok(runtime::authentication::PublicMetadataEndpoint {
+                        path: public_metadata_endpoint.path,
+                        response_body: public_metadata_endpoint.response_body,
+                        headers,
+                    })
+                })
+                .collect::<Result<_, _>>()?;
+
+            Ok(endpoints)
+        })
+    }
 }

@@ -544,8 +544,9 @@ dependencies = [
 name = "auth-017"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.17.3",
+ "grafbase-sdk 0.17.4",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

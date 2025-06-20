@@ -1,7 +1,7 @@
 use futures::future::BoxFuture;
-use runtime::extension::Token;
+use runtime::{authentication::PublicMetadataEndpoint, extension::Token};
 
-use crate::{ErrorResponse, SharedContext, resources::Lease};
+use crate::{Error, ErrorResponse, SharedContext, resources::Lease};
 
 pub(crate) trait AuthenticationExtensionInstance {
     fn authenticate(
@@ -9,4 +9,8 @@ pub(crate) trait AuthenticationExtensionInstance {
         context: SharedContext,
         headers: Lease<http::HeaderMap>,
     ) -> BoxFuture<'_, Result<(Lease<http::HeaderMap>, Token), ErrorResponse>>;
+
+    fn public_metadata(&mut self) -> BoxFuture<'_, Result<Vec<PublicMetadataEndpoint>, Error>> {
+        Box::pin(std::future::ready(Ok(vec![])))
+    }
 }

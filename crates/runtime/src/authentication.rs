@@ -72,4 +72,12 @@ pub trait Authenticate<Context> {
         context: &Context,
         headers: http::HeaderMap,
     ) -> impl Future<Output = Result<(http::HeaderMap, LegacyToken), ErrorResponse>> + Send;
+
+    fn public_metadata_endpoints(&self) -> impl Future<Output = Result<Vec<PublicMetadataEndpoint>, String>> + Send;
+}
+
+pub struct PublicMetadataEndpoint {
+    pub path: String,
+    pub response_body: Vec<u8>,
+    pub headers: http::HeaderMap,
 }

@@ -68,8 +68,19 @@ impl std::ops::DerefMut for SubgraphHeaders {
     }
 }
 
+impl Default for HttpHeaders {
+    fn default() -> Self {
+        HttpHeaders::new()
+    }
+}
+
 // Imitates as much as possible the http::HeaderMap API
 impl HttpHeaders {
+    /// Initialize an empty set of headers.
+    pub fn new() -> HttpHeaders {
+        HttpHeaders(wit::Headers::new())
+    }
+
     /// Get the value associated with the given name. If there are multiple values associated with
     /// the name, then the first one is returned. Use `get_all` to get all values associated with
     /// a given name. Returns None if there are no values associated with the name.
