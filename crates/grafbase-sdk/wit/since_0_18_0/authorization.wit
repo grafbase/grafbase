@@ -1,0 +1,20 @@
+interface authorization {
+    use error.{error, error-response};
+    use headers.{headers};
+    use token.{token};
+    use authorization-types.{authorization-decisions, query-elements, response-elements};
+    use shared-context.{shared-context};
+
+    authorize-query: func(
+        context: shared-context,
+        headers: headers,
+        token: token,
+        elements: query-elements
+    ) -> result<tuple<authorization-decisions, list<u8>>, error-response>;
+
+    authorize-response: func(
+        context: shared-context,
+        state: list<u8>,
+        elements: response-elements
+    ) -> result<authorization-decisions, error>;
+}

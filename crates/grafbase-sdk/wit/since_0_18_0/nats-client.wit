@@ -1,0 +1,93 @@
+interface nats-client {
+    variant nats-auth {
+        // Username and password authentication
+        username-password(tuple<string, string>),
+        // Token authentication
+        token(string),
+        // Credentials authentication
+        credentials(string),
+    }
+
+    // Represents a NATS message.
+    record nats-message {
+        // The subject or channel name of the NATS message
+        subject: string,
+        // The raw payload data of the message as bytes
+        payload: list<u8>,
+    }
+
+    record nats-stream-config {
+        // Name that identifies the stream
+        stream-name: string,
+        // Name to identify a specific consumer
+        consumer-name: string,
+        // Optional name to identify a durable subscription
+        durable-name: option<string>,
+        // Optional description for the stream configuration
+        description: option<string>,
+        // Policy that determines which messages to deliver
+        deliver-policy: nats-stream-deliver-policy,
+        // Threshold in milliseconds for considering a consumer inactive
+        inactive-threshold-ms: u64,
+    }
+
+    variant nats-stream-deliver-policy {
+        // All causes the consumer to receive the oldest messages still present in the system.
+        // This is the default.
+        all,
+        // Last will start the consumer with the last sequence received.
+        last,
+        // New will only deliver new messages that are received by the JetStream server after
+        // the consumer is created.
+        new,
+        // ByStartSeq will look for a defined starting sequence to the consumer’s configured
+        // opt_start_seq parameter.
+        by-start-sequence(u64),
+        // ByStartTime will select the first message with a timestamp >= to the consumer’s
+        // configured opt_start_time parameter.
+        by-start-time-ms(u64),
+        // LastPerSubject will start the consumer with the last message for all subjects received.
+        last-per-subject
+    }
+
+    // A NATS client
+    resource nats-client {
+        // Creates a new NATS client.
+        connect: static func(servers: list<string>, auth: option<nats-auth>) -> result<nats-client, string>;
+        // Publishes a message to a subject.
+        publish: func(subject: string, message: list<u8>) -> result<_, string>;
+        // Subscribes to a subject.
+        subscribe: func(subject: string, stream-config: option<nats-stream-config>) -> result<nats-subscriber, string>;
+        // Sends a request to a subject and waits for a response
+        request: func(subject: string, message: list<u8>, timeout-ms: option<u64>) -> result<nats-message, string>;
+        // Creates a key-value store instance for a specific bucket
+        key-value: func(bucket: string) -> result<nats-key-value, string>;
+    }
+
+    // A NATS key-value store
+    resource nats-key-value {
+        // Creates a new key-value pair in the bucket
+        // Returns the sequence number upon success, or an error string if creation fails
+        // Will return an error if the key already exists
+        create: func(key: string, value: list<u8>) -> result<u64, string>;
+
+        // Updates or creates a key-value pair in the bucket
+        // Returns the sequence number upon success, or an error string if the operation fails
+        // Will create the key if it doesn't exist or update it if it already exists
+        put: func(key: string, value: list<u8>) -> result<u64, string>;
+
+        // Retrieves the value associated with the specified key
+        // Returns an error if the key doesn't exist or another error occurs
+        get: func(key: string) -> result<option<list<u8>>, string>;
+
+        // Deletes the specified key-value pair from the bucket
+        // Returns an error if the key doesn't exist or another error occurs
+        delete: func(key: string) -> result<_, string>;
+    }
+
+    // A NATS subscriber resource for receiving messages from a subject
+    resource nats-subscriber {
+        // Retrieves the next message from the subscription
+        next: func() -> result<option<nats-message>, string>;
+    }
+}
