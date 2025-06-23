@@ -7,8 +7,6 @@ use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{Router, extract::State, response::IntoResponse, routing::post};
 use url::Url;
 
-use super::DynamicSchema;
-
 /// Represents a mock GraphQL server used for testing purposes.
 pub struct MockGraphQlServer {
     shutdown: Option<tokio::sync::oneshot::Sender<()>>,
@@ -27,11 +25,11 @@ impl Drop for MockGraphQlServer {
 
 #[derive(Clone)]
 struct AppState {
-    schema: Arc<DynamicSchema>,
+    schema: Arc<(async_graphql::dynamic::Schema, String)>,
 }
 
 impl MockGraphQlServer {
-    pub(crate) async fn new(name: String, schema: Arc<DynamicSchema>) -> Self {
+    pub(crate) async fn new(name: String, schema: Arc<(async_graphql::dynamic::Schema, String)>) -> Self {
         let state = AppState { schema };
 
         let app = Router::new()
@@ -69,9 +67,9 @@ impl MockGraphQlServer {
         &self.url
     }
 
-    /// Returns the Schema Definition Language representation of the underlying GraphQL schema
-    pub fn sdl(&self) -> &str {
-        self.state.schema.sdl()
+    /// Returns the GraphQL schema in SDL (Schema Definition Language)
+    pub fn schema(&self) -> &str {
+        &self.state.schema.1
     }
 
     /// Returns the name of the subgraph
@@ -82,7 +80,7 @@ impl MockGraphQlServer {
 
 async fn graphql_handler(State(state): State<AppState>, req: GraphQLRequest) -> axum::response::Response {
     let req = req.into_inner();
-    let response: GraphQLResponse = state.schema.execute(req).await.into();
+    let response: GraphQLResponse = state.schema.0.execute(req).await.into();
 
     response.into_response()
 }

@@ -1,4 +1,8 @@
-use crate::{SdkError, wit};
+use crate::{
+    SdkError,
+    types::{FieldDefinition, SubgraphSchema},
+    wit,
+};
 use serde::{Deserialize, de::DeserializeSeed};
 
 use super::DefinitionId;
@@ -19,6 +23,13 @@ impl<'a> Field<'a> {
     /// Gets the arguments ID of this field, if any
     pub fn arguments_id(&self) -> Option<ArgumentsId> {
         self.field.arguments.map(ArgumentsId)
+    }
+
+    /// Definition of the field within the subgraph schema.
+    pub fn definition<'s>(&self, schema: &'s SubgraphSchema) -> FieldDefinition<'s> {
+        schema
+            .field_definition(self.definition_id())
+            .expect("Field definition not found, the wrong subgraph may have been used.")
     }
 
     /// Field definition id.

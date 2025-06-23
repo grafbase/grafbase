@@ -19,7 +19,6 @@ grafbase-sdk = "{{sdk_version}}"
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
-indoc = "2"
 insta = { version = "1", features = ["json"] }
 grafbase-sdk = { version = "{{sdk_version}}", features = ["test-utils"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }

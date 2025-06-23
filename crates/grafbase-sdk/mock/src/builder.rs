@@ -1,6 +1,6 @@
 #![allow(clippy::panic)]
 
-use std::{collections::HashMap, path::Path};
+use std::collections::HashMap;
 
 use async_graphql::{
     ServerError,
@@ -9,10 +9,8 @@ use async_graphql::{
 use cynic_parser::{common::WrappingType, type_system as parser};
 use serde::Deserialize;
 
-use crate::ExtensionOnlySubgraph;
-
 use super::{
-    DynamicSchema, DynamicSubgraph,
+    GraphqlSubgraph,
     entity_resolver::{EntityResolver, EntityResolverContext},
     resolver::Resolver,
 };
@@ -21,19 +19,27 @@ type ResolverMap = HashMap<(String, String), Box<dyn Resolver>>;
 type EntityResolverMap = HashMap<String, Box<dyn EntityResolver>>;
 
 /// A builder for dynamic GraphQL schemas.
-pub struct DynamicSchemaBuilder {
+pub struct GraphqlSubgraphBuilder {
     sdl: String,
+    name: String,
     field_resolvers: ResolverMap,
     entity_resolvers: EntityResolverMap,
 }
 
-impl DynamicSchemaBuilder {
-    pub(crate) fn new(sdl: &str) -> Self {
-        DynamicSchemaBuilder {
-            sdl: sdl.into(),
+impl GraphqlSubgraphBuilder {
+    pub(crate) fn new(sdl: String, name: String) -> Self {
+        GraphqlSubgraphBuilder {
+            sdl,
+            name,
             field_resolvers: Default::default(),
             entity_resolvers: Default::default(),
         }
+    }
+
+    /// Specify the name of this subgraph.
+    pub fn with_name(mut self, name: impl AsRef<str>) -> Self {
+        self.name = name.as_ref().to_string();
+        self
     }
 
     /// Adds a field resolver to this schema.
@@ -58,43 +64,11 @@ impl DynamicSchemaBuilder {
         self
     }
 
-    /// Converts this schema builder into a dynamic subgraph with the given name.
-    ///
-    /// # Arguments
-    /// * `name` - The name to give this subgraph
-    ///
-    /// # Returns
-    /// A `DynamicSubgraph` that can be used in a federated schema
-    pub fn into_subgraph(self, name: &str) -> anyhow::Result<DynamicSubgraph> {
-        Ok(DynamicSubgraph {
-            name: name.into(),
-            schema: self.finish(),
-        })
-    }
-
-    /// Converts this schema builder into an extension-only subgraph.
-    ///
-    /// # Arguments
-    /// * `name` - The name to give this subgraph
-    /// * `extension_path` - Path to the extension directory with wasm and manifest files
-    ///
-    /// # Returns
-    /// An `ExtensionOnlySubgraph` that can be used in a federated schema
-    pub fn into_extension_only_subgraph(
-        self,
-        name: &str,
-        extension_path: &Path,
-    ) -> anyhow::Result<ExtensionOnlySubgraph> {
-        Ok(ExtensionOnlySubgraph {
-            name: name.into(),
-            schema: self.finish(),
-            extension_path: extension_path.to_path_buf(),
-        })
-    }
-
-    fn finish(self) -> DynamicSchema {
+    /// Builds the GraphQL subgraph.
+    pub fn build(self) -> GraphqlSubgraph {
         let Self {
             sdl,
+            name,
             mut field_resolvers,
             entity_resolvers,
         } = self;
@@ -143,9 +117,13 @@ impl DynamicSchemaBuilder {
             ));
         }
 
-        let schema = builder.finish().unwrap();
+        let executable_schema = builder.finish().unwrap();
 
-        DynamicSchema { schema, sdl }
+        GraphqlSubgraph {
+            executable_schema,
+            schema: sdl,
+            name,
+        }
     }
 }
 
@@ -458,14 +436,15 @@ fn add_federation_fields(
             let entities = reprs.into_iter().map(|repr| {
                 let context = EntityResolverContext::new(&context, repr);
 
+                let typename = context.typename.clone();
                 let Some(resolver) = resolvers.get_mut(&context.typename) else {
                     context.add_error(ServerError::new(format!("{} has no resolver", context.typename), None));
-                    return FieldValue::value(async_graphql::Value::Null);
+                    return FieldValue::NULL;
                 };
 
                 let json_value = resolver.resolve(context).unwrap_or_default();
 
-                transform_into_field_value(async_graphql::Value::deserialize(json_value).unwrap())
+                transform_into_field_value(async_graphql::Value::deserialize(json_value).unwrap()).with_type(typename)
             });
 
             FieldFuture::Value(Some(FieldValue::list(entities)))

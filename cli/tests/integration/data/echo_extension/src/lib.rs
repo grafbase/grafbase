@@ -12,7 +12,7 @@ struct HelloArguments {
 }
 
 impl ResolverExtension for EchoExtension {
-    fn new(_subgraph_schemas: Vec<SubgraphSchema<'_>>, _config: Configuration) -> Result<Self, Error> {
+    fn new(_subgraph_schemas: Vec<SubgraphSchema>, _config: Configuration) -> Result<Self, Error> {
         Ok(Self)
     }
 

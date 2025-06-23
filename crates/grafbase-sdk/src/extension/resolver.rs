@@ -37,7 +37,7 @@ use crate::{
 /// }
 ///
 /// impl ResolverExtension for MyResolver {
-///     fn new(subgraph_schemas: Vec<SubgraphSchema<'_>>, config: Configuration) -> Result<Self, Error> {
+///     fn new(subgraph_schemas: Vec<SubgraphSchema>, config: Configuration) -> Result<Self, Error> {
 ///         let config: Config = config.deserialize()?;
 ///         Ok(Self { config })
 ///     }
@@ -139,7 +139,7 @@ pub trait ResolverExtension: Sized + 'static {
     ///
     /// ```rust
     /// # use grafbase_sdk::types::{Error, SubgraphSchema};
-    /// # fn dummy(subgraph_schemas: Vec<SubgraphSchema<'_>>) -> Result<(), Error> {
+    /// # fn dummy(subgraph_schemas: Vec<SubgraphSchema>) -> Result<(), Error> {
     /// #[derive(serde::Deserialize)]
     /// struct HttpEndpoint {
     ///     name: String,
@@ -158,7 +158,7 @@ pub trait ResolverExtension: Sized + 'static {
     /// # Ok(())
     /// # }
     /// ```
-    fn new(subgraph_schemas: Vec<SubgraphSchema<'_>>, config: Configuration) -> Result<Self, Error>;
+    fn new(subgraph_schemas: Vec<SubgraphSchema>, config: Configuration) -> Result<Self, Error>;
 
     /// Prepares the field for resolution. The resulting byte array will be part of the operation
     /// cache. Backwards compatibility is not a concern as the cache is only re-used for the same
@@ -375,7 +375,7 @@ pub fn register<T: ResolverExtension>() {
             .into_iter()
             .map(IndexedSchema::from)
             .collect::<Vec<_>>();
-        <T as ResolverExtension>::new(schemas.iter().map(SubgraphSchema).collect(), config)
+        <T as ResolverExtension>::new(schemas.into_iter().map(SubgraphSchema).collect(), config)
             .map(|extension| Box::new(Proxy(extension)) as Box<dyn AnyExtension>)
     }))
 }

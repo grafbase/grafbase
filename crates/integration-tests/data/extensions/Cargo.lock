@@ -562,7 +562,7 @@ dependencies = [
 name = "authenticated"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.17.0",
+ "grafbase-sdk 0.17.3",
  "serde",
  "serde_json",
 ]
@@ -2097,14 +2097,14 @@ dependencies = [
  "fslock",
  "futures-util",
  "grafbase-sdk-derive 0.3.0",
- "grafbase-sdk-mock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-sdk-mock 0.1.2",
  "graphql-composition 0.6.2",
  "graphql-federated-graph 0.6.1",
  "graphql-ws-client",
  "http",
  "indoc",
- "minicbor",
- "minicbor-serde",
+ "minicbor 0.26.4",
+ "minicbor-serde 0.4.1",
  "reqwest",
  "semver 1.0.26",
  "serde",
@@ -2130,7 +2130,7 @@ dependencies = [
  "document-features",
  "grafbase-sdk-derive 0.3.0",
  "http",
- "minicbor-serde",
+ "minicbor-serde 0.4.1",
  "semver 1.0.26",
  "serde",
  "serde_json",
@@ -2156,13 +2156,13 @@ dependencies = [
  "futures-util",
  "fxhash",
  "grafbase-sdk-derive 0.4.0",
- "grafbase-sdk-mock 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "graphql-composition 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-sdk-mock 0.1.2",
+ "graphql-composition 0.8.0",
  "graphql-federated-graph 0.8.0",
  "graphql-ws-client",
  "http",
  "indoc",
- "minicbor-serde",
+ "minicbor-serde 0.4.1",
  "postcard",
  "reqwest",
  "rust_decimal",
@@ -2186,10 +2186,11 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.17.0"
+version = "0.17.3"
 dependencies = [
  "anyhow",
  "async-tungstenite",
+ "bytes",
  "chrono",
  "document-features",
  "duct",
@@ -2197,13 +2198,16 @@ dependencies = [
  "futures-util",
  "fxhash",
  "grafbase-sdk-derive 0.5.0",
- "grafbase-sdk-mock 0.1.2",
- "graphql-composition 0.8.0",
+ "grafbase-sdk-mock 0.2.0",
+ "graphql-composition 0.9.0",
  "graphql-ws-client",
  "http",
+ "http-body-util",
  "indoc",
- "minicbor-serde",
+ "itertools 0.14.0",
+ "minicbor-serde 0.5.0",
  "postcard",
+ "regex",
  "reqwest",
  "rust_decimal",
  "semver 1.0.26",
@@ -2216,7 +2220,6 @@ dependencies = [
  "time 0.3.41",
  "tokio",
  "toml",
- "tungstenite 0.26.2",
  "url",
  "uuid",
  "which 7.0.3",
@@ -2258,22 +2261,6 @@ dependencies = [
 [[package]]
 name = "grafbase-sdk-mock"
 version = "0.1.2"
-dependencies = [
- "anyhow",
- "async-graphql",
- "async-graphql-axum",
- "axum",
- "cynic-parser",
- "grafbase-workspace-hack 0.1.0",
- "serde",
- "serde_json",
- "tokio",
- "url",
-]
-
-[[package]]
-name = "grafbase-sdk-mock"
-version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0f3a2c04a5481bd4437c8425aa2ab957d101884415d59ba3ab76fc4fef8e2f3"
 dependencies = [
@@ -2283,6 +2270,22 @@ dependencies = [
  "axum",
  "cynic-parser",
  "grafbase-workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
+ "serde_json",
+ "tokio",
+ "url",
+]
+
+[[package]]
+name = "grafbase-sdk-mock"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "async-graphql",
+ "async-graphql-axum",
+ "axum",
+ "cynic-parser",
+ "grafbase-workspace-hack 0.1.0",
  "serde",
  "serde_json",
  "tokio",
@@ -2366,8 +2369,8 @@ dependencies = [
  "memchr",
  "miette",
  "mime_guess",
- "minicbor",
- "minicbor-serde",
+ "minicbor 0.26.4",
+ "minicbor-serde 0.4.1",
  "miniz_oxide",
  "mio",
  "num-bigint-dig",
@@ -2467,22 +2470,6 @@ dependencies = [
 [[package]]
 name = "graphql-composition"
 version = "0.8.0"
-dependencies = [
- "bitflags",
- "cynic-parser",
- "cynic-parser-deser",
- "fixedbitset",
- "graphql-wrapping-types 0.3.0",
- "indexmap 2.9.0",
- "itertools 0.14.0",
- "serde",
- "serde_json",
- "url",
-]
-
-[[package]]
-name = "graphql-composition"
-version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "58d6cc2b721f76a5dc608fefa610b3740d4c9d547eba3ffa8e79670a5dd73ed4"
 dependencies = [
@@ -2493,6 +2480,22 @@ dependencies = [
  "graphql-federated-graph 0.8.0",
  "indexmap 2.9.0",
  "itertools 0.14.0",
+ "url",
+]
+
+[[package]]
+name = "graphql-composition"
+version = "0.9.0"
+dependencies = [
+ "bitflags",
+ "cynic-parser",
+ "cynic-parser-deser",
+ "fixedbitset",
+ "graphql-wrapping-types 0.4.0",
+ "indexmap 2.9.0",
+ "itertools 0.14.0",
+ "serde",
+ "serde_json",
  "url",
 ]
 
@@ -2524,7 +2527,7 @@ dependencies = [
  "cynic-parser",
  "cynic-parser-deser",
  "grafbase-workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "graphql-wrapping-types 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graphql-wrapping-types 0.3.0",
  "indexmap 2.9.0",
  "indoc",
  "itertools 0.14.0",
@@ -2545,18 +2548,18 @@ dependencies = [
 [[package]]
 name = "graphql-wrapping-types"
 version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be5b0a74822603c5fd4d656eff8736a13806964cd74e49d5c64b544be2e430e0"
 dependencies = [
- "grafbase-workspace-hack 0.1.0",
+ "grafbase-workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
 ]
 
 [[package]]
 name = "graphql-wrapping-types"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be5b0a74822603c5fd4d656eff8736a13806964cd74e49d5c64b544be2e430e0"
+version = "0.4.0"
 dependencies = [
- "grafbase-workspace-hack 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-workspace-hack 0.1.0",
  "serde",
 ]
 
@@ -2797,7 +2800,7 @@ name = "hooks"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
- "grafbase-sdk 0.17.0",
+ "grafbase-sdk 0.17.3",
  "indoc",
  "insta",
  "serde",
@@ -3510,7 +3513,16 @@ version = "0.26.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "acb9d59e79ad66121ab441a0d1950890906a41e01ae14145ecf8401aa8894f50"
 dependencies = [
- "minicbor-derive",
+ "minicbor-derive 0.16.2",
+]
+
+[[package]]
+name = "minicbor"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "50699691433ccd88fbe1f11e9155691d71fc363595109f35a92b77be2e0158f6"
+dependencies = [
+ "minicbor-derive 0.17.0",
 ]
 
 [[package]]
@@ -3525,12 +3537,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "minicbor-derive"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "512ce2c37128698ea15c99b3518936c78a8b112b92468e7b95b9fa045666ebd8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.100",
+]
+
+[[package]]
 name = "minicbor-serde"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54e45e8beeefea1b8b6f52fa188a5b6ea3746c2885606af8d4d8bf31cee633fb"
 dependencies = [
- "minicbor",
+ "minicbor 0.26.4",
+ "serde",
+]
+
+[[package]]
+name = "minicbor-serde"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a05d783cc8c3cdbde9f7ee9eeeef417810278e81fb6289634fdbc952d462fc23"
+dependencies = [
+ "minicbor 1.0.0",
  "serde",
 ]
 
@@ -3946,7 +3979,7 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 name = "placeholder"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.17.0",
+ "grafbase-sdk 0.17.3",
  "serde",
  "serde_json",
 ]
@@ -4544,7 +4577,7 @@ dependencies = [
 name = "resolver-17"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.17.0",
+ "grafbase-sdk 0.17.3",
  "serde",
  "serde_json",
 ]

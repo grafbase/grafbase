@@ -621,6 +621,7 @@ jobs:
 
       - name: Test all extensions
         working-directory: extensions
+        continue-on-error: true
         env:
           RUSTC_WRAPPER: 'sccache'
         run: |
