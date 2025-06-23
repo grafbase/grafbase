@@ -1,11 +1,15 @@
 #![allow(static_mut_refs)]
 
-use std::ops::DerefMut;
+use std::{
+    ops::DerefMut,
+    sync::atomic::{AtomicU8, Ordering},
+};
 
 use crate::{
     extension::resolver::{Subscription, SubscriptionCallback},
+    host_io::logger::HostLogger,
     types::Configuration,
-    wit::{self, Error},
+    wit::{self, Error, grafbase::sdk::logger::LogLevel},
 };
 
 use super::extension::AnyExtension;
@@ -18,6 +22,7 @@ static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;
 static mut SUBSCRIPTION: Option<SubscriptionState> = None;
 static mut CONTEXT: Option<wit::SharedContext> = None;
 static mut CAN_SKIP_SENDING_EVENTS: bool = false;
+pub(super) static GUEST_LOG_LEVEL: AtomicU8 = AtomicU8::new(LogLevel::Trace as u8);
 
 enum SubscriptionState {
     Uninitialized {
@@ -33,6 +38,7 @@ pub(super) fn init(
     subgraph_schemas: Vec<(String, wit::Schema)>,
     config: Configuration,
     can_skip_sending_events: bool,
+    host_log_level: Option<wit::LogLevel>,
 ) -> Result<(), Error> {
     // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
     unsafe {
@@ -40,6 +46,13 @@ pub(super) fn init(
         EXTENSION = Some(init(subgraph_schemas, config)?);
         CAN_SKIP_SENDING_EVENTS = can_skip_sending_events;
     }
+
+    if let Some(level) = host_log_level {
+        GUEST_LOG_LEVEL.store(log::Level::from(level) as u8, Ordering::Relaxed);
+    }
+
+    let logger = HostLogger(wit::SystemLogger::new());
+    log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger");
 
     Ok(())
 }

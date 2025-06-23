@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-sdk"
-version = "0.17.5"
+version = "0.18.0"
 description = "An SDK to implement extensions for the Grafbase Gateway"
 edition = "2024"
 license.workspace = true
@@ -79,6 +79,7 @@ hashbrown = { workspace = true, optional = true }
 http-body-util = { workspace = true, optional = true }
 indoc = { workspace = true, optional = true }
 itertools = { workspace = true, optional = true }
+log = { workspace = true, features = ["kv_unstable_std"] }
 regex = { workspace = true, optional = true }
 reqwest = { workspace = true, features = ["json"], optional = true }
 rust_decimal.workspace = true
