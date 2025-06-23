@@ -22,6 +22,7 @@ impl AuthorizationTestExtension for Failure {
         Err(ErrorResponse {
             status: http::StatusCode::UNAUTHORIZED,
             errors: vec![GraphqlError::unauthorized()],
+            headers: Default::default(),
         })
     }
 }

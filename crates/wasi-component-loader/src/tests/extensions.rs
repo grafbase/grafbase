@@ -118,13 +118,11 @@ async fn single_call_caching_auth_invalid() {
 
     insta::assert_debug_snapshot!(err, @r#"
     Some(
-        Guest(
-            ErrorResponse {
-                status-code: 401,
-                errors: [],
-                headers: None,
-            },
-        ),
+        Guest {
+            status_code: 401,
+            errors: [],
+            headers: {},
+        },
     )
     "#);
 }

@@ -77,6 +77,7 @@ pub(crate) struct RefusedRequestResponse {
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
     extensions: ResponseExtensions,
+    pub(crate) headers: http::HeaderMap,
 }
 
 impl RefusedRequestResponse {
@@ -89,6 +90,7 @@ impl Response {
     pub(crate) fn refuse_request_with(
         status: http::StatusCode,
         errors: impl IntoIterator<Item = impl Into<GraphqlError>>,
+        headers: http::HeaderMap,
     ) -> Self {
         let mut error_code_counter = ErrorCodeCounter::default();
 
@@ -107,6 +109,7 @@ impl Response {
             errors,
             error_code_counter,
             extensions: Default::default(),
+            headers,
         })
     }
 

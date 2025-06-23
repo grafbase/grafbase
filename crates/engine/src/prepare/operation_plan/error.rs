@@ -8,7 +8,7 @@ pub(crate) type PlanResult<T> = std::result::Result<T, PlanError>;
 pub(crate) enum PlanError {
     Internal,
     GraphqlError(GraphqlError),
-    ErrorResponse(ErrorResponse),
+    ErrorResponse(Box<ErrorResponse>),
 }
 
 impl From<GraphqlError> for PlanError {
@@ -19,6 +19,6 @@ impl From<GraphqlError> for PlanError {
 
 impl From<ErrorResponse> for PlanError {
     fn from(err: ErrorResponse) -> Self {
-        PlanError::ErrorResponse(err)
+        PlanError::ErrorResponse(Box::new(err))
     }
 }

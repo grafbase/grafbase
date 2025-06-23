@@ -27,20 +27,13 @@ impl HooksExtension for WasmHooks {
                 e.to_string(),
                 engine_error::ErrorCode::ExtensionError,
             )],
+            headers: Default::default(),
         })?;
 
-        instance.on_request(context.clone(), parts).await.map_err(|e| match e {
-            crate::ErrorResponse::Internal(err) => ErrorResponse {
-                status: http::StatusCode::INTERNAL_SERVER_ERROR,
-                errors: vec![engine_error::GraphqlError::new(
-                    err.to_string(),
-                    engine_error::ErrorCode::ExtensionError,
-                )],
-            },
-            crate::ErrorResponse::Guest(err) => {
-                err.into_graphql_error_response(engine_error::ErrorCode::ExtensionError)
-            }
-        })
+        instance
+            .on_request(context.clone(), parts)
+            .await
+            .map_err(|e| e.into_graphql_error_response(engine_error::ErrorCode::ExtensionError))
     }
 
     async fn on_response(&self, context: &Self::Context, parts: response::Parts) -> Result<response::Parts, String> {

@@ -10,6 +10,7 @@ use std::borrow::Cow;
 pub struct ErrorResponse {
     pub status: http::StatusCode,
     pub errors: Vec<GraphqlError>,
+    pub headers: http::HeaderMap,
 }
 
 impl ErrorResponse {
@@ -17,6 +18,7 @@ impl ErrorResponse {
         ErrorResponse {
             status,
             errors: Vec::new(),
+            headers: Default::default(),
         }
     }
 
@@ -31,6 +33,7 @@ impl From<GraphqlError> for ErrorResponse {
         ErrorResponse {
             status: error.code.into(),
             errors: vec![error],
+            headers: Default::default(),
         }
     }
 }

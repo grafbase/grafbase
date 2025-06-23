@@ -106,15 +106,7 @@ impl AuthorizationExtension<SharedContext> for WasmExtensions {
                                 },
                                 (extension_id, state),
                             )),
-                            Err(err) => Err(match err {
-                                crate::ErrorResponse::Internal(err) => {
-                                    tracing::error!("Wasm error: {err}");
-                                    ErrorResponse::from(GraphqlError::new("Internal error", ErrorCode::ExtensionError))
-                                }
-                                crate::ErrorResponse::Guest(err) => {
-                                    err.into_graphql_error_response(ErrorCode::Unauthorized)
-                                }
-                            }),
+                            Err(err) => Err(err.into_graphql_error_response(ErrorCode::Unauthorized)),
                         }
                     },
                 )

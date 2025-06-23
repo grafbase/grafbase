@@ -541,6 +541,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "auth-017"
+version = "0.1.0"
+dependencies = [
+ "grafbase-sdk 0.17.3",
+ "serde",
+]
+
+[[package]]
 name = "auth-09"
 version = "0.1.0"
 dependencies = [

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{SharedContext, extension::WasmExtensions, resources::Lease};
-use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
+use engine_error::{ErrorCode, ErrorResponse};
 use extension_catalog::ExtensionId;
 use futures::{StreamExt as _, stream::FuturesUnordered};
 use runtime::extension::{AuthenticationExtension, Token};
@@ -26,13 +26,7 @@ impl AuthenticationExtension<SharedContext> for WasmExtensions {
                     .authenticate(context.clone(), Lease::Shared(headers.clone()))
                     .await
                     .map(|(_, token)| token)
-                    .map_err(|err| match err {
-                        crate::ErrorResponse::Internal(err) => {
-                            tracing::error!("Wasm error: {err}");
-                            ErrorResponse::from(GraphqlError::new("Internal error", ErrorCode::ExtensionError))
-                        }
-                        crate::ErrorResponse::Guest(err) => err.into_graphql_error_response(ErrorCode::Unauthenticated),
-                    })
+                    .map_err(|err| err.into_graphql_error_response(ErrorCode::Unauthenticated))
             })
             .collect::<FuturesUnordered<_>>();
 
