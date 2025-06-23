@@ -562,7 +562,7 @@ dependencies = [
 name = "authenticated"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.17.3",
+ "grafbase-sdk 0.17.4",
  "serde",
  "serde_json",
 ]
@@ -2186,7 +2186,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.17.3"
+version = "0.17.4"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -2800,7 +2800,7 @@ name = "hooks"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
- "grafbase-sdk 0.17.3",
+ "grafbase-sdk 0.17.4",
  "indoc",
  "insta",
  "serde",
@@ -3979,7 +3979,7 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 name = "placeholder"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.17.3",
+ "grafbase-sdk 0.17.4",
  "serde",
  "serde_json",
 ]
@@ -4577,7 +4577,7 @@ dependencies = [
 name = "resolver-17"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.17.3",
+ "grafbase-sdk 0.17.4",
  "serde",
  "serde_json",
 ]
