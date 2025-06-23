@@ -15,7 +15,7 @@ wit_bindgen::generate!({
     }
 });
 
-pub use exports::grafbase::sdk::authentication::Guest as AuthenticationGuest;
+pub use exports::grafbase::sdk::authentication::{Guest as AuthenticationGuest, PublicMetadataEndpoint};
 pub use exports::grafbase::sdk::authorization::Guest as AuthorizationGuest;
 pub use exports::grafbase::sdk::hooks::Guest as HooksGuest;
 pub use exports::grafbase::sdk::resolver::Guest as ResolverGuest;

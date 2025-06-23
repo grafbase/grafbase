@@ -20,6 +20,7 @@ impl From<Error> for ErrorResponse {
             Error::Guest(error) => ErrorResponse::Guest(wit::ErrorResponse {
                 status_code: 500,
                 errors: vec![error],
+                headers: None,
             }),
         }
     }

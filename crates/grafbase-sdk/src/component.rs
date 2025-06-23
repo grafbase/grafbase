@@ -33,6 +33,7 @@ impl From<Error> for ErrorResponse {
         ErrorResponse {
             status_code: 500,
             errors: vec![err],
+            headers: None,
         }
     }
 }
