@@ -1,0 +1,48 @@
+// Types used by the resolver functions
+interface resolver-types {
+    use schema.{definition-id};
+    use error.{error};
+
+    // Any raw data that the engine can read.
+    variant data {
+        json(list<u8>),
+        cbor(list<u8>)
+    }
+
+    // index within the list of fields provided to the prepare() function
+    type field-id = u16;
+    // range within the list of fields provided to the prepare() function
+    type field-id-range = tuple<field-id, field-id>;
+
+    // In the prepare() function we don't have yet access to the arguments as they depend
+    // on the variables. So instead we provide an arguments id. The gateway will be provide the
+    // serialized arguments for every arguments-id.
+    type arguments-id = u16;
+
+    // Query selection set
+    record selection-set {
+        requires-typename: bool,
+        fields-ordered-by-parent-entity: field-id-range
+    }
+
+    // Query field
+    record field {
+        alias: option<string>,
+        // Definition id which can be used to retrieve additional data from the subgraph schema provided to the init() function.
+        definition-id: definition-id,
+        arguments: option<arguments-id>,
+        selection-set: option<selection-set>,
+    }
+
+    // Resolver response
+    record response {
+        data: option<data>,
+        errors: list<error>,
+    }
+
+    // Subscription item. In case of multiple responses, they're treated as if we received multiple items in the subscription.
+    variant subscription-item {
+        single(response),
+        multiple(list<response>)
+    }
+}

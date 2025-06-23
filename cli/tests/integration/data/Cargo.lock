@@ -379,7 +379,9 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.17.5"
+version = "0.17.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "576411c862c59041766d45a6b9e96ba5ff0c76bfa3ceed501e95d0e262bb07d1"
 dependencies = [
  "chrono",
  "document-features",
@@ -405,6 +407,8 @@ dependencies = [
 [[package]]
 name = "grafbase-sdk-derive"
 version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a24a373c1e36970214d3ca548e85943ce39042abf996c76d95f9f32bbec03805"
 dependencies = [
  "proc-macro2",
  "quote",

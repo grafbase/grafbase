@@ -1,0 +1,41 @@
+package grafbase:sdk;
+
+world sdk {
+    import cache;
+    import error;
+    import grpc;
+    import headers;
+    import http-client;
+    import kafka-client;
+    import nats-client;
+    import postgres;
+    import token;
+    import schema;
+    import authorization-types;
+    import resolver-types;
+    import event-queue;
+    import shared-context;
+    import logger;
+
+    export authentication;
+    export authorization;
+    export hooks;
+    export resolver;
+
+    use schema.{schema};
+    use logger.{log-level};
+
+    // The extension registration function. Must be called before initialization.
+    export register-extension: func();
+
+    // initialization function called to set up the wasm extension
+    // if an error happens here, the gateway will refuse to continue.
+    // Receives a list of schema directives associated with the extension
+    export init: func(
+        // Schema for each subgraph, with relevant data for each extension type.
+        schemas: list<tuple<string, schema>>,
+        configuration: list<u8>,
+        can-skip-sending-events: bool,
+        host-log-level: option<log-level>,
+    ) -> result<_, string>;
+}

@@ -8,7 +8,7 @@ mod resolver_types;
 
 wit_bindgen::generate!({
     skip: ["register-extension"],
-    path: "./wit/since_0_17_0/",
+    path: "./wit/since_0_18_0/",
     world: "sdk",
     with: {
         "grafbase:sdk/resolver-types": resolver_types,
@@ -20,7 +20,6 @@ pub use exports::grafbase::sdk::authorization::Guest as AuthorizationGuest;
 pub use exports::grafbase::sdk::hooks::Guest as HooksGuest;
 pub use exports::grafbase::sdk::resolver::Guest as ResolverGuest;
 
-pub use grafbase::sdk::access_log::*;
 pub use grafbase::sdk::authorization_types::{
     AuthorizationDecisions, AuthorizationDecisionsDenySome, QueryElement, QueryElements, ResponseElement,
     ResponseElements,
@@ -35,6 +34,7 @@ pub use grafbase::sdk::grpc::*;
 pub use grafbase::sdk::headers::HeaderError;
 pub use grafbase::sdk::http_client::*;
 pub use grafbase::sdk::kafka_client::*;
+pub use grafbase::sdk::logger::*;
 pub use grafbase::sdk::nats_client::*;
 pub use grafbase::sdk::postgres::*;
 pub use grafbase::sdk::schema::*;
