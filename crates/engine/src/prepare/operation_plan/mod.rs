@@ -32,6 +32,13 @@ pub async fn plan(
             ErrorCode::OperationPlanningError,
         )]),
         PlanError::GraphqlError(error) => Response::request_error([error]),
-        PlanError::ErrorResponse(ErrorResponse { status, errors }) => Response::refuse_request_with(status, errors),
+        PlanError::ErrorResponse(error_response) => {
+            let ErrorResponse {
+                status,
+                errors,
+                headers,
+            } = *error_response;
+            Response::refuse_request_with(status, errors, headers)
+        }
     })
 }

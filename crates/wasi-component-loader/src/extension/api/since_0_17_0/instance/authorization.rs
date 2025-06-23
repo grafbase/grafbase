@@ -2,7 +2,7 @@ use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
 use crate::{
-    Error, SharedContext,
+    Error, ErrorResponse, SharedContext,
     extension::{
         AuthorizationExtensionInstance, QueryAuthorizationResult,
         api::wit::{Headers, QueryElements, ResponseElements, TokenParam},
@@ -46,7 +46,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
 
             result
                 .map(|(decisions, state)| (headers, decisions.into(), state))
-                .map_err(Into::into)
+                .map_err(|err| ErrorResponse::from_wit(&mut self.store, err))
         })
     }
 

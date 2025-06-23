@@ -97,7 +97,7 @@ impl<R: Runtime> Engine<R> {
         {
             Ok((headers, token)) => (headers, token),
             Err(resp) => {
-                let response = Response::refuse_request_with(resp.status, resp.errors);
+                let response = Response::refuse_request_with(resp.status, resp.errors, resp.headers);
                 return Err(response);
             }
         };

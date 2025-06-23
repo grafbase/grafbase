@@ -1,6 +1,5 @@
-use engine_error::{ErrorCode, GraphqlError};
-
 use crate::{cbor, state::WasiState};
+use engine_error::{ErrorCode, GraphqlError};
 
 pub use super::grafbase::sdk::error::*;
 
@@ -38,11 +37,5 @@ impl From<crate::extension::api::since_0_9_0::wit::error::ErrorResponse> for Err
 impl From<crate::extension::api::since_0_9_0::wit::error::Error> for crate::Error {
     fn from(value: crate::extension::api::since_0_9_0::wit::error::Error) -> Self {
         Error::from(value).into()
-    }
-}
-
-impl From<crate::extension::api::since_0_9_0::wit::error::ErrorResponse> for crate::ErrorResponse {
-    fn from(value: crate::extension::api::since_0_9_0::wit::error::ErrorResponse) -> Self {
-        ErrorResponse::from(value).into()
     }
 }

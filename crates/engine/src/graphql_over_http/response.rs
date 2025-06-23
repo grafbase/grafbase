@@ -22,7 +22,7 @@ pub(crate) struct Http;
 impl Http {
     pub(crate) fn error(format: ResponseFormat, response: Response) -> http::Response<Body> {
         match format {
-            ResponseFormat::Complete(format) => Self::from_complete_response_with_telemetry(format, &response),
+            ResponseFormat::Complete(format) => Self::from_complete_response_with_telemetry(format, response),
             ResponseFormat::Streaming(format) => {
                 let telemetry = TelemetryExtension::Ready(response.execution_telemetry());
 
@@ -40,7 +40,7 @@ impl Http {
 
     pub(crate) fn single(format: CompleteResponseFormat, mut response: Response) -> http::Response<Body> {
         let mcp_ext = response.extensions_mut().mcp.take();
-        let mut http_response = Self::from_complete_response_with_telemetry(format, &response);
+        let mut http_response = Self::from_complete_response_with_telemetry(format, response);
 
         if let Some(mcp_ext) = mcp_ext {
             http_response.extensions_mut().insert(mcp_ext);
@@ -152,10 +152,10 @@ impl Http {
 
     fn from_complete_response_with_telemetry(
         format: CompleteResponseFormat,
-        response: &Response,
+        response: Response,
     ) -> http::Response<Body> {
         let telemetry = TelemetryExtension::Ready(response.execution_telemetry());
-        let bytes = match sonic_rs::to_vec(response) {
+        let bytes = match sonic_rs::to_vec(&response) {
             Ok(bytes) => Bytes::from(bytes),
             Err(err) => {
                 tracing::error!("Failed to serialize response: {err}");
@@ -163,8 +163,12 @@ impl Http {
             }
         };
 
-        let status_code = compute_status_code(ResponseFormat::Complete(format), response);
+        let status_code = compute_status_code(ResponseFormat::Complete(format), &response);
         let mut headers = http::HeaderMap::new();
+
+        if let Response::RefusedRequest(response) = response {
+            headers.extend(response.headers)
+        }
 
         headers.insert(http::header::CONTENT_TYPE, format.to_content_type_header_value());
         headers.typed_insert(headers::ContentLength(bytes.len() as u64));

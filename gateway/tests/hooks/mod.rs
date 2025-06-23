@@ -82,6 +82,6 @@ fn extension_loads_and_passes_headers() {
         }
         "###);
 
-        dbg!(server.received_requests().await);
+        server.received_requests().await;
     });
 }

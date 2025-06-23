@@ -57,7 +57,7 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
 
             self.poisoned = false;
 
-            result?;
+            result.map_err(|err| ErrorResponse::from_wit(&mut self.store, err))?;
 
             Ok(parts)
         })

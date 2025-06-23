@@ -56,6 +56,24 @@ impl ErrorResponse {
     pub fn push_error(&mut self, error: impl Into<Error>) {
         self.0.errors.push(Into::<Error>::into(error).into());
     }
+
+    /// Add a header to the error response.
+    pub fn push_header(&mut self, name: &str, value: &[u8]) -> Result<(), wit::HeaderError> {
+        let headers = if let Some(headers) = self.0.headers.take() {
+            headers
+        } else {
+            wit::Headers::new()
+        };
+        headers.append(name, value)?;
+        self.0.headers = Some(headers);
+        Ok(())
+    }
+
+    /// Add a header to the error response.
+    pub fn with_header(mut self, name: &str, value: &[u8]) -> Result<Self, wit::HeaderError> {
+        self.push_header(name, value)?;
+        Ok(self)
+    }
 }
 
 impl From<Error> for ErrorResponse {

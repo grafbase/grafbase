@@ -14,3 +14,14 @@ impl Error {
         }))
     }
 }
+
+impl From<ErrorResponse> for crate::ErrorResponse {
+    fn from(value: crate::extension::api::since_0_9_0::wit::error::ErrorResponse) -> Self {
+        crate::ErrorResponse::Guest {
+            status_code: http::StatusCode::from_u16(value.status_code)
+                .unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR),
+            errors: value.errors.into_iter().map(From::from).collect(),
+            headers: Default::default(),
+        }
+    }
+}
