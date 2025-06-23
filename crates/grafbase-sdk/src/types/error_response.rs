@@ -21,6 +21,7 @@ impl ErrorResponse {
         Self(wit::ErrorResponse {
             status_code: status_code.as_u16(),
             errors: Vec::new(),
+            headers: None,
         })
     }
 

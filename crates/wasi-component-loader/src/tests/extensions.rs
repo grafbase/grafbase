@@ -122,6 +122,7 @@ async fn single_call_caching_auth_invalid() {
             ErrorResponse {
                 status-code: 401,
                 errors: [],
+                headers: None,
             },
         ),
     )

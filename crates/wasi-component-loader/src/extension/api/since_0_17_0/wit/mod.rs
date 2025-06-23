@@ -1,4 +1,5 @@
 pub mod authorization_types;
+pub mod error;
 pub mod event_queue;
 pub mod headers;
 pub mod http_client;
@@ -13,7 +14,6 @@ wasmtime::component::bindgen!({
     with: {
         "grafbase:sdk/access-log": crate::extension::api::since_0_9_0::wit::access_log,
         "grafbase:sdk/cache": crate::extension::api::since_0_9_0::wit::cache,
-        "grafbase:sdk/error": crate::extension::api::since_0_9_0::wit::error,
         "grafbase:sdk/grpc": crate::extension::api::since_0_14_0::wit::grpc,
         "grafbase:sdk/kafka-client": crate::extension::api::since_0_16_0::wit::kafka_client,
         "grafbase:sdk/nats-client": crate::extension::api::since_0_9_0::wit::nats_client,

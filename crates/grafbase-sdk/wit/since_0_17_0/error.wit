@@ -1,10 +1,14 @@
 interface error {
+    use headers.{headers};
+
     // An HTTP error response.
     record error-response {
         // HTTP status code. Must be a valid status code. If not, the status code will be 500.
         status-code: u16,
         // List of GraphQL errors.
         errors: list<error>,
+        // The headers to send with the response. Keys and values must be ASCII strings.
+        headers: option<headers>
     }
 
     // An error response can be used to inject an error to the GraphQL response.
