@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use bytes::Bytes;
-use futures::{future::BoxFuture, stream::FuturesOrdered};
+use futures::{TryFutureExt, future::BoxFuture, stream::FuturesOrdered};
 use tokio_stream::StreamExt as _;
 use wasmtime::component::Resource;
 
@@ -23,7 +23,7 @@ impl HostHttpClient for WasiState {
 
         let response = match send_request(request, self.request_durations().clone()).await {
             Ok(resp) => resp,
-            Err(e) => return Ok(Err(e)),
+            Err(e) => return Ok(Err(e.into())),
         };
 
         let (parts, body) = response.into_parts();
@@ -58,7 +58,7 @@ impl HostHttpClient for WasiState {
             .map(|request| {
                 let request_durations = self.request_durations().clone();
                 let fut: BoxFuture<'_, Result<http::Response<Bytes>, HttpError>> = match request {
-                    Ok(request) => Box::pin(send_request(request, request_durations)),
+                    Ok(request) => Box::pin(send_request(request, request_durations).map_err(Into::into)),
                     Err(e) => Box::pin(async move { Err(e) }),
                 };
                 fut

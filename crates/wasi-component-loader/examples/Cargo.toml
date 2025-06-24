@@ -20,6 +20,6 @@ lto = true
 [workspace.dependencies]
 base64 = "0.22"
 grafbase-hooks = { path = "../../grafbase-hooks" }
-grafbase-sdk = { version = "0.17.4" }              # TODO: temporary, until we release 0.18.0
+grafbase-sdk = { path = "../../grafbase-sdk" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

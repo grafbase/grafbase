@@ -6,29 +6,23 @@ mod hooks;
 mod resolver;
 mod state;
 
-use std::sync::atomic::Ordering;
-
 use crate::{
     types::Configuration,
-    wit::{Error, ErrorResponse, Guest, LogLevel, Schema},
+    wit::{Error, ErrorResponse, Guest, Schema},
 };
 
 pub use error::SdkError;
 pub(crate) use extension::*;
-pub(crate) use state::{can_skip_sending_events, queue_event, register_extension};
+pub(crate) use state::{can_skip_sending_events, current_context, queue_event, register_extension};
 
 pub(crate) struct Component;
-
-pub(crate) fn guest_log_level() -> u8 {
-    state::GUEST_LOG_LEVEL.load(Ordering::Relaxed)
-}
 
 impl Guest for Component {
     fn init(
         subgraph_schemas: Vec<(String, Schema)>,
         configuration: Vec<u8>,
         can_skip_sending_events: bool,
-        host_log_level: Option<LogLevel>,
+        host_log_level: String,
     ) -> Result<(), String> {
         let config = Configuration::new(configuration);
 

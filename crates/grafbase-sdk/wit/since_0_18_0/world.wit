@@ -23,7 +23,6 @@ world sdk {
     export resolver;
 
     use schema.{schema};
-    use logger.{log-level};
 
     // The extension registration function. Must be called before initialization.
     export register-extension: func();
@@ -36,6 +35,6 @@ world sdk {
         schemas: list<tuple<string, schema>>,
         configuration: list<u8>,
         can-skip-sending-events: bool,
-        host-log-level: option<log-level>,
+        logging-filter: string,
     ) -> result<_, string>;
 }

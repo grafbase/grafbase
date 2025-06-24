@@ -36,10 +36,6 @@ interface logger {
         /// The severity of the log.
         level: log-level,
 
-        /// The module path or component name where the log originated.
-        /// This maps directly to the `target` in the Rust `tracing` library.
-        target: string,
-
         /// The primary, human-readable message.
         message: string,
 
@@ -53,7 +49,7 @@ interface logger {
         path: string,
 
         /// The rotation strategy for the log file.
-        rotate: file-logger-rotation,
+        rotate: option<file-logger-rotation>,
     }
 
     /// A logger that writes log entries to a file.
@@ -70,11 +66,8 @@ interface logger {
 
     /// A logger that writes to the system's native logging facility.
     resource system-logger {
-        /// Create a new system logger.
-        constructor();
-
         /// Log a structured entry to the system logger.
         /// The entry will be formatted according to the system's logging format.
-        log: func(entry: log-entry);
+        log: static func(entry: log-entry);
     }
 }

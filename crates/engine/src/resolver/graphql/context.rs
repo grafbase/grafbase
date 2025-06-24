@@ -96,6 +96,7 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
 
         if let Some(status) = self.status {
             self.span.record_graphql_response_status(status);
+
             self.metrics().record_subgraph_request_duration(
                 SubgraphRequestDurationAttributes {
                     name: self.endpoint.subgraph_name().to_string(),
@@ -104,6 +105,10 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
                 },
                 duration,
             );
+
+            self.ctx
+                .event_queue()
+                .push_subgraph_request(self.executed_request_builder);
         }
 
         ResolverResult { response_part }

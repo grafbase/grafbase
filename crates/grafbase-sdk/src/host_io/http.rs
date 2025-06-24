@@ -8,7 +8,7 @@ pub use serde_json::Error as JsonDeserializeError;
 pub use url::Url;
 
 use crate::{
-    types::{AsHeaderName, AsHeaderValue, HttpHeaders},
+    types::{AsHeaderName, AsHeaderValue, OwnedHttpHeaders},
     wit::{self, HttpClient},
 };
 use serde::Serialize;
@@ -245,7 +245,7 @@ impl HttpRequest {
 pub struct HttpRequestBuilder {
     url: Url,
     method: http::Method,
-    headers: HttpHeaders,
+    headers: OwnedHttpHeaders,
     body: Vec<u8>,
     timeout: Option<Duration>,
 }
@@ -257,7 +257,7 @@ impl HttpRequestBuilder {
     }
 
     /// Mutable access to the HTTP headers of the request.
-    pub fn headers(&mut self) -> &mut HttpHeaders {
+    pub fn headers(&mut self) -> &mut OwnedHttpHeaders {
         &mut self.headers
     }
 
@@ -388,7 +388,7 @@ impl Default for BatchHttpRequest {
 /// A struct that represents an HTTP response.
 pub struct HttpResponse {
     status_code: http::StatusCode,
-    headers: HttpHeaders,
+    headers: OwnedHttpHeaders,
     body: Vec<u8>,
 }
 
@@ -409,7 +409,7 @@ impl HttpResponse {
     }
 
     /// Returns the headers of the HTTP response.
-    pub fn headers(&self) -> &HttpHeaders {
+    pub fn headers(&self) -> &OwnedHttpHeaders {
         &self.headers
     }
 

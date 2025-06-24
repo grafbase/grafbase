@@ -86,6 +86,8 @@ fn try_main(args: Args) -> Result<(), CliError> {
         .with_ansi(true)
         .with_filter(EnvFilter::new(OUTPUT_LAYER_LOG_FILTER));
 
+    let logging_filter = filter.to_string();
+
     tracing_subscriber::registry()
         .with(output_layer)
         .with(fmt::layer().with_filter(filter))
@@ -141,7 +143,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
             BranchSubCommand::Delete(cmd) => branch::delete(cmd.branch_ref),
             BranchSubCommand::Create(cmd) => branch::create(cmd.branch_ref),
         },
-        SubCommand::Dev(cmd) => dev::dev(cmd),
+        SubCommand::Dev(cmd) => dev::dev(cmd, logging_filter),
         SubCommand::Extension(cmd) => Ok(extension::execute(cmd)?),
         SubCommand::Mcp(cmd) => Ok(mcp::run(cmd)?),
 

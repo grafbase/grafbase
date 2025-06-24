@@ -35,18 +35,41 @@ fn receive_events() {
         .get("x-events")
         .map(|v| v.as_bytes())
         .unwrap_or_default();
+
     let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
         .decode(bytes)
         .unwrap_or_default();
+
     let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+
     insta::assert_json_snapshot!(value,
         {
             "[].duration_ms" => "[redacted]",
             "[].prepare_duration_ms" => "[redacted]",
-            "[].total_duration_ms" => "[redacted]"
+            "[].executions[].connection_time_ms" => "[redacted]",
+            "[].executions[].response_time_ms" => "[redacted]",
+            "[].total_duration_ms" => "[redacted]",
+            "[].url" => "[redacted]"
         },
         @r#"
     [
+      {
+        "cache_status": "miss",
+        "executions": [
+          {
+            "connection_time_ms": "[redacted]",
+            "response_time_ms": "[redacted]",
+            "status_code": 200,
+            "type": "response"
+          }
+        ],
+        "has_errors": false,
+        "method": "POST",
+        "subgraph_name": "echo",
+        "total_duration_ms": "[redacted]",
+        "type": "subgraph",
+        "url": "[redacted]"
+      },
       {
         "cached_plan": false,
         "document": "query { header(name: \"\") }",
@@ -57,6 +80,12 @@ fn receive_events() {
           "type": "success"
         },
         "type": "operation"
+      },
+      {
+        "method": "POST",
+        "status_code": 200,
+        "type": "http",
+        "url": "[redacted]"
       }
     ]
     "#

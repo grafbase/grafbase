@@ -9,15 +9,26 @@ pub struct FileLogger(wit::FileLogger);
 
 impl FileLogger {
     /// Creates a new file logger with the specified path and rotation strategy.
-    pub fn new(path: impl Into<PathBuf>, rotation: LogRotation) -> Result<Self, SdkError> {
+    pub fn new(path: impl Into<PathBuf>, rotation: Option<LogRotation>) -> Result<Self, SdkError> {
         let opts = wit::FileLoggerOptions {
             path: path.into().to_string_lossy().into_owned(),
-            rotate: rotation.into(),
+            rotate: rotation.map(Into::into),
         };
 
         let logger = wit::FileLogger::init(&opts)?;
 
         Ok(Self(logger))
+    }
+
+    /// Logs a JSON-serialized message to the file.
+    ///
+    /// This method serializes the provided message to JSON format and writes it to the log file.
+    pub fn log_json<S>(&self, message: S) -> Result<(), SdkError>
+    where
+        S: serde::Serialize,
+    {
+        let json = serde_json::to_vec(&message)?;
+        self.log(&json)
     }
 
     /// Logs a message to the file. The caller decides the encoding of the message.

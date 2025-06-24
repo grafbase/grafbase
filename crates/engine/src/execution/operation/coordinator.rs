@@ -214,7 +214,7 @@ where
                     let executed_operation_builder = self
                         .first_executed_operation_builder
                         .take()
-                        .unwrap_or_else(ExecutedOperation::builder);
+                        .unwrap_or_else(|| ExecutedOperation::builder(event_queue::OperationType::Subscription));
 
                     let mut results = VecDeque::new();
                     results.push_back(PlanExecutionResult {
@@ -332,6 +332,10 @@ impl<'ctx, R: Runtime> OperationExecution<'ctx, R> {
         this.executed_operation_builder
             .document(&operation.cached.operation.attributes.sanitized_query)
             .status(this.response.graphql_status());
+
+        if let Some(complexity) = operation.complexity_cost {
+            this.executed_operation_builder.complexity(complexity.0 as u64);
+        }
 
         event_queue.push_operation(this.executed_operation_builder);
 

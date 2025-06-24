@@ -14,7 +14,7 @@ use http::{HeaderMap, HeaderValue, Request, Response};
 use runtime::extension::Token;
 use serde_json::json;
 
-const LATEST_SDK: semver::Version = semver::Version::new(0, 17, 0);
+const LATEST_SDK: semver::Version = semver::Version::new(0, 18, 0);
 
 #[tokio::test]
 async fn single_call_caching_auth() {
@@ -41,6 +41,8 @@ async fn single_call_caching_auth() {
                 "cache_config": "test"
             })),
             can_skip_sending_events: false,
+            logging_filter: String::from("info"),
+            extension_name: "caching_auth".to_string(),
         },
     )
     .unwrap();
@@ -99,6 +101,8 @@ async fn single_call_caching_auth_invalid() {
                 "cache_config": "test"
             })),
             can_skip_sending_events: false,
+            logging_filter: String::from("info"),
+            extension_name: "caching_auth".to_string(),
         },
     )
     .unwrap();
@@ -151,6 +155,8 @@ async fn multiple_cache_calls() {
                 "cache_config": "test"
             })),
             can_skip_sending_events: false,
+            logging_filter: String::from("info"),
+            extension_name: "caching_auth".to_string(),
         },
     )
     .unwrap();
@@ -245,6 +251,8 @@ async fn on_request_hook() {
             wasm: config,
             guest_config: Option::<toml::Value>::None,
             can_skip_sending_events: false,
+            logging_filter: String::from("info"),
+            extension_name: "simple_hooks".to_string(),
         },
     )
     .unwrap();
@@ -284,6 +292,8 @@ async fn on_response_hook() {
             wasm: config,
             guest_config: Option::<toml::Value>::None,
             can_skip_sending_events: false,
+            logging_filter: String::from("info"),
+            extension_name: "simple_hooks".to_string(),
         },
     )
     .unwrap();

@@ -12,3 +12,11 @@ pub mod kafka;
 pub mod logger;
 pub mod nats;
 pub mod postgres;
+
+/// Gets the trace ID from the current request context.
+///
+/// Returns the trace ID associated with the current execution context,
+/// which can be used for distributed tracing and request correlation.
+pub fn trace_id() -> String {
+    crate::component::current_context().trace_id()
+}

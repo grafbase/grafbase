@@ -107,9 +107,15 @@ impl GraphqlResolver {
         let http_span1 = http_span.clone();
 
         let stream = retrying_fetch(ctx, move || {
-            fetcher
-                .graphql_over_websocket_stream(request.clone())
-                .instrument(http_span1.span())
+            let request = request.clone();
+            let http_span1 = http_span1.clone();
+            async move {
+                let result = fetcher
+                    .graphql_over_websocket_stream(request)
+                    .instrument(http_span1.span())
+                    .await;
+                (result, None)
+            }
         })
         .await;
 
@@ -194,9 +200,15 @@ impl GraphqlResolver {
 
         let http_span1 = http_span.clone();
         let stream = retrying_fetch(ctx, move || {
-            fetcher
-                .graphql_over_sse_stream(request.clone())
-                .instrument(http_span1.span())
+            let request = request.clone();
+            let http_span1 = http_span1.clone();
+            async move {
+                let result = fetcher
+                    .graphql_over_sse_stream(request)
+                    .instrument(http_span1.span())
+                    .await;
+                (result, None)
+            }
         })
         .await;
 

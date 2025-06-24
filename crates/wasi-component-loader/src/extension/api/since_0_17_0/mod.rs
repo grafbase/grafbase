@@ -1,4 +1,4 @@
-mod instance;
+pub mod instance;
 pub mod wit;
 
 pub use instance::SdkPre0_17_0;

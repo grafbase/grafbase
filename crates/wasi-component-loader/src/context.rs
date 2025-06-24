@@ -5,7 +5,10 @@ use std::{
 
 use event_queue::EventQueue;
 use extension_catalog::ExtensionId;
-use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
+use grafbase_telemetry::otel::{
+    opentelemetry::trace::{TraceContextExt, TraceId},
+    tracing_opentelemetry::OpenTelemetrySpanExt,
+};
 use runtime::extension::ExtensionContext;
 
 /// The internal per-request context storage. Accessible from all hooks throughout a single request
@@ -25,7 +28,7 @@ impl std::ops::Deref for SharedContext {
 pub struct SharedContextInner {
     pub(crate) authorization_states: OnceLock<Vec<(ExtensionId, Vec<u8>)>>,
     // FIXME: legacy kv for sdk 0.9
-    pub(crate) kv: Arc<HashMap<String, String>>,
+    pub(crate) kv: HashMap<String, String>,
     /// A log channel for access logs.
     pub(crate) trace_id: TraceId,
     pub(crate) event_queue: EventQueue,
@@ -51,11 +54,13 @@ impl Default for SharedContext {
 impl SharedContext {
     /// Creates a new shared context.
     pub fn new(event_queue: EventQueue) -> Self {
+        let trace_id = tracing::Span::current().context().span().span_context().trace_id();
+
         Self(Arc::new(SharedContextInner {
             event_queue,
             kv: Default::default(),
             authorization_states: Default::default(),
-            trace_id: TraceId::INVALID,
+            trace_id,
         }))
     }
 }

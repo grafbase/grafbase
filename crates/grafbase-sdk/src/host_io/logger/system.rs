@@ -1,39 +1,29 @@
+use env_filter::Filter;
+
 use crate::wit;
 
-pub(crate) struct HostLogger(pub(crate) wit::SystemLogger);
+pub(crate) struct HostLogger {
+    pub(crate) filter: Filter,
+}
 
 impl log::Log for HostLogger {
     fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
-        let configured_level = match crate::component::guest_log_level() {
-            l if l == log::Level::Error as u8 => log::Level::Error,
-            l if l == log::Level::Warn as u8 => log::Level::Warn,
-            l if l == log::Level::Info as u8 => log::Level::Info,
-            l if l == log::Level::Debug as u8 => log::Level::Debug,
-            l if l == log::Level::Trace as u8 => log::Level::Trace,
-            _ => unreachable!("we do not have other levels"),
-        };
-
-        metadata.level() <= configured_level
+        self.filter.enabled(metadata)
     }
 
     fn log(&self, record: &log::Record<'_>) {
-        if !self.enabled(record.metadata()) {
+        if !self.filter.matches(record) {
             return;
         }
 
         let mut kv_visitor = KvVisitor::new();
-
         let _ = record.key_values().visit(&mut kv_visitor);
 
-        // 3. CONSTRUCT THE LOG ENTRY RECORD
-        let entry = wit::LogEntry {
+        wit::SystemLogger::log(&wit::LogEntry {
             level: record.level().into(),
-            target: record.target().to_string(),
             message: record.args().to_string(),
             fields: kv_visitor.fields,
-        };
-
-        self.0.log(&entry);
+        });
     }
 
     fn flush(&self) {
