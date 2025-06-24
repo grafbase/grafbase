@@ -47,6 +47,11 @@ impl TestGateway {
         TestGatewayBuilder::new()
     }
 
+    /// Full url of the GraphQL endpoint on the gateway.
+    pub fn url(&self) -> &Url {
+        &self.gateway_endpoint
+    }
+
     /// Creates a new GraphQL query builder with the given query.
     ///
     /// # Arguments
