@@ -98,7 +98,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
         ..Default::default()
     };
 
-    let (router, ct) = grafbase_mcp::router(rx, &mcp_config);
+    let (router, ct) = grafbase_mcp::router(&rx, &mcp_config);
 
     // Do something with the router, e.g., add routes or middleware
 

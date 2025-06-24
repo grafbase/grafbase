@@ -3,7 +3,10 @@ use std::sync::Arc;
 use engine::ErrorResponse;
 use extension_catalog::{ExtensionId, Id};
 use futures::{StreamExt as _, stream::FuturesUnordered};
-use runtime::extension::{AuthenticationExtension, Token};
+use runtime::{
+    authentication::PublicMetadataEndpoint,
+    extension::{AuthenticationExtension, Token},
+};
 
 use crate::gateway::{
     DispatchRule, ExtContext, ExtensionsBuilder, ExtensionsDispatcher, TestExtensions, TestManifest,
@@ -39,6 +42,31 @@ impl AuthenticationExtension<ExtContext> for ExtensionsDispatcher {
             self.test.authenticate(ctx, &test_extensions, gateway_headers).await
         }
     }
+
+    fn public_metadata(
+        &self,
+        extension_ids: &[ExtensionId],
+    ) -> impl Future<Output = Result<Vec<runtime::authentication::PublicMetadataEndpoint>, String>> {
+        let mut wasm_extensions = Vec::new();
+        let mut test_extensions = Vec::new();
+        for id in extension_ids {
+            match self.dispatch[id] {
+                DispatchRule::Wasm => wasm_extensions.push(*id),
+                DispatchRule::Test => test_extensions.push(*id),
+            }
+        }
+
+        async move {
+            let mut endpoints = Vec::new();
+            let mut wasm_public_metadata = self.wasm.public_metadata(&wasm_extensions).await?;
+            let mut native_public_metadata = self.test.public_metadata(&test_extensions).await?;
+
+            endpoints.append(&mut wasm_public_metadata);
+            endpoints.append(&mut native_public_metadata);
+
+            Ok(endpoints)
+        }
+    }
 }
 
 impl AuthenticationExtension<ExtContext> for TestExtensions {
@@ -72,6 +100,34 @@ impl AuthenticationExtension<ExtContext> for TestExtensions {
         drop(futures);
 
         (headers, Err(last_error.unwrap()))
+    }
+
+    async fn public_metadata(
+        &self,
+        extension_ids: &[ExtensionId],
+    ) -> Result<Vec<runtime::authentication::PublicMetadataEndpoint>, String> {
+        let authentication_extensions: Vec<_> = {
+            let state = self.state.lock().await;
+            extension_ids
+                .iter()
+                .map(|id| state.get_authentication_ext(*id))
+                .collect()
+        };
+
+        let mut futures = authentication_extensions
+            .into_iter()
+            .map(|instance| async move { instance.public_metadata_endpoints().await })
+            .collect::<FuturesUnordered<_>>();
+
+        let mut endpoints = Vec::new();
+
+        while let Some(result) = futures.by_ref().next().await {
+            endpoints.extend(result.into_iter());
+        }
+
+        drop(futures);
+
+        Ok(endpoints)
     }
 }
 
@@ -122,4 +178,5 @@ impl AnyExtension for AuthenticationExt {
 #[async_trait::async_trait]
 pub trait AuthenticationTestExtension: Send + Sync + 'static {
     async fn authenticate(&self, headers: &http::HeaderMap) -> Result<Token, ErrorResponse>;
+    async fn public_metadata_endpoints(&self) -> Vec<PublicMetadataEndpoint>;
 }

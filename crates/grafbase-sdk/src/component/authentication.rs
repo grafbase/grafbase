@@ -18,6 +18,9 @@ impl wit::AuthenticationGuest for Component {
     }
 
     fn public_metadata() -> Result<Vec<wit::PublicMetadataEndpoint>, wit::Error> {
-        Ok(vec![])
+        state::extension()?
+            .public_metadata()
+            .map(|endpoints| endpoints.into_iter().map(|ep| ep.into()).collect())
+            .map_err(From::from)
     }
 }

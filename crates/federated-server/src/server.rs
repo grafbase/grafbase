@@ -5,15 +5,16 @@ mod gateway;
 mod graph_fetch_method;
 mod graph_updater;
 mod health;
+mod public_auth_metadata;
 mod state;
 mod trusted_documents_client;
 
+use self::public_auth_metadata::*;
 pub(crate) use gateway::CreateExtensionCatalogError;
 use gateway::{EngineWatcher, create_extension_catalog::create_extension_catalog};
 pub use graph_fetch_method::GraphFetchMethod;
-use runtime::extension::HooksExtension;
+use runtime::{authentication::Authenticate as _, extension::HooksExtension};
 pub use state::ServerState;
-
 use tokio_util::sync::CancellationToken;
 use ulid::Ulid;
 
@@ -193,12 +194,29 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime, H: HooksExtension>(
 
     let ct = match &config.mcp {
         Some(mcp_config) if mcp_config.enabled => {
-            let (mcp_router, ct) = grafbase_mcp::router(engine, mcp_config);
+            let (mcp_router, ct) = grafbase_mcp::router(&engine, mcp_config);
             router = router.merge(mcp_router);
             ct
         }
         _ => None,
     };
+
+    for public_metadata_endpoint in engine
+        .borrow()
+        .runtime
+        .authentication()
+        .public_metadata_endpoints()
+        .await
+        .unwrap_or_default()
+    {
+        router = router.route(
+            &public_metadata_endpoint.path,
+            get(public_metadata_handler(
+                public_metadata_endpoint.response_body.into(),
+                public_metadata_endpoint.headers,
+            )),
+        );
+    }
 
     let mut router = inject_layers_before_cors(router)
         // Streaming and compression doesn't really work well today. Had a panic deep inside stream

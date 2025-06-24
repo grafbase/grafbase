@@ -4,7 +4,7 @@ use grafbase_sdk::{
         cache::{self, CachedItem},
         http::StatusCode,
     },
-    types::{Configuration, Error, ErrorResponse, GatewayHeaders, Token},
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders, PublicMetadataEndpoint, Token},
 };
 
 #[derive(AuthenticationExtension)]
@@ -17,6 +17,8 @@ struct CachingProvider {
 struct ProviderConfig {
     header_name: String,
     cache_key_prefix: String,
+    #[serde(default)]
+    oauth: Option<OAuthConfig>,
 }
 
 impl Default for ProviderConfig {
@@ -24,8 +26,14 @@ impl Default for ProviderConfig {
         Self {
             header_name: "Authorization".to_owned(),
             cache_key_prefix: "test".to_owned(),
+            oauth: Default::default(),
         }
     }
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct OAuthConfig {
+    resource: String,
 }
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
@@ -68,5 +76,26 @@ impl AuthenticationExtension for CachingProvider {
         .unwrap();
 
         Ok(Token::from_bytes(format!("sdk017:{auth}:{}", jwks.key).into()))
+    }
+
+    fn public_metadata(&mut self) -> Result<Vec<PublicMetadataEndpoint>, Error> {
+        let Some(oauth) = &self.config.oauth else {
+            return Ok(vec![]);
+        };
+
+        let mut response_headers = grafbase_sdk::types::HttpHeaders::new();
+
+        response_headers.append("x-test", "works");
+
+        Ok(vec![
+            PublicMetadataEndpoint::new(
+                "/.well-known/protected-resource".to_owned(),
+                serde_json::to_vec(&serde_json::json!({
+                    "resource": oauth.resource,
+                }))
+                .unwrap(),
+            )
+            .with_headers(response_headers.into()),
+        ])
     }
 }

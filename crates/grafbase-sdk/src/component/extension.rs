@@ -2,15 +2,19 @@ use crate::{
     extension::resolver::SubscriptionCallback,
     host_io::event_queue::EventQueue,
     types::{
-        AuthorizationDecisions, Error, ErrorResponse, GatewayHeaders, QueryElements, ResolvedField, Response,
-        ResponseElements, SubgraphHeaders, Token, Variables,
+        AuthorizationDecisions, Error, ErrorResponse, GatewayHeaders, PublicMetadataEndpoint, QueryElements,
+        ResolvedField, Response, ResponseElements, SubgraphHeaders, Token, Variables,
     },
 };
 
-#[allow(unused_variables)]
+#[expect(unused_variables)]
 pub(crate) trait AnyExtension {
     fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
         Err(ErrorResponse::internal_server_error().with_error("Authentication extension not initialized correctly."))
+    }
+
+    fn public_metadata(&mut self) -> Result<Vec<PublicMetadataEndpoint>, Error> {
+        Err(Error::new("Authentication extension not initialized correctly."))
     }
 
     fn prepare(&mut self, field: ResolvedField<'_>) -> Result<Vec<u8>, Error> {

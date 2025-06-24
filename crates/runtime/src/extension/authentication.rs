@@ -1,5 +1,6 @@
 use std::future::Future;
 
+use crate::authentication::PublicMetadataEndpoint;
 use error::ErrorResponse;
 use extension_catalog::ExtensionId;
 
@@ -10,6 +11,11 @@ pub trait AuthenticationExtension<Context: Send + Sync + 'static>: Send + Sync +
         extension_ids: &[ExtensionId],
         gateway_headers: http::HeaderMap,
     ) -> impl Future<Output = (http::HeaderMap, Result<Token, ErrorResponse>)> + Send;
+
+    fn public_metadata(
+        &self,
+        extension_ids: &[ExtensionId],
+    ) -> impl Future<Output = Result<Vec<PublicMetadataEndpoint>, String>> + Send;
 }
 
 #[derive(Clone, Debug)]

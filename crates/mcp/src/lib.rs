@@ -23,7 +23,7 @@ use tokio_util::sync::CancellationToken;
 type EngineWatcher<R> = watch::Receiver<Arc<Engine<R>>>;
 
 pub fn router<R: Runtime>(
-    engine: EngineWatcher<R>,
+    engine: &EngineWatcher<R>,
     config: &ModelControlProtocolConfig,
 ) -> (Router, Option<CancellationToken>) {
     match config.transport {
