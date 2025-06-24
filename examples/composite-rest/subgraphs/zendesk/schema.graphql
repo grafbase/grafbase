@@ -1,0 +1,131 @@
+extend schema
+  @link(url: "https://grafbase.com/extensions/rest/0.5.0", import: ["@restEndpoint", "@rest"])
+  @link(
+    url: "https://specs.grafbase.com/composite-schemas/v1"
+    import: ["@lookup", "@key", "@is", "@shareable", "@inaccessible", "@derive", "@require"]
+  )
+  @restEndpoint(
+    name: "zendesk"
+    baseURL: "http://localhost:8080/v2"
+    headers: [{ name: "Accept", value: "application/json" }]
+  )
+
+type Query {
+  calls: [Call!]!
+    @rest(
+      endpoint: "zendesk"
+      http: { GET: "/calls" }
+      selection: """
+      [.items[] | .data | {
+        id,
+        summary,
+        duration,
+        associated_deal_ids
+      }]
+      """
+    )
+
+  dealLookup(id: ID!): Deal!
+    @inaccessible
+    @lookup
+    @rest(
+      endpoint: "zendesk"
+      http: { GET: "/deals/{{args.id}}" }
+      selection: """
+      .data | {
+        id,
+        name,
+        createdAt: .created_at
+      }
+      """
+    )
+
+  productsLookup(ids: [ID!]!): [Product!]!
+    @inaccessible
+    @lookup
+    @rest(
+      endpoint: "zendesk"
+      http: { GET: "/products?ids={{#args.ids}}{{.}}{{^-last}},{{/-last}}{{/args.ids}}" }
+      selection: """
+      [.items[] | .data | {
+        id,
+        name,
+        description
+      }]
+      """
+    )
+}
+
+scalar DateTime
+scalar Duration
+
+type Call {
+  id: ID!
+  summary: String!
+  duration: Duration!
+  associated_deal_ids: [ID!]! @inaccessible
+  deals: [Deal!]! @derive @is(field: "associated_deal_ids[{ id: . }]")
+  # Or altnernatively, you could use a batch require
+  deals2(ids: [ID!]! @require(field: "associated_deal_ids")): [Deal!]!
+    @rest(
+      endpoint: "zendesk"
+      http: { GET: "/deals?ids={{#args.ids}}{{.}}{{^-last}},{{/-last}}{{/args.ids}}" }
+      selection: """
+      [.items[] | .data | {
+        id,
+        name,
+        createdAt: .created_at
+      }]
+      """
+    )
+}
+
+type Deal @key(fields: "id") {
+  id: ID!
+  name: String!
+  createdAt: DateTime!
+  orders(id: ID! @require(field: "id")): [Order!]!
+    @rest(
+      endpoint: "zendesk"
+      http: { GET: "/orders?deal_id={{args.id}}" }
+      selection: """
+      [.items[] | .data | {
+        id,
+        name,
+        deal_id,
+        createdAt: .created_at
+      }]
+      """
+    )
+}
+
+type Order {
+  id: ID!
+  createdAt: DateTime!
+  deal_id: ID! @inaccessible
+  deal: Deal! @derive
+  lineItems(id: ID! @require(field: "id")): [LineItem!]!
+    @rest(
+      endpoint: "zendesk"
+      http: { GET: "/orders/{{args.id}}/line_items" }
+      selection: """
+      [.items[] | .data | {
+        id,
+        product_id,
+        quantity
+      }]
+      """
+    )
+}
+
+type LineItem {
+  id: ID!
+  product_id: ID! @inaccessible
+  product: Product! @derive
+}
+
+type Product @key(fields: "id") {
+  id: ID!
+  name: String!
+  description: String!
+}

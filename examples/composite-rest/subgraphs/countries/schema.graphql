@@ -1,0 +1,17 @@
+extend schema
+  @link(url: "https://grafbase.com/extensions/rest/0.5.0", import: ["@restEndpoint", "@rest"])
+  @restEndpoint(name: "countries", baseURL: "https://restcountries.com/v3.1")
+
+type Country {
+  name: String!
+}
+
+type Query {
+  listAllCountries: [Country!]!
+    @rest(
+      endpoint: "countries"
+      http: { GET: "/all?fields=name" }
+      # ja logic to apply to the response
+      selection: "[.[] | { name: .name.official }]"
+    )
+}

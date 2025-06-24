@@ -27,6 +27,7 @@ exclude = [
     "examples/authorization",
     "examples/grpc-extension/server",
     "examples/hooks-template",
+    "examples/composite-rest",
     "examples/query-plan",
 ]
 

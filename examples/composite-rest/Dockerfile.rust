@@ -1,0 +1,19 @@
+FROM rust:1.87.0-alpine3.21 AS builder
+
+WORKDIR /usr/src/service
+COPY Cargo.toml Cargo.lock ./
+RUN apk add musl-dev && mkdir src && echo 'fn main() { println!("Dummy!"); }' > ./src/main.rs
+RUN cargo build --release
+
+RUN rm -rf src
+COPY src ./src
+RUN touch src/main.rs
+RUN cargo build --release
+
+FROM alpine:3.21
+RUN apk add bash
+
+ARG BINARY_NAME
+COPY --from=builder /usr/src/service/target/release/${BINARY_NAME} /usr/local/bin/service
+
+ENTRYPOINT service

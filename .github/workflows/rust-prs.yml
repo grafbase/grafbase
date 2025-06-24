@@ -481,6 +481,7 @@ jobs:
         working_directory:
           - examples/authorization
           - examples/grpc-extension
+          - examples/composite-rest
     runs-on: depot-ubuntu-24.04-8
     steps:
       - name: Get sources

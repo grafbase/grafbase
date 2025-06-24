@@ -1,0 +1,18 @@
+services:
+  zendesk-api:
+    restart: unless-stopped
+    network_mode: 'host'
+    build:
+      context: ./subgraphs/zendesk
+      args:
+        BINARY_NAME: zendesk-api
+      dockerfile: ../../Dockerfile.rust
+    container_name: zendesk-api
+  gateway:
+    restart: unless-stopped
+    network_mode: 'host'
+    ports:
+      - 5000:5000
+    build:
+      dockerfile: ./Dockerfile.gateway
+    container_name: gateway
