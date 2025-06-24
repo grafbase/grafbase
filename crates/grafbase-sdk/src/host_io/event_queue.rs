@@ -43,7 +43,7 @@
 
 use std::time::Duration;
 
-use crate::{SdkError, wit};
+use crate::{SdkError, types::SharedHttpHeaders, wit};
 
 /// Sends an event queue entry to the system.
 ///
@@ -182,11 +182,55 @@ impl ExecutedOperation {
     pub fn status(&self) -> GraphqlResponseStatus {
         self.0.status.into()
     }
+
+    /// Returns the type of GraphQL operation that was executed.
+    pub fn operation_type(&self) -> OperationType {
+        self.0.operation_type.into()
+    }
+
+    /// The complexity represents the computational cost of executing the operation.
+    ///
+    /// Read more: <https://grafbase.com/docs/gateway/configuration/complexity-control>
+    pub fn complexity(&self) -> Option<u64> {
+        self.0.complexity
+    }
+
+    /// Indicates whether the operation used any deprecated fields.
+    ///
+    /// This returns `true` if the GraphQL operation accessed any fields
+    /// that have been marked as deprecated in the schema.
+    pub fn has_deprecated_fields(&self) -> bool {
+        self.0.has_deprecated_fields
+    }
+}
+
+/// Represents the type of GraphQL operation.
+///
+/// This enum categorizes the different types of GraphQL operations
+/// that can be executed.
+pub enum OperationType {
+    /// A GraphQL query operation for reading data.
+    Query,
+    /// A GraphQL mutation operation for modifying data.
+    Mutation,
+    /// A GraphQL subscription operation for real-time data streaming.
+    Subscription,
+}
+
+impl From<wit::OperationType> for OperationType {
+    fn from(value: wit::OperationType) -> Self {
+        match value {
+            wit::OperationType::Query => OperationType::Query,
+            wit::OperationType::Mutation => OperationType::Mutation,
+            wit::OperationType::Subscription => OperationType::Subscription,
+        }
+    }
 }
 
 /// Represents the status of a GraphQL response.
 ///
 /// This enum categorizes the different outcomes of a GraphQL operation execution.
+#[derive(serde::Serialize, Debug)]
 pub enum GraphqlResponseStatus {
     /// The operation completed successfully without errors.
     Success,
@@ -199,6 +243,7 @@ pub enum GraphqlResponseStatus {
 }
 
 /// Contains information about field-level errors in a GraphQL response.
+#[derive(serde::Serialize, Debug)]
 pub struct FieldError {
     /// The number of field errors encountered.
     pub count: u64,
@@ -207,6 +252,7 @@ pub struct FieldError {
 }
 
 /// Contains information about request-level errors in a GraphQL response.
+#[derive(serde::Serialize, Debug)]
 pub struct RequestError {
     /// The number of request errors encountered.
     pub count: u64,
@@ -253,8 +299,8 @@ impl ExecutedSubgraphRequest {
     ///
     /// This includes both successful responses and various types of failures
     /// (e.g., rate limiting, server errors).
-    pub fn executions(&self) -> impl Iterator<Item = RequestExecution> {
-        self.0.executions.clone().into_iter().map(RequestExecution::from)
+    pub fn executions(&self) -> impl Iterator<Item = RequestExecution<'_>> {
+        self.0.executions.iter().map(RequestExecution::from)
     }
 
     /// Returns the cache status for this subgraph request.
@@ -283,7 +329,7 @@ impl From<wit::ExecutedSubgraphRequest> for ExecutedSubgraphRequest {
 ///
 /// This enum captures the different outcomes of attempting to execute a request
 /// to a subgraph endpoint.
-pub enum RequestExecution {
+pub enum RequestExecution<'a> {
     /// The subgraph returned a 5xx server error.
     InternalServerError,
     /// The request failed due to network or other request-level errors.
@@ -291,11 +337,11 @@ pub enum RequestExecution {
     /// The request was rate limited by the engine rate limiter.
     RateLimited,
     /// The subgraph returned a response (which may still contain GraphQL errors).
-    Response(SubgraphResponse),
+    Response(SubgraphResponse<'a>),
 }
 
-impl From<wit::SubgraphRequestExecutionKind> for RequestExecution {
-    fn from(value: wit::SubgraphRequestExecutionKind) -> Self {
+impl<'a> From<&'a wit::SubgraphRequestExecutionKind> for RequestExecution<'a> {
+    fn from(value: &'a wit::SubgraphRequestExecutionKind) -> Self {
         match value {
             wit::SubgraphRequestExecutionKind::InternalServerError => Self::InternalServerError,
             wit::SubgraphRequestExecutionKind::RequestError => Self::RequestError,
@@ -308,9 +354,9 @@ impl From<wit::SubgraphRequestExecutionKind> for RequestExecution {
 }
 
 /// Contains timing and status information for a successful subgraph response.
-pub struct SubgraphResponse(wit::SubgraphResponse);
+pub struct SubgraphResponse<'a>(&'a wit::SubgraphResponse);
 
-impl SubgraphResponse {
+impl<'a> SubgraphResponse<'a> {
     /// Returns the time taken to establish a connection to the subgraph.
     pub fn connection_time(&self) -> Duration {
         Duration::from_nanos(self.0.connection_time_ns)
@@ -325,9 +371,15 @@ impl SubgraphResponse {
     pub fn status(&self) -> http::StatusCode {
         http::StatusCode::from_u16(self.0.status_code).expect("this comes from reqwest")
     }
+
+    /// Returns the HTTP response headers from the subgraph.
+    pub fn response_headers(&self) -> SharedHttpHeaders<'a> {
+        SharedHttpHeaders::from(&self.0.response_headers)
+    }
 }
 
 /// Represents the cache status of a subgraph request.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CacheStatus {
     /// The entire response was served from cache.
     Hit,
@@ -344,6 +396,23 @@ impl From<wit::CacheStatus> for CacheStatus {
             wit::CacheStatus::PartialHit => Self::PartialHit,
             wit::CacheStatus::Miss => Self::Miss,
         }
+    }
+}
+
+impl CacheStatus {
+    /// Returns the cache status as a string slice.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Hit => "hit",
+            Self::PartialHit => "partial_hit",
+            Self::Miss => "miss",
+        }
+    }
+}
+
+impl AsRef<str> for CacheStatus {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
 

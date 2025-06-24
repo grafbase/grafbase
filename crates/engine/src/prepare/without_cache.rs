@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use operation::{Operation, RawVariables, Variables};
+use walker::Walk;
 
 use crate::{
     ErrorCode, Runtime,
@@ -48,6 +49,9 @@ impl<R: Runtime> PrepareContext<'_, R> {
             }
         };
 
+        // Set the operation type on the builder now that we know it
+        self.executed_operation_builder.operation_type(operation.attributes.ty);
+
         // GraphQL-over-HTTP spec:
         //   GET requests MUST NOT be used for executing mutation operations. If the values of {query} and {operationName} indicate that
         //   a mutation operation is to be executed, the server MUST respond with error status code 405 (Method Not Allowed) and halt
@@ -89,6 +93,16 @@ impl<R: Runtime> PrepareContext<'_, R> {
                     .with_operation_attributes(attributes.with_complexity_cost(complexity_cost)));
             }
         };
+
+        // Check if any fields in the operation are deprecated
+        let has_deprecated_fields = cached
+            .operation
+            .data_fields
+            .iter()
+            .any(|field| field.definition_id.walk(self.schema()).has_deprecated().is_some());
+
+        self.executed_operation_builder
+            .has_deprecated_fields(has_deprecated_fields);
 
         let plan = match crate::prepare::plan(self, &cached, &variables).await {
             Ok(plan) => plan,

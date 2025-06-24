@@ -15,6 +15,15 @@ const HOUR_SECS: u64 = MINUTE_SECS * 60;
 /// The number of seconds in a day.
 const DAY_SECS: u64 = HOUR_SECS * 24;
 
+/// The number of seconds in a week.
+const WEEK_SECS: u64 = DAY_SECS * 7;
+
+/// The number of seconds in a month.
+const MONTH_SECS: u64 = DAY_SECS * 30;
+
+/// The number of seconds in a year.
+const YEAR_SECS: u64 = DAY_SECS * 365;
+
 #[derive(Debug)]
 /// A struct representing a log file with size, file handle, and rotation strategy.
 pub(crate) struct LogFile {
@@ -67,6 +76,9 @@ impl LogFile {
             StrategyKind::Minutely => lifetime_secs >= MINUTE_SECS,
             StrategyKind::Hourly => lifetime_secs >= HOUR_SECS,
             StrategyKind::Daily => lifetime_secs >= DAY_SECS,
+            StrategyKind::Weekly => lifetime_secs >= WEEK_SECS,
+            StrategyKind::Monthly => lifetime_secs >= MONTH_SECS,
+            StrategyKind::Yearly => lifetime_secs >= YEAR_SECS,
             StrategyKind::Size(max_size) => self.size >= max_size,
         }
     }

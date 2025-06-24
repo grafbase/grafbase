@@ -43,7 +43,7 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
-                .call_on_request(&mut self.store, context, &url, method, headers)
+                .call_on_request(&mut self.store, context, &url, method.into(), headers)
                 .await?;
 
             parts.headers = self
@@ -57,7 +57,7 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
 
             self.poisoned = false;
 
-            result.map_err(|err| ErrorResponse::from_wit(&mut self.store, err))?;
+            result.map_err(|err| super::error_response_from_wit(&mut self.store, err))?;
 
             Ok(parts)
         })

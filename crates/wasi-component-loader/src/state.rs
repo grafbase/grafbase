@@ -11,7 +11,7 @@ use wasmtime_wasi::{
 };
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
-use crate::resources::{self, GrpcClient};
+use crate::resources::{self, FileLogger, GrpcClient};
 
 /// Represents the state of the WASI environment.
 ///
@@ -48,6 +48,12 @@ pub(crate) struct WasiState {
 
     /// A map of Kafka producers per named connection.
     kafka_producers: DashMap<String, resources::KafkaProducer>,
+
+    /// A map of file loggers per named connection.
+    file_loggers: DashMap<String, resources::FileLogger>,
+
+    /// The name of the extension.
+    extension_name: String,
 }
 
 impl WasiState {
@@ -61,7 +67,7 @@ impl WasiState {
     ///
     /// A new `WasiState` instance initialized with the provided context and default
     /// HTTP and resource table contexts.
-    pub fn new(ctx: WasiCtx, cache: Arc<Cache>, network_enabled: bool) -> Self {
+    pub fn new(ctx: WasiCtx, cache: Arc<Cache>, network_enabled: bool, extension_name: String) -> Self {
         let meter = meter_from_global_provider();
         let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").build();
         let http_client = reqwest::Client::new();
@@ -77,6 +83,8 @@ impl WasiState {
             postgres_pools: DashMap::new(),
             grpc_clients: DashMap::new(),
             kafka_producers: DashMap::new(),
+            file_loggers: DashMap::new(),
+            extension_name,
         }
     }
 
@@ -119,6 +127,11 @@ impl WasiState {
         &self.grpc_clients
     }
 
+    /// Returns a reference to the map of file loggers.
+    pub fn file_loggers(&self) -> &DashMap<String, FileLogger> {
+        &self.file_loggers
+    }
+
     /// Returns a reference to the HTTP client used for making requests from the guest.
     pub fn http_client(&self) -> &reqwest::Client {
         &self.http_client
@@ -144,6 +157,11 @@ impl WasiState {
     /// When `false`, any network operations attempted by the guest will fail.
     pub fn network_enabled(&self) -> bool {
         self.network_enabled
+    }
+
+    /// Returns the name of the extension.
+    pub fn extension_name(&self) -> &str {
+        &self.extension_name
     }
 }
 

@@ -6,7 +6,8 @@ use std::{
 use grafbase_telemetry::graphql::GraphqlResponseStatus;
 
 use super::{
-    CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, RequestExecution, SubgraphResponse,
+    CacheStatus, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, OperationType, RequestExecution,
+    SubgraphResponse,
 };
 
 /// Builder for constructing [`ExecutedOperation`] instances.
@@ -18,6 +19,9 @@ pub struct ExecutedOperationBuilder<'a> {
     pub(super) prepare_duration: Option<Duration>,
     pub(super) cached_plan: bool,
     pub(super) status: GraphqlResponseStatus,
+    pub(crate) operation_type: OperationType,
+    pub(super) complexity: Option<u64>,
+    pub(super) has_deprecated_fields: bool,
 }
 
 impl<'a> ExecutedOperationBuilder<'a> {
@@ -80,6 +84,42 @@ impl<'a> ExecutedOperationBuilder<'a> {
         self
     }
 
+    /// Sets the operation type (Query, Mutation, or Subscription).
+    ///
+    /// This should be called after the operation has been parsed and the type is known.
+    ///
+    /// # Arguments
+    ///
+    /// * `operation_type` - The type of GraphQL operation
+    pub fn operation_type(&mut self, operation_type: OperationType) -> &mut Self {
+        self.operation_type = operation_type;
+        self
+    }
+
+    /// Sets the complexity cost of the operation.
+    ///
+    /// This should be called if the operation complexity was calculated.
+    ///
+    /// # Arguments
+    ///
+    /// * `complexity` - The complexity cost value
+    pub fn complexity(&mut self, complexity: u64) -> &mut Self {
+        self.complexity = Some(complexity);
+        self
+    }
+
+    /// Sets whether the operation contains deprecated fields.
+    ///
+    /// This should be called if deprecated fields were used in the operation.
+    ///
+    /// # Arguments
+    ///
+    /// * `has_deprecated_fields` - Whether deprecated fields were used
+    pub fn has_deprecated_fields(&mut self, has_deprecated_fields: bool) -> &mut Self {
+        self.has_deprecated_fields = has_deprecated_fields;
+        self
+    }
+
     /// Consumes the builder and creates an [`ExecutedOperation`].
     pub fn build(self) -> ExecutedOperation {
         ExecutedOperation {
@@ -89,6 +129,9 @@ impl<'a> ExecutedOperationBuilder<'a> {
             duration: self.start_time.elapsed(),
             cached_plan: self.cached_plan,
             status: self.status,
+            operation_type: self.operation_type,
+            complexity: self.complexity,
+            has_deprecated_fields: self.has_deprecated_fields,
         }
     }
 }
@@ -96,12 +139,12 @@ impl<'a> ExecutedOperationBuilder<'a> {
 /// Builder for constructing [`ExecutedSubgraphRequest`] instances.
 #[derive(Debug, Clone)]
 pub struct ExecutedSubgraphRequestBuilder<'a> {
+    pub(super) start_time: Instant,
     pub(super) subgraph_name: &'a str,
     pub(super) method: http::Method,
     pub(super) url: &'a str,
     pub(super) executions: Vec<RequestExecution>,
     pub(super) cache_status: CacheStatus,
-    pub(super) total_duration: Duration,
     pub(super) has_errors: bool,
     pub(super) graphql_response_status: GraphqlResponseStatus,
 }
@@ -129,26 +172,17 @@ impl<'a> ExecutedSubgraphRequestBuilder<'a> {
         self.cache_status = status;
     }
 
-    /// Sets the total duration for all execution attempts.
+    /// Sets the GraphQL response status for this subgraph request.
     ///
-    /// This includes time spent on retries if any occurred.
-    ///
-    /// # Arguments
-    ///
-    /// * `duration` - The total duration across all attempts
-    pub fn total_duration(&mut self, duration: Duration) {
-        self.total_duration = duration;
-    }
-
-    /// Sets whether any errors occurred during execution.
-    ///
-    /// This includes both network errors and GraphQL errors in the response.
+    /// This indicates whether the subgraph request completed successfully, had field errors,
+    /// or encountered request-level errors.
     ///
     /// # Arguments
     ///
-    /// * `has_errors` - `true` if any errors occurred
-    pub fn has_errors(&mut self, has_errors: bool) {
-        self.has_errors = has_errors;
+    /// * `status` - The GraphQL response status
+    pub fn graphql_response_status(&mut self, status: GraphqlResponseStatus) {
+        self.graphql_response_status = status;
+        self.has_errors = !matches!(status, GraphqlResponseStatus::Success);
     }
 
     /// Consumes the builder and creates an [`ExecutedSubgraphRequest`].
@@ -163,31 +197,20 @@ impl<'a> ExecutedSubgraphRequestBuilder<'a> {
             url: self.url.to_string(),
             executions: self.executions.to_vec(),
             cache_status: self.cache_status,
-            total_duration: self.total_duration,
+            total_duration: self.start_time.elapsed(),
             has_errors: self.has_errors,
         }
-    }
-
-    /// Sets the GraphQL response status for this subgraph request.
-    ///
-    /// This indicates whether the subgraph request completed successfully, had field errors,
-    /// or encountered request-level errors.
-    ///
-    /// # Arguments
-    ///
-    /// * `status` - The GraphQL response status
-    pub fn graphql_response_status(&mut self, status: GraphqlResponseStatus) {
-        self.graphql_response_status = status;
     }
 }
 
 /// Builder for constructing [`SubgraphResponse`] instances.
+#[derive(Debug)]
 pub struct SubgraphResponseBuilder {
     pub(super) start_time: Instant,
     pub(super) connection_time: Duration,
     pub(super) response_time: Duration,
     pub(super) status: http::StatusCode,
-    pub(super) headers: http::HeaderMap,
+    pub(super) headers: Arc<http::HeaderMap>,
 }
 
 impl SubgraphResponseBuilder {
@@ -213,7 +236,18 @@ impl SubgraphResponseBuilder {
     ///
     /// * `headers` - The HTTP headers from the response
     pub fn headers(&mut self, headers: http::HeaderMap) {
-        self.headers = headers;
+        self.headers = Arc::new(headers);
+    }
+
+    /// Sets the HTTP status code for the response.
+    ///
+    /// This captures the status code returned by the subgraph in the HTTP response.
+    ///
+    /// # Arguments
+    ///
+    /// * `status` - The HTTP status code from the response
+    pub fn status(&mut self, status: http::StatusCode) {
+        self.status = status;
     }
 
     /// Records the connection establishment time.

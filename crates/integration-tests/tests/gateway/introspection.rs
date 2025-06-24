@@ -306,6 +306,7 @@ fn echo_subgraph_introspection() {
       listOfListOfStrings(input: [[String!]!]!): [[String!]!]!
       listOfStrings(input: [String!]!): [String!]!
       optionalListOfOptionalStrings(input: [String]): [String]
+      responseHeader(name: String!, value: String!): Boolean
       string(input: String!): String!
     }
     "#);
@@ -476,6 +477,7 @@ fn can_introsect_when_multiple_subgraphs() {
       pullRequest(id: ID!): PullRequest
       pullRequestOrIssue(id: ID!): PullRequestOrIssue
       pullRequestsAndIssues(filter: PullRequestsAndIssuesFilters!): [PullRequestOrIssue!]!
+      responseHeader(name: String!, value: String!): Boolean
       serverVersion: String!
       sillyDefaultValue(status: Status! = OPEN): String!
       statusString(status: Status!): String!

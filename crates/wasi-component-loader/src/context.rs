@@ -5,7 +5,6 @@ use std::{
 
 use event_queue::EventQueue;
 use extension_catalog::ExtensionId;
-use grafbase_telemetry::otel::opentelemetry::trace::TraceId;
 use runtime::extension::ExtensionContext;
 
 /// The internal per-request context storage. Accessible from all hooks throughout a single request
@@ -25,9 +24,7 @@ impl std::ops::Deref for SharedContext {
 pub struct SharedContextInner {
     pub(crate) authorization_states: OnceLock<Vec<(ExtensionId, Vec<u8>)>>,
     // FIXME: legacy kv for sdk 0.9
-    pub(crate) kv: Arc<HashMap<String, String>>,
-    /// A log channel for access logs.
-    pub(crate) trace_id: TraceId,
+    pub(crate) kv: HashMap<String, String>,
     pub(crate) event_queue: EventQueue,
 }
 
@@ -42,7 +39,6 @@ impl Default for SharedContext {
         Self(Arc::new(SharedContextInner {
             kv: Default::default(),
             authorization_states: Default::default(),
-            trace_id: TraceId::INVALID,
             event_queue: Default::default(),
         }))
     }
@@ -55,7 +51,6 @@ impl SharedContext {
             event_queue,
             kv: Default::default(),
             authorization_states: Default::default(),
-            trace_id: TraceId::INVALID,
         }))
     }
 }

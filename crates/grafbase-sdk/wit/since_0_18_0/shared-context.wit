@@ -1,8 +1,6 @@
 interface shared-context {
     /// A shared context resource that provides access to tracing and event handling capabilities
     resource shared-context {
-        /// Returns the request trace identifier as a string
-        trace-id: func() -> string;
         /// Pushes a new event to the end of the request event queue.
         push-event: func(name: string, data: list<u8>);
     }

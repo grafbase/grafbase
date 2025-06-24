@@ -47,6 +47,7 @@ pub struct ServeConfig {
     /// The way of loading the graph for the gateway.
     pub fetch_method: GraphFetchMethod,
     pub grafbase_access_token: Option<AccessToken>,
+    pub logging_filter: String,
 }
 
 #[derive(Clone)]
@@ -99,11 +100,13 @@ pub async fn serve(
         config_hot_reload,
         fetch_method,
         grafbase_access_token,
+        logging_filter,
     }: ServeConfig,
     server_runtime: impl ServerRuntime,
 ) -> crate::Result<()> {
     let config = config_receiver.borrow().clone();
     let path = config.graph.path.clone();
+
     #[allow(unused)]
     let tls = config.tls.clone();
     let graph_stream = fetch_method.into_stream().await?;
@@ -115,6 +118,7 @@ pub async fn serve(
         config_hot_reload.then_some(config_path).flatten(),
         grafbase_access_token,
         &extension_catalog,
+        logging_filter.clone(),
     )
     .await?;
 
@@ -124,7 +128,7 @@ pub async fn serve(
         .filter(|m| m.enabled)
         .map(|m| format!("http://{listen_address}{}", m.path));
 
-    let hooks = WasmHooks::new(&config, hooks_extension)
+    let hooks = WasmHooks::new(&config, hooks_extension, logging_filter)
         .await
         .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
@@ -219,6 +223,7 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime, H: HooksExtension>(
     }
 
     let mut router = inject_layers_before_cors(router)
+        .layer(HooksLayer::new(hooks))
         // Streaming and compression doesn't really work well today. Had a panic deep inside stream
         // unfold. Furthermore there seem to be issues with it as pointed out by Apollo's router
         // team:
@@ -235,8 +240,6 @@ pub async fn router<R: engine::Runtime, SR: ServerRuntime, H: HooksExtension>(
     if config.csrf.enabled {
         router = csrf::inject_layer(router, &config.csrf);
     }
-
-    router = router.layer(HooksLayer::new(hooks));
 
     if config.health.enabled {
         if let Some(listen) = config.health.listen {

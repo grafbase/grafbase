@@ -23,12 +23,12 @@ impl HostHeaders for WasiState {
         value: Vec<Vec<u8>>,
     ) -> wasmtime::Result<Result<(), HeaderError>> {
         let headers = WasiState::get_mut(self, &self_)?;
-        Ok(headers.set(name, value).await)
+        Ok(headers.set(name, value).await.map_err(Into::into))
     }
 
     async fn delete(&mut self, self_: Resource<Headers>, name: String) -> wasmtime::Result<Result<(), HeaderError>> {
         let headers = WasiState::get_mut(self, &self_)?;
-        Ok(headers.delete(&name).await)
+        Ok(headers.delete(&name).await.map_err(Into::into))
     }
 
     async fn get_and_delete(
@@ -37,7 +37,7 @@ impl HostHeaders for WasiState {
         name: String,
     ) -> wasmtime::Result<Result<Vec<Vec<u8>>, HeaderError>> {
         let headers = WasiState::get_mut(self, &self_)?;
-        Ok(headers.get_and_delete(&name).await)
+        Ok(headers.get_and_delete(&name).await.map_err(Into::into))
     }
 
     async fn append(
@@ -47,7 +47,7 @@ impl HostHeaders for WasiState {
         value: Vec<u8>,
     ) -> wasmtime::Result<Result<(), HeaderError>> {
         let headers = WasiState::get_mut(self, &self_)?;
-        Ok(headers.append(name, value).await)
+        Ok(headers.append(name, value).await.map_err(Into::into))
     }
 
     async fn entries(&mut self, self_: Resource<Headers>) -> wasmtime::Result<Vec<(String, Vec<u8>)>> {

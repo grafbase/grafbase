@@ -165,7 +165,7 @@ impl ExtensionsBuilder {
                 }
             }
 
-            WasmExtensions::new(&self.catalog, config, schema)
+            WasmExtensions::new(&self.catalog, config, schema, String::from("info"))
                 .await
                 .map_err(|err| err.to_string())?
         } else {
