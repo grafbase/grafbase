@@ -49,13 +49,11 @@ impl RollingLogger {
     ///
     /// An `io::Result` which is `Ok` if the `RollingLogger` was successfully created,
     /// or an `io::Error` if there was a problem creating the log file.
-    pub fn new(path: &Path, rotate_strategy: RotateStrategy) -> io::Result<Self> {
-        let file = LogFile::new(path, rotate_strategy)?;
+    pub fn new(path: impl AsRef<Path>, rotate_strategy: RotateStrategy) -> io::Result<Self> {
+        let path = path.as_ref().to_owned();
+        let file = LogFile::new(&path, rotate_strategy)?;
 
-        Ok(Self {
-            path: path.to_owned(),
-            file,
-        })
+        Ok(Self { path, file })
     }
 
     /// Flushes the current log file and rotates it according to the specified strategy.

@@ -12,6 +12,7 @@ pub(crate) struct ExtensionLoader {
     wasm_config: WasmConfig,
     pre: SdkPre,
     cache: Arc<Cache>,
+    name: String,
 }
 
 impl ExtensionLoader {
@@ -56,6 +57,7 @@ impl ExtensionLoader {
             wasm_config: config.wasm,
             pre,
             cache: Arc::new(Cache::new()),
+            name: config.extension_name,
         })
     }
 
@@ -64,6 +66,7 @@ impl ExtensionLoader {
             build_context(&self.wasm_config),
             self.cache.clone(),
             self.wasm_config.networking,
+            self.name.clone(),
         );
 
         self.pre.instantiate(state).await

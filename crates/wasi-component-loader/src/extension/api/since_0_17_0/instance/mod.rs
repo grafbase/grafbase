@@ -3,7 +3,7 @@ mod authorization;
 mod field_resolver;
 mod hooks;
 mod resolver;
-mod schema;
+pub mod schema;
 mod selection_set_resolver;
 
 use anyhow::Context as _;
@@ -16,7 +16,7 @@ use wasmtime::{
 };
 
 use crate::{
-    Error, WasiState, cbor,
+    Error, ErrorResponse, WasiState, cbor,
     extension::{ExtensionConfig, ExtensionInstance},
 };
 
@@ -108,5 +108,25 @@ impl ExtensionInstance for ExtensionInstanceSince0_17_0 {
         }
 
         Ok(())
+    }
+}
+
+fn error_response_from_wit(store: &mut Store<WasiState>, error: super::wit::error::ErrorResponse) -> ErrorResponse {
+    let headers = if let Some(resource) = error.headers {
+        match store
+            .data_mut()
+            .take_resource::<crate::resources::WasmOwnedOrLease<http::HeaderMap>>(resource.rep())
+        {
+            Ok(headers) => headers.into_inner().unwrap(),
+            Err(err) => return ErrorResponse::Internal(err.into()),
+        }
+    } else {
+        Default::default()
+    };
+
+    ErrorResponse::Guest {
+        status_code: http::StatusCode::from_u16(error.status_code).unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR),
+        errors: error.errors.into_iter().map(Into::into).collect(),
+        headers,
     }
 }

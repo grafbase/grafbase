@@ -38,12 +38,14 @@ interface event-queue {
 
     // Information on a response
     record subgraph-response {
-        // The milliseconds it took to connect to the host.
+        // The nanoseconds it took to connect to the host.
         connection-time-ns: u64,
-        // The milliseconds it took for the host to respond with data.
+        // The nanoseconds it took for the host to respond with data.
         response-time-ns: u64,
         // The response status code
-        status-code: u16
+        status-code: u16,
+        // The subgraph response headers.
+        response-headers: headers,
     }
 
     // Info about an executed subgraph request.
@@ -58,12 +60,10 @@ interface event-queue {
         executions: list<subgraph-request-execution-kind>,
         // The cache status of the subgraph call.
         cache-status: cache-status,
-        // The time in milliseconds taken for the whole operation.
+        // The time in nanoseconds taken for the whole operation.
         total-duration-ns: u64,
         // True, if the subgraph returned any errors.
         has-errors: bool,
-        // The subgraph response headers.
-        response-headers: headers,
     }
 
     // Info about an executed operation.
@@ -72,14 +72,30 @@ interface event-queue {
         name: option<string>,
         // The operation document in sanitized form.
         document: string,
-        // The time taken in preparing.
+        // The time taken in nanoseconds preparing.
         prepare-duration-ns: u64,
         // True, if the plan was taken from cache.
         cached-plan: bool,
-        // Time in milliseconds spent executing the operation.
+        // Time in nanoseconds spent executing the operation.
         duration-ns: u64,
         // The status of the operation.
         status: graphql-response-status,
+        // The type of the operation.
+        operation-type: operation-type,
+        // The complexity cost of the operation, if calculated.
+        complexity: option<u64>,
+        // True, if the operation used any deprecated fields.
+        has-deprecated-fields: bool,
+    }
+
+    // The type of GraphQL operation being executed.
+    enum operation-type {
+        // A GraphQL query operation for reading data.
+        query,
+        // A GraphQL mutation operation for modifying data.
+        mutation,
+        // A GraphQL subscription operation for real-time data updates.
+        subscription,
     }
 
     // A status of a GraphQL operation.

@@ -18,7 +18,11 @@ struct WasiHooksInner {
 }
 
 impl WasmHooks {
-    pub async fn new(gateway_config: &Config, extension: Option<Extension>) -> crate::Result<Self> {
+    pub async fn new(
+        gateway_config: &Config,
+        extension: Option<Extension>,
+        logging_filter: String,
+    ) -> crate::Result<Self> {
         let Some(extension) = extension else {
             return Ok(Default::default());
         };
@@ -53,6 +57,8 @@ impl WasmHooks {
             guest_config: selected_config.and_then(|c| c.config().cloned()),
             // FIXME: Rely on hook configuration to define whether events can be skipped or not
             can_skip_sending_events: false,
+            logging_filter,
+            extension_name: extension.manifest.name().to_string(),
         };
 
         let max_pool_size = extension_config.pool.max_size;

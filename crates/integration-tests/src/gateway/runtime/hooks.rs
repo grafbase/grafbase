@@ -12,7 +12,7 @@ pub struct TestHooks {
 
 impl TestHooks {
     pub async fn new(config: &Config, extension: Option<Extension>) -> Self {
-        let wasm = WasmHooks::new(config, extension).await.unwrap();
+        let wasm = WasmHooks::new(config, extension, String::from("info")).await.unwrap();
         Self { wasm }
     }
 }

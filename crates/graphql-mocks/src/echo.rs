@@ -3,6 +3,8 @@ use std::sync::Arc;
 use async_graphql::{
     EmptyMutation, EmptySubscription, Enum, ID, InputObject, Json, MaybeUndefined, Object, SimpleObject,
 };
+use crossbeam_queue::SegQueue;
+use http::{HeaderMap, HeaderName, HeaderValue};
 
 /// A schema that just echoes stuff back at you.
 ///
@@ -25,10 +27,30 @@ impl super::Schema for EchoSchema {
         headers: Vec<(String, String)>,
         request: async_graphql::Request,
     ) -> async_graphql::Response {
-        async_graphql::Schema::build(Query { headers }, EmptyMutation, EmptySubscription)
-            .finish()
-            .execute(request)
-            .await
+        let response_headers = Arc::new(SegQueue::new());
+
+        let response = async_graphql::Schema::build(
+            Query {
+                headers,
+                response_headers: response_headers.clone(),
+            },
+            EmptyMutation,
+            EmptySubscription,
+        )
+        .finish()
+        .execute(request)
+        .await;
+
+        let mut headers = HeaderMap::new();
+
+        while let Some((key, value)) = response_headers.pop() {
+            headers.insert(
+                HeaderName::from_bytes(key.as_bytes()).unwrap(),
+                HeaderValue::from_bytes(value.as_bytes()).unwrap(),
+            );
+        }
+
+        response.http_headers(headers)
     }
 
     fn execute_stream(
@@ -39,6 +61,7 @@ impl super::Schema for EchoSchema {
         let schema = async_graphql::Schema::build(
             Query {
                 headers: Default::default(),
+                response_headers: Default::default(),
             },
             EmptyMutation,
             EmptySubscription,
@@ -56,6 +79,7 @@ impl super::Schema for EchoSchema {
         let schema = async_graphql::Schema::build(
             Query {
                 headers: Default::default(),
+                response_headers: Default::default(),
             },
             EmptyMutation,
             EmptySubscription,
@@ -68,6 +92,7 @@ impl super::Schema for EchoSchema {
 
 pub struct Query {
     headers: Vec<(String, String)>,
+    response_headers: Arc<SegQueue<(String, String)>>,
 }
 
 #[Object]
@@ -113,6 +138,11 @@ impl Query {
 
     async fn fancy_bool(&self, input: FancyBool) -> FancyBool {
         input
+    }
+
+    async fn response_header(&self, name: String, value: String) -> Option<bool> {
+        self.response_headers.push((name, value));
+        None
     }
 
     async fn header(&self, name: String) -> Option<String> {

@@ -32,7 +32,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
             gql_context: GraphqlRequestContext {
                 subgraph_default_headers_override: None,
             },
-            executed_operation_builder: ExecutedOperation::builder(),
+            executed_operation_builder: ExecutedOperation::builder_with_default(),
             background_futures: Default::default(),
         }
     }

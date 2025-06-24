@@ -1,15 +1,12 @@
 #![allow(static_mut_refs)]
 
-use std::{
-    ops::DerefMut,
-    sync::atomic::{AtomicU8, Ordering},
-};
+use std::{borrow::Cow, ops::DerefMut};
 
 use crate::{
     extension::resolver::{Subscription, SubscriptionCallback},
     host_io::logger::HostLogger,
     types::Configuration,
-    wit::{self, Error, grafbase::sdk::logger::LogLevel},
+    wit::{self, Error},
 };
 
 use super::extension::AnyExtension;
@@ -22,7 +19,6 @@ static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;
 static mut SUBSCRIPTION: Option<SubscriptionState> = None;
 static mut CONTEXT: Option<wit::SharedContext> = None;
 static mut CAN_SKIP_SENDING_EVENTS: bool = false;
-pub(super) static GUEST_LOG_LEVEL: AtomicU8 = AtomicU8::new(LogLevel::Trace as u8);
 
 enum SubscriptionState {
     Uninitialized {
@@ -38,21 +34,25 @@ pub(super) fn init(
     subgraph_schemas: Vec<(String, wit::Schema)>,
     config: Configuration,
     can_skip_sending_events: bool,
-    host_log_level: Option<wit::LogLevel>,
+    host_log_level: String,
 ) -> Result<(), Error> {
+    let mut builder = env_filter::Builder::new();
+
+    let host_log_level = parse_host_level(host_log_level);
+    builder.parse(&host_log_level);
+
+    let filter = builder.build();
+    let logger = HostLogger { filter };
+
+    log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger");
+    log::set_max_level(log::LevelFilter::Trace);
+
     // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
     unsafe {
         let init = std::mem::take(&mut INIT_FN).expect("Resolver extension not initialized correctly.");
         EXTENSION = Some(init(subgraph_schemas, config)?);
         CAN_SKIP_SENDING_EVENTS = can_skip_sending_events;
     }
-
-    if let Some(level) = host_log_level {
-        GUEST_LOG_LEVEL.store(log::Level::from(level) as u8, Ordering::Relaxed);
-    }
-
-    let logger = HostLogger(wit::SystemLogger::new());
-    log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger");
 
     Ok(())
 }
@@ -157,5 +157,170 @@ pub(super) fn drop_subscription() {
     // in a single-threaded environment. Do not call this multiple times from different threads.
     unsafe {
         SUBSCRIPTION = None;
+    }
+}
+
+/// Parses and processes host log level configuration string.
+///
+/// This function processes a comma-separated string of log level directives and handles
+/// extension-specific logging configuration. It performs the following transformations:
+///
+/// - Extracts log levels from `extension=level` directives
+/// - When extension directives are present, filters out standalone log level tokens
+///   (`trace`, `debug`, `info`, `warn`, `error`)
+/// - When no extension directives are present, preserves all parts unchanged
+///
+/// # Arguments
+///
+/// * `host_log_level` - A comma-separated string containing log level directives
+///
+/// # Returns
+///
+/// A processed string with the appropriate log level configuration
+///
+/// # Examples
+///
+/// ```ignore
+/// // With extension directive
+/// parse_host_level("extension=debug,info".to_string()) // Returns "debug"
+///
+/// // Without extension directive
+/// parse_host_level("debug,my_module=info".to_string()) // Returns "debug,my_module=info"
+/// ```
+fn parse_host_level(host_log_level: String) -> String {
+    let parts: Vec<&str> = host_log_level.split(',').map(|part| part.trim()).collect();
+    let has_extension_directives = parts.iter().any(|part| part.starts_with("extension="));
+
+    parts
+        .into_iter()
+        .filter_map(|part| {
+            // Handle extension=level -> level
+            if let Some(level) = part.strip_prefix("extension=") {
+                return Some(Cow::Owned(level.to_string()));
+            }
+
+            // If extension directives are present, filter out standalone log levels
+            if has_extension_directives {
+                match part {
+                    "trace" | "debug" | "info" | "warn" | "error" => None,
+                    _ => Some(Cow::Borrowed(part)),
+                }
+            } else {
+                // Keep all other parts unchanged when no extension directives
+                Some(Cow::Borrowed(part))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(",")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_host_level_with_extension_directive() {
+        // Single extension directive
+        assert_eq!(parse_host_level("extension=debug".to_string()), "debug");
+        assert_eq!(parse_host_level("extension=info".to_string()), "info");
+        assert_eq!(parse_host_level("extension=trace".to_string()), "trace");
+        assert_eq!(parse_host_level("extension=warn".to_string()), "warn");
+        assert_eq!(parse_host_level("extension=error".to_string()), "error");
+    }
+
+    #[test]
+    fn test_parse_host_level_with_extension_and_standalone_levels() {
+        // Extension directive with standalone log levels - standalone levels should be filtered out
+        assert_eq!(parse_host_level("extension=debug,info".to_string()), "debug");
+        assert_eq!(parse_host_level("info,extension=debug".to_string()), "debug");
+        assert_eq!(parse_host_level("trace,extension=warn,error".to_string()), "warn");
+        assert_eq!(
+            parse_host_level("debug,info,extension=error,warn,trace".to_string()),
+            "error"
+        );
+    }
+
+    #[test]
+    fn test_parse_host_level_with_extension_and_module_directives() {
+        // Extension directive with module-specific directives - module directives should be kept
+        assert_eq!(
+            parse_host_level("extension=debug,my_module=info".to_string()),
+            "debug,my_module=info"
+        );
+        assert_eq!(
+            parse_host_level("my_module=info,extension=debug".to_string()),
+            "my_module=info,debug"
+        );
+        assert_eq!(
+            parse_host_level("extension=warn,crate1=debug,crate2=info".to_string()),
+            "warn,crate1=debug,crate2=info"
+        );
+    }
+
+    #[test]
+    fn test_parse_host_level_without_extension_directive() {
+        // No extension directive - everything should be preserved
+        assert_eq!(parse_host_level("debug".to_string()), "debug");
+        assert_eq!(parse_host_level("info,warn".to_string()), "info,warn");
+        assert_eq!(
+            parse_host_level("debug,my_module=info".to_string()),
+            "debug,my_module=info"
+        );
+        assert_eq!(
+            parse_host_level("trace,crate1=debug,crate2=info,error".to_string()),
+            "trace,crate1=debug,crate2=info,error"
+        );
+    }
+
+    #[test]
+    fn test_parse_host_level_with_whitespace() {
+        // Test with various whitespace configurations
+        assert_eq!(parse_host_level("extension=debug, info".to_string()), "debug");
+        assert_eq!(parse_host_level(" extension=debug , info ".to_string()), "debug");
+        assert_eq!(
+            parse_host_level("extension=debug,  my_module=info".to_string()),
+            "debug,my_module=info"
+        );
+        assert_eq!(
+            parse_host_level(" debug , my_module=info ".to_string()),
+            "debug,my_module=info"
+        );
+    }
+
+    #[test]
+    fn test_parse_host_level_edge_cases() {
+        // Empty string
+        assert_eq!(parse_host_level("".to_string()), "");
+
+        // Only commas - empty parts are preserved
+        assert_eq!(parse_host_level(",,,".to_string()), ",,,");
+
+        // Multiple extension directives
+        assert_eq!(
+            parse_host_level("extension=debug,extension=info".to_string()),
+            "debug,info"
+        );
+
+        // Extension with empty value
+        assert_eq!(parse_host_level("extension=".to_string()), "");
+
+        // Unusual but valid module names
+        assert_eq!(
+            parse_host_level("extension=debug,my-module=info,my::module=warn".to_string()),
+            "debug,my-module=info,my::module=warn"
+        );
+    }
+
+    #[test]
+    fn test_parse_host_level_preserves_order() {
+        // Verify that non-filtered items maintain their relative order
+        assert_eq!(
+            parse_host_level("a=1,extension=debug,b=2,c=3".to_string()),
+            "a=1,debug,b=2,c=3"
+        );
+        assert_eq!(
+            parse_host_level("x=info,y=warn,extension=error,z=trace".to_string()),
+            "x=info,y=warn,error,z=trace"
+        );
     }
 }

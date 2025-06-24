@@ -18,11 +18,8 @@ pub fn add_to_linker_impl(linker: &mut wasmtime::component::Linker<WasiState>) -
     )?;
     inst.func_wrap_async(
         "[method]shared-context.trace-id",
-        move |caller: wasmtime::StoreContextMut<'_, WasiState>, (ctx,): (Resource<SharedContext>,)| {
-            Box::new(async move {
-                let ctx = caller.data().get(&ctx)?;
-                Ok((ctx.trace_id.to_string(),))
-            })
+        move |_: wasmtime::StoreContextMut<'_, WasiState>, (_,): (Resource<SharedContext>,)| {
+            Box::new(async move { Ok((String::new(),)) })
         },
     )?;
     inst.func_wrap_async(

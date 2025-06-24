@@ -281,6 +281,13 @@ jobs:
           name: integration-tests-extensions
           path: crates/integration-tests/data/extensions/crates
 
+      - name: Verify extension structure
+        if: needs.wasm-extensions.result != 'skipped'
+        shell: bash
+        run: |
+          find crates/integration-tests/data/extensions -name "*.wasm" -type f
+          ls -la crates/integration-tests/data/extensions/crates/access-logs/
+
       # TODO: Add timing reports in here somehow...
 
       - if: runner.os == 'Windows'

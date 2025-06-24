@@ -1,7 +1,7 @@
 use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
-use event_queue::RequestExecution;
+use event_queue::{RequestExecution, SubgraphResponseBuilder};
 use futures::Future;
 use grafbase_telemetry::{
     graphql::GraphqlResponseStatus, otel::tracing_opentelemetry::OpenTelemetrySpanExt as _,
@@ -86,42 +86,66 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
                     );
                 });
 
-                let (fetch_result, info) = fetcher.fetch(request).instrument(http_span.span()).await;
+                let (fetch_result, mut info) = fetcher.fetch(request).instrument(http_span.span()).await;
 
-                let fetch_result = fetch_result.and_then(|response| {
+                let result = fetch_result.and_then(|mut response| {
                     tracing::debug!("Received response:\n{}", String::from_utf8_lossy(response.body()));
                     // For those status codes we want to retry the request, so marking the request as
                     // failed.
                     let status = response.status();
+
+                    if let Some(ref mut info) = info {
+                        info.status(status);
+
+                        // Performance optimization: Instead of cloning the entire HeaderMap,
+                        // we extract only the cache-related headers (Cache-Control and Age)
+                        // that are needed by the caching logic. This avoids an expensive clone
+                        // of all headers while still allowing telemetry/hooks to receive the
+                        // complete header information.
+                        let cache_control = response.headers().typed_get::<headers::CacheControl>();
+                        let age = response.headers().typed_get::<headers::Age>();
+
+                        // Move all headers to the hooks
+                        info.headers(std::mem::take(response.headers_mut()));
+
+                        // Put back cache-related headers for cache control logic
+                        if let Some(cache_control) = cache_control {
+                            response.headers_mut().typed_insert(cache_control);
+                        }
+
+                        if let Some(age) = age {
+                            response.headers_mut().typed_insert(age);
+                        }
+                    }
+
                     if status.is_server_error() || status == http::StatusCode::TOO_MANY_REQUESTS {
                         Err(FetchError::InvalidStatusCode(status))
                     } else {
-                        Ok((response, info))
+                        Ok(response)
                     }
                 });
 
-                match fetch_result {
-                    Ok((ref response, _)) => {
+                match result {
+                    Ok(ref response) => {
                         http_span.record_http_status_code(response.status());
                     }
                     Err(ref err) => {
                         tracing::error!("Request to subgraph {} failed with: {err}", subgraph_name);
                         http_span.set_as_http_error(err.as_invalid_status_code());
+                        // Only clear info for non-status-code errors (e.g., network errors)
+                        // For status code errors, we want to preserve the response info
+                        if !matches!(err, FetchError::InvalidStatusCode(_)) {
+                            info = None;
+                        }
                     }
                 };
 
-                fetch_result
+                (result, info)
             }
         })
         .await;
 
-        let fetch_result = fetch_result.map(|(response, info)| {
-            if let Some(mut info) = info {
-                info.headers(response.headers().clone());
-                ctx.push_request_execution(RequestExecution::Response(info.build()));
-            }
-            response
-        });
+        let fetch_result = fetch_result;
 
         match fetch_result {
             Ok(http_response) => {
@@ -173,7 +197,7 @@ pub(crate) async fn retrying_fetch<R: Runtime, F, T>(
     fetch: impl Fn() -> F + Send + Sync,
 ) -> ExecutionResult<T>
 where
-    F: Future<Output = FetchResult<T>> + Send,
+    F: Future<Output = (FetchResult<T>, Option<SubgraphResponseBuilder>)> + Send,
     T: Send,
 {
     let mut fetch_result = rate_limited_fetch(ctx, &fetch).instrument(Span::current()).await;
@@ -221,7 +245,7 @@ async fn rate_limited_fetch<R: Runtime, F, T>(
     fetch: impl Fn() -> F + Send,
 ) -> ExecutionResult<T>
 where
-    F: Future<Output = FetchResult<T>> + Send,
+    F: Future<Output = (FetchResult<T>, Option<SubgraphResponseBuilder>)> + Send,
     T: Send,
 {
     ctx.engine()
@@ -234,11 +258,13 @@ where
         })?;
 
     ctx.increment_inflight_requests();
-    let result = fetch().await;
+    let (result, info) = fetch().await;
     ctx.decrement_inflight_requests();
 
-    if result.is_err() {
-        ctx.push_request_execution(RequestExecution::RequestError);
+    match info {
+        Some(info) => ctx.push_request_execution(RequestExecution::Response(info.build())),
+        None if result.is_err() => ctx.push_request_execution(RequestExecution::RequestError),
+        None => (),
     }
 
     result.map_err(|error| ExecutionError::Fetch {

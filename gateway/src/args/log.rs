@@ -26,8 +26,8 @@ const LIBS: &[&str] = &[
     "opentelemetry-otlp",
 ];
 
-impl<'a> From<LogLevel<'a>> for EnvFilter {
-    fn from(level: LogLevel<'a>) -> Self {
+impl From<LogLevel<'_>> for EnvFilter {
+    fn from(level: LogLevel<'_>) -> Self {
         EnvFilter::new(match level.0 {
             "off" | "error" | "warn" => level.0.to_string(),
             "info" => format!(
@@ -47,6 +47,12 @@ impl<'a> From<LogLevel<'a>> for EnvFilter {
             ),
             custom => custom.to_string(),
         })
+    }
+}
+
+impl<'a> fmt::Display for LogLevel<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
     }
 }
 

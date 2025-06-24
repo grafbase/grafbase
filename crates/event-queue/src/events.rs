@@ -1,6 +1,7 @@
 mod builder;
 
 pub use builder::*;
+pub use grafbase_telemetry::graphql::OperationType;
 
 use grafbase_telemetry::graphql::GraphqlResponseStatus;
 use std::{
@@ -9,6 +10,7 @@ use std::{
 };
 
 /// Represents the different types of events that can be collected by the event queue.
+#[derive(Debug)]
 pub enum Event {
     /// A GraphQL operation execution event
     Operation(ExecutedOperation),
@@ -21,6 +23,7 @@ pub enum Event {
 }
 
 /// Represents a completed GraphQL operation execution.
+#[derive(Debug)]
 pub struct ExecutedOperation {
     pub name: Option<String>,
     pub document: Arc<str>,
@@ -28,6 +31,9 @@ pub struct ExecutedOperation {
     pub duration: Duration,
     pub cached_plan: bool,
     pub status: GraphqlResponseStatus,
+    pub operation_type: OperationType,
+    pub complexity: Option<u64>,
+    pub has_deprecated_fields: bool,
 }
 
 impl ExecutedOperation {
@@ -35,8 +41,8 @@ impl ExecutedOperation {
     ///
     /// # Arguments
     ///
-    /// * `document` - The GraphQL document that was executed
-    pub fn builder<'a>() -> ExecutedOperationBuilder<'a> {
+    /// * `operation_type` - The type of GraphQL operation
+    pub fn builder<'a>(operation_type: OperationType) -> ExecutedOperationBuilder<'a> {
         ExecutedOperationBuilder {
             name: None,
             document: None,
@@ -44,11 +50,22 @@ impl ExecutedOperation {
             prepare_duration: None,
             cached_plan: false,
             status: GraphqlResponseStatus::Success,
+            operation_type,
+            complexity: None,
+            has_deprecated_fields: false,
         }
+    }
+
+    /// Creates a new builder for constructing an `ExecutedOperation` with a default Query type.
+    ///
+    /// The operation type can be changed later using the `operation_type()` method on the builder.
+    pub fn builder_with_default<'a>() -> ExecutedOperationBuilder<'a> {
+        Self::builder(OperationType::Query)
     }
 }
 
 /// Represents a completed request to a federated subgraph.
+#[derive(Debug)]
 pub struct ExecutedSubgraphRequest {
     pub subgraph_name: String,
     pub method: http::Method,
@@ -73,12 +90,12 @@ impl ExecutedSubgraphRequest {
         url: &'a str,
     ) -> ExecutedSubgraphRequestBuilder<'a> {
         ExecutedSubgraphRequestBuilder {
+            start_time: Instant::now(),
             subgraph_name,
             method,
             url,
             executions: Vec::new(),
             cache_status: CacheStatus::Miss,
-            total_duration: Duration::default(),
             has_errors: false,
             graphql_response_status: GraphqlResponseStatus::Success,
         }
@@ -104,7 +121,9 @@ pub struct SubgraphResponse {
     pub connection_time: Duration,
     pub response_time: Duration,
     pub status: http::StatusCode,
-    pub headers: http::HeaderMap,
+    /// Having this as an arc allows us to move this to the
+    /// guest from a record as a resource.
+    pub headers: Arc<http::HeaderMap>,
 }
 
 impl SubgraphResponse {
@@ -118,7 +137,7 @@ impl SubgraphResponse {
             connection_time: Duration::default(),
             response_time: Duration::default(),
             status: http::StatusCode::OK,
-            headers: http::HeaderMap::new(),
+            headers: Default::default(),
             start_time: Instant::now(),
         }
     }
@@ -136,6 +155,7 @@ pub enum CacheStatus {
 }
 
 /// Represents a completed HTTP request of the complete operation.
+#[derive(Debug)]
 pub struct ExecutedHttpRequest {
     pub method: http::Method,
     pub url: String,
@@ -158,6 +178,7 @@ impl ExecutedHttpRequest {
 }
 
 /// Represents a custom event emitted by an extension.
+#[derive(Debug)]
 pub struct ExtensionEvent {
     pub extension_name: String,
     pub event_name: String,

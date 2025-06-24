@@ -15,9 +15,8 @@ impl HostSharedContext for WasiState {
         Ok(ctx.kv.get(&name).cloned())
     }
 
-    async fn trace_id(&mut self, self_: Resource<SharedContext>) -> wasmtime::Result<String> {
-        let ctx = WasiState::get(self, &self_)?;
-        Ok(ctx.trace_id.to_string())
+    async fn trace_id(&mut self, _: Resource<SharedContext>) -> wasmtime::Result<String> {
+        Ok(String::new())
     }
 
     async fn drop(&mut self, rep: Resource<SharedContext>) -> wasmtime::Result<()> {

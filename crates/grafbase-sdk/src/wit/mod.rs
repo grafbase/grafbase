@@ -28,7 +28,7 @@ pub use grafbase::sdk::cache::*;
 pub use grafbase::sdk::error::{Error, ErrorResponse};
 pub use grafbase::sdk::event_queue::{
     CacheStatus, Event, EventQueue, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, ExtensionEvent,
-    FieldError, GraphqlResponseStatus, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
+    FieldError, GraphqlResponseStatus, OperationType, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
 };
 pub use grafbase::sdk::grpc::*;
 pub use grafbase::sdk::headers::HeaderError;
