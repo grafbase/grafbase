@@ -57,8 +57,6 @@ pub(crate) fn dev(cmd: DevCommand) -> Result<(), CliError> {
 
 #[tokio::main(flavor = "multi_thread")]
 async fn start(args: DevCommand) -> anyhow::Result<()> {
-    tracing::info!("Starting Grafbase local development server with supergraph");
-    
     export_assets().await?;
 
     let mut config = args.config()?;
@@ -111,10 +109,7 @@ async fn start(args: DevCommand) -> anyhow::Result<()> {
     let composition_result = subgraph_cache.compose(&config).await?;
 
     let federated_sdl = match composition_result {
-        Ok(federated_schema) => {
-            tracing::info!("Successfully composed local supergraph from subgraphs");
-            federated_schema
-        }
+        Ok(federated_schema) => federated_schema,
         Err(diagnostics) => {
             return Err(BackendError::Composition(diagnostics.iter_errors().collect::<Vec<_>>().join("\n")).into());
         }
@@ -148,8 +143,6 @@ async fn start(args: DevCommand) -> anyhow::Result<()> {
         },
         grafbase_access_token: None,
     };
-
-    tracing::info!("Starting federated server in local development mode");
 
     federated_server::serve(
         server_config,

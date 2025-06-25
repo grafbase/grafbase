@@ -60,6 +60,11 @@ impl super::Args for Args {
                 let schema_path = schema.to_owned();
                 let federated_sdl = fs::read_to_string(&schema_path).context("could not read federated schema file")?;
 
+                // Log when schema is loaded from --schema argument but --graph-ref is passed for telemetry
+                if self.graph_ref.is_some() {
+                    tracing::info!("Schema loaded via argument and telemetry is enabled");
+                }
+
                 Ok(GraphFetchMethod::FromSchema {
                     federated_sdl,
                     schema_path,

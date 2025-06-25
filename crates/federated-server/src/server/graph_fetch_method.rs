@@ -84,18 +84,8 @@ impl GraphFetchMethod {
             } => {
                 let (sender, receiver) = mpsc::channel(4);
 
-                tracing::info!("Starting local supergraph with reloadable schema from {}", current_dir.display());
-
                 tokio::spawn(async move {
-                    let mut first_load = true;
                     while let Some(sdl) = sdl_receiver.recv().await {
-                        if first_load {
-                            tracing::info!("Loading initial local supergraph schema");
-                            first_load = false;
-                        } else {
-                            tracing::info!("Reloading local supergraph schema");
-                        }
-                        
                         if sender
                             .send(GraphDefinition::Sdl(Some(current_dir.clone()), sdl))
                             .await
@@ -104,7 +94,6 @@ impl GraphFetchMethod {
                             break;
                         }
                     }
-                    tracing::info!("Local supergraph schema reloading stopped");
                 });
 
                 Ok(ReceiverStream::new(receiver).boxed())
