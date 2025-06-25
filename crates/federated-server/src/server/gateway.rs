@@ -67,16 +67,26 @@ pub(super) async fn generate(
         GraphDefinition::ObjectStorage {
             response: object_storage_response,
             object_storage_base_url,
-        } => (
-            None,
-            graph_from_object_storage(
-                gateway_config,
-                object_storage_response,
-                object_storage_base_url,
-                access_token,
-            ),
-        ),
-        GraphDefinition::Sdl(current_dir, federated_sdl) => (current_dir, sdl_graph(federated_sdl)),
+        } => {
+            tracing::info!("Generating gateway from object storage (branch: {})", object_storage_response.branch);
+            (
+                None,
+                graph_from_object_storage(
+                    gateway_config,
+                    object_storage_response,
+                    object_storage_base_url,
+                    access_token,
+                ),
+            )
+        }
+        GraphDefinition::Sdl(current_dir, federated_sdl) => {
+            if let Some(ref path) = current_dir {
+                tracing::info!("Generating gateway from local supergraph SDL (working directory: {})", path.display());
+            } else {
+                tracing::info!("Generating gateway from static SDL");
+            }
+            (current_dir, sdl_graph(federated_sdl))
+        }
     };
 
     let extension_catalog = match extension_catalog {
