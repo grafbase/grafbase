@@ -92,7 +92,7 @@ impl GatewayRuntime {
         tracing::debug!("Building extensions");
         let extensions = WasmExtensions::new(extension_catalog, gateway_config, schema)
             .await
-            .map_err(|e| crate::Error::InternalError(e.to_string()))?;
+            .map_err(|e| crate::Error::InternalError(format!("Error building an extension: {e}")))?;
 
         let kv = InMemoryKvStore::runtime();
 

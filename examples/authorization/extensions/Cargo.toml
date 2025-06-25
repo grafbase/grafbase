@@ -14,7 +14,7 @@ codegen-units = 1
 
 [workspace.dependencies]
 common = { path = "common" }
-grafbase-sdk = "0.13.0"
+grafbase-sdk = "0.16.0"
 http = "1"
 itertools = "0.14"
 postcard = { version = "1", features = ["use-std"] }

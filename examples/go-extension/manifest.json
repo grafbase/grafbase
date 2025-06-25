@@ -1,0 +1,9 @@
+{
+  "manifest": "v1",
+  "id": { "name": "go-extension", "version": "0.1.0" },
+  "type": { "Authentication": {} },
+  "sdk_version": "0.17.0",
+  "minimum_gateway_version": "0.40.0",
+  "description": "An example Go extension",
+  "permissions": ["network", "stdout", "stderr", "environment_variables"]
+}

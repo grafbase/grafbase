@@ -1,0 +1,8 @@
+[extensions.go-extension]
+path = "./target"
+
+[extensions.go-extension.config]
+secret = "1234batman"
+
+[authentication]
+default = "deny"
