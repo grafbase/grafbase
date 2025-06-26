@@ -19,9 +19,16 @@ const RUST_TARGET: &str = "wasm32-wasip2";
 
 pub(crate) fn execute(cmd: ExtensionBuildCommand) -> anyhow::Result<()> {
     let output_dir = cmd.output_dir;
-    let scratch_dir = cmd.scratch_dir;
+    let mut scratch_dir = cmd.scratch_dir;
     let source_dir = cmd.source_dir;
     let debug_mode = cmd.debug;
+
+    // If scratch_dir is the default "./target" and source_dir is not ".",
+    // make scratch_dir relative to source_dir but as an absolute path
+    if scratch_dir.as_os_str() == "./target" && source_dir.as_os_str() != "." {
+        let current_dir = std::env::current_dir().context("failed to get current directory")?;
+        scratch_dir = current_dir.join(&source_dir).join("target");
+    }
 
     if !output_dir.exists() {
         std::fs::create_dir_all(&output_dir).context("failed to create the output directory")?;
@@ -160,12 +167,21 @@ fn compile_extension(
 ) -> anyhow::Result<PathBuf> {
     report::extension_build_start();
 
+    // Ensure scratch_dir is absolute to prevent nested directories when cargo changes to source_dir
+    let absolute_scratch_dir = if scratch_dir.is_absolute() {
+        scratch_dir.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .context("failed to get current directory")?
+            .join(scratch_dir)
+    };
+
     let output = new_command("cargo")
         .args(["build", "--target", RUST_TARGET])
         .args(if debug_mode { None } else { Some("--release") })
         // disable sscache, if enabled. does not work with wasi builds :P
         .env("RUSTC_WRAPPER", "")
-        .env("CARGO_TARGET_DIR", scratch_dir)
+        .env("CARGO_TARGET_DIR", &absolute_scratch_dir)
         .current_dir(source_dir)
         .stderr(Stdio::piped())
         .stdout(Stdio::inherit())
@@ -186,7 +202,7 @@ fn compile_extension(
     let cargo_toml = std::fs::read_to_string(source_dir.join("Cargo.toml"))?;
     let cargo_toml: CargoToml = toml::from_str(&cargo_toml)?;
 
-    let mut wasm_path = scratch_dir.to_path_buf();
+    let mut wasm_path = absolute_scratch_dir.clone();
 
     wasm_path.extend([
         RUST_TARGET,
