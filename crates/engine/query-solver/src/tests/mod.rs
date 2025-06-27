@@ -131,6 +131,6 @@ fn strdiff(before: &str, after: &str) -> String {
             similar::ChangeTag::Delete => Some(('-', change)),
             similar::ChangeTag::Insert => Some(('+', change)),
         })
-        .format_with("", |(tag, change), f| f(&format_args!("{}{}", tag, change)))
+        .format_with("", |(tag, change), f| f(&format_args!("{tag}{change}")))
         .to_string()
 }

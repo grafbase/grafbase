@@ -171,7 +171,7 @@ pub trait ResolverTestExtension: Send + Sync + 'static {
     ) -> Result<Vec<u8>, GraphqlError> {
         serde_json::to_vec(&directive_arguments).map_err(|e| {
             GraphqlError::new(
-                format!("Failed to serialize directive arguments: {}", e),
+                format!("Failed to serialize directive arguments: {e}"),
                 ErrorCode::ExtensionError,
             )
         })

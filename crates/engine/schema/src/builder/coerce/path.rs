@@ -45,7 +45,7 @@ pub(crate) fn value_path_to_string(ctx: &BuildContext<'_>, value_path: &[ValuePa
                 output.push_str(&ctx[*id]);
             }
             ValuePathSegment::Index(idx) => {
-                write!(&mut output, "{}", idx).unwrap();
+                write!(&mut output, "{idx}").unwrap();
             }
             ValuePathSegment::FieldStr(s) => {
                 output.push_str(s);

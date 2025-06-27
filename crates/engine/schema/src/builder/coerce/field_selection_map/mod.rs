@@ -207,10 +207,10 @@ fn bind_type_condition(
         .binary_search_by(|probe| ctx[ctx.definition_name_id(*probe)].as_str().cmp(ty))
         .map(|ix| ctx.graph.type_definitions_ordered_by_name[ix])
     else {
-        return Err(format!("Type {} does not exist", ty));
+        return Err(format!("Type {ty} does not exist"));
     };
     let Some(ty_id) = ty_id.as_entity() else {
-        return Err(format!("Type {} is not an object or an interface", ty));
+        return Err(format!("Type {ty} is not an object or an interface"));
     };
     if is_disjoint(ctx, parent, ty_id.into()) {
         return Err(format!(
@@ -397,8 +397,7 @@ fn ensure_type_compatibility<T: Target>(
         (TypeDefinitionId::Enum(a), TypeDefinitionId::Enum(b)) => a == b,
         (_, TypeDefinitionId::Object(_) | TypeDefinitionId::Interface(_)) => {
             return Err(format!(
-                "Fields must be explictely selected on {}, it's not a scalar or enum",
-                source_display,
+                "Fields must be explictely selected on {source_display}, it's not a scalar or enum",
             ));
         }
         _ => false,

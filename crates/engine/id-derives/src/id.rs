@@ -15,12 +15,10 @@ pub fn derive_id(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
         panic!("IndexImpls can only be derived on named field structs")
     };
 
-    let too_many_error = proc_macro2::Literal::string(&format!("Too many {}", ident));
+    let too_many_error = proc_macro2::Literal::string(&format!("Too many {ident}"));
     let ident_string = ident.to_string();
-    let name_format_str = proc_macro2::Literal::string(&format!(
-        "{}#{{}}",
-        ident_string.strip_suffix("Id").unwrap_or(&ident_string)
-    ));
+    let stripped_name = ident_string.strip_suffix("Id").unwrap_or(&ident_string);
+    let name_format_str = proc_macro2::Literal::string(&format!("{stripped_name}#{{}}"));
 
     let mut output = match find_non_zero_kind(&fields) {
         Some(inner_ty) => quote! {

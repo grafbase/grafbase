@@ -148,7 +148,7 @@ impl HttpRequestSpan {
             telemetry
                 .errors_count_by_code
                 .iter()
-                .format_with(",", |(code, count), f| f(&format_args!("{}:{}", code, count)))
+                .format_with(",", |(code, count), f| f(&format_args!("{code}:{count}")))
                 .to_string(),
         );
     }

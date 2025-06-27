@@ -117,7 +117,7 @@ pub fn generate_modules(formatter: &Formatter, domain: &Domain) -> anyhow::Resul
                     write!(contents, "{}", generate_imports(domain, module_path, imports)?)?;
 
                     for code_section in code_sections {
-                        write!(contents, "\n\n{}", code_section)?;
+                        write!(contents, "\n\n{code_section}")?;
                     }
                 }
 

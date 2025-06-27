@@ -311,11 +311,12 @@ impl KeyGenerationContext<'_> {
         let hex = hex::encode_upper(u32::from(name_suggestion).to_be_bytes());
         let short_id = hex.trim_start_matches('0');
 
-        let name = format!("_{}{}", name, short_id);
+        let name = format!("_{name}{short_id}");
 
         let mut i: u8 = 0;
         loop {
-            let candidate = format!("{name}{}", hex::encode_upper(i.to_be_bytes()));
+            let hex_bytes = hex::encode_upper(i.to_be_bytes());
+            let candidate = format!("{name}{hex_bytes}");
 
             // Key doesn't exist in the operation at all
             if !self.operation.response_keys.contains(&candidate) {

@@ -266,7 +266,7 @@ impl DatabaseValue {
                     }
                 }
 
-                return Err(SdkError::from(format!("Number out of range: {}", number)));
+                return Err(SdkError::from(format!("Number out of range: {number}")));
             }
             serde_json::Value::String(s) => match column_type {
                 PgType::Bytes => {
@@ -311,7 +311,7 @@ impl DatabaseValue {
 
                                 array_values.push(value);
                             } else {
-                                return Err(SdkError::from(format!("Number out of range: {}", number)));
+                                return Err(SdkError::from(format!("Number out of range: {number}")));
                             }
                         }
                         serde_json::Value::String(s) => match column_type {
@@ -360,10 +360,7 @@ fn hex_to_bytes(s: &str) -> Result<Vec<u8>, SdkError> {
         match u8::from_str_radix(hex_pair, 16) {
             Ok(byte) => bytes.push(byte),
             Err(e) => {
-                return Err(SdkError::from(format!(
-                    "Failed to parse hex pair '{}': {}",
-                    hex_pair, e
-                )));
+                return Err(SdkError::from(format!("Failed to parse hex pair '{hex_pair}': {e}")));
             }
         }
     }

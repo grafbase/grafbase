@@ -73,7 +73,7 @@ impl GraphqlOperationSpan {
             "graphql.response.errors.count_by_code",
             errors_count_by_code
                 .iter()
-                .format_with(",", |(code, count), f| f(&format_args!("{}:{}", code, count)))
+                .format_with(",", |(code, count), f| f(&format_args!("{code}:{count}")))
                 .to_string(),
         );
     }

@@ -238,8 +238,7 @@ fn calculate_child_count<'a>(
             let field_name = field.definition().name();
 
             return Err(ComplexityError::ExpectedOneSlicingArgument(format!(
-                "{}.{}",
-                container_name, field_name
+                "{container_name}.{field_name}"
             )));
         }
 

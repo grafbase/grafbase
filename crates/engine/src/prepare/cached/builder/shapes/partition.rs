@@ -444,14 +444,14 @@ mod tests {
         match p {
             Partition::One { id, fields } => Partition::One {
                 id,
-                fields: format!("{:b}", fields),
+                fields: format!("{fields:b}"),
             },
             Partition::Many { ids, fields } => Partition::Many {
                 ids,
-                fields: format!("{:b}", fields),
+                fields: format!("{fields:b}"),
             },
             Partition::Remaining { fields } => Partition::Remaining {
-                fields: format!("{:b}", fields),
+                fields: format!("{fields:b}"),
             },
         }
     }

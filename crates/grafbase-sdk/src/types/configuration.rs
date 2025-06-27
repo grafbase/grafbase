@@ -28,9 +28,10 @@ impl Configuration {
                     .iter()
                     .all(|seg| matches!(seg, serde_path_to_error::Segment::Unknown))
             {
-                format!("Failed to deserialize configuration: {}", err.into_inner()).into()
+                let inner_err = err.into_inner();
+                format!("Failed to deserialize configuration: {inner_err}").into()
             } else {
-                format!("Failed to deserialize configuration at {}", err).into()
+                format!("Failed to deserialize configuration at {err}").into()
             }
         })
     }

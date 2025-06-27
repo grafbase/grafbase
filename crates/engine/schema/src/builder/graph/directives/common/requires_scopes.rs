@@ -13,7 +13,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
     ) -> Result<TypeSystemDirectiveId, Error> {
         let dir = directive.deserialize::<sdl::RequiresScopesDirective>().map_err(|err| {
             (
-                format!("Invalid @requiresScopes directive: {}", err),
+                format!("Invalid @requiresScopes directive: {err}"),
                 directive.arguments_span(),
             )
         })?;
