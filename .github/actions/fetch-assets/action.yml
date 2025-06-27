@@ -1,13 +1,13 @@
-name: Fetch the CLI assets
-description: Fetches the CLI dev app assets for the CLI
+name: Fetch CLI assets
+description: Fetches assets for the Grafbase CLI
 
 runs:
   using: 'composite'
   steps:
-    - name: Download the CLI dev app assets
+    - name: Download CLI assets
       shell: bash
       run: |
         CACHE_BREAKER=$(openssl rand -hex 8)
         pushd cli/assets
-        curl -H "Cache-Control: must-revalidate, post-check=0, pre-check=0" -o cli-app.tar.gz http://assets.grafbase.com/cli-app/cli-app.tar.gz?cache=$CACHE_BREAKER
+        curl -H "Cache-Control: must-revalidate, post-check=0, pre-check=0" -o cli-app.tar.gz http://downloads.grafbase.com/cli-app/cli-app.tar.gz?cache=$CACHE_BREAKER
         popd
