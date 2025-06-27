@@ -11,10 +11,10 @@ impl Display for SchemaInputValue<'_> {
         match self.ref_ {
             SchemaInputValueRecord::Null => f.write_str("null"),
             SchemaInputValueRecord::String(id) => write_quoted(&self.schema[*id], f),
-            SchemaInputValueRecord::Int(n) => write!(f, "{}", n),
-            SchemaInputValueRecord::I64(n) => write!(f, "{}", n),
-            SchemaInputValueRecord::Float(n) => write!(f, "{}", n),
-            SchemaInputValueRecord::U64(n) => write!(f, "{}", n),
+            SchemaInputValueRecord::Int(n) => write!(f, "{n}"),
+            SchemaInputValueRecord::I64(n) => write!(f, "{n}"),
+            SchemaInputValueRecord::Float(n) => write!(f, "{n}"),
+            SchemaInputValueRecord::U64(n) => write!(f, "{n}"),
             SchemaInputValueRecord::Boolean(b) => {
                 if *b {
                     f.write_str("true")

@@ -93,7 +93,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
     let command = args.command;
 
-    trace!("subcommand: {}", command);
+    trace!("subcommand: {command}");
 
     // do not display header if we're in a pipe
     if std::io::stdout().is_terminal() {

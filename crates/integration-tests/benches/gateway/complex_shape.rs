@@ -128,7 +128,7 @@ impl ComplexSchemaAndQuery {
                 }}
                 "###,
                 fields.iter().format_with("\n", |j, f| {
-                    f(&format_args!("    f{}: String! @join_field(graph: SUB)", j))
+                    f(&format_args!("    f{j}: String! @join_field(graph: SUB)"))
                 })
             )
             .unwrap();
@@ -136,7 +136,7 @@ impl ComplexSchemaAndQuery {
                 query,
                 "  ... on I{} {{ {} }}\n",
                 i,
-                fields.iter().format_with(" ", |j, f| { f(&format_args!("f{}", j)) })
+                fields.iter().format_with(" ", |j, f| { f(&format_args!("f{j}")) })
             )
             .unwrap();
         }
@@ -157,7 +157,7 @@ impl ComplexSchemaAndQuery {
                     {}
                     }}
                     "###,
-                    interfaces.iter().format_with(" & ", |i, f| f(&format_args!("I{}", i))),
+                    interfaces.iter().format_with(" & ", |i, f| f(&format_args!("I{i}"))),
                     buffer.drain(..).dedup().format_with("\n", |i, f| f(&format_args!(
                         "    f{i}: String! @join_field(graph: SUB)"
                     )))

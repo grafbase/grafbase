@@ -13,7 +13,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
     ) -> Result<TypeSystemDirectiveId, Error> {
         let dir = directive
             .deserialize::<sdl::CostDirective>()
-            .map_err(|err| (format!("Invalid @cost directive: {}", err), directive.arguments_span()))?;
+            .map_err(|err| (format!("Invalid @cost directive: {err}"), directive.arguments_span()))?;
         self.graph
             .cost_directives
             .push(CostDirectiveRecord { weight: dir.weight });

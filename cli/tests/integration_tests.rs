@@ -30,7 +30,7 @@ fn target_dir() -> PathBuf {
 fn cargo_bin_str(name: &str) -> PathBuf {
     let env_var = format!("CARGO_BIN_EXE_{name}");
     std::env::var_os(env_var).map_or_else(
-        || target_dir().join(format!("{name}{}", EXE_SUFFIX)),
+        || target_dir().join(format!("{name}{EXE_SUFFIX}")),
         std::convert::Into::into,
     )
 }

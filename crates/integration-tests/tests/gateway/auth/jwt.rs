@@ -222,7 +222,7 @@ pub(super) fn tamper_jwt(token: String) -> String {
     .unwrap();
     payload.insert("sub".to_string(), serde_json::Value::String("evil admin".to_string()));
     let payload = general_purpose::URL_SAFE_NO_PAD.encode(serde_json::to_vec(&header).unwrap());
-    let new_token = format!("{}.{}.{}", header, payload, signature);
+    let new_token = format!("{header}.{payload}.{signature}");
 
     // Sanity check
     assert!(new_token != token);

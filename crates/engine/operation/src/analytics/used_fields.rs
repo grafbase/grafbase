@@ -34,7 +34,7 @@ impl UsedFields<'_> {
     #[allow(clippy::inherent_to_string_shadow_display)]
     pub fn to_string(&self) -> String {
         let mut out = String::with_capacity(self.fields.len() * 4);
-        write!(out, "{}", self).unwrap();
+        write!(out, "{self}").unwrap();
         out
     }
 }

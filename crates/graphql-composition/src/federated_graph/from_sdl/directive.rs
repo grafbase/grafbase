@@ -87,7 +87,7 @@ fn parse_common_directives<'a>(
         "authenticated" => Ok(Some(Directive::Authenticated)),
         "cost" => directive
             .deserialize::<CostDirective>()
-            .map_err(|err| DomainError(format!("Invalid cost directive: {}", err)))
+            .map_err(|err| DomainError(format!("Invalid cost directive: {err}")))
             .map(|dir| Some(Directive::Cost { weight: dir.weight })),
         EXTENSION_DIRECTIVE_DIRECTIVE if state.extensions_loaded => {
             parse_extension_directive(directive, state).map(Some)

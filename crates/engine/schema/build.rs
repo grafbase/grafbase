@@ -15,13 +15,13 @@ fn main() -> anyhow::Result<()> {
         .collect::<String>();
 
     // A random token we can use to tell if a build has changed or not.
-    writeln!(&mut output, r#"pub const BUILD_TOKEN: &str = "{}";"#, token)?;
+    writeln!(&mut output, r#"pub const BUILD_TOKEN: &str = "{token}";"#)?;
 
     write!(&mut output, r#"pub const GIT_COMMIT_HASH: Option<&str> = "#)?;
 
     match get_current_git_hash() {
         Some(git_hash) => {
-            writeln!(&mut output, r#"Some("{}");"#, git_hash)?;
+            writeln!(&mut output, r#"Some("{git_hash}");"#)?;
         }
         None => {
             writeln!(&mut output, "None;")?;

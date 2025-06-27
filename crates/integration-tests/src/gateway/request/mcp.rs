@@ -356,7 +356,7 @@ pub enum McpResponse<T> {
 impl<T: std::fmt::Display> std::fmt::Display for McpResponse<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            McpResponse::Result { result } => write!(f, "{}", result),
+            McpResponse::Result { result } => write!(f, "{result}"),
             McpResponse::Error { error } => write!(f, "{}", serde_json::to_string_pretty(error).unwrap()),
         }
     }
@@ -386,7 +386,7 @@ impl std::fmt::Display for ToolResponse {
                 writeln!(f, "\n{}\n", "=".repeat(80))?;
             }
             match content {
-                Content::Text(text) => write!(f, "{}", text)?,
+                Content::Text(text) => write!(f, "{text}")?,
                 Content::Json(json) => write!(f, "{}", serde_json::to_string_pretty(json).unwrap())?,
             }
         }

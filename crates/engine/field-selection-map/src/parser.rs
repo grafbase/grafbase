@@ -663,7 +663,7 @@ mod tests {
         };
         match parse(input) {
             Ok(result) => assert_eq!(result, expected),
-            Err(e) => panic!("Whitespace test failed: {}", e),
+            Err(e) => panic!("Whitespace test failed: {e}"),
         }
     }
 

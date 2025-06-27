@@ -77,7 +77,7 @@ impl GrafbaseDevConfig {
         }
 
         for (subgraph_name, sdl) in sdl_only_subgraphs {
-            let schema_path = working_directory.path().join(format!("{}.graphql", subgraph_name));
+            let schema_path = working_directory.path().join(format!("{subgraph_name}.graphql"));
             fs::write(&schema_path, sdl.as_bytes()).unwrap();
 
             writeln!(

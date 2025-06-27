@@ -52,7 +52,7 @@ impl<R: engine::Runtime> IntrospectTool<R> {
 
         for type_name in types {
             let Some(type_definition) = schema.type_definition_by_name(&type_name) else {
-                errors.push(format!("Type '{}' not found", type_name));
+                errors.push(format!("Type '{type_name}' not found"));
                 continue;
             };
 

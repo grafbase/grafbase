@@ -13,7 +13,7 @@ pub(crate) fn not_acceptable_error(format: ResponseFormat) -> http::Response<Bod
         "Missing or invalid Accept header. You must specify one of: {}.",
         ResponseFormat::supported_media_types()
             .iter()
-            .format_with(", ", |media_type, f| { f(&format_args!("'{}'", media_type)) }),
+            .format_with(", ", |media_type, f| { f(&format_args!("'{media_type}'")) }),
     );
     Http::error(format, refuse_request_with(http::StatusCode::NOT_ACCEPTABLE, message))
 }

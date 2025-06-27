@@ -40,8 +40,7 @@ impl FromStr for McpTransport {
             Ok(McpTransport::StreamingHttp)
         } else {
             Err(format!(
-                "Invalid transport type: '{}'. Must be either 'sse' or 'streaming-http'",
-                s
+                "Invalid transport type: '{s}'. Must be either 'sse' or 'streaming-http'"
             ))
         }
     }

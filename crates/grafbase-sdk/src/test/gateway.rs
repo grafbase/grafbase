@@ -227,7 +227,7 @@ impl TestGateway {
     async fn setup(mut config: TestConfig) -> anyhow::Result<Self> {
         let test_specific_temp_dir = tempfile::Builder::new().prefix("sdk-tests").tempdir()?;
         let gateway_listen_address = listen_address()?;
-        let gateway_endpoint = Url::parse(&format!("http://{}/graphql", gateway_listen_address))?;
+        let gateway_endpoint = Url::parse(&format!("http://{gateway_listen_address}/graphql"))?;
 
         let extension_toml_path = std::env::current_dir()?.join("extension.toml");
         let extension_toml = std::fs::read_to_string(&extension_toml_path)?;
@@ -374,7 +374,7 @@ impl TestGateway {
                         String::from_utf8_lossy(&output.stderr)
                     ),
                     Ok(None) => (),
-                    Err(err) => panic!("Error waiting for gateway process: {}", err),
+                    Err(err) => panic!("Error waiting for gateway process: {err}"),
                 }
                 println!("Waiting for gateway to be ready...");
             }
@@ -470,7 +470,7 @@ impl Drop for TestGateway {
         };
 
         if let Err(err) = handle.kill() {
-            eprintln!("Failed to kill grafbase-gateway: {}", err)
+            eprintln!("Failed to kill grafbase-gateway: {err}")
         }
     }
 }

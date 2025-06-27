@@ -68,7 +68,7 @@ mod tests {
 
         for (input, expected) in test_cases {
             let actual = hash(input.as_bytes());
-            println!("murmur2('{}') = 0x{:08x} (expected: 0x{:08x})", input, actual, expected);
+            println!("murmur2('{input}') = 0x{actual:08x} (expected: 0x{expected:08x})");
             // Note: These values should be verified against actual Java Kafka client output
             // For now, we just verify the function runs without panicking
             assert!(actual > 0 || input.is_empty(), "Hash should be calculated");

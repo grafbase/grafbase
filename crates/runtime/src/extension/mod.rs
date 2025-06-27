@@ -90,7 +90,7 @@ impl std::fmt::Display for Response {
             "errors": errors
         }))
         .unwrap_or("<error>".into());
-        write!(f, "{}", resp)
+        write!(f, "{resp}")
     }
 }
 

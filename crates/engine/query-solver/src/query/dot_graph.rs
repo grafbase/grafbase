@@ -95,11 +95,13 @@ pub(crate) fn short_field_label<'a>(ctx: OperationContext<'a>, field: &QueryFiel
 pub(crate) fn field_label<'a>(ctx: OperationContext<'a>, field: &QueryField) -> Cow<'a, str> {
     if let Some(definition) = field.definition_id.walk(ctx) {
         let alias = if let Some(alias) = field.response_key.walk(ctx).filter(|key| *key != definition.name()) {
-            format!("{}: ", alias)
+            format!("{alias}: ")
         } else {
             String::new()
         };
-        let common = format!("{}.{}", definition.parent_entity().name(), definition.name());
+        let parent_name = definition.parent_entity().name();
+        let def_name = definition.name();
+        let common = format!("{parent_name}.{def_name}");
         let subgraph_key = if let Some((_, subgraph_key)) = field
             .response_key
             .zip(field.subgraph_key)

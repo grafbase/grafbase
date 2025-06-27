@@ -67,7 +67,7 @@ impl GraphDefinitions<'_> {
     fn get_object_id(&self, name: &str, span: sdl::Span) -> Result<ObjectDefinitionId, Error> {
         let id = self.get_type_id(name, span)?;
         let TypeDefinitionId::Object(id) = id else {
-            return Err((format!("Type {} is not an object", name), span).into());
+            return Err((format!("Type {name} is not an object"), span).into());
         };
         Ok(id)
     }
@@ -75,7 +75,7 @@ impl GraphDefinitions<'_> {
     fn get_interface_id(&self, name: &str, span: sdl::Span) -> Result<InterfaceDefinitionId, Error> {
         let id = self.get_type_id(name, span)?;
         let TypeDefinitionId::Interface(id) = id else {
-            return Err((format!("Type {} is not an interface", name), span).into());
+            return Err((format!("Type {name} is not an interface"), span).into());
         };
         Ok(id)
     }

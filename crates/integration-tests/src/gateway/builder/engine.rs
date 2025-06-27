@@ -96,7 +96,7 @@ pub(super) async fn build(
 
     let runtime = runtime.finalize_runtime_and_config(&mut config, &schema).await?;
 
-    println!("=== CONFIG ===\n{:#?}\n", config);
+    println!("=== CONFIG ===\n{config:#?}\n");
 
     let engine = engine::Engine::new(schema, runtime).await;
 

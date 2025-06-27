@@ -13,7 +13,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
     ) -> Result<TypeSystemDirectiveId, Error> {
         let dir = directive.deserialize::<sdl::DeprecatedDirective>().map_err(|err| {
             (
-                format!("Invalid @deprecated directive: {}", err),
+                format!("Invalid @deprecated directive: {err}"),
                 directive.arguments_span(),
             )
         })?;

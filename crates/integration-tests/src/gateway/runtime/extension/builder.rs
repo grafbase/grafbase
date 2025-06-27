@@ -50,7 +50,7 @@ impl ExtensionsBuilder {
             .iter_with_id()
             .find(|(_, ext)| ext.manifest.id.to_string() == id)
         else {
-            panic!("Extension '{}' not found", id);
+            panic!("Extension '{id}' not found");
         };
 
         self.url(extension_id)

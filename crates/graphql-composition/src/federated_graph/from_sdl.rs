@@ -126,7 +126,7 @@ impl<'a> State<'a> {
         let definition = *self
             .definition_names
             .get(name)
-            .ok_or_else(|| DomainError(format!("Unknown type '{}'", name)))?;
+            .ok_or_else(|| DomainError(format!("Unknown type '{name}'")))?;
 
         Ok(Type { definition, wrapping })
     }
@@ -754,7 +754,7 @@ fn attach_inline_fragment(
         Some(type_name) => *state
             .definition_names
             .get(type_name)
-            .ok_or_else(|| DomainError(format!("Type '{}' in type condition does not exist", type_name)))?,
+            .ok_or_else(|| DomainError(format!("Type '{type_name}' in type condition does not exist")))?,
         None => {
             return Err(DomainError(
                 "Fragments without type condition are not supported".to_owned(),
@@ -970,8 +970,7 @@ fn ingest_extension_link_enum<'a>(
             .find(|directive| directive.name() == EXTENSION_LINK_DIRECTIVE)
             .ok_or_else(|| {
                 DomainError(format!(
-                    "Missing @{} directive on {} enum value.",
-                    EXTENSION_LINK_DIRECTIVE, EXTENSION_LINK_ENUM
+                    "Missing @{EXTENSION_LINK_DIRECTIVE} directive on {EXTENSION_LINK_ENUM} enum value."
                 ))
             })?;
 

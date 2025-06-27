@@ -143,7 +143,7 @@ impl RowValue {
             .as_deref()
             .map(|value| {
                 std::str::from_utf8(value)
-                    .map_err(|e| SdkError::from(format!("Failed to convert bytes to string: {}", e)))
+                    .map_err(|e| SdkError::from(format!("Failed to convert bytes to string: {e}")))
             })
             .transpose()
     }

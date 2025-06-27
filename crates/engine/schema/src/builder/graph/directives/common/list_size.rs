@@ -20,7 +20,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
         };
         let dir = directive.deserialize::<sdl::ListSizeDirective>().map_err(|err| {
             (
-                format!("Invalid @listSize directive: {}", err),
+                format!("Invalid @listSize directive: {err}"),
                 directive.arguments_span(),
             )
         })?;
@@ -34,7 +34,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                         .find(|id| self.ctx[self.graph[*id].name_id] == name)
                         .ok_or_else(|| {
                             (
-                                format!("Invalid @listSize directive slicing_argument: {}", name),
+                                format!("Invalid @listSize directive slicing_argument: {name}"),
                                 directive.arguments_span(),
                             )
                         })
@@ -61,7 +61,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                         .find(|id| self.ctx[self.graph[*id].name_id] == name)
                         .ok_or_else(|| {
                             (
-                                format!("Invalid @listSize directive sized_field: {}", name),
+                                format!("Invalid @listSize directive sized_field: {name}"),
                                 directive.arguments_span(),
                             )
                         })

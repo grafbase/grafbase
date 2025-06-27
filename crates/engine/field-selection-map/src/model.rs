@@ -23,7 +23,7 @@ impl fmt::Display for SelectedValue<'_> {
             "{}",
             self.alternatives
                 .iter()
-                .format_with(" | ", |entry, f| f(&format_args!("{}", entry)))
+                .format_with(" | ", |entry, f| f(&format_args!("{entry}")))
         )
     }
 }
@@ -51,18 +51,18 @@ pub enum SelectedValueEntry<'a> {
 impl fmt::Display for SelectedValueEntry<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SelectedValueEntry::Path(p) => write!(f, "{}", p),
+            SelectedValueEntry::Path(p) => write!(f, "{p}"),
             SelectedValueEntry::Object { path, object } => {
                 if let Some(path) = path {
-                    write!(f, "{}.", path)?
+                    write!(f, "{path}.")?
                 };
-                write!(f, "{}", object)
+                write!(f, "{object}")
             }
             SelectedValueEntry::List { path, list } => {
                 if let Some(path) = path {
-                    write!(f, "{}", path)?
+                    write!(f, "{path}")?
                 };
-                write!(f, "{}", list)
+                write!(f, "{list}")
             }
             SelectedValueEntry::Identity => write!(f, "."),
         }
@@ -95,14 +95,14 @@ pub struct Path<'a> {
 impl fmt::Display for Path<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if let Some(ty) = &self.ty {
-            write!(f, "<{}>.", ty)?
+            write!(f, "<{ty}>.")?
         };
         write!(
             f,
             "{}",
             self.segments
                 .iter()
-                .format_with(".", |segment, f| f(&format_args!("{}", segment)))
+                .format_with(".", |segment, f| f(&format_args!("{segment}")))
         )
     }
 }
@@ -120,7 +120,7 @@ impl fmt::Display for SelectedObjectValue<'_> {
             "{{ {} }}",
             self.fields
                 .iter()
-                .format_with(" ", |field, f| f(&format_args!("{}", field)))
+                .format_with(" ", |field, f| f(&format_args!("{field}")))
         )
     }
 }

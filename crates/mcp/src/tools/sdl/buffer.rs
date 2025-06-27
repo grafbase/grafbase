@@ -110,7 +110,7 @@ impl<'a> Buffer<'a> {
         write!(self, "{}", input_value.ty()).unwrap();
         if let Some(default_value) = input_value.default_value() {
             self.push_str(" = ");
-            write!(self, "{}", default_value).unwrap();
+            write!(self, "{default_value}").unwrap();
         }
         self.push('\n');
     }

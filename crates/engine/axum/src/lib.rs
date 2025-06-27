@@ -42,7 +42,7 @@ pub async fn execute<R: Runtime>(
             if source.is::<http_body_util::LengthLimitError>() {
                 return (
                     http::StatusCode::PAYLOAD_TOO_LARGE,
-                    format!("Request body exceeded: {}", body_limit_bytes),
+                    format!("Request body exceeded: {body_limit_bytes}"),
                 );
             }
         }

@@ -54,7 +54,7 @@ impl<R: Runtime> Engine<R> {
                     if requests.len() > (limit as usize) {
                         return self.bad_request_but_well_formed_graphql_over_http_request(
                             &request_context,
-                            format_args!("batch size exceeds limit of {}", limit),
+                            format_args!("batch size exceeds limit of {limit}"),
                         );
                     }
                 }

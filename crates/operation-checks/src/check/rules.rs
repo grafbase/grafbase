@@ -364,10 +364,7 @@ pub(crate) fn remove_object_type<T: UsageProvider>(args: CheckArgs<'_, '_, T>) -
     }
 
     Some(CheckDiagnostic {
-        message: format!(
-            "The root type `{}` was removed but it is still used by clients.",
-            type_name
-        ),
+        message: format!("The root type `{type_name}` was removed but it is still used by clients."),
         severity: Severity::Error,
     })
 }
