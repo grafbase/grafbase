@@ -1,3 +1,4 @@
+mod file_logger;
 mod headers;
 mod kafka_consumer;
 mod kafka_producer;
@@ -28,6 +29,7 @@ pub type PgPool = sqlx::Pool<Postgres>;
 pub type PgConnection = sqlx::pool::PoolConnection<Postgres>;
 pub type PgTransaction = sqlx::Transaction<'static, Postgres>;
 pub type PgRow = sqlx::postgres::PgRow;
+pub type FileLogger = file_logger::FileLogger;
 
 pub struct EventQueueProxy(#[allow(unused)] pub(crate) SharedContext);
 pub type AccessLogSender = ();

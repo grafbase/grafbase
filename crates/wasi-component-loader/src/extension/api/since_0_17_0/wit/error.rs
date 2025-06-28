@@ -39,3 +39,10 @@ impl From<crate::extension::api::since_0_9_0::wit::error::Error> for crate::Erro
         Error::from(value).into()
     }
 }
+
+impl From<Error> for crate::Error {
+    fn from(value: Error) -> Self {
+        let error_0_18_0 = crate::extension::api::since_0_18_0::wit::error::Error::from(value);
+        crate::Error::Guest(error_0_18_0)
+    }
+}

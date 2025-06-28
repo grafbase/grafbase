@@ -1,8 +1,9 @@
 use std::{fmt::Display, future::Future, pin::Pin};
 
+use event_queue::ExecutedHttpRequest;
 use http::{Request, Response};
 use http_body::Body;
-use runtime::extension::HooksExtension;
+use runtime::extension::{ExtensionContext, HooksExtension};
 use tower::Layer;
 
 #[derive(Clone)]
@@ -64,6 +65,8 @@ where
 
         Box::pin(async move {
             let (parts, body) = req.into_parts();
+            let url = parts.uri.to_string();
+            let method = parts.method.clone();
 
             let response_format = crate::error_response::extract_response_format(&parts.headers);
 
@@ -86,6 +89,12 @@ where
             };
 
             let (parts, body) = response.into_parts();
+
+            let builder = ExecutedHttpRequest::builder(&url)
+                .method(method)
+                .response_status(parts.status);
+
+            context.event_queue().push_http_request(builder);
 
             let parts = match hooks.on_response(&context, parts).await {
                 Ok(parts) => parts,

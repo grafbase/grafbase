@@ -11,6 +11,12 @@ pub(crate) enum StrategyKind {
     Hourly,
     /// Indicates that logs should rotate every day.
     Daily,
+    /// Indicates that logs should rotate every week.
+    Weekly,
+    /// Indicates that logs should rotate every month.
+    Monthly,
+    /// Indicates that logs should rotate every year.
+    Yearly,
     /// Indicates that logs should rotate when the log file reaches the specified size in bytes.
     Size(u64),
 }
@@ -32,6 +38,33 @@ impl RotateStrategy {
     /// A `RotateStrategy` configured to never rotate.
     pub fn never() -> Self {
         Self::new(StrategyKind::Never)
+    }
+
+    /// Creates a new `RotateStrategy` that rotates weekly.
+    ///
+    /// # Returns
+    ///
+    /// A `RotateStrategy` configured to rotate weekly.
+    pub fn weekly() -> Self {
+        Self::new(StrategyKind::Weekly)
+    }
+
+    /// Creates a new `RotateStrategy` that rotates monthly.
+    ///
+    /// # Returns
+    ///
+    /// A `RotateStrategy` configured to rotate monthly.
+    pub fn monthly() -> Self {
+        Self::new(StrategyKind::Monthly)
+    }
+
+    /// Creates a new `RotateStrategy` that rotates yearly.
+    ///
+    /// # Returns
+    ///
+    /// A `RotateStrategy` configured to rotate yearly.
+    pub fn yearly() -> Self {
+        Self::new(StrategyKind::Yearly)
     }
 
     /// Creates a new `RotateStrategy` that rotates daily.

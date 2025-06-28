@@ -39,10 +39,17 @@ impl WasmExtensions {
         extension_catalog: &ExtensionCatalog,
         gateway_config: &Config,
         schema: &Arc<Schema>,
+        logging_filter: String,
     ) -> crate::Result<Self> {
         // FIXME: Rely on hook configuration to define whether events can be skipped or not
         let can_skip_sending_events = false;
-        let extensions = config::load_extensions_config(extension_catalog, gateway_config, can_skip_sending_events);
+
+        let extensions = config::load_extensions_config(
+            extension_catalog,
+            gateway_config,
+            can_skip_sending_events,
+            logging_filter,
+        );
 
         Ok(Self(Arc::new(WasiExtensionsInner {
             instance_pools: create_pools(schema, extensions).await?,

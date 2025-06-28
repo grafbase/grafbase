@@ -1,9 +1,10 @@
 #![allow(static_mut_refs)]
 
-use std::ops::DerefMut;
+use std::{borrow::Cow, ops::DerefMut};
 
 use crate::{
     extension::resolver::{Subscription, SubscriptionCallback},
+    host_io::logger::HostLogger,
     types::Configuration,
     wit::{self, Error},
 };
@@ -33,7 +34,19 @@ pub(super) fn init(
     subgraph_schemas: Vec<(String, wit::Schema)>,
     config: Configuration,
     can_skip_sending_events: bool,
+    host_log_level: String,
 ) -> Result<(), Error> {
+    let mut builder = env_filter::Builder::new();
+
+    let host_log_level = parse_host_level(host_log_level);
+    builder.parse(&host_log_level);
+
+    let filter = builder.build();
+    let logger = HostLogger { filter };
+
+    log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger");
+    log::set_max_level(log::LevelFilter::Trace);
+
     // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
     unsafe {
         let init = std::mem::take(&mut INIT_FN).expect("Resolver extension not initialized correctly.");
@@ -145,4 +158,58 @@ pub(super) fn drop_subscription() {
     unsafe {
         SUBSCRIPTION = None;
     }
+}
+
+/// Parses and processes host log level configuration string.
+///
+/// This function processes a comma-separated string of log level directives and handles
+/// extension-specific logging configuration. It performs the following transformations:
+///
+/// - Extracts log levels from `extension=level` directives
+/// - When extension directives are present, filters out standalone log level tokens
+///   (`trace`, `debug`, `info`, `warn`, `error`)
+/// - When no extension directives are present, preserves all parts unchanged
+///
+/// # Arguments
+///
+/// * `host_log_level` - A comma-separated string containing log level directives
+///
+/// # Returns
+///
+/// A processed string with the appropriate log level configuration
+///
+/// # Examples
+///
+/// ```ignore
+/// // With extension directive
+/// parse_host_level("extension=debug,info".to_string()) // Returns "debug"
+///
+/// // Without extension directive
+/// parse_host_level("debug,my_module=info".to_string()) // Returns "debug,my_module=info"
+/// ```
+fn parse_host_level(host_log_level: String) -> String {
+    let parts: Vec<&str> = host_log_level.split(',').map(|part| part.trim()).collect();
+    let has_extension_directives = parts.iter().any(|part| part.starts_with("extension="));
+
+    parts
+        .into_iter()
+        .filter_map(|part| {
+            // Handle extension=level -> level
+            if let Some(level) = part.strip_prefix("extension=") {
+                return Some(Cow::Owned(level.to_string()));
+            }
+
+            // If extension directives are present, filter out standalone log levels
+            if has_extension_directives {
+                match part {
+                    "trace" | "debug" | "info" | "warn" | "error" => None,
+                    _ => Some(Cow::Borrowed(part)),
+                }
+            } else {
+                // Keep all other parts unchanged when no extension directives
+                Some(Cow::Borrowed(part))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(",")
 }

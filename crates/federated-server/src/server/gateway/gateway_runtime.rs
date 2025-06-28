@@ -36,6 +36,7 @@ impl GatewayRuntime {
         schema: &Arc<Schema>,
         hot_reload_config_path: Option<PathBuf>,
         version_id: Option<ulid::Ulid>,
+        logging_filter: String,
     ) -> Result<GatewayRuntime, crate::Error> {
         tracing::debug!("Build engine runtime.");
 
@@ -90,7 +91,8 @@ impl GatewayRuntime {
         let operation_cache = operation_cache(gateway_config, &mut redis_factory)?;
 
         tracing::debug!("Building extensions");
-        let extensions = WasmExtensions::new(extension_catalog, gateway_config, schema)
+
+        let extensions = WasmExtensions::new(extension_catalog, gateway_config, schema, logging_filter)
             .await
             .map_err(|e| crate::Error::InternalError(format!("Error building an extension: {e}")))?;
 

@@ -58,13 +58,16 @@ fn main() -> anyhow::Result<()> {
             .or(config_receiver.borrow().network.listen_address)
             .unwrap_or(DEFAULT_LISTEN_ADDRESS);
 
+        let logging_filter = args.log_level().to_string();
+
         let config = ServeConfig {
             listen_address,
             config_receiver,
             config_path: args.config_path().map(|p| p.to_owned()),
             config_hot_reload: args.hot_reload(),
             fetch_method: args.fetch_method()?,
-            grafbase_access_token: args.grafbase_access_token().map(|token| AccessToken(token.to_owned()))
+            grafbase_access_token: args.grafbase_access_token().map(|token| AccessToken(token.to_owned())),
+            logging_filter,
         };
 
         let server_runtime = server_runtime::build(telemetry.clone());

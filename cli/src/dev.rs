@@ -51,12 +51,12 @@ impl ServerRuntime for CliRuntime {
     }
 }
 
-pub(crate) fn dev(cmd: DevCommand) -> Result<(), CliError> {
-    start(cmd).map_err(CliError::GenericError)
+pub(crate) fn dev(cmd: DevCommand, logging_filter: String) -> Result<(), CliError> {
+    start(cmd, logging_filter).map_err(CliError::GenericError)
 }
 
 #[tokio::main(flavor = "multi_thread")]
-async fn start(args: DevCommand) -> anyhow::Result<()> {
+async fn start(args: DevCommand, logging_filter: String) -> anyhow::Result<()> {
     export_assets().await?;
 
     let mut config = args.config()?;
@@ -132,6 +132,7 @@ async fn start(args: DevCommand) -> anyhow::Result<()> {
 
     let current_dir = std::env::current_dir()
         .map_err(|error| BackendError::Error(format!("Failed to get current directory: {error}")))?;
+
     let server_config = ServeConfig {
         listen_address,
         config_path: None,
@@ -142,6 +143,7 @@ async fn start(args: DevCommand) -> anyhow::Result<()> {
             sdl_receiver,
         },
         grafbase_access_token: None,
+        logging_filter,
     };
 
     federated_server::serve(

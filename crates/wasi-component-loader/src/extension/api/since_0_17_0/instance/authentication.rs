@@ -38,7 +38,8 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
 
             self.poisoned = false;
 
-            let token = result.map_err(|err| ErrorResponse::from_wit(&mut self.store, err))?;
+            let token = result.map_err(|err| super::error_response_from_wit(&mut self.store, err))?;
+
             Ok((headers, token.into()))
         })
     }

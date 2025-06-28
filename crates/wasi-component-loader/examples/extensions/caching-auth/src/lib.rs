@@ -3,7 +3,7 @@ use std::time::Duration;
 use grafbase_sdk::{
     AuthenticationExtension,
     host_io::cache::{self, CachedItem},
-    types::{Configuration, Error, ErrorResponse, GatewayHeaders, Token},
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders, HttpHeaders, Token},
 };
 
 #[derive(AuthenticationExtension)]

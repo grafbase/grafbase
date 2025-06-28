@@ -55,6 +55,7 @@ pub(super) async fn generate(
     hot_reload_config_path: Option<PathBuf>,
     access_token: Option<&AccessToken>,
     extension_catalog: Option<&ExtensionCatalog>,
+    logging_filter: String,
 ) -> crate::Result<Engine<GatewayRuntime>> {
     let (
         current_dir,
@@ -106,6 +107,7 @@ pub(super) async fn generate(
         &schema,
         hot_reload_config_path,
         version_id,
+        logging_filter,
     )
     .await?;
 

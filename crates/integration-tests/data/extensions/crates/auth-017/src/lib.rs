@@ -4,7 +4,7 @@ use grafbase_sdk::{
         cache::{self, CachedItem},
         http::StatusCode,
     },
-    types::{Configuration, Error, ErrorResponse, GatewayHeaders, PublicMetadataEndpoint, Token},
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders, HttpHeaders, PublicMetadataEndpoint, Token},
 };
 
 #[derive(AuthenticationExtension)]
@@ -83,8 +83,7 @@ impl AuthenticationExtension for CachingProvider {
             return Ok(vec![]);
         };
 
-        let mut response_headers = grafbase_sdk::types::HttpHeaders::new();
-
+        let mut response_headers = grafbase_sdk::types::OwnedHttpHeaders::new();
         response_headers.append("x-test", "works");
 
         Ok(vec![
@@ -95,7 +94,7 @@ impl AuthenticationExtension for CachingProvider {
                 }))
                 .unwrap(),
             )
-            .with_headers(response_headers.into()),
+            .with_headers(response_headers),
         ])
     }
 }

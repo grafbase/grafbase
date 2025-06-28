@@ -4,11 +4,19 @@
 //! The interfaces are blocking from the guest's perspective, but the host runtime executes the IO asynchronously without
 //! blocking the host thread when guest is waiting for IO.
 
-pub mod access_log;
 pub mod cache;
 pub mod event_queue;
 pub mod grpc;
 pub mod http;
 pub mod kafka;
+pub mod logger;
 pub mod nats;
 pub mod postgres;
+
+/// Gets the trace ID from the current request context.
+///
+/// Returns the trace ID associated with the current execution context,
+/// which can be used for distributed tracing and request correlation.
+pub fn trace_id() -> String {
+    crate::component::current_context().trace_id()
+}
