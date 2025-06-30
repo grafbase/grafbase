@@ -20,14 +20,9 @@ permissions:
   issues: write
 
 env:
-  GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  CARGO_INCREMENTAL: 0
   CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_PROFILE_TEST_DEBUG: 0
   CARGO_TERM_COLOR: 'always'
-  CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL: https://d267a8ab95268b272f5147e8939c9d38.r2.cloudflarestorage.com
-  CLI_RELEASE_CLOUDFLARE_R2_PUBLIC_URL: https://pub-b0013effd6614b32a4fb9bf338b90658.r2.dev
-  CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME: cli-releases
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -57,7 +52,7 @@ jobs:
               - '!**/*.md'
 
   lint:
-    name: 'Lint'
+    name: Lint
     needs: [detect-change-type]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: depot-ubuntu-24.04-8
@@ -77,7 +72,7 @@ jobs:
         uses: ./.github/actions/lint
 
   test:
-    name: 'Test'
+    name: Test
     needs: [lint]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: depot-ubuntu-24.04-8
@@ -245,24 +240,6 @@ jobs:
           name: ${{ matrix.archs.platform }}-release-timings.html
           path: target/cargo-timings/cargo-timing.html
 
-      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'depot-ubuntu-24.04-8-arm' }}
-        name: Upload the binaries of the change to R2
-        run: |
-          aws s3api put-object \
-            --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
-            --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
-            --key ${GITHUB_SHA}/${{ matrix.archs.target }}/grafbase \
-            --body target/${{ matrix.archs.target }}/release/grafbase
-
-          aws s3api put-object \
-            --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
-            --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
-            --key ${GITHUB_SHA}/${{ matrix.archs.target }}/grafbase-gateway \
-            --body target/${{ matrix.archs.target }}/release/grafbase-gateway
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
-
       - name: Parse version tag for grafbase
         if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
         run: |
@@ -302,22 +279,6 @@ jobs:
           fi
           echo "Building lambda with $BUILD_PROFILE profile"
           cargo build --profile $BUILD_PROFILE -p grafbase-gateway --target ${{ matrix.archs.target }} --features lambda
-
-      - if: ${{ github.event_name == 'pull_request' && matrix.archs.runner != 'depot-ubuntu-24.04-arm-8' }}
-        name: Upload lambda gateway binary to R2
-        run: |
-          BUILD_PROFILE=release
-          if [[ $GITHUB_REF =~ ^refs/tags/gateway- ]]; then
-            BUILD_PROFILE=lambda
-          fi
-          aws s3api put-object \
-            --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
-            --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
-            --key ${GITHUB_SHA}/${{ matrix.archs.target }}/grafbase-gateway-lambda \
-            --body target/${{ matrix.archs.target }}/$BUILD_PROFILE/grafbase-gateway
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
 
       - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
         name: Upload gateway lambda binary
@@ -442,26 +403,6 @@ jobs:
           VERSION_BUMP="${{ github.ref_name }}"
           VERSION_BUMP=${VERSION_BUMP//gateway-} # remove the gateway prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
-
-      - if: ${{ github.event_name == 'pull_request' }}
-        name: Upload the binaries of the change to R2
-        run: |
-          curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
-          sudo installer -pkg AWSCLIV2.pkg -target /
-          aws s3api put-object \
-            --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
-            --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
-            --key ${GITHUB_SHA}/${{ matrix.target }}/grafbase \
-            --body target/${{ matrix.target }}/release/grafbase
-
-          aws s3api put-object \
-            --endpoint-url $CLI_RELEASE_CLOUDFLARE_R2_ENDPOINT_URL \
-            --bucket $CLI_RELEASE_CLOUDFLARE_R2_BUCKET_NAME \
-            --key ${GITHUB_SHA}/${{ matrix.target }}/grafbase-gateway \
-            --body target/${{ matrix.target }}/release/grafbase-gateway
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_BUCKET_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_BUCKET_SECRET_ACCESS_KEY }}
 
       - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
         name: Upload grafbase ${{ matrix.target }} binary
