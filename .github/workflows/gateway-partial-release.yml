@@ -161,6 +161,9 @@ jobs:
           aws-region: us-east-1
 
       - name: Upload Gateway install script to S3
+        shell: bash
+        env:
+          INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
         run: |
           if [[ $INPUT_PRERELEASE == "false" ]]; then
             cd cli/install
