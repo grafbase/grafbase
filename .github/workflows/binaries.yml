@@ -1,4 +1,4 @@
-name: cli
+name: Binaries
 
 on:
   workflow_dispatch:
