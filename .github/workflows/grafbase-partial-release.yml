@@ -25,6 +25,10 @@ on:
       CLOUDFLARE_ASSETS_R2_SECRET_ACCESS_KEY:
         required: true
 
+permissions:
+  # Allow login to via OIDC
+  id-token: write
+
 jobs:
   release:
     name: Release grafbase
