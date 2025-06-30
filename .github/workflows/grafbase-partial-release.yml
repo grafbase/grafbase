@@ -143,7 +143,7 @@ jobs:
           if [[ $INPUT_PRERELEASE == "false" ]]; then
             cd cli/install
             sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' cli
-            aws s3 sync cli s3://downloads-071269490873/install --delete
+            aws s3 cp cli s3://downloads-071269490873/install/cli
           fi
 
       - name: Publish CLI install script

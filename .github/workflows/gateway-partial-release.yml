@@ -168,5 +168,5 @@ jobs:
           if [[ $INPUT_PRERELEASE == "false" ]]; then
             cd cli/install
             sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' gateway
-            aws s3 sync gateway s3://downloads-071269490873/install --delete
+            aws s3 cp gateway s3://downloads-071269490873/install/gateway
           fi
