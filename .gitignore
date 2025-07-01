@@ -17,7 +17,8 @@ target
 
 # misc
 .DS_Store
-.cargo/
+.cargo/*
+!/.cargo/config.toml
 .zed
 
 # debug

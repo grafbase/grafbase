@@ -41,9 +41,72 @@ impl KvVisitor {
     }
 }
 
+struct ValueVisitor {
+    result: Option<String>,
+}
+
+impl<'v> log::kv::VisitValue<'v> for ValueVisitor {
+    fn visit_any(&mut self, value: log::kv::Value<'_>) -> Result<(), log::kv::Error> {
+        // Fallback for any type we don't handle specifically
+        self.result = Some(value.to_string());
+        Ok(())
+    }
+
+    fn visit_null(&mut self) -> Result<(), log::kv::Error> {
+        // Don't include null/None values
+        self.result = None;
+        Ok(())
+    }
+
+    fn visit_bool(&mut self, value: bool) -> Result<(), log::kv::Error> {
+        self.result = Some(value.to_string());
+        Ok(())
+    }
+
+    fn visit_str(&mut self, value: &str) -> Result<(), log::kv::Error> {
+        self.result = Some(value.to_string());
+        Ok(())
+    }
+
+    fn visit_borrowed_str(&mut self, value: &'v str) -> Result<(), log::kv::Error> {
+        self.result = Some(value.to_string());
+        Ok(())
+    }
+
+    fn visit_i64(&mut self, value: i64) -> Result<(), log::kv::Error> {
+        self.result = Some(value.to_string());
+        Ok(())
+    }
+
+    fn visit_u64(&mut self, value: u64) -> Result<(), log::kv::Error> {
+        self.result = Some(value.to_string());
+        Ok(())
+    }
+
+    fn visit_i128(&mut self, value: i128) -> Result<(), log::kv::Error> {
+        self.result = Some(value.to_string());
+        Ok(())
+    }
+
+    fn visit_u128(&mut self, value: u128) -> Result<(), log::kv::Error> {
+        self.result = Some(value.to_string());
+        Ok(())
+    }
+
+    fn visit_f64(&mut self, value: f64) -> Result<(), log::kv::Error> {
+        self.result = Some(value.to_string());
+        Ok(())
+    }
+}
+
 impl log::kv::Visitor<'_> for KvVisitor {
     fn visit_pair(&mut self, key: log::kv::Key<'_>, value: log::kv::Value<'_>) -> Result<(), log::kv::Error> {
-        self.fields.push((key.to_string(), value.to_string()));
+        let mut value_visitor = ValueVisitor { result: None };
+        value.visit(&mut value_visitor)?;
+
+        if let Some(value_str) = value_visitor.result {
+            self.fields.push((key.to_string(), value_str));
+        }
 
         Ok(())
     }
