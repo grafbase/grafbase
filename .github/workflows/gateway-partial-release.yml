@@ -159,20 +159,20 @@ jobs:
             ./upload.sh gateway
           fi
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@master
-        with:
-          role-to-assume: arn:aws:iam::071269490873:role/openid-github-ci-grafbase
-          role-session-name: ${{ github.repository_owner }}-${{ github.event.repository.name }}-${{ github.job }}-github-ci
-          aws-region: us-east-1
+      # - name: Configure AWS Credentials
+      #   uses: aws-actions/configure-aws-credentials@master
+      #   with:
+      #     role-to-assume: arn:aws:iam::071269490873:role/openid-github-ci-grafbase
+      #     role-session-name: ${{ github.repository_owner }}-${{ github.event.repository.name }}-${{ github.job }}-github-ci
+      #     aws-region: us-east-1
 
-      - name: Upload Gateway install script to S3
-        shell: bash
-        env:
-          INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
-        run: |
-          if [[ $INPUT_PRERELEASE == "false" ]]; then
-            cd cli/install
-            sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' gateway
-            aws s3 cp gateway s3://downloads-071269490873/install/gateway
-          fi
+      # - name: Upload Gateway install script to S3
+      #   shell: bash
+      #   env:
+      #     INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
+      #   run: |
+      #     if [[ $INPUT_PRERELEASE == "false" ]]; then
+      #       cd cli/install
+      #       sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' gateway
+      #       aws s3 cp gateway s3://downloads-071269490873/install/gateway
+      #     fi

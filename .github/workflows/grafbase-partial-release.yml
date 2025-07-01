@@ -134,23 +134,23 @@ jobs:
             cli/npm/github/grafbase-x86_64-unknown-linux-musl
             cli/npm/github/grafbase-aarch64-unknown-linux-musl
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@master
-        with:
-          role-to-assume: arn:aws:iam::071269490873:role/openid-github-ci-grafbase
-          role-session-name: ${{ github.repository_owner }}-${{ github.event.repository.name }}-${{ github.job }}-github-ci
-          aws-region: us-east-1
+      # - name: Configure AWS Credentials
+      #   uses: aws-actions/configure-aws-credentials@master
+      #   with:
+      #     role-to-assume: arn:aws:iam::071269490873:role/openid-github-ci-grafbase
+      #     role-session-name: ${{ github.repository_owner }}-${{ github.event.repository.name }}-${{ github.job }}-github-ci
+      #     aws-region: us-east-1
 
-      - name: Upload CLI install script to S3
-        shell: bash
-        env:
-          INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
-        run: |
-          if [[ $INPUT_PRERELEASE == "false" ]]; then
-            cd cli/install
-            sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' cli
-            aws s3 cp cli s3://downloads-071269490873/install/cli
-          fi
+      # - name: Upload CLI install script to S3
+      #   shell: bash
+      #   env:
+      #     INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
+      #   run: |
+      #     if [[ $INPUT_PRERELEASE == "false" ]]; then
+      #       cd cli/install
+      #       sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' cli
+      #       aws s3 cp cli s3://downloads-071269490873/install/cli
+      #     fi
 
       - name: Publish CLI install script
         shell: bash
