@@ -28,6 +28,8 @@ on:
 permissions:
   # Allow login to via OIDC
   id-token: write
+  # Allow creating GitHub releases
+  contents: write
 
 jobs:
   release:
