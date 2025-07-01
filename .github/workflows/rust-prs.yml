@@ -214,7 +214,7 @@ jobs:
           ]
     runs-on: ${{ matrix.platform.runner }}
     env:
-      RUSTFLAGS: '-D warnings'
+      RUSTFLAGS: '-D warnings --cfg tracing_unstable'
     steps:
       - name: Get sources
         uses: actions/checkout@v4

@@ -60,6 +60,7 @@ tracing-subscriber = { workspace = true, default-features = false }
 ulid.workspace = true
 url.workspace = true
 uuid.workspace = true
+valuable.workspace = true
 wasmtime.workspace = true
 wasmtime-wasi.workspace = true
 wasmtime-wasi-http.workspace = true

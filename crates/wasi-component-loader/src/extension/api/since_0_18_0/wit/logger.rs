@@ -1,7 +1,8 @@
-use std::{collections::BTreeMap, path::PathBuf};
+use std::path::PathBuf;
 
 use dashmap::Entry;
 use rolling_logger::RotateStrategy;
+use valuable::{Valuable, Value, Visit};
 use wasmtime::component::Resource;
 
 use crate::WasiState;
@@ -58,50 +59,115 @@ impl HostFileLogger for WasiState {
     }
 }
 
+/// Wrapper for guest fields that implements Valuable for structured logging
+struct GuestFields(Vec<(String, String)>);
+
+impl Valuable for GuestFields {
+    fn as_value(&self) -> Value<'_> {
+        Value::Mappable(self)
+    }
+
+    fn visit(&self, visit: &mut dyn Visit) {
+        for (key, value) in &self.0 {
+            visit.visit_entry(Value::String(key.as_str()), Value::String(value.as_str()));
+        }
+    }
+}
+
+impl valuable::Mappable for GuestFields {
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let size = self.0.len();
+        (size, Some(size))
+    }
+}
+
 impl HostSystemLogger for WasiState {
     async fn log(&mut self, LogEntry { level, message, fields }: LogEntry) -> wasmtime::Result<()> {
-        let guest_fields: BTreeMap<_, _> = fields.into_iter().collect();
-
         match level {
             LogLevel::Trace => {
-                tracing::trace!(
-                    target: "extension",
-                    extension = %self.extension_name(),
-                    message = %message,
-                    fields = ?guest_fields,
-                );
+                if !fields.is_empty() {
+                    let fields = GuestFields(fields);
+                    tracing::trace!(
+                        target: "extension",
+                        extension = %self.extension_name(),
+                        message = %message,
+                        guest_fields = fields.as_value(),
+                    );
+                } else {
+                    tracing::trace!(
+                        target: "extension",
+                        extension = %self.extension_name(),
+                        message = %message,
+                    );
+                }
             }
             LogLevel::Debug => {
-                tracing::debug!(
-                    target: "extension",
-                    extension = %self.extension_name(),
-                    message = %message,
-                    fields = ?guest_fields,
-                );
+                if !fields.is_empty() {
+                    let fields = GuestFields(fields);
+                    tracing::debug!(
+                        target: "extension",
+                        extension = %self.extension_name(),
+                        message = %message,
+                        guest_fields = fields.as_value(),
+                    );
+                } else {
+                    tracing::debug!(
+                        target: "extension",
+                        extension = %self.extension_name(),
+                        message = %message,
+                    );
+                }
             }
             LogLevel::Info => {
-                tracing::info!(
-                    target: "extension",
-                    extension = %self.extension_name(),
-                    message = %message,
-                    fields = ?guest_fields,
-                );
+                if !fields.is_empty() {
+                    let fields = GuestFields(fields);
+                    tracing::info!(
+                        target: "extension",
+                        extension = %self.extension_name(),
+                        message = %message,
+                        guest_fields = fields.as_value(),
+                    );
+                } else {
+                    tracing::info!(
+                        target: "extension",
+                        extension = %self.extension_name(),
+                        message = %message,
+                    );
+                }
             }
             LogLevel::Warn => {
-                tracing::warn!(
-                    target: "extension",
-                    extension = %self.extension_name(),
-                    message = %message,
-                    fields = ?guest_fields,
-                );
+                if !fields.is_empty() {
+                    let fields = GuestFields(fields);
+                    tracing::warn!(
+                        target: "extension",
+                        extension = %self.extension_name(),
+                        message = %message,
+                        guest_fields = fields.as_value(),
+                    );
+                } else {
+                    tracing::warn!(
+                        target: "extension",
+                        extension = %self.extension_name(),
+                        message = %message,
+                    );
+                }
             }
             LogLevel::Error => {
-                tracing::error!(
-                    target: "extension",
-                    extension = %self.extension_name(),
-                    message = %message,
-                    fields = ?guest_fields,
-                );
+                if !fields.is_empty() {
+                    let fields = GuestFields(fields);
+                    tracing::error!(
+                        target: "extension",
+                        extension = %self.extension_name(),
+                        message = %message,
+                        guest_fields = fields.as_value(),
+                    );
+                } else {
+                    tracing::error!(
+                        target: "extension",
+                        extension = %self.extension_name(),
+                        message = %message,
+                    );
+                }
             }
         }
 

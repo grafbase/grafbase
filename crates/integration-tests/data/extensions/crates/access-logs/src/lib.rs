@@ -141,6 +141,17 @@ impl HooksExtension for AccessLogs {
             }
         }
 
+        host_io::logger::log::info!(
+            operations = message.operations.len(),
+            subgraph_requests = message.subgraph_requests.len(),
+            http_requests = message.http_requests.len(),
+            custom_events = message.custom.len(),
+            empty_field = Option::<usize>::None,
+            optional_field = Some("foo"),
+            random_string = "random_string_value";
+            "on-response-hook"
+        );
+
         self.logger.log_json(message).unwrap();
 
         Ok(())
