@@ -10,7 +10,7 @@ use crate::{
     resources::Headers,
 };
 
-impl ResolverExtensionInstance for super::ExtensionInstanceSince0_18_0 {
+impl ResolverExtensionInstance for super::ExtensionInstanceSince0_19_0 {
     fn prepare<'a>(
         &'a mut self,
         context: SharedContext,
@@ -59,7 +59,7 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_18_0 {
                 .await?;
 
             self.poisoned = false;
-            Ok(response.into())
+            Ok(response)
         })
     }
 
@@ -118,9 +118,7 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_18_0 {
                 .call_resolve_next_subscription_item(&mut self.store, context)
                 .await?;
 
-            Ok(result
-                .map(|opt| opt.map(Into::into))
-                .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError)))
+            Ok(result.map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError)))
         })
     }
 }

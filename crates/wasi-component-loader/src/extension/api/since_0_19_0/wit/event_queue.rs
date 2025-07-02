@@ -14,7 +14,7 @@ impl HostEventQueue for WasiState {
         let this = self.get(&self_)?;
 
         match this.0.event_queue.pop() {
-            Some(event) => Ok(Some(self.convert_event_0_18_0(event)?)),
+            Some(event) => Ok(Some(self.convert_event_0_19_0(event)?)),
             None => Ok(None),
         }
     }
@@ -27,10 +27,10 @@ impl HostEventQueue for WasiState {
 }
 
 impl WasiState {
-    fn convert_event_0_18_0(&mut self, event: event_queue::Event) -> wasmtime::Result<Event> {
+    fn convert_event_0_19_0(&mut self, event: event_queue::Event) -> wasmtime::Result<Event> {
         let event = match event {
             event_queue::Event::Operation(op) => Event::Operation(op.into()),
-            event_queue::Event::Subgraph(event) => self.convert_subgraph_event_0_18_0(event)?,
+            event_queue::Event::Subgraph(event) => self.convert_subgraph_event_0_19_0(event)?,
             event_queue::Event::Http(http) => Event::Http(http.into()),
             event_queue::Event::Extension(ext) => Event::Extension(ext.into()),
         };
@@ -38,7 +38,7 @@ impl WasiState {
         Ok(event)
     }
 
-    fn convert_subgraph_event_0_18_0(
+    fn convert_subgraph_event_0_19_0(
         &mut self,
         subgraph: event_queue::ExecutedSubgraphRequest,
     ) -> Result<Event, anyhow::Error> {

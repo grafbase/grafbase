@@ -88,6 +88,16 @@ impl HostHttpClient for WasiState {
     }
 }
 
+impl From<crate::extension::api::wit::HttpError> for HttpError {
+    fn from(err: crate::extension::api::wit::HttpError) -> Self {
+        match err {
+            crate::extension::api::wit::HttpError::Timeout => HttpError::Timeout,
+            crate::extension::api::wit::HttpError::Request(msg) => HttpError::Request(msg),
+            crate::extension::api::wit::HttpError::Connect(msg) => HttpError::Connect(msg),
+        }
+    }
+}
+
 fn convert_http_request(
     state: &mut WasiState,
     request: HttpRequest,

@@ -734,8 +734,8 @@ fn with_stdout_capture() {
             .collect();
 
         insta::assert_snapshot!(stdout_filtered.join("\n"), @r#"
-        {"fields":{"extension":"access-logs","message":"on-response-hook","guest_fields":{"operations":"0","subgraph_requests":"0","http_requests":"1","custom_events":"1","optional_field":"foo","random_string":"random_string_value"}}}
-        {"fields":{"extension":"access-logs","message":"on-response-hook","guest_fields":{"operations":"1","subgraph_requests":"1","http_requests":"1","custom_events":"1","optional_field":"foo","random_string":"random_string_value"}}}
+        {"fields":{"extension":"access-logs","message":"on-response-hook","guest_fields":{"operations":0,"subgraph_requests":0,"http_requests":1,"custom_events":1,"boolean":false,"optional_field":"foo","random_string":"random_string_value"}}}
+        {"fields":{"extension":"access-logs","message":"on-response-hook","guest_fields":{"operations":1,"subgraph_requests":1,"http_requests":1,"custom_events":1,"boolean":false,"optional_field":"foo","random_string":"random_string_value"}}}
         "#);
     });
 }

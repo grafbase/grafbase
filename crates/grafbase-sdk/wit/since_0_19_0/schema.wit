@@ -1,0 +1,153 @@
+// Replicates the GraphQL type system:
+// https://spec.graphql.org/October2021/#sec-Type-System
+interface schema {
+    record schema {
+        // The IDs and this list have no relationship. They're not indices within this list.
+        type-definitions: list<type-definition>,
+        field-definitions: list<field-definition>,
+        directives: list<directive>,
+        root-types: root-types,
+    }
+
+    // GraphQL root types
+    record root-types {
+        query-id: option<definition-id>,
+        mutation-id: option<definition-id>,
+        subscription-id: option<definition-id>
+    }
+
+    // Unique identifier across all definitions in the schema
+    type definition-id = u32;
+
+    variant type-definition {
+        scalar(scalar-definition),
+        object(object-definition),
+        %interface(interface-definition),
+        union(union-definition),
+        %enum(enum-definition),
+        input-object(input-object-definition),
+    }
+
+    record scalar-definition {
+        id: definition-id,
+        name: string,
+        specified-by-url: option<string>,
+        directives: list<directive>
+    }
+
+    record object-definition {
+        id: definition-id,
+        name: string,
+        interface-ids: list<definition-id>,
+        field-ids: list<definition-id>,
+        directives: list<directive>
+    }
+
+    record interface-definition {
+        id: definition-id,
+        name: string,
+        interface-ids: list<definition-id>,
+        field-ids: list<definition-id>,
+        directives: list<directive>
+    }
+
+    record union-definition {
+        id: definition-id,
+        name: string,
+        member-types: list<definition-id>,
+        directives: list<directive>
+    }
+
+    record enum-definition {
+        id: definition-id,
+        name: string,
+        values: list<enum-value>,
+        directives: list<directive>
+    }
+
+    record input-object-definition {
+        id: definition-id,
+        name: string,
+        input-fields: list<input-value-definition>,
+        directives: list<directive>
+    }
+
+    record field-definition {
+        id: definition-id,
+        name: string,
+        ty: ty,
+        parent-type-id: definition-id,
+        arguments: list<input-value-definition>,
+        directives: list<directive>
+    }
+
+    record ty {
+        wrapping: list<wrapping-type>,
+        definition-id: definition-id
+    }
+
+    enum wrapping-type {
+        non-null,
+        %list
+    }
+
+    record input-value-definition {
+        id: definition-id,
+        name: string,
+        ty: ty,
+        directives: list<directive>
+    }
+
+    record enum-value {
+        name: string,
+        directives: list<directive>
+    }
+
+    record directive {
+        name: string,
+        // encoded in CBOR
+        arguments: list<u8>,
+    }
+
+    // Where and how the directive is applied
+    // Each variant matches a GraphQL directive location
+    variant directive-site {
+        scalar(scalar-directive-site),
+        object(object-directive-site),
+        field-definition(field-definition-directive-site),
+        %interface(interface-directive-site),
+        union(union-directive-site),
+        %enum(enum-directive-site)
+    }
+
+    // Site for a directive applied on a OBJECT location
+    record object-directive-site {
+        object-name: string,
+    }
+
+    // Site for a directive applied on a FIELD_DEFINITION location
+    record field-definition-directive-site {
+        parent-type-name: string,
+        field-name: string,
+    }
+
+    // Site for a directive applied on a UNION location
+    record union-directive-site {
+        union-name: string,
+    }
+
+    // Site for a directive applied on a INTERFACE location
+    record interface-directive-site {
+        interface-name: string,
+    }
+
+    // Site for a directive applied on a ENUM location
+    record enum-directive-site {
+        enum-name: string,
+    }
+
+    // Site for a directive applied on a SCALAR location
+    record scalar-directive-site {
+        scalar-name: string,
+    }
+}
