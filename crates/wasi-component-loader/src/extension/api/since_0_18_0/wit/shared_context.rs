@@ -27,8 +27,7 @@ pub fn add_to_linker_impl(linker: &mut wasmtime::component::Linker<WasiState>) -
                 // memory. So we only copy data if we really need it.
                 ctx.event_queue.push_extension_event::<wasmtime::Error>(|| {
                     Ok(event_queue::ExtensionEvent {
-                        // TODO: use extension name from the WasiState
-                        extension_name: String::new(),
+                        extension_name: wasi_state.extension_name().to_string(),
                         event_name: name.to_str(&caller)?.into_owned(),
                         data: data.as_le_slice(&caller).to_vec(),
                     })
