@@ -1,6 +1,7 @@
 mod cors;
 mod csrf;
 mod engine_reloader;
+mod events;
 mod gateway;
 mod graph_fetch_method;
 mod graph_updater;
@@ -9,6 +10,7 @@ mod public_auth_metadata;
 mod state;
 mod trusted_documents_client;
 
+use self::events::UpdateEvent;
 use self::public_auth_metadata::*;
 pub(crate) use gateway::CreateExtensionCatalogError;
 use gateway::{EngineWatcher, create_extension_catalog::create_extension_catalog};
@@ -26,8 +28,10 @@ use engine_axum::{
 use engine_reloader::GatewayEngineReloader;
 use gateway_config::{Config, TlsConfig};
 use std::{net::SocketAddr, path::PathBuf};
-use tokio::sync::mpsc;
-use tokio::{signal, sync::watch};
+use tokio::{
+    signal,
+    sync::{mpsc, watch},
+};
 use tower_http::{
     compression::{CompressionLayer, DefaultPredicate, Predicate as _, predicate::NotForContentType},
     cors::CorsLayer,
@@ -109,12 +113,34 @@ pub async fn serve(
 
     #[allow(unused)]
     let tls = config.tls.clone();
-    let graph_stream = fetch_method.into_stream().await?;
+
+    // Create the central channel for all update events
+    let (update_sender, update_receiver) = mpsc::channel::<UpdateEvent>(16);
+
+    // Start the graph producer
+    fetch_method.start_producer(update_sender.clone()).await?;
+
+    // Bridge config updates to the central channel if hot reload is enabled
+    if config_hot_reload {
+        let config_sender = update_sender.clone();
+        let mut config_hot_reload_receiver = config_receiver.clone();
+        tokio::spawn(async move {
+            // drop the initial value
+            config_hot_reload_receiver.changed().await.ok();
+            while let Ok(()) = config_hot_reload_receiver.changed().await {
+                let new_config = config_hot_reload_receiver.borrow().clone();
+                if config_sender.send(UpdateEvent::config(new_config)).await.is_err() {
+                    break; // channel closed
+                }
+            }
+        });
+    }
+
     let (extension_catalog, hooks_extension) = create_extension_catalog(&config).await?;
 
     let update_handler = GatewayEngineReloader::builder()
-        .config_receiver(config_receiver)
-        .graph_stream(graph_stream)
+        .update_receiver(update_receiver)
+        .initial_config(config.clone())
         .extension_catalog(&extension_catalog)
         .logging_filter(logging_filter.clone())
         .access_token(grafbase_access_token)

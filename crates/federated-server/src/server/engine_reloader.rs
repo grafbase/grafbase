@@ -4,21 +4,12 @@ pub use builder::GatewayEngineReloaderBuilder;
 
 use std::sync::Arc;
 
+use super::gateway::{EngineSender, EngineWatcher, GatewayRuntime};
 use engine::CachedOperation;
-use tokio::sync::mpsc;
-
-use super::gateway::{EngineSender, EngineWatcher, GatewayRuntime, GraphDefinition};
 
 /// Handles graph and config updates by constructing a new engine
 pub(super) struct GatewayEngineReloader {
     engine_watcher: EngineWatcher<GatewayRuntime>,
-}
-
-pub(crate) type GraphSender = mpsc::Sender<GraphDefinition>;
-
-pub enum Update {
-    Graph(GraphDefinition),
-    Config(Box<gateway_config::Config>),
 }
 
 impl GatewayEngineReloader {

@@ -1,10 +1,9 @@
 use std::path::PathBuf;
 
+use super::events::UpdateEvent;
 use super::gateway::GraphDefinition;
-use futures_lite::{StreamExt, stream};
 use graph_ref::GraphRef;
 use tokio::sync::mpsc;
-use tokio_stream::wrappers::ReceiverStream;
 
 /// The method of running the gateway.
 pub enum GraphFetchMethod {
@@ -27,15 +26,13 @@ pub enum GraphFetchMethod {
     },
 }
 
-pub type GraphStream = stream::Boxed<GraphDefinition>;
-
 impl GraphFetchMethod {
-    /// Converts the fetch method into a stream of graph definitions.
+    /// Starts a producer that sends graph updates to the provided channel.
     ///
-    /// This can happen in two ways: if providing a graph SDL, we return a new graph immediately.
+    /// This can happen in two ways: if providing a graph SDL, we send a new graph immediately.
     /// Alternatively, if a graph ref and access token is provided, the function returns
     /// immediately, and runs a background process to fetch the graph definition from object storage
-    pub(crate) async fn into_stream(self) -> crate::Result<GraphStream> {
+    pub(crate) async fn start_producer(self, sender: mpsc::Sender<UpdateEvent>) -> crate::Result<()> {
         #[cfg(feature = "lambda")]
         if matches!(self, GraphFetchMethod::FromGraphRef { .. }) {
             return Err(crate::Error::InternalError(
@@ -48,8 +45,6 @@ impl GraphFetchMethod {
                 access_token,
                 graph_ref,
             } => {
-                let (sender, receiver) = mpsc::channel(4);
-
                 tokio::spawn(async move {
                     use super::graph_updater::ObjectStorageUpdater;
 
@@ -58,16 +53,17 @@ impl GraphFetchMethod {
                     Ok::<_, crate::Error>(())
                 });
 
-                Ok(ReceiverStream::new(receiver).boxed())
+                Ok(())
             }
             GraphFetchMethod::FromSchema {
                 federated_sdl,
                 schema_path,
             } => {
-                let (sender, receiver) = mpsc::channel(4);
-
                 sender
-                    .send(GraphDefinition::Sdl(Some(schema_path.clone()), federated_sdl))
+                    .send(UpdateEvent::Graph(GraphDefinition::Sdl(
+                        Some(schema_path.clone()),
+                        federated_sdl,
+                    )))
                     .await
                     .expect("channel must be up");
 
@@ -76,18 +72,16 @@ impl GraphFetchMethod {
                     SchemaFileGraphUpdater::new(schema_path, sender).await.poll().await;
                 });
 
-                Ok(ReceiverStream::new(receiver).boxed())
+                Ok(())
             }
             GraphFetchMethod::FromSchemaReloadable {
                 current_dir,
                 mut sdl_receiver,
             } => {
-                let (sender, receiver) = mpsc::channel(4);
-
                 tokio::spawn(async move {
                     while let Some(sdl) = sdl_receiver.recv().await {
                         if sender
-                            .send(GraphDefinition::Sdl(Some(current_dir.clone()), sdl))
+                            .send(UpdateEvent::Graph(GraphDefinition::Sdl(Some(current_dir.clone()), sdl)))
                             .await
                             .is_err()
                         {
@@ -96,7 +90,7 @@ impl GraphFetchMethod {
                     }
                 });
 
-                Ok(ReceiverStream::new(receiver).boxed())
+                Ok(())
             }
         }
     }
