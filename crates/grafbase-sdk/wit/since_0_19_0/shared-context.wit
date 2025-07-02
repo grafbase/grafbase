@@ -1,0 +1,7 @@
+interface shared-context {
+    /// A shared context resource that provides access to tracing and event handling capabilities
+    resource shared-context {
+        /// Pushes a new event to the end of the request event queue.
+        push-event: func(name: string, data: list<u8>);
+    }
+}

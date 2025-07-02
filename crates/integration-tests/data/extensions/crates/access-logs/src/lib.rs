@@ -160,6 +160,7 @@ impl HooksExtension for AccessLogs {
             http_requests = message.http_requests.len(),
             custom_events = message.custom.len(),
             empty_field = Option::<usize>::None,
+            boolean = false,
             optional_field = Some("foo"),
             random_string = "random_string_value";
             "on-response-hook"

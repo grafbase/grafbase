@@ -4116,7 +4116,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.18.2"
+version = "0.19.0"
 dependencies = [
  "anyhow",
  "async-tungstenite",
