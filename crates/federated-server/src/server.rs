@@ -25,7 +25,7 @@ use engine_axum::{
     middleware::{HooksLayer, TelemetryLayer},
     websocket::{WebsocketAccepter, WebsocketService},
 };
-use engine_reloader::GatewayEngineReloader;
+use engine_reloader::{EngineReloaderConfig, GatewayEngineReloader};
 use gateway_config::{Config, TlsConfig};
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::{
@@ -78,24 +78,6 @@ pub trait ServerRuntime: Send + Sync + 'static + Clone {
 impl ServerRuntime for () {}
 
 /// Starts the server and listens for incoming requests.
-///
-/// # Arguments
-///
-/// * `ServerConfig` - A configuration struct containing settings for the server, including:
-///   - `listen_addr`: The address to listen on for incoming requests.
-///   - `config`: The gateway configuration.
-///   - `config_path`: Optional path for the config file for hot reload.
-///   - `config_hot_reload`: A boolean indicating if the server should watch for config changes.
-///   - `fetch_method`: The method used to load the graph for the gateway.
-/// * `server_runtime`: An implementation of the `ServerRuntime` trait, providing hooks for request handling.
-///
-/// # Returns
-///
-/// This function returns a `Result` indicating success or failure. On success, it will return `Ok(())`.
-///
-/// # Errors
-///
-/// This function may return errors related to configuration loading, server binding, or request handling.
 pub async fn serve(
     ServeConfig {
         listen_address,
@@ -122,31 +104,20 @@ pub async fn serve(
 
     // Bridge config updates to the central channel if hot reload is enabled
     if config_hot_reload {
-        let config_sender = update_sender.clone();
-        let mut config_hot_reload_receiver = config_receiver.clone();
-        tokio::spawn(async move {
-            // drop the initial value
-            config_hot_reload_receiver.changed().await.ok();
-            while let Ok(()) = config_hot_reload_receiver.changed().await {
-                let new_config = config_hot_reload_receiver.borrow().clone();
-                if config_sender.send(UpdateEvent::config(new_config)).await.is_err() {
-                    break; // channel closed
-                }
-            }
-        });
+        spawn_config_reloader(config_receiver, update_sender);
     }
 
     let (extension_catalog, hooks_extension) = create_extension_catalog(&config).await?;
 
-    let update_handler = GatewayEngineReloader::builder()
-        .update_receiver(update_receiver)
-        .initial_config(config.clone())
-        .extension_catalog(&extension_catalog)
-        .logging_filter(logging_filter.clone())
-        .access_token(grafbase_access_token)
-        .hot_reload_path(config_hot_reload.then_some(config_path).flatten())
-        .build()
-        .await?;
+    let update_handler = GatewayEngineReloader::spawn(EngineReloaderConfig {
+        update_receiver,
+        initial_config: config.clone(),
+        extension_catalog: &extension_catalog,
+        logging_filter: logging_filter.clone(),
+        hot_reload_config_path: config_hot_reload.then_some(config_path).flatten(),
+        access_token: grafbase_access_token,
+    })
+    .await?;
 
     let mcp_url = config
         .mcp
@@ -187,6 +158,21 @@ pub async fn serve(
     }
 
     result
+}
+
+fn spawn_config_reloader(mut config_receiver: watch::Receiver<Config>, update_sender: mpsc::Sender<UpdateEvent>) {
+    tokio::spawn(async move {
+        // drop the initial value
+        config_receiver.changed().await.ok();
+
+        while let Ok(()) = config_receiver.changed().await {
+            let new_config = config_receiver.borrow().clone();
+
+            if update_sender.send(UpdateEvent::config(new_config)).await.is_err() {
+                break; // channel closed
+            }
+        }
+    });
 }
 
 pub async fn router<R: engine::Runtime, SR: ServerRuntime, H: HooksExtension>(

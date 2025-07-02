@@ -15,6 +15,15 @@ use wasi_component_loader::extension::WasmExtensions;
 
 use crate::hot_reload::ConfigWatcher;
 
+pub(super) struct GatewayRuntimeConfig<'a> {
+    pub(super) gateway_config: &'a Config,
+    pub(super) extension_catalog: &'a ExtensionCatalog,
+    pub(super) schema: &'a Arc<Schema>,
+    pub(super) hot_reload_config_path: Option<PathBuf>,
+    pub(super) version_id: Option<ulid::Ulid>,
+    pub(super) logging_filter: String,
+}
+
 /// Represents the runtime environment for the gateway, managing various components
 /// such as fetching, rate limiting, entity caching, and metrics collection.
 pub struct GatewayRuntime {
@@ -30,14 +39,16 @@ pub struct GatewayRuntime {
 }
 
 impl GatewayRuntime {
-    pub(super) async fn build(
-        gateway_config: &Config,
-        extension_catalog: &ExtensionCatalog,
-        schema: &Arc<Schema>,
-        hot_reload_config_path: Option<PathBuf>,
-        version_id: Option<ulid::Ulid>,
-        logging_filter: String,
-    ) -> Result<GatewayRuntime, crate::Error> {
+    pub(super) async fn build(config: GatewayRuntimeConfig<'_>) -> Result<GatewayRuntime, crate::Error> {
+        let GatewayRuntimeConfig {
+            gateway_config,
+            extension_catalog,
+            schema,
+            hot_reload_config_path,
+            version_id,
+            logging_filter,
+        } = config;
+
         tracing::debug!("Build engine runtime.");
 
         let mut redis_factory = RedisPoolFactory::default();
@@ -45,6 +56,7 @@ impl GatewayRuntime {
         let meter = grafbase_telemetry::metrics::meter_from_global_provider();
 
         tracing::debug!("Building rate limiter");
+
         let rate_limiter = match &gateway_config.gateway.rate_limit {
             Some(config) if config.storage.is_redis() => {
                 let tls = config.redis.tls.as_ref().map(|tls| RedisTlsConfig {
@@ -69,6 +81,7 @@ impl GatewayRuntime {
         };
 
         tracing::debug!("Building cache");
+
         let entity_cache: Box<dyn EntityCache> = match gateway_config.entity_caching.storage {
             gateway_config::EntityCachingStorage::Memory => Box::new(InMemoryEntityCache::default()),
             gateway_config::EntityCachingStorage::Redis => {
@@ -99,6 +112,7 @@ impl GatewayRuntime {
         let kv = InMemoryKvStore::runtime();
 
         tracing::debug!("Setting up authentication");
+
         let authentication =
             engine_auth::AuthenticationService::new(gateway_config, extension_catalog, extensions.clone(), &kv);
 

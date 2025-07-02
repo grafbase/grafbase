@@ -8,10 +8,22 @@ use super::{AccessToken, ObjectStorageResponse};
 use engine::Engine;
 use extension_catalog::ExtensionCatalog;
 use gateway_config::Config;
+use gateway_runtime::GatewayRuntimeConfig;
 use runtime::trusted_documents_client::{Client, TrustedDocumentsEnforcementMode};
 use std::{borrow::Cow, path::PathBuf, sync::Arc};
 use tokio::sync::watch;
 use ulid::Ulid;
+
+/// Context struct that bundles all the semi-static parameters needed to build an engine.
+/// This simplifies function signatures and makes the data flow clearer.
+#[derive(Clone, Copy)]
+pub(super) struct EngineBuildContext<'a> {
+    pub gateway_config: &'a Config,
+    pub hot_reload_config_path: Option<&'a PathBuf>,
+    pub access_token: Option<&'a AccessToken>,
+    pub extension_catalog: Option<&'a ExtensionCatalog>,
+    pub logging_filter: &'a str,
+}
 
 /// Send half of the gateway watch channel
 pub(crate) type EngineSender = watch::Sender<Arc<Engine<GatewayRuntime>>>;
@@ -50,12 +62,8 @@ struct Graph {
 /// - `hot_reload_config_path`: An optional path for hot reload configuration.
 /// - `hooks`: The hooks to be used in the gateway.
 pub(super) async fn generate(
+    context: EngineBuildContext<'_>,
     graph_definition: GraphDefinition,
-    gateway_config: &Config,
-    hot_reload_config_path: Option<PathBuf>,
-    access_token: Option<&AccessToken>,
-    extension_catalog: Option<&ExtensionCatalog>,
-    logging_filter: String,
 ) -> crate::Result<Engine<GatewayRuntime>> {
     let (
         current_dir,
@@ -71,20 +79,20 @@ pub(super) async fn generate(
         } => (
             None,
             graph_from_object_storage(
-                gateway_config,
+                context.gateway_config,
                 object_storage_response,
                 object_storage_base_url,
-                access_token,
+                context.access_token,
             ),
         ),
         GraphDefinition::Sdl(current_dir, federated_sdl) => (current_dir, sdl_graph(federated_sdl)),
     };
 
-    let extension_catalog = match extension_catalog {
+    let extension_catalog = match context.extension_catalog {
         Some(catalog) => Cow::Borrowed(catalog),
         None => {
             tracing::debug!("Creating extension catalog.");
-            let (catalog, _) = create_extension_catalog(gateway_config).await?;
+            let (catalog, _) = create_extension_catalog(context.gateway_config).await?;
 
             Cow::Owned(catalog)
         }
@@ -94,22 +102,23 @@ pub(super) async fn generate(
 
     let schema = Arc::new(
         engine::Schema::builder(&federated_sdl)
-            .config(gateway_config)
+            .config(context.gateway_config)
             .extensions(current_dir.as_deref(), &extension_catalog)
             .build()
             .await
             .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?,
     );
 
-    let mut runtime = GatewayRuntime::build(
-        gateway_config,
-        &extension_catalog,
-        &schema,
-        hot_reload_config_path,
+    let config = GatewayRuntimeConfig {
+        gateway_config: context.gateway_config,
+        extension_catalog: &extension_catalog,
+        schema: &schema,
+        hot_reload_config_path: context.hot_reload_config_path.map(|p| p.to_path_buf()),
         version_id,
-        logging_filter,
-    )
-    .await?;
+        logging_filter: context.logging_filter.to_string(),
+    };
+
+    let mut runtime = GatewayRuntime::build(config).await?;
 
     if let Some(trusted_documents) = trusted_documents {
         runtime.trusted_documents = trusted_documents;
