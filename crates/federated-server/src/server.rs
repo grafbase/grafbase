@@ -112,15 +112,15 @@ pub async fn serve(
     let graph_stream = fetch_method.into_stream().await?;
     let (extension_catalog, hooks_extension) = create_extension_catalog(&config).await?;
 
-    let update_handler = GatewayEngineReloader::spawn(
-        config_receiver,
-        graph_stream,
-        config_hot_reload.then_some(config_path).flatten(),
-        grafbase_access_token,
-        &extension_catalog,
-        logging_filter.clone(),
-    )
-    .await?;
+    let update_handler = GatewayEngineReloader::builder()
+        .config_receiver(config_receiver)
+        .graph_stream(graph_stream)
+        .extension_catalog(&extension_catalog)
+        .logging_filter(logging_filter.clone())
+        .access_token(grafbase_access_token)
+        .hot_reload_path(config_hot_reload.then_some(config_path).flatten())
+        .build()
+        .await?;
 
     let mcp_url = config
         .mcp
