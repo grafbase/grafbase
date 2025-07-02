@@ -1,0 +1,87 @@
+interface logger {
+    /// The severity level of a log entry, ordered from most severe to least severe.
+    enum log-level {
+        /// Critical errors that may cause the application to terminate.
+        error,
+        /// Warning messages for potentially harmful situations.
+        warn,
+        /// Informational messages that highlight the progress of the application.
+        info,
+        /// Fine-grained informational events useful for debugging.
+        debug,
+        /// Very fine-grained informational events, typically used for detailed tracing.
+        trace,
+    }
+
+    /// Defines when and how log files should be rotated.
+    variant file-logger-rotation {
+        /// Rotate when the log file reaches the specified size in bytes.
+        size(u64),
+        /// Rotate every minute.
+        minutely,
+        /// Rotate every hour.
+        hourly,
+        /// Rotate every day.
+        daily,
+        /// Rotate every week.
+        weekly,
+        /// Rotate every month.
+        monthly,
+        /// Rotate every year.
+        yearly,
+    }
+
+    /// Represents different types of values that can be stored in log entry fields.
+    variant log-field {
+        /// A string value.
+        %string(string),
+        /// A signed 64-bit integer value.
+        %i64(s64),
+        /// A boolean value.
+        %bool(bool),
+        /// An unsigned 64-bit integer value.
+        %u64(u64),
+        /// A 64-bit floating-point value.
+        %f64(f64),
+    }
+
+    /// A record representing a single structured log entry.
+    record log-entry {
+        /// The severity of the log.
+        level: log-level,
+
+        /// The primary, human-readable message.
+        message: string,
+
+        /// A list of key-value pairs for additional structured context.
+        /// A list of tuples is the canonical way to represent a map in WIT.
+        fields: list<tuple<string, log-field>>,
+    }
+
+    record file-logger-options {
+        /// The path to the log file.
+        path: string,
+
+        /// The rotation strategy for the log file.
+        rotate: option<file-logger-rotation>,
+    }
+
+    /// A logger that writes log entries to a file.
+    resource file-logger {
+        /// Create a new file logger with the specified options.
+        /// Returns an error if the file cannot be opened or created.
+        init: static func(options: file-logger-options) -> result<file-logger, string>;
+
+        /// Write raw log data to the file.
+        /// The data should be properly formatted log entries as bytes. The user decides
+        /// the format, as long as it serializes to bytes.
+        log: func(data: list<u8>) -> result<_, string>;
+    }
+
+    /// A logger that writes to the system's native logging facility.
+    resource system-logger {
+        /// Log a structured entry to the system logger.
+        /// The entry will be formatted according to the system's logging format.
+        log: static func(entry: log-entry);
+    }
+}

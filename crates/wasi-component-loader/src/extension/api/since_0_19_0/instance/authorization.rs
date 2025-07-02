@@ -10,7 +10,7 @@ use crate::{
     resources::Lease,
 };
 
-impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
+impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_19_0 {
     fn authorize_query<'a>(
         &'a mut self,
         context: SharedContext,
@@ -46,10 +46,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
 
             result
                 .map(|(decisions, state)| (headers, decisions.into(), state))
-                .map_err(|err| {
-                    let err_0_19: crate::extension::api::wit::ErrorResponse = err.into();
-                    ErrorResponse::from_wit(&mut self.store, err_0_19)
-                })
+                .map_err(|err| ErrorResponse::from_wit(&mut self.store, err))
         })
     }
 
@@ -73,10 +70,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
                 .await?;
 
             self.poisoned = false;
-            result.map(Into::into).map_err(|err| {
-                let err_0_19: crate::extension::api::wit::Error = err.into();
-                err_0_19.into()
-            })
+            result.map(Into::into).map_err(Into::into)
         })
     }
 }

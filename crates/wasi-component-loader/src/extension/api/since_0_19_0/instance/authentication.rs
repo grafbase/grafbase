@@ -7,7 +7,7 @@ use crate::{
     resources::{Headers, Lease},
 };
 
-impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
+impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_19_0 {
     fn authenticate(
         &mut self,
         context: SharedContext,
@@ -38,10 +38,7 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
 
             self.poisoned = false;
 
-            let token = result.map_err(|err| {
-                let err_0_19: crate::extension::api::wit::ErrorResponse = err.into();
-                ErrorResponse::from_wit(&mut self.store, err_0_19)
-            })?;
+            let token = result.map_err(|err| ErrorResponse::from_wit(&mut self.store, err))?;
             Ok((headers, token.into()))
         })
     }

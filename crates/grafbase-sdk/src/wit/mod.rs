@@ -8,7 +8,7 @@ mod resolver_types;
 
 wit_bindgen::generate!({
     skip: ["register-extension"],
-    path: "./wit/since_0_18_0/",
+    path: "./wit/since_0_19_0/",
     world: "sdk",
     with: {
         "grafbase:sdk/resolver-types": resolver_types,

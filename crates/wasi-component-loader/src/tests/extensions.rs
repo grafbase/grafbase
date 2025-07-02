@@ -14,7 +14,7 @@ use http::{HeaderMap, HeaderValue, Request, Response};
 use runtime::extension::Token;
 use serde_json::json;
 
-const LATEST_SDK: semver::Version = semver::Version::new(0, 18, 0);
+const LATEST_SDK: semver::Version = semver::Version::new(0, 19, 0);
 
 #[tokio::test]
 async fn single_call_caching_auth() {

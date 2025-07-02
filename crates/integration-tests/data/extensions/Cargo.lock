@@ -16,7 +16,7 @@ dependencies = [
 name = "access-logs"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.18.2",
+ "grafbase-sdk 0.19.0",
  "insta",
  "serde",
  "serde_json",
@@ -555,7 +555,7 @@ dependencies = [
 name = "auth-017"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.18.2",
+ "grafbase-sdk 0.19.0",
  "serde",
  "serde_json",
 ]
@@ -2280,7 +2280,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.18.2"
+version = "0.19.0"
 dependencies = [
  "anyhow",
  "async-tungstenite",

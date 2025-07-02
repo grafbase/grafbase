@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use bytes::Bytes;
-use futures::{TryFutureExt, future::BoxFuture, stream::FuturesOrdered};
+use futures::{future::BoxFuture, stream::FuturesOrdered};
 use tokio_stream::StreamExt as _;
 use wasmtime::component::Resource;
 
@@ -23,7 +23,7 @@ impl HostHttpClient for WasiState {
 
         let response = match send_request(request, self.request_durations().clone()).await {
             Ok(resp) => resp,
-            Err(e) => return Ok(Err(e.into())),
+            Err(e) => return Ok(Err(e)),
         };
 
         let (parts, body) = response.into_parts();
@@ -58,7 +58,7 @@ impl HostHttpClient for WasiState {
             .map(|request| {
                 let request_durations = self.request_durations().clone();
                 let fut: BoxFuture<'_, Result<http::Response<Bytes>, HttpError>> = match request {
-                    Ok(request) => Box::pin(send_request(request, request_durations).map_err(Into::into)),
+                    Ok(request) => Box::pin(send_request(request, request_durations)),
                     Err(e) => Box::pin(async move { Err(e) }),
                 };
                 fut
@@ -134,22 +134,6 @@ impl From<HttpMethod> for reqwest::Method {
             HttpMethod::Options => reqwest::Method::OPTIONS,
             HttpMethod::Connect => reqwest::Method::CONNECT,
             HttpMethod::Trace => reqwest::Method::TRACE,
-        }
-    }
-}
-
-impl From<crate::extension::api::wit::HttpMethod> for HttpMethod {
-    fn from(value: crate::extension::api::wit::HttpMethod) -> Self {
-        match value {
-            crate::extension::api::wit::HttpMethod::Get => HttpMethod::Get,
-            crate::extension::api::wit::HttpMethod::Post => HttpMethod::Post,
-            crate::extension::api::wit::HttpMethod::Put => HttpMethod::Put,
-            crate::extension::api::wit::HttpMethod::Delete => HttpMethod::Delete,
-            crate::extension::api::wit::HttpMethod::Patch => HttpMethod::Patch,
-            crate::extension::api::wit::HttpMethod::Head => HttpMethod::Head,
-            crate::extension::api::wit::HttpMethod::Options => HttpMethod::Options,
-            crate::extension::api::wit::HttpMethod::Connect => HttpMethod::Connect,
-            crate::extension::api::wit::HttpMethod::Trace => HttpMethod::Trace,
         }
     }
 }

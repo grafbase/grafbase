@@ -6,6 +6,13 @@ use super::{headers::HeaderError, http_client::HttpError};
 
 impl Host for WasiState {}
 
+impl From<Error> for crate::Error {
+    fn from(value: Error) -> Self {
+        let error_0_19_0 = crate::extension::api::since_0_19_0::wit::grafbase::sdk::error::Error::from(value);
+        crate::Error::Guest(error_0_19_0)
+    }
+}
+
 impl Error {
     pub(crate) fn into_graphql_error(self, code: ErrorCode) -> GraphqlError {
         GraphqlError::new(self.message, code).with_extensions(self.extensions.into_iter().map(|(key, value)| {

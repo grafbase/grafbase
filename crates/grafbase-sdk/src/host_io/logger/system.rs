@@ -32,7 +32,7 @@ impl log::Log for HostLogger {
 }
 
 struct KvVisitor {
-    fields: Vec<(String, String)>,
+    fields: Vec<(String, wit::LogField)>,
 }
 
 impl KvVisitor {
@@ -42,13 +42,13 @@ impl KvVisitor {
 }
 
 struct ValueVisitor {
-    result: Option<String>,
+    result: Option<wit::LogField>,
 }
 
 impl<'v> log::kv::VisitValue<'v> for ValueVisitor {
     fn visit_any(&mut self, value: log::kv::Value<'_>) -> Result<(), log::kv::Error> {
         // Fallback for any type we don't handle specifically
-        self.result = Some(value.to_string());
+        self.result = Some(wit::LogField::String(value.to_string()));
         Ok(())
     }
 
@@ -59,42 +59,42 @@ impl<'v> log::kv::VisitValue<'v> for ValueVisitor {
     }
 
     fn visit_bool(&mut self, value: bool) -> Result<(), log::kv::Error> {
-        self.result = Some(value.to_string());
+        self.result = Some(wit::LogField::Bool(value));
         Ok(())
     }
 
     fn visit_str(&mut self, value: &str) -> Result<(), log::kv::Error> {
-        self.result = Some(value.to_string());
+        self.result = Some(wit::LogField::String(value.to_string()));
         Ok(())
     }
 
     fn visit_borrowed_str(&mut self, value: &'v str) -> Result<(), log::kv::Error> {
-        self.result = Some(value.to_string());
+        self.result = Some(wit::LogField::String(value.to_string()));
         Ok(())
     }
 
     fn visit_i64(&mut self, value: i64) -> Result<(), log::kv::Error> {
-        self.result = Some(value.to_string());
+        self.result = Some(wit::LogField::I64(value));
         Ok(())
     }
 
     fn visit_u64(&mut self, value: u64) -> Result<(), log::kv::Error> {
-        self.result = Some(value.to_string());
+        self.result = Some(wit::LogField::U64(value));
         Ok(())
     }
 
     fn visit_i128(&mut self, value: i128) -> Result<(), log::kv::Error> {
-        self.result = Some(value.to_string());
+        self.result = Some(wit::LogField::String(value.to_string()));
         Ok(())
     }
 
     fn visit_u128(&mut self, value: u128) -> Result<(), log::kv::Error> {
-        self.result = Some(value.to_string());
+        self.result = Some(wit::LogField::String(value.to_string()));
         Ok(())
     }
 
     fn visit_f64(&mut self, value: f64) -> Result<(), log::kv::Error> {
-        self.result = Some(value.to_string());
+        self.result = Some(wit::LogField::F64(value));
         Ok(())
     }
 }

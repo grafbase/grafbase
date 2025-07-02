@@ -67,3 +67,13 @@ impl HostHeaders for WasiState {
         Ok(headers)
     }
 }
+
+impl From<crate::extension::api::wit::HeaderError> for HeaderError {
+    fn from(err: crate::extension::api::wit::HeaderError) -> Self {
+        match err {
+            crate::extension::api::wit::HeaderError::InvalidSyntax => HeaderError::InvalidSyntax,
+            crate::extension::api::wit::HeaderError::Forbidden => HeaderError::Forbidden,
+            crate::extension::api::wit::HeaderError::Immutable => HeaderError::Immutable,
+        }
+    }
+}
