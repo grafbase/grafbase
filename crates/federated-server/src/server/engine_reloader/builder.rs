@@ -1,25 +1,26 @@
-use std::{path::PathBuf, pin::pin, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use engine::CachedOperation;
 use extension_catalog::ExtensionCatalog;
-use futures_lite::{Stream, StreamExt};
-use tokio::{sync::watch, task::JoinHandle};
-use tokio_stream::wrappers::WatchStream;
+
+use tokio::{
+    sync::{mpsc, watch},
+    task::JoinHandle,
+};
 
 use crate::{
     AccessToken,
     server::{
         GatewayEngineReloader,
-        engine_reloader::Update,
+        events::UpdateEvent,
         gateway::{self, GatewayRuntime, GraphDefinition},
-        graph_fetch_method::GraphStream,
     },
 };
 
 #[derive(Default)]
 pub struct GatewayEngineReloaderBuilder<'a> {
-    config_receiver: Option<watch::Receiver<gateway_config::Config>>,
-    graph_stream: Option<GraphStream>,
+    update_receiver: Option<mpsc::Receiver<UpdateEvent>>,
+    initial_config: Option<gateway_config::Config>,
     hot_reload_config_path: Option<PathBuf>,
     access_token: Option<AccessToken>,
     extension_catalog: Option<&'a ExtensionCatalog>,
@@ -29,13 +30,13 @@ pub struct GatewayEngineReloaderBuilder<'a> {
 // New implementation for the builder
 impl<'a> GatewayEngineReloaderBuilder<'a> {
     // Methods to set each parameter
-    pub fn config_receiver(mut self, config_receiver: watch::Receiver<gateway_config::Config>) -> Self {
-        self.config_receiver = Some(config_receiver);
+    pub fn update_receiver(mut self, update_receiver: mpsc::Receiver<UpdateEvent>) -> Self {
+        self.update_receiver = Some(update_receiver);
         self
     }
 
-    pub fn graph_stream(mut self, graph_stream: GraphStream) -> Self {
-        self.graph_stream = Some(graph_stream);
+    pub fn initial_config(mut self, config: gateway_config::Config) -> Self {
+        self.initial_config = Some(config);
         self
     }
 
@@ -61,12 +62,12 @@ impl<'a> GatewayEngineReloaderBuilder<'a> {
 
     // The build method consumes the builder and creates the GatewayEngineReloader
     pub async fn build(mut self) -> crate::Result<super::GatewayEngineReloader> {
-        let gateway_config = self.config_receiver.take().ok_or_else(|| {
-            crate::Error::InternalError("config_receiver not provided to GatewayEngineReloaderBuilder".to_string())
+        let mut update_receiver = self.update_receiver.take().ok_or_else(|| {
+            crate::Error::InternalError("update_receiver not provided to GatewayEngineReloaderBuilder".to_string())
         })?;
 
-        let mut graph_stream = self.graph_stream.take().ok_or_else(|| {
-            crate::Error::InternalError("graph_stream not provided to GatewayEngineReloaderBuilder".to_string())
+        let initial_config = self.initial_config.take().ok_or_else(|| {
+            crate::Error::InternalError("initial_config not provided to GatewayEngineReloaderBuilder".to_string())
         })?;
 
         let extension_catalog = self.extension_catalog.take().ok_or_else(|| {
@@ -78,16 +79,27 @@ impl<'a> GatewayEngineReloaderBuilder<'a> {
         })?;
 
         tracing::debug!("Waiting for a graph...");
-        let Some(graph_definition) = graph_stream.next().await else {
-            return Err(crate::Error::InternalError(
-                "No initial graph definition provided".into(),
-            ));
+
+        // Wait for the first graph update event
+        let graph_definition = loop {
+            match update_receiver.recv().await {
+                Some(UpdateEvent::Graph(graph_def)) => break graph_def,
+                Some(UpdateEvent::Config(_)) => {
+                    // Ignore config updates until we get the initial graph
+                    continue;
+                }
+                None => {
+                    return Err(crate::Error::InternalError(
+                        "Update channel closed before initial graph definition".into(),
+                    ));
+                }
+            }
         };
 
         tracing::debug!("Creating the engine");
 
         let engine = EngineBuilder::default()
-            .config(gateway_config.borrow().clone())
+            .config(initial_config.clone())
             .graph_definition(graph_definition.clone())
             .hot_reload_config_path(self.hot_reload_config_path.clone())
             .access_token(self.access_token.clone())
@@ -103,16 +115,8 @@ impl<'a> GatewayEngineReloaderBuilder<'a> {
         let access_token = self.access_token;
 
         tokio::spawn(async move {
-            let graph_stream = graph_stream.map(Update::Graph);
-
-            let config_stream =
-                WatchStream::from_changes(gateway_config.clone()).map(|config| Update::Config(Box::new(config)));
-
-            let updates = graph_stream.race(config_stream);
-            let current_config = gateway_config.borrow().clone();
-
-            UpdateLoopBuilder::new(updates)
-                .current_config(current_config)
+            UpdateLoopBuilder::new(update_receiver)
+                .current_config(initial_config)
                 .graph_definition(graph_definition)
                 .hot_reload_config_path(hot_reload_config_path)
                 .access_token(access_token)
@@ -206,8 +210,8 @@ impl<'a> EngineBuilder<'a> {
     }
 }
 
-pub struct UpdateLoopBuilder<S> {
-    updates: S,
+pub struct UpdateLoopBuilder {
+    updates: Option<mpsc::Receiver<UpdateEvent>>,
     current_config: Option<gateway_config::Config>,
     graph_definition: Option<GraphDefinition>,
     hot_reload_config_path: Option<PathBuf>,
@@ -216,13 +220,10 @@ pub struct UpdateLoopBuilder<S> {
     logging_filter: Option<String>,
 }
 
-impl<S> UpdateLoopBuilder<S>
-where
-    S: Stream<Item = Update> + Unpin,
-{
-    pub fn new(updates: S) -> Self {
+impl UpdateLoopBuilder {
+    pub fn new(updates: mpsc::Receiver<UpdateEvent>) -> Self {
         Self {
-            updates,
+            updates: Some(updates),
             current_config: None,
             graph_definition: None,
             hot_reload_config_path: None,
@@ -279,18 +280,18 @@ where
             .logging_filter
             .expect("logging_filter not provided to UpdateLoopBuilder");
 
+        let mut updates = self.updates.expect("updates not provided to UpdateLoopBuilder");
+
         let mut in_progress_reload: Option<JoinHandle<()>> = None;
 
-        let mut updates = pin!(self.updates);
-
-        while let Some(update) = updates.next().await {
+        while let Some(update) = updates.recv().await {
             if let Some(in_progress_reload) = in_progress_reload.take() {
                 in_progress_reload.abort();
             }
 
             match update {
-                Update::Graph(new_graph) => graph_definition = new_graph,
-                Update::Config(config) => current_config = *config,
+                UpdateEvent::Graph(new_graph) => graph_definition = new_graph,
+                UpdateEvent::Config(config) => current_config = *config,
             }
 
             in_progress_reload = Some(tokio::spawn({

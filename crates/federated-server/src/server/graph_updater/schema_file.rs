@@ -4,7 +4,7 @@ use std::{
     time::SystemTime,
 };
 
-use crate::server::{engine_reloader::GraphSender, gateway::GraphDefinition};
+use crate::server::{events::UpdateEvent, gateway::GraphDefinition};
 use either::Either;
 use futures_lite::StreamExt;
 use tokio_util::codec::{BytesCodec, FramedRead};
@@ -17,12 +17,12 @@ const TICK_INTERVAL: std::time::Duration = std::time::Duration::from_secs(5);
 pub struct SchemaFileGraphUpdater {
     schema_path: PathBuf,
     schema_fingerprint: Either<SystemTime, u64>,
-    sender: GraphSender,
+    sender: tokio::sync::mpsc::Sender<UpdateEvent>,
 }
 
 impl SchemaFileGraphUpdater {
     /// Initialize a new graph updater.
-    pub async fn new(schema_path: PathBuf, sender: GraphSender) -> Self {
+    pub async fn new(schema_path: PathBuf, sender: tokio::sync::mpsc::Sender<UpdateEvent>) -> Self {
         let schema_fingerprint = schema_fingerprint(&schema_path)
             .await
             .unwrap_or_else(|_| Either::Left(SystemTime::now()));
@@ -63,7 +63,10 @@ impl SchemaFileGraphUpdater {
                 tracing::info!("Detected a schema file update");
 
                 self.sender
-                    .send(GraphDefinition::Sdl(Some(self.schema_path.clone()), schema))
+                    .send(UpdateEvent::Graph(GraphDefinition::Sdl(
+                        Some(self.schema_path.clone()),
+                        schema,
+                    )))
                     .await
                     .expect("channel must be up");
             } else {
