@@ -186,7 +186,11 @@ fn access_logs_with_working_subgraph() {
       ],
       "custom": [
         {
-          "value": 1
+          "on_request": {
+            "value": 1
+          },
+          "extension_name": "access-logs",
+          "event_name": "on_request"
         }
       ]
     }
@@ -288,7 +292,11 @@ fn access_logs_operation_limits() {
       ],
       "custom": [
         {
-          "value": 1
+          "on_request": {
+            "value": 1
+          },
+          "extension_name": "access-logs",
+          "event_name": "on_request"
         }
       ]
     }
@@ -374,7 +382,11 @@ fn access_logs_with_broken_query() {
       ],
       "custom": [
         {
-          "value": 1
+          "on_request": {
+            "value": 1
+          },
+          "extension_name": "access-logs",
+          "event_name": "on_request"
         }
       ]
     }
@@ -487,7 +499,11 @@ fn access_logs_with_caching() {
           ],
           "custom": [
             {
-              "value": 1
+              "on_request": {
+                "value": 1
+              },
+              "extension_name": "access-logs",
+              "event_name": "on_request"
             }
           ]
         }
@@ -515,7 +531,11 @@ fn access_logs_with_caching() {
           ],
           "custom": [
             {
-              "value": 1
+              "on_request": {
+                "value": 1
+              },
+              "extension_name": "access-logs",
+              "event_name": "on_request"
             }
           ]
         }

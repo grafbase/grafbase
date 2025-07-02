@@ -118,7 +118,11 @@ fn with_working_subgraph_rate_limited() {
       ],
       "custom": [
         {
-          "value": 1
+          "on_request": {
+            "value": 1
+          },
+          "extension_name": "access-logs",
+          "event_name": "on_request"
         }
       ]
     }
@@ -162,7 +166,11 @@ fn with_working_subgraph_rate_limited() {
       ],
       "custom": [
         {
-          "value": 1
+          "on_request": {
+            "value": 1
+          },
+          "extension_name": "access-logs",
+          "event_name": "on_request"
         }
       ]
     }
@@ -258,7 +266,11 @@ fn with_broken_subgraph() {
       ],
       "custom": [
         {
-          "value": 1
+          "on_request": {
+            "value": 1
+          },
+          "extension_name": "access-logs",
+          "event_name": "on_request"
         }
       ]
     }
@@ -362,7 +374,11 @@ fn with_broken_subgraph_retried() {
       ],
       "custom": [
         {
-          "value": 1
+          "on_request": {
+            "value": 1
+          },
+          "extension_name": "access-logs",
+          "event_name": "on_request"
         }
       ]
     }
@@ -463,7 +479,11 @@ fn with_subgraph_status_500() {
       ],
       "custom": [
         {
-          "value": 1
+          "on_request": {
+            "value": 1
+          },
+          "extension_name": "access-logs",
+          "event_name": "on_request"
         }
       ]
     }
@@ -577,7 +597,11 @@ fn with_subgraph_status_500_retried() {
       ],
       "custom": [
         {
-          "value": 1
+          "on_request": {
+            "value": 1
+          },
+          "extension_name": "access-logs",
+          "event_name": "on_request"
         }
       ]
     }

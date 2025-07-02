@@ -16,6 +16,13 @@ struct AccessLogs {
     logger: FileLogger,
 }
 
+#[derive(serde::Serialize, Debug)]
+struct Custom {
+    on_request: OnRequest,
+    extension_name: String,
+    event_name: String,
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct OnRequest {
     value: u64,
@@ -31,7 +38,7 @@ struct LogLine {
     operations: Vec<Operation>,
     subgraph_requests: Vec<SubgraphRequest>,
     http_requests: Vec<HttpRequest>,
-    custom: Vec<OnRequest>,
+    custom: Vec<Custom>,
 }
 
 #[derive(serde::Serialize, Debug)]
@@ -136,7 +143,13 @@ impl HooksExtension for AccessLogs {
                     status: resp.response_status().as_u16(),
                 }),
                 Event::Extension(extension_event) => {
-                    message.custom.push(extension_event.deserialize().unwrap());
+                    let event = Custom {
+                        on_request: extension_event.deserialize().unwrap(),
+                        extension_name: extension_event.extension_name().to_string(),
+                        event_name: extension_event.event_name().to_string(),
+                    };
+
+                    message.custom.push(event);
                 }
             }
         }
