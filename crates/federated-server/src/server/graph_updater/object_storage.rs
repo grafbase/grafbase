@@ -1,6 +1,6 @@
 use crate::{
     ObjectStorageResponse,
-    server::{engine_reloader::GraphSender, gateway::GraphDefinition},
+    server::{events::UpdateEvent, gateway::GraphDefinition},
 };
 
 use ascii::AsciiString;
@@ -14,6 +14,7 @@ use std::{
     borrow::Cow,
     time::{Duration, SystemTime},
 };
+use tokio::sync::mpsc;
 use tokio::time::MissedTickBehavior;
 use ulid::Ulid;
 use url::Url;
@@ -81,7 +82,7 @@ pub struct ObjectStorageUpdater {
     object_storage_url: Url,
     object_storage_client: reqwest::Client,
     access_token: AsciiString,
-    sender: GraphSender,
+    sender: mpsc::Sender<UpdateEvent>,
     current_id: Option<Ulid>,
     latencies: Histogram<u64>,
 }
@@ -100,7 +101,11 @@ impl ObjectStorageUpdater {
     /// # Errors
     ///
     /// Returns an error if the HTTP client cannot be built or if the URL parsing fails.
-    pub fn new(graph_ref: GraphRef, access_token: AsciiString, sender: GraphSender) -> crate::Result<Self> {
+    pub fn new(
+        graph_ref: GraphRef,
+        access_token: AsciiString,
+        sender: mpsc::Sender<UpdateEvent>,
+    ) -> crate::Result<Self> {
         let object_storage_client = reqwest::ClientBuilder::new()
             .timeout(OBJECT_STORAGE_TIMEOUT)
             .connect_timeout(CONNECT_TIMEOUT)
@@ -262,10 +267,10 @@ impl ObjectStorageUpdater {
             self.current_id = Some(version_id);
 
             self.sender
-                .send(GraphDefinition::ObjectStorage {
+                .send(UpdateEvent::Graph(GraphDefinition::ObjectStorage {
                     response,
                     object_storage_base_url: self.object_storage_url.clone(),
-                })
+                }))
                 .await
                 .expect("internal error: channel closed");
         }
