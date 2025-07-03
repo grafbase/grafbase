@@ -158,7 +158,7 @@ pub(crate) fn check_errors(has_errors: bool, diagnostics: &[SchemaCheckDiagnosti
     }
 }
 
-pub(crate) fn subgraphs_command_success<'a>(branch_name: &str, subgraphs: impl ExactSizeIterator<Item = &'a str>) {
+pub(crate) fn subgraph_list_command_success<'a>(branch_name: &str, subgraphs: impl ExactSizeIterator<Item = &'a str>) {
     if subgraphs.len() == 0 {
         println!("🈳 There are no published subgraphs in the {branch_name} branch\n");
         return;
@@ -191,6 +191,10 @@ pub(crate) fn publishing() {
 
 pub(crate) fn publish_command_success(subgraph_name: &str) {
     println!("🧩 {subgraph_name} published successfully");
+}
+
+pub(crate) fn subgraph_delete_success(subgraph_name: &str) {
+    println!("🗑️  Subgraph {subgraph_name} deleted successfully");
 }
 
 pub(crate) fn publish_no_change() {

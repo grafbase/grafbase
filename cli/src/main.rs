@@ -21,7 +21,7 @@ mod plugins;
 mod prompts;
 mod publish;
 mod schema;
-mod subgraphs;
+mod subgraph;
 mod trust;
 mod upgrade;
 mod watercolor;
@@ -30,7 +30,7 @@ mod watercolor;
 extern crate log;
 
 use crate::{
-    cli_input::{Args, BranchSubCommand, RequiresLogin, SubCommand},
+    cli_input::{Args, BranchSubCommand, RequiresLogin, SubCommand, SubgraphSubCommand},
     create::create,
     login::login,
     logout::logout,
@@ -123,7 +123,10 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Logout => logout(),
         SubCommand::Create(cmd) => create(&cmd.create_arguments()),
         SubCommand::Compose(cmd) => Ok(compose::compose(cmd)?),
-        SubCommand::Subgraphs(cmd) => subgraphs::subgraphs(cmd),
+        SubCommand::Subgraph(cmd) => match cmd.command {
+            SubgraphSubCommand::List(cmd) => subgraph::list(cmd.graph_ref),
+            SubgraphSubCommand::Delete(cmd) => subgraph::delete(cmd.graph_ref, cmd.name),
+        },
         SubCommand::Schema(cmd) => schema::schema(cmd),
         SubCommand::Publish(cmd) => publish::publish(cmd),
         SubCommand::Introspect(cmd) => introspect::introspect(&cmd),

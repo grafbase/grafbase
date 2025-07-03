@@ -16,7 +16,7 @@ mod mcp;
 mod publish;
 mod schema;
 mod sub_command;
-mod subgraphs;
+mod subgraph;
 mod trust;
 
 pub(crate) use self::{check::CheckCommand, compose::*, extension::*, mcp::*, trust::TrustCommand};
@@ -33,7 +33,7 @@ pub(crate) use publish::PublishCommand;
 pub(crate) use schema::SchemaCommand;
 pub(crate) use sub_command::RequiresLogin;
 pub(crate) use sub_command::SubCommand;
-pub(crate) use subgraphs::SubgraphsCommand;
+pub(crate) use subgraph::{SubgraphCommand, SubgraphSubCommand};
 
 use crate::common::consts::TRACE_LOG_FILTER;
 use clap::Parser;
@@ -56,7 +56,6 @@ const HELP_TEMPLATE: &str = color_print::cstr!(
 
 <bold><underline>Commands:</underline></bold>
 {subcommands}
-{tab}<bold>...</bold>               Run `grafbase plugins` for a list of available plugins.
 
 <bold><underline>Options:</underline></bold>
 {options}

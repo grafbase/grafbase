@@ -2,7 +2,7 @@ use clap::Parser;
 use std::{path::PathBuf, str::FromStr};
 use url::Url;
 
-/// Start a GraphQL MCP server.
+/// Start the MCP server.
 #[derive(Debug, Parser)]
 pub struct McpCommand {
     /// The URL of the GraphQL service.
