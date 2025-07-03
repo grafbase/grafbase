@@ -11,9 +11,9 @@ pub struct BranchCommand {
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
 #[strum(serialize_all = "lowercase")]
 pub enum BranchSubCommand {
-    /// Create a branch on the linked graph (self-hosted graphs only)
+    /// Create a branch
     Create(BranchCreateCommand),
-    /// Delete a branch
+    /// Remove a branch
     #[clap(name = "remove", visible_alias = "rm")]
     Delete(BranchDeleteCommand),
 }

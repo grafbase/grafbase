@@ -11,11 +11,13 @@ pub struct SubgraphCommand {
 #[derive(Debug, Subcommand)]
 pub enum SubgraphSubCommand {
     /// List all subgraphs
+    #[clap(visible_alias = "ls")]
     List {
         #[arg(help = FullGraphRef::ARG_DESCRIPTION)]
         graph_ref: FullGraphRef,
     },
-    /// Delete a subgraph
+    /// Remove a subgraph
+    #[clap(name = "remove", visible_alias = "rm")]
     Delete {
         #[arg(help = FullGraphRef::ARG_DESCRIPTION)]
         graph_ref: FullGraphRef,
