@@ -43,8 +43,7 @@ pub async fn delete(account: &str, graph: &str, branch: &str, name: &str) -> Res
 
     if let Some(errors) = response.errors {
         return Err(ApiError::SubgraphsError(format!(
-            "failed to delete subgraph: {:?}",
-            errors
+            "failed to delete subgraph: {errors:?}"
         )));
     }
 
@@ -80,7 +79,7 @@ pub async fn delete(account: &str, graph: &str, branch: &str, name: &str) -> Res
             err.deployment_error
         ))),
         Some(DeleteSubgraphPayload::Unknown(typename)) => {
-            Err(ApiError::SubgraphsError(format!("Unknown error: {}", typename)))
+            Err(ApiError::SubgraphsError(format!("Unknown error: {typename}")))
         }
         None => Err(ApiError::SubgraphsError(
             "No data in delete subgraph response".to_string(),
