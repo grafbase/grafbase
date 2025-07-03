@@ -107,8 +107,10 @@ pub async fn serve(
         spawn_config_reloader(config_receiver, update_sender);
     }
 
+    // We separate the hooks extension, which runs outside of the engine in the axum layers.
     let (extension_catalog, hooks_extension) = create_extension_catalog(&config).await?;
 
+    // The engine reloads itself when the graph, or configuration changes.
     let update_handler = GatewayEngineReloader::spawn(EngineReloaderConfig {
         update_receiver,
         initial_config: config.clone(),
@@ -125,6 +127,7 @@ pub async fn serve(
         .filter(|m| m.enabled)
         .map(|m| format!("http://{listen_address}{}", m.path));
 
+    // On-request, on-response hooks extension.
     let hooks = WasmHooks::new(&config, hooks_extension, logging_filter)
         .await
         .map_err(|e| crate::Error::InternalError(e.to_string()))?;
@@ -137,10 +140,12 @@ pub async fn serve(
         |router| {
             // Currently we're doing those after CORS handling in the request as we don't care
             // about pre-flight requests.
-            router.layer(TelemetryLayer::new(
+            let telemetry_layer = TelemetryLayer::new(
                 grafbase_telemetry::metrics::meter_from_global_provider(),
                 Some(listen_address),
-            ))
+            );
+
+            router.layer(telemetry_layer)
         },
     )
     .await?;

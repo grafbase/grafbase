@@ -52,7 +52,7 @@ impl GatewayRuntime {
         tracing::debug!("Build engine runtime.");
 
         let mut redis_factory = RedisPoolFactory::default();
-        let watcher = ConfigWatcher::init(gateway_config.clone(), hot_reload_config_path)?;
+        let config_watcher = ConfigWatcher::init(gateway_config.clone(), hot_reload_config_path)?;
         let meter = grafbase_telemetry::metrics::meter_from_global_provider();
 
         tracing::debug!("Building rate limiter");
@@ -73,11 +73,11 @@ impl GatewayRuntime {
                     key_prefix: &config.redis.key_prefix,
                 };
 
-                RedisRateLimiter::runtime(global_config, pool, watcher, &meter)
+                RedisRateLimiter::runtime(global_config, pool, config_watcher, &meter)
                     .await
                     .map_err(|e| crate::Error::InternalError(e.to_string()))?
             }
-            _ => InMemoryRateLimiter::runtime_with_watcher(watcher),
+            _ => InMemoryRateLimiter::runtime_with_watcher(config_watcher),
         };
 
         tracing::debug!("Building cache");
