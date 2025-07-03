@@ -89,42 +89,38 @@ async fn schema_fingerprint(schema_path: &Path) -> Result<Either<SystemTime, u64
         }
     };
 
-    match metadata.modified() {
-        // If the file system supports modification date, we can use it to check for changes with less resources.
-        Ok(modified) => Ok(Either::Left(modified)),
-        // This is a fallback for file systems that do not support modification date. It loads and hashes the file
-        // contents to check for changes.
-        Err(_) => {
-            tracing::debug!(
-                "The file system with the schema file does not support modification date. The schema hot reload will use a bit more CPU by hashing the file contents."
-            );
-
-            let Ok(file) = tokio::fs::File::open(schema_path).await else {
-                tracing::warn!(
-                    "Could not open schema file in {}. The gateway will not use schema hot reload until file is available.",
-                    schema_path.to_str().unwrap_or_default()
-                );
-
-                return Err(());
-            };
-
-            let mut stream = FramedRead::new(file, BytesCodec::new());
-            let mut hasher = DefaultHasher::new();
-
-            while let Some(chunk) = stream.next().await {
-                tracing::warn!(
-                    "Could not open schema file in {}. The gateway will not use schema hot reload until file is available.",
-                    schema_path.to_str().unwrap_or_default()
-                );
-
-                let Ok(chunk) = chunk else {
-                    return Err(());
-                };
-
-                hasher.write(&chunk);
-            }
-
-            Ok(Either::Right(hasher.finish()))
-        }
+    if let Ok(modified) = metadata.modified() {
+        return Ok(Either::Left(modified));
     }
+
+    tracing::debug!(
+        "The file system with the schema file does not support modification date. The schema hot reload will use a bit more CPU by hashing the file contents."
+    );
+
+    let Ok(file) = tokio::fs::File::open(schema_path).await else {
+        tracing::warn!(
+            "Could not open schema file in {}. The gateway will not use schema hot reload until file is available.",
+            schema_path.to_str().unwrap_or_default()
+        );
+
+        return Err(());
+    };
+
+    let mut stream = FramedRead::new(file, BytesCodec::new());
+    let mut hasher = DefaultHasher::new();
+
+    while let Some(chunk) = stream.next().await {
+        tracing::warn!(
+            "Could not open schema file in {}. The gateway will not use schema hot reload until file is available.",
+            schema_path.to_str().unwrap_or_default()
+        );
+
+        let Ok(chunk) = chunk else {
+            return Err(());
+        };
+
+        hasher.write(&chunk);
+    }
+
+    Ok(Either::Right(hasher.finish()))
 }
