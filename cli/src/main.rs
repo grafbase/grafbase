@@ -30,7 +30,7 @@ mod watercolor;
 extern crate log;
 
 use crate::{
-    cli_input::{Args, BranchSubCommand, RequiresLogin, SubCommand},
+    cli_input::{Args, BranchSubCommand, RequiresLogin, SubCommand, SubgraphSubCommand},
     create::create,
     login::login,
     logout::logout,
@@ -124,18 +124,8 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Create(cmd) => create(&cmd.create_arguments()),
         SubCommand::Compose(cmd) => Ok(compose::compose(cmd)?),
         SubCommand::Subgraph(cmd) => match cmd.command {
-            cli_input::SubgraphSubCommand::List { graph_ref } => subgraph::list(cli_input::SubgraphCommand {
-                command: cli_input::SubgraphSubCommand::List { graph_ref },
-            }),
-            cli_input::SubgraphSubCommand::Delete { graph_ref, name } => subgraph::delete(
-                cli_input::SubgraphCommand {
-                    command: cli_input::SubgraphSubCommand::Delete {
-                        graph_ref: graph_ref.clone(),
-                        name: name.clone(),
-                    },
-                },
-                name,
-            ),
+            SubgraphSubCommand::List(cmd) => subgraph::list(cmd.graph_ref),
+            SubgraphSubCommand::Delete(cmd) => subgraph::delete(cmd.graph_ref, cmd.name),
         },
         SubCommand::Schema(cmd) => schema::schema(cmd),
         SubCommand::Publish(cmd) => publish::publish(cmd),
