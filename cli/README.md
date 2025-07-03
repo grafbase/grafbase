@@ -5,12 +5,6 @@
   <h3 align="center">Grafbase CLI</h3>
 </p>
 
-<p align="center">
-  <a href="https://github.com/grafbase/grafbase/actions/workflows/cli-build.yml">
-    <img alt="CLI build status" src=https://github.com/grafbase/grafbase/actions/workflows/cli-build.yml/badge.svg>
-  </a>
-</p>
-
 ## Usage
 
 ```
@@ -19,19 +13,23 @@ The Grafbase command line interface
 Usage: grafbase [OPTIONS] <COMMAND>
 
 Commands:
-  branch       Graph branch management
-  completions  Output completions for the chosen shell to use, write the output to the appropriate
-               location for your shell
-  login        Logs into your Grafbase account
-  logout       Logs out of your Grafbase account
-  create       Set up and deploy a new graph
-  introspect   Introspect a graph and print its schema
-  subgraphs    List subgraphs
-  schema       Fetch a federated graph or a subgraph
-  publish      Publish a subgraph schema
-  check        Check a graph for validation, composition and breaking change errors
+  branch       Manage branches
+  completions  Output completions for the chosen shell
+  plugins      List installed plugins
+  login        Login to your Grafbase account
+  logout       Logout from your Grafbase account
+  create       Create a graph
+  compose      Compose a graph from subgraph schemas
+  introspect   Introspect a schema
+  subgraph     Manage subgraphs
+  schema       Fetch a schema from the registry
+  publish      Publish a schema to the registry
+  check        Run validation, composition and breaking change checks
   trust        Submit a trusted documents manifest
-  lint         Lint a GraphQL schema
+  lint         Lint a schema
+  dev          Start the development server
+  mcp          Start the MCP server
+  extension    Manage extensions
   help         Print this message or the help of the given subcommand(s)
 
 Options:

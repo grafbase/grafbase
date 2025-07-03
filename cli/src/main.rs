@@ -21,7 +21,7 @@ mod plugins;
 mod prompts;
 mod publish;
 mod schema;
-mod subgraphs;
+mod subgraph;
 mod trust;
 mod upgrade;
 mod watercolor;
@@ -123,7 +123,20 @@ fn try_main(args: Args) -> Result<(), CliError> {
         SubCommand::Logout => logout(),
         SubCommand::Create(cmd) => create(&cmd.create_arguments()),
         SubCommand::Compose(cmd) => Ok(compose::compose(cmd)?),
-        SubCommand::Subgraphs(cmd) => subgraphs::subgraphs(cmd),
+        SubCommand::Subgraph(cmd) => match cmd.command {
+            cli_input::SubgraphSubCommand::List { graph_ref } => subgraph::list(cli_input::SubgraphCommand {
+                command: cli_input::SubgraphSubCommand::List { graph_ref },
+            }),
+            cli_input::SubgraphSubCommand::Delete { graph_ref, name } => subgraph::delete(
+                cli_input::SubgraphCommand {
+                    command: cli_input::SubgraphSubCommand::Delete {
+                        graph_ref: graph_ref.clone(),
+                        name: name.clone(),
+                    },
+                },
+                name,
+            ),
+        },
         SubCommand::Schema(cmd) => schema::schema(cmd),
         SubCommand::Publish(cmd) => publish::publish(cmd),
         SubCommand::Introspect(cmd) => introspect::introspect(&cmd),

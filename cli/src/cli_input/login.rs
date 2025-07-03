@@ -1,7 +1,7 @@
 use clap::Parser;
 use url::Url;
 
-/// Log into Grafbase
+/// Login to Grafbase
 #[derive(Debug, Parser)]
 pub struct LoginCommand {
     /// The URL of the Grafbase dashboard, defaults to the hosted version
