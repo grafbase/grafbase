@@ -1,40 +1,29 @@
 mod cors;
-mod csrf;
 mod engine_reloader;
 mod events;
 mod gateway;
 mod graph_fetch_method;
 mod graph_updater;
-mod health;
-mod public_auth_metadata;
+pub mod router;
 mod state;
 mod trusted_documents_client;
 
 use self::events::UpdateEvent;
-use self::public_auth_metadata::*;
 pub(crate) use gateway::CreateExtensionCatalogError;
-use gateway::{EngineWatcher, create_extension_catalog::create_extension_catalog};
+use gateway::create_extension_catalog::create_extension_catalog;
 pub use graph_fetch_method::GraphFetchMethod;
-use runtime::{authentication::Authenticate as _, extension::HooksExtension};
+use router::RouterConfig;
 pub use state::ServerState;
-use tokio_util::sync::CancellationToken;
 use ulid::Ulid;
 
-use axum::{Router, extract::State, response::IntoResponse, routing::get};
-use engine_axum::{
-    middleware::{HooksLayer, TelemetryLayer},
-    websocket::{WebsocketAccepter, WebsocketService},
-};
+use axum::Router;
+use engine_axum::middleware::TelemetryLayer;
 use engine_reloader::{EngineReloaderConfig, GatewayEngineReloader};
 use gateway_config::{Config, TlsConfig};
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::{
     signal,
     sync::{mpsc, watch},
-};
-use tower_http::{
-    compression::{CompressionLayer, DefaultPredicate, Predicate as _, predicate::NotForContentType},
-    cors::CorsLayer,
 };
 use wasi_component_loader::extension::WasmHooks;
 
@@ -132,24 +121,29 @@ pub async fn serve(
         .await
         .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
-    let (router, ct) = router(
+    let inject_layers_before_cors = |router: axum::Router| {
+        // Currently we're doing those after CORS handling in the request as we don't care
+        // about pre-flight requests.
+        let telemetry_layer = TelemetryLayer::new(
+            grafbase_telemetry::metrics::meter_from_global_provider(),
+            Some(listen_address),
+        );
+
+        router.layer(telemetry_layer)
+    };
+
+    let router_config = RouterConfig {
         config,
-        update_handler.engine_watcher(),
-        server_runtime.clone(),
+        engine: update_handler.engine_watcher(),
+        server_runtime: server_runtime.clone(),
         hooks,
-        |router| {
-            // Currently we're doing those after CORS handling in the request as we don't care
-            // about pre-flight requests.
-            let telemetry_layer = TelemetryLayer::new(
-                grafbase_telemetry::metrics::meter_from_global_provider(),
-                Some(listen_address),
-            );
+        inject_layers_before_cors,
+    };
 
-            router.layer(telemetry_layer)
-        },
-    )
-    .await?;
+    // Generate all routes for the HTTP server.
+    let (router, cancellation_token) = router::create(router_config).await?;
 
+    // Finally start the HTTP server, different binding mechanism for lambda.
     cfg_if::cfg_if! {
         if #[cfg(feature = "lambda")] {
             let result = lambda_bind(&path, router, mcp_url).await;
@@ -158,8 +152,10 @@ pub async fn serve(
         }
     }
 
-    if let Some(ct) = ct {
-        ct.cancel();
+    // The cancellation token is to stop the MCP server gracefully. It only exists
+    // if the MCP server is enabled and running.
+    if let Some(token) = cancellation_token {
+        token.cancel();
     }
 
     result
@@ -178,95 +174,6 @@ fn spawn_config_reloader(mut config_receiver: watch::Receiver<Config>, update_se
             }
         }
     });
-}
-
-pub async fn router<R: engine::Runtime, SR: ServerRuntime, H: HooksExtension>(
-    config: gateway_config::Config,
-    engine: EngineWatcher<R>,
-    server_runtime: SR,
-    hooks: H,
-    inject_layers_before_cors: impl FnOnce(axum::Router<()>) -> axum::Router<()>,
-) -> crate::Result<(axum::Router, Option<CancellationToken>)> {
-    let path = &config.graph.path;
-    let websocket_path = &config.graph.websocket_path;
-
-    let (websocket_sender, websocket_receiver) = mpsc::channel(16);
-    let websocket_accepter = WebsocketAccepter::new(websocket_receiver, engine.clone());
-
-    tokio::spawn(websocket_accepter.handler());
-
-    let cors = match config.cors {
-        Some(ref cors_config) => cors::generate(cors_config),
-        None => CorsLayer::permissive(),
-    };
-
-    let state = ServerState::new(
-        engine.clone(),
-        config.request_body_limit.bytes().max(0) as usize,
-        server_runtime.clone(),
-    );
-
-    let mut router = server_runtime
-        .base_router()
-        .unwrap_or_default()
-        .route(path, get(graphql_execute).post(graphql_execute))
-        .route_service(websocket_path, WebsocketService::new(websocket_sender))
-        .with_state(state);
-
-    let ct = match &config.mcp {
-        Some(mcp_config) if mcp_config.enabled => {
-            let (mcp_router, ct) = grafbase_mcp::router(&engine, mcp_config);
-            router = router.merge(mcp_router);
-            ct
-        }
-        _ => None,
-    };
-
-    for public_metadata_endpoint in engine
-        .borrow()
-        .runtime
-        .authentication()
-        .public_metadata_endpoints()
-        .await
-        .unwrap_or_default()
-    {
-        router = router.route(
-            &public_metadata_endpoint.path,
-            get(public_metadata_handler(
-                public_metadata_endpoint.response_body.into(),
-                public_metadata_endpoint.headers,
-            )),
-        );
-    }
-
-    let mut router = inject_layers_before_cors(router)
-        .layer(HooksLayer::new(hooks))
-        // Streaming and compression doesn't really work well today. Had a panic deep inside stream
-        // unfold. Furthermore there seem to be issues with it as pointed out by Apollo's router
-        // team:
-        // https://github.com/tower-rs/tower-http/issues/292
-        // They have copied the compression code and adjusted it, see PRs for:
-        // https://github.com/apollographql/router/issues/1572
-        // We'll need to see what we do. For now I'm disabling it as it's not important enough
-        // right now.
-        .layer(CompressionLayer::new().compress_when(DefaultPredicate::new().and(
-            NotForContentType::const_new("multipart/mixed").and(NotForContentType::const_new("text/event-stream")),
-        )))
-        .layer(cors);
-
-    if config.csrf.enabled {
-        router = csrf::inject_layer(router, &config.csrf);
-    }
-
-    if config.health.enabled {
-        if let Some(listen) = config.health.listen {
-            tokio::spawn(health::bind_health_endpoint(listen, config.tls.clone(), config.health));
-        } else {
-            router = router.route(&config.health.path, get(health::health));
-        }
-    }
-
-    Ok((router, ct))
 }
 
 #[cfg_attr(feature = "lambda", allow(unused))]
@@ -337,41 +244,6 @@ async fn lambda_bind(path: &str, router: Router<()>, mcp_url: Option<String>) ->
     lambda_http::run(app).await.expect("cannot start lambda http server");
 
     Ok(())
-}
-
-/// Executes a GraphQL request against the registered engine.
-///
-/// # Arguments
-///
-/// * `State(state)`: The server state containing the gateway.
-/// * `request`: The incoming Axum request containing the GraphQL query.
-///
-/// # Returns
-///
-/// This function returns an implementation of `IntoResponse`, which represents
-/// the HTTP response to be sent back to the client.
-///
-/// # Errors
-///
-/// If there are no subgraphs registered, an internal server error response will
-/// be returned.
-async fn graphql_execute<R: engine::Runtime, SR: ServerRuntime>(
-    State(state): State<ServerState<R, SR>>,
-    request: axum::extract::Request,
-) -> impl IntoResponse {
-    let engine = state.engine.borrow().clone();
-
-    let response = engine_axum::execute(engine, request, state.request_body_limit_bytes).await;
-
-    // lambda must flush the trace events here, otherwise the
-    // function might fall asleep and the events are pending until
-    // the next wake-up.
-    //
-    // read more: https://github.com/open-telemetry/opentelemetry-lambda/blob/main/docs/design_proposal.md
-    #[cfg(feature = "lambda")]
-    state.server_runtime.after_request();
-
-    response
 }
 
 /// Waits for a termination signal and initiates a graceful shutdown of the server.
