@@ -2,6 +2,14 @@ use runtime::trusted_documents_client::TrustedDocumentsEnforcementMode;
 
 use super::AccessToken;
 
+pub struct TrustedDocumentsClientConfig<'a> {
+    pub branch_id: ulid::Ulid,
+    pub bypass_header: Option<(String, String)>,
+    pub enforcement_mode: TrustedDocumentsEnforcementMode,
+    pub object_storage_url: url::Url,
+    pub access_token: &'a AccessToken,
+}
+
 pub(crate) struct TrustedDocumentsClient {
     /// The base URL for the object storage service.
     object_storage_url: url::Url,
@@ -30,13 +38,15 @@ impl TrustedDocumentsClient {
     /// # Returns
     ///
     /// A new instance of `TrustedDocumentsClient`.
-    pub(crate) fn new(
-        branch_id: ulid::Ulid,
-        bypass_header: Option<(String, String)>,
-        enforcement_mode: TrustedDocumentsEnforcementMode,
-        object_storage_url: url::Url,
-        access_token: &AccessToken,
-    ) -> Self {
+    pub(crate) fn new(config: TrustedDocumentsClientConfig<'_>) -> Self {
+        let TrustedDocumentsClientConfig {
+            branch_id,
+            bypass_header,
+            enforcement_mode,
+            object_storage_url,
+            access_token,
+        } = config;
+
         let mut headers = http::HeaderMap::new();
         headers.insert(
             "Authorization",
