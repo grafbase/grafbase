@@ -14,6 +14,7 @@ pub enum SubgraphSubCommand {
     /// List all subgraphs
     #[clap(visible_alias = "ls")]
     List(SubgraphListCommand),
+    #[clap(name = "remove", visible_alias = "rm")]
     Delete(SubgraphDeleteCommand),
 }
 
