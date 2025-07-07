@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use crate::AccessToken;
+
 use super::events::UpdateEvent;
 use super::gateway::GraphDefinition;
 use graph_ref::GraphRef;
@@ -10,7 +12,7 @@ pub enum GraphFetchMethod {
     /// The schema is fetched in regular intervals from the Grafbase API.
     FromGraphRef {
         /// The access token for accessing the the API.
-        access_token: ascii::AsciiString,
+        access_token: AccessToken,
         graph_ref: GraphRef,
     },
     /// The schema is loaded from disk. No access to the Grafbase API.

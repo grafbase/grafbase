@@ -6,7 +6,6 @@ use std::{
 };
 
 use anyhow::Context;
-use ascii::AsciiString;
 use clap::Parser;
 use federated_server::GraphFetchMethod;
 use gateway_config::Config;
@@ -70,14 +69,14 @@ impl super::Args for Args {
                     anyhow::format_err!("The graph-ref argument must be set if not using a static schema file.")
                 })?;
 
-                let access_token = self.grafbase_access_token().ok_or_else(|| {
+                let access_token = self.grafbase_access_token()?.ok_or_else(|| {
                     anyhow::format_err!(
                         "The GRAFBASE_ACCESS_TOKEN environment variable must be set when a graph-ref is provided"
                     )
                 })?;
 
                 Ok(GraphFetchMethod::FromGraphRef {
-                    access_token: AsciiString::from_ascii(access_token)?,
+                    access_token,
                     graph_ref,
                 })
             }

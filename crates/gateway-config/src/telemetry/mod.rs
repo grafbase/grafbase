@@ -2,6 +2,7 @@ pub mod exporters;
 
 use std::collections::HashMap;
 
+use ascii::AsciiString;
 pub use exporters::*;
 
 /// Holds telemetry configuration
@@ -11,7 +12,7 @@ pub struct TelemetryConfig {
     /// The name of the service
     pub service_name: String,
     /// Additional resource attributes
-    pub resource_attributes: HashMap<String, String>,
+    pub resource_attributes: HashMap<AsciiString, AsciiString>,
     /// Global exporters config
     pub exporters: GlobalExporterConfig,
     /// Separate configuration for logs exports. If set, overrides the global values.
