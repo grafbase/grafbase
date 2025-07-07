@@ -39,7 +39,7 @@ fn server_info() {
         },
         "serverInfo": {
           "name": "rmcp",
-          "version": "0.1.5"
+          "version": "0.2.1"
         },
         "instructions": null
       }
