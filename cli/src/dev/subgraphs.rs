@@ -41,6 +41,12 @@ pub(crate) struct CachedSubgraph {
     pub(crate) name: String,
     pub(crate) sdl: String,
     pub(crate) url: Option<String>,
+    pub(crate) owners: Option<Vec<SubgraphOwner>>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub(crate) struct SubgraphOwner {
+    pub(crate) name: String,
 }
 
 pub(crate) struct SubgraphCache {
@@ -97,6 +103,12 @@ impl SubgraphCache {
                         name: subgraph.name,
                         sdl: subgraph.schema,
                         url: subgraph.url,
+                        owners: subgraph.owners.map(|owners| {
+                            owners
+                                .into_iter()
+                                .map(|team| SubgraphOwner { name: team.name })
+                                .collect()
+                        }),
                     })
                 })
                 .collect::<Vec<_>>();
@@ -353,6 +365,7 @@ async fn handle_overridden_subgraph(
             name: name.to_owned(),
             sdl,
             url,
+            owners: None,
         }))
     } else if let Some(introspection_url) = subgraph.introspection_url.as_ref().or(parsed_url.as_ref()) {
         let headers: Vec<(&String, &String)> = subgraph
@@ -375,6 +388,7 @@ async fn handle_overridden_subgraph(
                 name: name.to_owned(),
                 sdl,
                 url: url.clone(),
+                owners: None,
             }),
         }))
     } else {

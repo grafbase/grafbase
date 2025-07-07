@@ -24,4 +24,10 @@ pub struct Subgraph {
     pub name: String,
     pub schema: String,
     pub url: Option<String>,
+    pub owners: Option<Vec<Team>>,
+}
+
+#[derive(cynic::QueryFragment, Debug, Clone)]
+pub struct Team {
+    pub name: String,
 }
