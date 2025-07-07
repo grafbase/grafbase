@@ -29,7 +29,7 @@ async fn download_extensions(lockfile: lockfile::Lockfile) -> anyhow::Result<()>
 
     fs::create_dir_all(extensions_directory).await.map_err(|err| {
         anyhow::anyhow!(
-            "Failed to create extensions directory at {}. Cause: {err}",
+            "Failed to create extensions directory at {}. Cause: {err}",
             extensions_directory.display()
         )
     })?;

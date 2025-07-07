@@ -94,8 +94,9 @@ impl super::Args for Args {
 
     fn config(&self) -> anyhow::Result<Config> {
         let mut config = Config::loader()
-            .load_or_default(self.config.as_deref())
-            .map_err(|err| anyhow::anyhow!(err))?;
+            .load(self.config.as_deref())
+            .map_err(|err| anyhow::anyhow!(err))?
+            .unwrap_or_default();
 
         if let Some(otel_config) = self.grafbase_otel_config()? {
             config.telemetry.grafbase = Some(otel_config);

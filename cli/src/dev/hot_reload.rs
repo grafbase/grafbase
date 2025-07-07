@@ -105,10 +105,11 @@ pub(crate) async fn hot_reload(
         subgraph_watcher.stop();
 
         let config = match Config::load(&config_path) {
-            Ok(mut config) => {
+            Ok(Some(mut config)) => {
                 config.graph.introspection = Some(true);
                 config
             }
+            Ok(None) => Config::default(),
             Err(error) => {
                 tracing::error!("{}", error.to_string().trim());
                 continue;

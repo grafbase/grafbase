@@ -19,7 +19,8 @@ pub struct DevCommand {
 impl DevCommand {
     pub fn config(&self) -> anyhow::Result<Config> {
         Config::loader()
-            .load_or_default(self.config_path.as_ref())
+            .load(self.config_path.as_ref())
+            .map(Option::unwrap_or_default)
             .map_err(|err| anyhow::anyhow!(err))
     }
 }
