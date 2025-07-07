@@ -115,6 +115,7 @@ impl SubgraphWatcher {
                                         sdl,
                                         name: cached_local_subgraph.subgraph.name.clone(),
                                         url: cached_local_subgraph.subgraph.url.clone(),
+                                        owners: None,
                                     }),
                                     ..(*cached_local_subgraph).clone()
                                 },

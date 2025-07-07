@@ -51,6 +51,7 @@ where
             let mut map = serializer.serialize_map(Some(2))?;
             map.serialize_entry("name", &self.0.name)?;
             map.serialize_entry("schema", &self.0.sdl)?;
+            map.serialize_entry("owners", &self.0.owners)?;
             map.end()
         }
     }
