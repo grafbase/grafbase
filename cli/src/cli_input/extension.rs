@@ -84,8 +84,9 @@ pub(crate) struct ExtensionUpdateCommand {
 impl ExtensionUpdateCommand {
     pub fn config(&self) -> anyhow::Result<Config> {
         Config::loader()
-            .load_or_default(self.config_path.as_ref())
-            .map_err(|err| anyhow::anyhow!(err))
+            .load(self.config_path.as_ref())
+            .map_err(|err| anyhow::anyhow!(err))?
+            .ok_or_else(|| anyhow::anyhow!("Could not read the configuration file."))
     }
 }
 
@@ -99,7 +100,8 @@ pub(crate) struct ExtensionInstallCommand {
 impl ExtensionInstallCommand {
     pub fn config(&self) -> anyhow::Result<Config> {
         Config::loader()
-            .load_or_default(self.config_path.as_ref())
-            .map_err(|err| anyhow::anyhow!(err))
+            .load(self.config_path.as_ref())
+            .map_err(|err| anyhow::anyhow!(err))?
+            .ok_or_else(|| anyhow::anyhow!("Could not read the configuration file."))
     }
 }

@@ -83,7 +83,7 @@ pub(super) async fn build(
 
     let config_path = tmpdir.join("grafbase.toml");
     std::fs::write(tmpdir.join("grafbase.toml"), &config.toml).unwrap();
-    let mut config = Config::load(config_path).unwrap();
+    let mut config = Config::load(config_path).unwrap().unwrap();
 
     let schema = Arc::new(
         engine::Schema::builder(&federated_sdl)

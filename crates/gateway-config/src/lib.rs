@@ -66,7 +66,7 @@ impl Loader {
         }
     }
 
-    pub fn load_or_default<P: AsRef<Path>>(self, path: Option<P>) -> Result<Config, String> {
+    pub fn load<P: AsRef<Path>>(self, path: Option<P>) -> Result<Option<Config>, String> {
         let path = match path {
             Some(path) => path.as_ref().to_path_buf(),
             None => {
@@ -80,7 +80,7 @@ impl Loader {
                 if path.exists() {
                     path
                 } else {
-                    return Ok(Default::default());
+                    return Ok(None);
                 }
             }
         };
@@ -154,9 +154,11 @@ impl Loader {
             path
         });
 
-        Ok(config
-            .with_absolute_paths()
-            .expect("config.parent_path exists and is absolute."))
+        Ok(Some(
+            config
+                .with_absolute_paths()
+                .expect("config.parent_path exists and is absolute."),
+        ))
     }
 }
 
@@ -223,8 +225,8 @@ impl Config {
         Loader::default()
     }
 
-    pub fn load<P: AsRef<Path>>(path: P) -> Result<Self, String> {
-        Self::loader().load_or_default(Some(path))
+    pub fn load<P: AsRef<Path>>(path: P) -> Result<Option<Self>, String> {
+        Self::loader().load(Some(path))
     }
 
     pub fn with_absolute_paths(mut self) -> Option<Self> {
