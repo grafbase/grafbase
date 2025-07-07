@@ -167,9 +167,9 @@ fn spawn_config_reloader(mut config_receiver: watch::Receiver<Config>, update_se
         config_receiver.changed().await.ok();
 
         while let Ok(()) = config_receiver.changed().await {
-            let new_config = config_receiver.borrow().clone();
+            let new_config = Box::new(config_receiver.borrow().clone());
 
-            if update_sender.send(UpdateEvent::config(new_config)).await.is_err() {
+            if update_sender.send(UpdateEvent::Config(new_config)).await.is_err() {
                 break; // channel closed
             }
         }
