@@ -61,7 +61,7 @@ where
     let mut resource_attributes: Vec<_> = config
         .resource_attributes
         .iter()
-        .map(|(key, value)| KeyValue::new(key.clone(), value.clone()))
+        .map(|(key, value)| KeyValue::new(key.to_string(), value.to_string()))
         .collect();
 
     resource_attributes.push(KeyValue::new("service.name", config.service_name.clone()));

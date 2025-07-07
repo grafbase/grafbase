@@ -1,6 +1,6 @@
 use runtime::trusted_documents_client::TrustedDocumentsEnforcementMode;
 
-use super::AccessToken;
+use crate::AccessToken;
 
 pub struct TrustedDocumentsClientConfig<'a> {
     pub branch_id: ulid::Ulid,
@@ -50,7 +50,7 @@ impl TrustedDocumentsClient {
         let mut headers = http::HeaderMap::new();
         headers.insert(
             "Authorization",
-            format!("Bearer {}", access_token.0)
+            format!("Bearer {access_token}")
                 .parse()
                 .expect("Access token to be a valid header value"),
         );

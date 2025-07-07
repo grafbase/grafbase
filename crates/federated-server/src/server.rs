@@ -8,6 +8,8 @@ pub mod router;
 mod state;
 mod trusted_documents_client;
 
+use crate::AccessToken;
+
 use self::events::UpdateEvent;
 pub(crate) use gateway::CreateExtensionCatalogError;
 use gateway::create_extension_catalog::create_extension_catalog;
@@ -41,15 +43,6 @@ pub struct ServeConfig {
     pub fetch_method: GraphFetchMethod,
     pub grafbase_access_token: Option<AccessToken>,
     pub logging_filter: String,
-}
-
-#[derive(Clone)]
-pub struct AccessToken(pub String);
-
-impl std::fmt::Debug for AccessToken {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("AccessToken").field(&"<REDACTED>").finish()
-    }
 }
 
 /// Trait for server runtime.

@@ -1,9 +1,8 @@
 use crate::{
-    ObjectStorageResponse,
+    AccessToken, ObjectStorageResponse,
     server::{events::UpdateEvent, gateway::GraphDefinition},
 };
 
-use ascii::AsciiString;
 use grafbase_telemetry::{
     metrics::meter_from_global_provider,
     otel::opentelemetry::{KeyValue, metrics::Histogram},
@@ -81,7 +80,7 @@ struct ObjectStorageFetchLatencyAttributes {
 pub struct ObjectStorageUpdater {
     object_storage_url: Url,
     object_storage_client: reqwest::Client,
-    access_token: AsciiString,
+    access_token: AccessToken,
     sender: mpsc::Sender<UpdateEvent>,
     current_id: Option<Ulid>,
     latencies: Histogram<u64>,
@@ -103,7 +102,7 @@ impl ObjectStorageUpdater {
     /// Returns an error if the HTTP client cannot be built or if the URL parsing fails.
     pub fn new(
         graph_ref: GraphRef,
-        access_token: AsciiString,
+        access_token: AccessToken,
         sender: mpsc::Sender<UpdateEvent>,
     ) -> crate::Result<Self> {
         let object_storage_client = reqwest::ClientBuilder::new()

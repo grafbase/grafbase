@@ -2,12 +2,12 @@ mod lambda;
 mod log;
 mod std;
 
-use ::std::{net::SocketAddr, path::Path, sync::OnceLock, time::Duration};
+use ::std::{net::SocketAddr, path::Path, time::Duration};
 
 use anyhow::Context;
 use ascii::AsciiString;
 use clap::Parser;
-use federated_server::GraphFetchMethod;
+use federated_server::{AccessToken, GraphFetchMethod};
 use gateway_config::{BatchExportConfig, Config, OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterProtocol};
 use graph_ref::GraphRef;
 pub(crate) use log::*;
@@ -30,19 +30,15 @@ pub(crate) trait Args {
     fn graph_ref(&self) -> Option<&GraphRef>;
 
     fn can_export_telemetry_to_platform(&self) -> bool {
-        self.grafbase_access_token().is_some() && self.graph_ref().is_some()
+        AccessToken::is_defined_in_env() && self.graph_ref().is_some()
     }
 
-    fn grafbase_access_token(&self) -> Option<&'static str> {
-        static GRAFBASE_ACCESS_TOKEN: OnceLock<Option<String>> = OnceLock::new();
-
-        GRAFBASE_ACCESS_TOKEN
-            .get_or_init(|| ::std::env::var("GRAFBASE_ACCESS_TOKEN").ok())
-            .as_deref()
+    fn grafbase_access_token(&self) -> anyhow::Result<Option<AccessToken>> {
+        AccessToken::from_env().map_err(anyhow::Error::msg)
     }
 
     fn grafbase_otel_config(&self) -> anyhow::Result<Option<OtlpExporterConfig>> {
-        let token = self.grafbase_access_token();
+        let token = self.grafbase_access_token()?;
         let graph_ref = self.graph_ref();
 
         let Some((token, graph_ref)) = token.zip(graph_ref) else {
