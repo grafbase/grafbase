@@ -10,7 +10,6 @@ pub struct DeleteSubgraphArguments<'a> {
 pub struct DeleteSubgraphInput<'a> {
     pub account_slug: &'a str,
     pub graph_slug: Option<&'a str>,
-    pub project_slug: Option<&'a str>,
     pub branch: &'a str,
     pub subgraph: &'a str,
     pub message: Option<&'a str>,

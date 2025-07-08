@@ -73,32 +73,32 @@ pub enum ApiError {
 
 #[derive(Error, Debug)]
 pub enum CreateError {
-    /// returned if the given slug for a new project is already in use
-    #[error("could not create a new project as the provided slug is already in use")]
+    /// returned if the given slug for a new graph is already in use
+    #[error("could not create a new graph as the provided slug is already in use")]
     SlugAlreadyExists,
 
-    /// returned if the given slug for a new project is invalid
-    #[error("could not create a new project as the provided slug is invalid")]
+    /// returned if the given slug for a new graph is invalid
+    #[error("could not create a new graph as the provided slug is invalid")]
     SlugInvalid,
 
-    /// returned if the given slug for a new project was too long
-    #[error("could not create a new project as the provided slug is longer than {max_length} characters")]
+    /// returned if the given slug for a new graph was too long
+    #[error("could not create a new graph as the provided slug is longer than {max_length} characters")]
     SlugTooLong { max_length: i32 },
 
     /// returned if a given account ID does not exist
-    #[error("could not create a new project as the specified account ID does not exist")]
+    #[error("could not create a new graph as the specified account ID does not exist")]
     AccountDoesNotExist,
 
     /// returned if the user has reached the current plan limit
-    #[error("could not create a new project as the current plan limit of {max} projects has been reached")]
+    #[error("could not create a new graph as the current plan limit of {max} graphs has been reached")]
     CurrentPlanLimitReached { max: i32 },
 
-    /// returned if the account selected for project creation is disabled
-    #[error("could not create a new project as the selected account is disabled")]
+    /// returned if the account selected for graph creation is disabled
+    #[error("could not create a new graph as the selected account is disabled")]
     DisabledAccount,
 
     /// returned if an unknown error occurs
-    #[error("could not create a new project, encountered an unknown error\nCaused by: {0}")]
+    #[error("could not create a new graph, encountered an unknown error\nCaused by: {0}")]
     Unknown(String),
 }
 

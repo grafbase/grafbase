@@ -31,7 +31,6 @@ pub async fn delete(account: &str, graph: &str, branch: &str, name: &str) -> Res
         input: DeleteSubgraphInput {
             account_slug: account,
             graph_slug: Some(graph),
-            project_slug: None,
             branch,
             subgraph: name,
             message: None,
