@@ -16,6 +16,41 @@ pub struct Graph {
     pub current_dir: Option<PathBuf>,
 }
 
+pub enum SchemaSource {
+    ObjectStorage {
+        branch_id: Ulid,
+        version_id: Ulid,
+        sdl: String,
+    },
+    File {
+        dir: Option<PathBuf>,
+        sdl: String,
+    }
+}
+
+impl SchemaSource {
+    pub fn sdl(&self) -> &str {
+        match self {
+            SchemaSource::ObjectStorage { sdl, .. } => sdl,
+            SchemaSource::File { sdl, .. } => sdl,
+        }
+    }
+
+    pub fn parent_dir_path(&self) -> Option<&Path> {
+        match self {
+            SchemaSource::ObjectStorage { .. } => None,
+            SchemaSource::File { dir, .. } => dir.as_deref(),
+        }
+    }
+
+    pub fn version_id(&self) -> Option<Ulid> {
+        match self {
+            SchemaSource::ObjectStorage { version_id, .. } => Some(*version_id),
+            SchemaSource::File { .. } => None,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub enum GraphDefinition {
     /// Response from object storage.
@@ -65,27 +100,7 @@ impl GraphDefinition {
             }
         };
 
-        let enforcement_mode = if config.trusted_documents.enforced {
-            TrustedDocumentsEnforcementMode::Enforce
-        } else {
-            TrustedDocumentsEnforcementMode::Allow
-        };
 
-        let bypass_header = config
-            .trusted_documents
-            .bypass_header
-            .bypass_header_name
-            .as_ref()
-            .zip(config.trusted_documents.bypass_header.bypass_header_value.as_ref())
-            .map(|(name, value)| (name.clone().into(), String::from(value.as_str())));
-
-        let trusted_documents_client = TrustedDocumentsClient::new(TrustedDocumentsClientConfig {
-            branch_id: response.branch_id,
-            bypass_header,
-            enforcement_mode,
-            object_storage_url: object_storage_base_url,
-            access_token,
-        });
 
         Graph {
             federated_sdl: response.sdl,
