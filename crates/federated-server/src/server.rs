@@ -1,19 +1,13 @@
 mod cors;
 mod engine_reloader;
-mod events;
 mod gateway;
-mod graph_fetch_method;
-mod graph_updater;
 pub mod router;
 mod state;
 mod trusted_documents_client;
 
 use crate::AccessToken;
-
-use self::events::UpdateEvent;
 pub(crate) use gateway::CreateExtensionCatalogError;
 use gateway::create_extension_catalog::create_extension_catalog;
-pub use graph_fetch_method::GraphFetchMethod;
 use router::RouterConfig;
 pub use state::ServerState;
 use ulid::Ulid;
@@ -29,6 +23,8 @@ use tokio::{
 };
 use wasi_component_loader::extension::WasmHooks;
 
+use crate::{GraphLoader, events::UpdateEvent};
+
 /// Start parameter for the gateway.
 pub struct ServeConfig {
     pub listen_address: SocketAddr,
@@ -40,7 +36,7 @@ pub struct ServeConfig {
     /// and reloads _some_ of the things.
     pub config_hot_reload: bool,
     /// The way of loading the graph for the gateway.
-    pub fetch_method: GraphFetchMethod,
+    pub fetch_method: GraphLoader,
     pub grafbase_access_token: Option<AccessToken>,
     pub logging_filter: String,
 }

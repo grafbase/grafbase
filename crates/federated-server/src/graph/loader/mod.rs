@@ -1,14 +1,18 @@
+mod object_storage;
+mod schema_file;
+
 use std::path::PathBuf;
 
-use crate::AccessToken;
-
-use super::events::UpdateEvent;
-use super::gateway::GraphDefinition;
 use graph_ref::GraphRef;
 use tokio::sync::mpsc;
 
+pub(crate) use object_storage::*;
+pub(crate) use schema_file::*;
+
+use crate::{AccessToken, events::UpdateEvent, graph::Graph};
+
 /// The method of running the gateway.
-pub enum GraphFetchMethod {
+pub enum GraphLoader {
     /// The schema is fetched in regular intervals from the Grafbase API.
     FromGraphRef {
         /// The access token for accessing the the API.
@@ -16,19 +20,17 @@ pub enum GraphFetchMethod {
         graph_ref: GraphRef,
     },
     /// The schema is loaded from disk. No access to the Grafbase API.
-    FromSchema {
-        /// Static federated graph from a file
-        federated_sdl: String,
+    FromSchemaFile {
         /// The location of the schema file
-        schema_path: PathBuf,
+        path: PathBuf,
     },
-    FromSchemaReloadable {
+    FromChannel {
         current_dir: PathBuf,
         sdl_receiver: mpsc::Receiver<String>,
     },
 }
 
-impl GraphFetchMethod {
+impl GraphLoader {
     /// Starts a producer that sends graph updates to the provided channel.
     ///
     /// This can happen in two ways: if providing a graph SDL, we send a new graph immediately.
@@ -36,20 +38,18 @@ impl GraphFetchMethod {
     /// immediately, and runs a background process to fetch the graph definition from object storage
     pub(crate) async fn start_producer(self, sender: mpsc::Sender<UpdateEvent>) -> crate::Result<()> {
         #[cfg(feature = "lambda")]
-        if matches!(self, GraphFetchMethod::FromGraphRef { .. }) {
+        if matches!(self, GraphLoader::FromGraphRef { .. }) {
             return Err(crate::Error::InternalError(
                 "Cannot fetch schema with graph in lambda mode.".to_string(),
             ));
         }
 
         match self {
-            GraphFetchMethod::FromGraphRef {
+            GraphLoader::FromGraphRef {
                 access_token,
                 graph_ref,
             } => {
                 tokio::spawn(async move {
-                    use super::graph_updater::ObjectStorageUpdater;
-
                     ObjectStorageUpdater::new(graph_ref, access_token, sender)?.poll().await;
 
                     Ok::<_, crate::Error>(())
@@ -57,33 +57,36 @@ impl GraphFetchMethod {
 
                 Ok(())
             }
-            GraphFetchMethod::FromSchema {
-                federated_sdl,
-                schema_path,
-            } => {
+            GraphLoader::FromSchemaFile { path } => {
+                let sdl = std::fs::read_to_string(&path).map_err(|err| {
+                    crate::Error::InternalError(format!("could not read federated schema file: {err}"))
+                })?;
+
                 sender
-                    .send(UpdateEvent::Graph(GraphDefinition::Sdl(
-                        Some(schema_path.clone()),
-                        federated_sdl,
-                    )))
+                    .send(UpdateEvent::Graph(Graph::FromText {
+                        parent_dir: path.parent().map(|p| p.to_owned()),
+                        sdl,
+                    }))
                     .await
                     .expect("channel must be up");
 
                 tokio::spawn(async move {
-                    use super::graph_updater::SchemaFileGraphUpdater;
-                    SchemaFileGraphUpdater::new(schema_path, sender).await.poll().await;
+                    SchemaFileGraphUpdater::new(path, sender).await.poll().await;
                 });
 
                 Ok(())
             }
-            GraphFetchMethod::FromSchemaReloadable {
+            GraphLoader::FromChannel {
                 current_dir,
                 mut sdl_receiver,
             } => {
                 tokio::spawn(async move {
                     while let Some(sdl) = sdl_receiver.recv().await {
                         if sender
-                            .send(UpdateEvent::Graph(GraphDefinition::Sdl(Some(current_dir.clone()), sdl)))
+                            .send(UpdateEvent::Graph(Graph::FromText {
+                                parent_dir: Some(current_dir.clone()),
+                                sdl,
+                            }))
                             .await
                             .is_err()
                         {

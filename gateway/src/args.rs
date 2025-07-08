@@ -7,7 +7,7 @@ use ::std::{net::SocketAddr, path::Path, time::Duration};
 use anyhow::Context;
 use ascii::AsciiString;
 use clap::Parser;
-use federated_server::{AccessToken, GraphFetchMethod};
+use federated_server::{AccessToken, GraphLoader};
 use gateway_config::{BatchExportConfig, Config, OtlpExporterConfig, OtlpExporterGrpcConfig, OtlpExporterProtocol};
 use graph_ref::GraphRef;
 pub(crate) use log::*;
@@ -17,7 +17,7 @@ pub(crate) trait Args {
 
     fn log_level(&self) -> LogLevel<'_>;
 
-    fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod>;
+    fn fetch_method(&self) -> anyhow::Result<GraphLoader>;
 
     fn config(&self) -> anyhow::Result<Config>;
 

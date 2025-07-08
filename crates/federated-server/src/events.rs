@@ -1,13 +1,14 @@
-use super::gateway::GraphDefinition;
 use gateway_config::Config;
+
+use crate::graph::Graph;
 
 /// Represents all possible events that can trigger an engine reload.
 /// This unified event type simplifies the data flow by consolidating
 /// all update sources into a single stream.
 #[derive(Clone)]
-pub enum UpdateEvent {
+pub(crate) enum UpdateEvent {
     /// A graph definition update event
-    Graph(GraphDefinition),
+    Graph(Graph),
     /// A configuration update event
     Config(Box<Config>),
 }

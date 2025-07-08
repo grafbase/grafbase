@@ -7,10 +7,12 @@ mod hot_reload;
 
 pub use access_token::AccessToken;
 pub use error::Error;
-pub use server::GraphFetchMethod;
+pub use graph::GraphLoader;
 pub use server::ObjectStorageResponse;
 
 mod error;
+mod events;
+mod graph;
 mod server;
 
 /// The crate result type.

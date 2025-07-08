@@ -4,10 +4,11 @@ use std::{
     time::SystemTime,
 };
 
-use crate::server::{events::UpdateEvent, gateway::GraphDefinition};
 use either::Either;
 use futures_lite::StreamExt;
 use tokio_util::codec::{BytesCodec, FramedRead};
+
+use crate::{events::UpdateEvent, graph::Graph};
 
 /// How often we poll updates to the graph.
 const TICK_INTERVAL: std::time::Duration = std::time::Duration::from_secs(5);
@@ -63,10 +64,10 @@ impl SchemaFileGraphUpdater {
                 tracing::info!("Detected a schema file update");
 
                 self.sender
-                    .send(UpdateEvent::Graph(GraphDefinition::Sdl(
-                        Some(self.schema_path.clone()),
-                        schema,
-                    )))
+                    .send(UpdateEvent::Graph(Graph::FromText {
+                        parent_dir: self.schema_path.parent().map(ToOwned::to_owned),
+                        sdl: schema,
+                    }))
                     .await
                     .expect("channel must be up");
             } else {
