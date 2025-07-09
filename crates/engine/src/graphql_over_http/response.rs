@@ -164,11 +164,12 @@ impl Http {
         };
 
         let status_code = compute_status_code(ResponseFormat::Complete(format), &response);
-        let mut headers = http::HeaderMap::new();
 
-        if let Response::RefusedRequest(response) = response {
-            headers.extend(response.headers)
-        }
+        let mut headers = if let Response::RefusedRequest(response) = response {
+            response.headers
+        } else {
+            Default::default()
+        };
 
         headers.insert(http::header::CONTENT_TYPE, format.to_content_type_header_value());
         headers.typed_insert(headers::ContentLength(bytes.len() as u64));

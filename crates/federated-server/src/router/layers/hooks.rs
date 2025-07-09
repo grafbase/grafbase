@@ -6,6 +6,8 @@ use http_body::Body;
 use runtime::extension::{ExtensionContext, HooksExtension};
 use tower::Layer;
 
+use crate::engine::into_axum_response;
+
 #[derive(Clone)]
 pub struct HooksLayer<Hooks> {
     hooks: Hooks,
@@ -41,18 +43,17 @@ pub struct HooksService<Service, Hooks> {
     hooks: Hooks,
 }
 
-impl<Service, Hooks, ReqBody, ResBody> tower::Service<Request<ReqBody>> for HooksService<Service, Hooks>
+impl<Service, Hooks, ReqBody> tower::Service<Request<ReqBody>> for HooksService<Service, Hooks>
 where
-    Service: tower::Service<Request<ReqBody>, Response = Response<ResBody>> + Send + Clone + 'static,
+    Service: tower::Service<Request<ReqBody>, Response = Response<axum::body::Body>> + Send + Clone + 'static,
     Service::Future: Send,
     Hooks: HooksExtension + Clone,
     Service::Error: Display + 'static,
     ReqBody: Body + Send + 'static,
-    ResBody: Body + Send + Default + From<Vec<u8>> + 'static,
 {
-    type Response = http::Response<ResBody>;
+    type Response = http::Response<axum::body::Body>;
     type Error = Service::Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Response<ResBody>, Self::Error>> + Send>>;
+    type Future = Pin<Box<dyn Future<Output = Result<Response<axum::body::Body>, Self::Error>> + Send>>;
 
     fn poll_ready(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)
@@ -68,25 +69,20 @@ where
             let url = parts.uri.to_string();
             let method = parts.method.clone();
 
-            let response_format = crate::error_response::extract_response_format(&parts.headers);
+            let response_format = engine::ResponseFormat::extract_from(&parts.headers).unwrap_or_default();
 
             let parts = match hooks.on_request(&context, parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
-                    let error_response = crate::error_response::request_error_response_to_http(response_format, err);
-                    return Ok(error_response);
+                    let error_response = engine::http_error_response(response_format, err);
+                    return Ok(into_axum_response(error_response));
                 }
             };
 
             let mut request = Request::from_parts(parts, body);
             request.extensions_mut().insert(context.clone());
 
-            let response = match inner.call(request).await {
-                Ok(response) => response,
-                Err(err) => {
-                    return Err(err);
-                }
-            };
+            let response = inner.call(request).await?;
 
             let (parts, body) = response.into_parts();
 
@@ -99,11 +95,13 @@ where
             let parts = match hooks.on_response(&context, parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
-                    tracing::error!("Error in on_response hook: {err}");
+                    let error_response = engine::http_error_response(
+                        response_format,
+                        engine::ErrorResponse::new(http::StatusCode::INTERNAL_SERVER_ERROR)
+                            .with_error(engine::GraphqlError::new(err, engine::ErrorCode::ExtensionError)),
+                    );
 
-                    let error_response = crate::error_response::response_error_response_to_http(response_format, err);
-
-                    return Ok(error_response);
+                    return Ok(into_axum_response(error_response));
                 }
             };
 

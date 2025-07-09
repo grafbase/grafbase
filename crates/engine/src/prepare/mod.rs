@@ -65,7 +65,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 // If we have an error a this stage, it means we couldn't determine what document
                 // to load, so we don't consider it a well-formed GraphQL-over-HTTP request.
                 Err(err) => {
-                    return Err(Response::refuse_request_with(
+                    return Err(Response::refused_request(
                         http::StatusCode::BAD_REQUEST,
                         [err],
                         Default::default(),
@@ -136,7 +136,7 @@ impl PreparedOperation {
 }
 
 fn mutation_not_allowed_with_safe_method() -> Response {
-    Response::refuse_request_with(
+    Response::refused_request(
         http::StatusCode::METHOD_NOT_ALLOWED,
         [GraphqlError::new(
             "Mutation is not allowed with a safe method like GET",

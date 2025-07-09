@@ -36,12 +36,12 @@ impl<R: Runtime> Engine<R> {
     ) -> Result<(EarlyHttpContext, http::HeaderMap, B), http::Response<Body>> {
         let (parts, body) = request.into_parts();
 
-        let Some(response_format) = ResponseFormat::extract_from(&parts.headers, self.default_response_format) else {
+        let Some(response_format) = ResponseFormat::extract_from(&parts.headers) else {
             // GraphQL-over-HTTP spec:
             //   In alignment with the HTTP 1.1 Accept specification, when a client does not include at least one supported media type in the Accept HTTP header, the server MUST either:
             //     1. Respond with a 406 Not Acceptable status code and stop processing the request (RECOMMENDED); OR
             //     2. Disregard the Accept header and respond with the server's choice of media type (NOT RECOMMENDED).
-            return Err(errors::not_acceptable_error(self.default_response_format));
+            return Err(errors::not_acceptable_error(ResponseFormat::default()));
         };
 
         let content_type = if parts.method == http::Method::POST {
@@ -97,7 +97,7 @@ impl<R: Runtime> Engine<R> {
         {
             Ok((headers, token)) => (headers, token),
             Err(resp) => {
-                let response = Response::refuse_request_with(resp.status, resp.errors, resp.headers);
+                let response = Response::refused_request(resp.status, resp.errors, resp.headers);
                 return Err(response);
             }
         };

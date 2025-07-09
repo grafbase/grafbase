@@ -38,7 +38,6 @@ pub enum ErrorCode {
     OperationPlanningError,
     VariableError,
     // Runtime
-    HookError,
     ExtensionError,
     // Rate limit
     RateLimited,
@@ -71,9 +70,7 @@ impl ErrorCode {
             }
             ErrorCode::GatewayTimeout => (http::StatusCode::GATEWAY_TIMEOUT, 200),
             // least helpful error codes
-            ErrorCode::HookError | ErrorCode::ExtensionError | ErrorCode::InternalServerError => {
-                (http::StatusCode::INTERNAL_SERVER_ERROR, 0)
-            }
+            ErrorCode::ExtensionError | ErrorCode::InternalServerError => (http::StatusCode::INTERNAL_SERVER_ERROR, 0),
         }
     }
 }

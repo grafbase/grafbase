@@ -7,7 +7,7 @@ mod response;
 
 use bytes::Bytes;
 use error::ErrorCode;
-pub(crate) use format::*;
+pub use format::*;
 use futures_util::stream::BoxStream;
 use grafbase_telemetry::graphql::GraphqlExecutionTelemetry;
 pub(crate) use response::*;

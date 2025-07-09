@@ -8,7 +8,6 @@ members = [
     "crates/grafbase-sdk/derive",
     "crates/grafbase-sdk/mock",
     "crates/engine/auth",
-    "crates/engine/axum",
     "crates/engine/codegen",
     "crates/engine/operation",
     "crates/engine/walker",
@@ -273,7 +272,6 @@ zstd = "0.13"
 # Workspace
 engine = { path = "crates/engine" }
 engine-auth = { path = "crates/engine/auth" }
-engine-axum = { path = "crates/engine/axum" }
 engine-error = { path = "crates/engine/error" }
 engine-operation = { path = "crates/engine/operation" }
 engine-schema = { path = "crates/engine/schema" }

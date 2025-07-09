@@ -52,7 +52,7 @@ pub(crate) fn not_well_formed_graphql_over_http_request(message: impl std::fmt::
 }
 
 pub(crate) fn refuse_request_with(status_code: http::StatusCode, message: impl Into<Cow<'static, str>>) -> Response {
-    Response::refuse_request_with(
+    Response::refused_request(
         status_code,
         [GraphqlError::new(message, ErrorCode::BadRequest)],
         Default::default(),
@@ -66,7 +66,7 @@ pub(crate) mod response {
     };
 
     pub(crate) fn gateway_rate_limited() -> Response {
-        Response::refuse_request_with(
+        Response::refused_request(
             http::StatusCode::TOO_MANY_REQUESTS,
             [GraphqlError::new("Rate limited", ErrorCode::RateLimited)],
             Default::default(),

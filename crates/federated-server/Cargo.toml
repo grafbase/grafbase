@@ -11,7 +11,7 @@ workspace = true
 
 [features]
 default = []
-lambda = ["dep:tower", "dep:lambda_http"]
+lambda = ["dep:lambda_http"]
 
 [dependencies]
 ascii = { workspace = true, features = ["serde"] }
@@ -20,11 +20,13 @@ axum = { workspace = true, features = ["macros", "ws", "query", "json"] }
 axum-server = { workspace = true, features = ["tls-rustls"] }
 blake3.workspace = true
 cfg-if.workspace = true
+either.workspace = true
 engine.workspace = true
 engine-auth.workspace = true
-engine-axum.workspace = true
 engine-schema.workspace = true
 event-queue.workspace = true
+extension-catalog.workspace = true
+fast-glob.workspace = true
 futures-lite.workspace = true
 futures-util.workspace = true
 gateway-config.workspace = true
@@ -34,20 +36,28 @@ grafbase-workspace-hack.workspace = true
 graph-ref.workspace = true
 graphql-composition.workspace = true
 http.workspace = true
+http-body.workspace = true
 http-body-util.workspace = true
 hyper.workspace = true
+indoc.workspace = true
+lambda_http = { workspace = true, optional = true }
+minicbor-serde = { workspace = true, features = ["alloc"] }
 notify.workspace = true
+rand.workspace = true
 reqwest = { workspace = true, features = ["http2", "json", "rustls-tls"] }
 rolling-logger.workspace = true
 runtime.workspace = true
 runtime-local = { workspace = true, features = ["wasi", "redis"] }
 semver.workspace = true
 serde.workspace = true
+serde_json.workspace = true
+sonic-rs.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }
 tokio-stream = { workspace = true, features = ["sync"] }
 tokio-util = { workspace = true, features = ["codec"] }
 toml.workspace = true
+tower.workspace = true
 tower-http = { workspace = true, features = [
     "cors",
     "timeout",
@@ -61,17 +71,6 @@ tracing.workspace = true
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }
 wasi-component-loader.workspace = true
-
-# Lambda dependencies
-either.workspace = true
-extension-catalog.workspace = true
-fast-glob.workspace = true
-indoc.workspace = true
-lambda_http = { workspace = true, optional = true }
-minicbor-serde = { workspace = true, features = ["alloc"] }
-rand.workspace = true
-serde_json.workspace = true
-tower = { workspace = true, optional = true }
 
 [dev-dependencies]
 insta.workspace = true
