@@ -1,21 +1,19 @@
 use std::{path::PathBuf, sync::Arc};
 
-use engine::CachedOperation;
+use ::engine::CachedOperation;
 use extension_catalog::ExtensionCatalog;
 use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
 };
 
+use super::{EngineBuildContext, EngineRuntime, EngineSender, EngineWatcher};
 use crate::{events::UpdateEvent, graph::Graph};
 
-use super::{
-    AccessToken,
-    gateway::{self, EngineBuildContext, EngineSender, EngineWatcher, GatewayRuntime},
-};
+use super::AccessToken;
 
 /// Configuration for the GatewayEngineReloader.
-pub struct EngineReloaderConfig<'a> {
+pub(crate) struct EngineReloaderConfig<'a> {
     /// The channel receiver for update events
     pub update_receiver: mpsc::Receiver<UpdateEvent>,
 
@@ -36,11 +34,11 @@ pub struct EngineReloaderConfig<'a> {
 }
 
 /// Handles graph and config updates by constructing a new engine
-pub(super) struct GatewayEngineReloader {
-    engine_watcher: EngineWatcher<GatewayRuntime>,
+pub(crate) struct EngineReloader {
+    engine_watcher: EngineWatcher<EngineRuntime>,
 }
 
-impl GatewayEngineReloader {
+impl EngineReloader {
     /// Spawns a new engine reloader with the given configuration.
     ///
     /// This method:
@@ -141,10 +139,10 @@ impl GatewayEngineReloader {
             tracing::info!("Update loop terminated");
         });
 
-        Ok(GatewayEngineReloader { engine_watcher })
+        Ok(EngineReloader { engine_watcher })
     }
 
-    pub fn engine_watcher(&self) -> EngineWatcher<GatewayRuntime> {
+    pub fn engine_watcher(&self) -> EngineWatcher<EngineRuntime> {
         self.engine_watcher.clone()
     }
 }
@@ -154,8 +152,8 @@ async fn build_engine(
     context: EngineBuildContext<'_>,
     graph: Graph,
     operations_to_warm: Vec<Arc<CachedOperation>>,
-) -> crate::Result<Arc<engine::Engine<GatewayRuntime>>> {
-    let engine = gateway::generate(context, graph).await?;
+) -> crate::Result<Arc<engine::Engine<EngineRuntime>>> {
+    let engine = crate::engine::generate(context, graph).await?;
     let engine = Arc::new(engine);
 
     engine.warm(operations_to_warm).await;

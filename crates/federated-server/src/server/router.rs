@@ -16,7 +16,9 @@ use tower_http::{
     cors::CorsLayer,
 };
 
-use super::{ServerRuntime, ServerState, cors, gateway::EngineWatcher};
+use crate::engine::EngineWatcher;
+
+use super::{ServerRuntime, ServerState, cors};
 
 pub struct RouterConfig<R, SR, H, F>
 where

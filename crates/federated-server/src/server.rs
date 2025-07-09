@@ -1,20 +1,14 @@
 mod cors;
-mod engine_reloader;
-mod gateway;
 pub mod router;
 mod state;
-mod trusted_documents_client;
 
 use crate::AccessToken;
-pub(crate) use gateway::CreateExtensionCatalogError;
-use gateway::create_extension_catalog::create_extension_catalog;
 use router::RouterConfig;
 pub use state::ServerState;
 use ulid::Ulid;
 
 use axum::Router;
 use engine_axum::middleware::TelemetryLayer;
-use engine_reloader::{EngineReloaderConfig, GatewayEngineReloader};
 use gateway_config::{Config, TlsConfig};
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::{
@@ -23,7 +17,12 @@ use tokio::{
 };
 use wasi_component_loader::extension::WasmHooks;
 
-use crate::{GraphLoader, events::UpdateEvent};
+use crate::{
+    GraphLoader,
+    engine::{EngineReloader, EngineReloaderConfig},
+    events::UpdateEvent,
+    extensions::create_extension_catalog,
+};
 
 /// Start parameter for the gateway.
 pub struct ServeConfig {
@@ -89,7 +88,7 @@ pub async fn serve(
     let (extension_catalog, hooks_extension) = create_extension_catalog(&config).await?;
 
     // The engine reloads itself when the graph, or configuration changes.
-    let update_handler = GatewayEngineReloader::spawn(EngineReloaderConfig {
+    let update_handler = EngineReloader::spawn(EngineReloaderConfig {
         update_receiver,
         initial_config: config.clone(),
         extension_catalog: &extension_catalog,

@@ -10,8 +10,10 @@ pub use error::Error;
 pub use graph::GraphLoader;
 pub use server::ObjectStorageResponse;
 
+mod engine;
 mod error;
 mod events;
+mod extensions;
 mod graph;
 mod server;
 
