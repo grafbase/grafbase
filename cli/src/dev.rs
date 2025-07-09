@@ -12,7 +12,7 @@ use crate::{
     errors::CliError,
 };
 use assets::{export_assets, get_base_router};
-use federated_server::{GraphFetchMethod, ServeConfig, ServerRuntime};
+use federated_server::{GraphLoader, ServeConfig, ServerRuntime};
 use hot_reload::hot_reload;
 use std::{
     net::{Ipv4Addr, SocketAddr},
@@ -138,7 +138,7 @@ async fn start(args: DevCommand, logging_filter: String) -> anyhow::Result<()> {
         config_path: None,
         config_hot_reload: false,
         config_receiver,
-        fetch_method: GraphFetchMethod::FromSchemaReloadable {
+        fetch_method: GraphLoader::FromChannel {
             current_dir,
             sdl_receiver,
         },

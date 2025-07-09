@@ -1,13 +1,11 @@
 use std::{
-    fs,
     io::IsTerminal,
     net::SocketAddr,
     path::{Path, PathBuf},
 };
 
-use anyhow::Context;
 use clap::Parser;
-use federated_server::GraphFetchMethod;
+use federated_server::GraphLoader;
 use gateway_config::Config;
 use graph_ref::GraphRef;
 
@@ -53,17 +51,11 @@ impl super::Args for Args {
     }
 
     /// The method of fetching a graph
-    fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
+    fn fetch_method(&self) -> anyhow::Result<GraphLoader> {
         match self.schema {
-            Some(ref schema) => {
-                let schema_path = schema.to_owned();
-                let federated_sdl = fs::read_to_string(&schema_path).context("could not read federated schema file")?;
-
-                Ok(GraphFetchMethod::FromSchema {
-                    federated_sdl,
-                    schema_path,
-                })
-            }
+            Some(ref schema) => Ok(GraphLoader::FromSchemaFile {
+                path: schema.to_owned(),
+            }),
             None => {
                 let graph_ref = self.graph_ref.clone().ok_or_else(|| {
                     anyhow::format_err!("The graph-ref argument must be set if not using a static schema file.")
@@ -75,7 +67,7 @@ impl super::Args for Args {
                     )
                 })?;
 
-                Ok(GraphFetchMethod::FromGraphRef {
+                Ok(GraphLoader::FromGraphRef {
                     access_token,
                     graph_ref,
                 })

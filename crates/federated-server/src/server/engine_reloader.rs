@@ -7,10 +7,11 @@ use tokio::{
     task::JoinHandle,
 };
 
+use crate::{events::UpdateEvent, graph::Graph};
+
 use super::{
     AccessToken,
-    events::UpdateEvent,
-    gateway::{self, EngineBuildContext, EngineSender, EngineWatcher, GatewayRuntime, GraphDefinition},
+    gateway::{self, EngineBuildContext, EngineSender, EngineWatcher, GatewayRuntime},
 };
 
 /// Configuration for the GatewayEngineReloader.
@@ -60,9 +61,9 @@ impl GatewayEngineReloader {
 
         tracing::debug!("Waiting for the initial graph...");
 
-        let mut graph_definition = loop {
+        let mut graph = loop {
             match update_receiver.recv().await {
-                Some(UpdateEvent::Graph(graph_def)) => break graph_def,
+                Some(UpdateEvent::Graph(graph)) => break graph,
                 Some(UpdateEvent::Config(new_config)) => {
                     // Update config if we receive it before the initial graph
                     current_config = *new_config;
@@ -87,7 +88,7 @@ impl GatewayEngineReloader {
             logging_filter: &logging_filter,
         };
 
-        let engine = build_engine(initial_context, graph_definition.clone(), vec![]).await?;
+        let engine = build_engine(initial_context, graph.clone(), vec![]).await?;
         let (engine_sender, engine_watcher) = watch::channel(engine);
 
         tokio::spawn(async move {
@@ -100,7 +101,7 @@ impl GatewayEngineReloader {
                 }
 
                 match update {
-                    UpdateEvent::Graph(new_graph) => graph_definition = new_graph,
+                    UpdateEvent::Graph(new_graph) => graph = new_graph,
                     UpdateEvent::Config(new_config) => current_config = *new_config,
                 }
 
@@ -108,7 +109,7 @@ impl GatewayEngineReloader {
                     let hot_reload_config_path = hot_reload_config_path.clone();
                     let access_token = access_token.clone();
                     let current_config = current_config.clone();
-                    let graph_definition = graph_definition.clone();
+                    let graph = graph.clone();
                     let engine_sender = engine_sender.clone();
                     let logging_filter = logging_filter.clone();
 
@@ -123,7 +124,7 @@ impl GatewayEngineReloader {
                             logging_filter: &logging_filter,
                         };
 
-                        match build_engine(context, graph_definition, operations_to_warm).await {
+                        match build_engine(context, graph, operations_to_warm).await {
                             Ok(new_engine) => {
                                 if let Err(err) = engine_sender.send(new_engine) {
                                     tracing::error!("Could not send engine: {err:?}");
@@ -151,10 +152,10 @@ impl GatewayEngineReloader {
 /// Helper function that builds a new engine instance.
 async fn build_engine(
     context: EngineBuildContext<'_>,
-    graph_definition: GraphDefinition,
+    graph: Graph,
     operations_to_warm: Vec<Arc<CachedOperation>>,
 ) -> crate::Result<Arc<engine::Engine<GatewayRuntime>>> {
-    let engine = gateway::generate(context, graph_definition).await?;
+    let engine = gateway::generate(context, graph).await?;
     let engine = Arc::new(engine);
 
     engine.warm(operations_to_warm).await;

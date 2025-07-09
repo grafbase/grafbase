@@ -4,9 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::Context;
 use clap::Parser;
-use federated_server::GraphFetchMethod;
+use federated_server::GraphLoader;
 use gateway_config::Config;
 use graph_ref::GraphRef;
 
@@ -42,13 +41,9 @@ pub struct Args {
 
 impl super::Args for Args {
     /// The method of fetching a graph
-    fn fetch_method(&self) -> anyhow::Result<GraphFetchMethod> {
-        let schema_path = self.schema.clone();
-        let federated_sdl = fs::read_to_string(&schema_path).context("could not read federated schema file")?;
-
-        Ok(GraphFetchMethod::FromSchema {
-            federated_sdl,
-            schema_path,
+    fn fetch_method(&self) -> anyhow::Result<GraphLoader> {
+        Ok(GraphLoader::FromSchemaFile {
+            path: self.schema.clone(),
         })
     }
 

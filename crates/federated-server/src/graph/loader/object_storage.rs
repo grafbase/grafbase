@@ -1,7 +1,4 @@
-use crate::{
-    AccessToken, ObjectStorageResponse,
-    server::{events::UpdateEvent, gateway::GraphDefinition},
-};
+use crate::{AccessToken, ObjectStorageResponse, events::UpdateEvent, graph::Graph};
 
 use grafbase_telemetry::{
     metrics::meter_from_global_provider,
@@ -86,6 +83,13 @@ pub struct ObjectStorageUpdater {
     latencies: Histogram<u64>,
 }
 
+pub(crate) fn object_storage_host() -> Cow<'static, str> {
+    match std::env::var(OBJECT_STORAGE_HOST_ENV_VAR) {
+        Ok(host) => Cow::Owned(host),
+        Err(_) => Cow::Borrowed(DEFAULT_OBJECT_STORAGE_HOST),
+    }
+}
+
 impl ObjectStorageUpdater {
     /// Creates a new instance of `GraphUpdater`.
     ///
@@ -115,10 +119,7 @@ impl ObjectStorageUpdater {
             .build()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
-        let object_storage_host = match std::env::var(OBJECT_STORAGE_HOST_ENV_VAR) {
-            Ok(host) => Cow::Owned(host),
-            Err(_) => Cow::Borrowed(DEFAULT_OBJECT_STORAGE_HOST),
-        };
+        let object_storage_host = object_storage_host();
 
         let object_storage_url = match graph_ref {
             GraphRef::LatestProductionVersion { graph_slug } => {
@@ -266,9 +267,10 @@ impl ObjectStorageUpdater {
             self.current_id = Some(version_id);
 
             self.sender
-                .send(UpdateEvent::Graph(GraphDefinition::ObjectStorage {
-                    response,
-                    object_storage_base_url: self.object_storage_url.clone(),
+                .send(UpdateEvent::Graph(Graph::FromGraphRef {
+                    branch_id: response.branch_id,
+                    version_id: response.version_id,
+                    sdl: response.sdl,
                 }))
                 .await
                 .expect("internal error: channel closed");
