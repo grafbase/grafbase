@@ -18,7 +18,7 @@ pub enum Error {
     #[error("fetcher configuration error: {0}")]
     FetcherConfigError(String),
     #[error(transparent)]
-    CreateExtensionCatalogError(#[from] crate::server::CreateExtensionCatalogError),
+    CreateExtensionCatalogError(#[from] crate::extensions::Error),
 }
 
 impl<T> From<watch::error::SendError<T>> for Error {
