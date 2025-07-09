@@ -23,12 +23,12 @@ impl HostHeaders for WasiState {
         value: Vec<Vec<u8>>,
     ) -> wasmtime::Result<Result<(), HeaderError>> {
         let headers = WasiState::get_mut(self, &self_)?;
-        Ok(headers.set(name, value).await.map_err(Into::into))
+        Ok(headers.set(name, value).await)
     }
 
     async fn delete(&mut self, self_: Resource<Headers>, name: String) -> wasmtime::Result<Result<(), HeaderError>> {
         let headers = WasiState::get_mut(self, &self_)?;
-        Ok(headers.delete(&name).await.map_err(Into::into))
+        Ok(headers.delete(&name).await)
     }
 
     async fn get_and_delete(
@@ -37,7 +37,7 @@ impl HostHeaders for WasiState {
         name: String,
     ) -> wasmtime::Result<Result<Vec<Vec<u8>>, HeaderError>> {
         let headers = WasiState::get_mut(self, &self_)?;
-        Ok(headers.get_and_delete(&name).await.map_err(Into::into))
+        Ok(headers.get_and_delete(&name).await)
     }
 
     async fn append(
@@ -47,7 +47,7 @@ impl HostHeaders for WasiState {
         value: Vec<u8>,
     ) -> wasmtime::Result<Result<(), HeaderError>> {
         let headers = WasiState::get_mut(self, &self_)?;
-        Ok(headers.append(name, value).await.map_err(Into::into))
+        Ok(headers.append(name, value).await)
     }
 
     async fn entries(&mut self, self_: Resource<Headers>) -> wasmtime::Result<Vec<(String, Vec<u8>)>> {
@@ -65,15 +65,5 @@ impl HostHeaders for WasiState {
     async fn new(&mut self) -> wasmtime::Result<Resource<Headers>> {
         let headers = self.push_resource(Headers::from(http::HeaderMap::default()))?;
         Ok(headers)
-    }
-}
-
-impl From<crate::extension::api::wit::HeaderError> for HeaderError {
-    fn from(err: crate::extension::api::wit::HeaderError) -> Self {
-        match err {
-            crate::extension::api::wit::HeaderError::InvalidSyntax => HeaderError::InvalidSyntax,
-            crate::extension::api::wit::HeaderError::Forbidden => HeaderError::Forbidden,
-            crate::extension::api::wit::HeaderError::Immutable => HeaderError::Immutable,
-        }
     }
 }

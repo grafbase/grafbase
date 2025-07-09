@@ -60,7 +60,7 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_17_0 {
 
             self.poisoned = false;
 
-            Ok(response.into())
+            Ok(response)
         })
     }
 
@@ -119,9 +119,7 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_17_0 {
                 .call_resolve_next_subscription_item(&mut self.store, context)
                 .await?;
 
-            Ok(result
-                .map(|i| i.map(Into::into))
-                .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError)))
+            Ok(result.map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError)))
         })
     }
 }

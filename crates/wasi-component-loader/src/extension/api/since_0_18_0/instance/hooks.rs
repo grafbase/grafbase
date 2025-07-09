@@ -43,7 +43,7 @@ impl HooksInstance for super::ExtensionInstanceSince0_18_0 {
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
-                .call_on_request(&mut self.store, context, &url, method.into(), headers)
+                .call_on_request(&mut self.store, context, &url, method, headers)
                 .await?;
 
             parts.headers = self
@@ -57,10 +57,7 @@ impl HooksInstance for super::ExtensionInstanceSince0_18_0 {
 
             self.poisoned = false;
 
-            result.map_err(|err| {
-                let err_0_19: crate::extension::api::wit::ErrorResponse = err.into();
-                ErrorResponse::from_wit(&mut self.store, err_0_19)
-            })?;
+            result.map_err(|err| ErrorResponse::from_wit(&mut self.store, err))?;
 
             Ok(parts)
         })

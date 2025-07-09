@@ -43,7 +43,7 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
-                .call_on_request(&mut self.store, context, &url, method.into(), headers)
+                .call_on_request(&mut self.store, context, &url, method, headers)
                 .await?;
 
             parts.headers = self

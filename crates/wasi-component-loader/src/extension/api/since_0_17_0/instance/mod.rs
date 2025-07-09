@@ -126,7 +126,7 @@ fn error_response_from_wit(store: &mut Store<WasiState>, error: super::wit::erro
 
     ErrorResponse::Guest {
         status_code: http::StatusCode::from_u16(error.status_code).unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR),
-        errors: error.errors.into_iter().map(Into::into).collect(),
+        errors: error.errors.into_iter().collect(),
         headers,
     }
 }
