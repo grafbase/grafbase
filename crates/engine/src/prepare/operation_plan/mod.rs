@@ -38,7 +38,7 @@ pub async fn plan(
                 errors,
                 headers,
             } = *error_response;
-            Response::refuse_request_with(status, errors, headers)
+            Response::refused_request(status, errors, headers)
         }
     })
 }

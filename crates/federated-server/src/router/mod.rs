@@ -1,15 +1,13 @@
 mod cors;
 mod csrf;
+mod graphql;
 mod health;
+pub(crate) mod layers;
 mod state;
 
 use std::pin::Pin;
 
-use axum::{body::Bytes, extract::State, response::IntoResponse, routing::get};
-use engine_axum::{
-    middleware::HooksLayer,
-    websocket::{WebsocketAccepter, WebsocketService},
-};
+use axum::{body::Bytes, routing::get};
 use runtime::{authentication::Authenticate, extension::HooksExtension};
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -55,7 +53,7 @@ where
     let websocket_path = &config.graph.websocket_path;
 
     let (websocket_sender, websocket_receiver) = mpsc::channel(16);
-    let websocket_accepter = WebsocketAccepter::new(websocket_receiver, engine.clone());
+    let websocket_accepter = graphql::ws::WebsocketAccepter::new(websocket_receiver, engine.clone());
 
     tokio::spawn(websocket_accepter.handler());
 
@@ -73,8 +71,8 @@ where
     let mut router = server_runtime
         .base_router()
         .unwrap_or_default()
-        .route(path, get(graphql_execute).post(graphql_execute))
-        .route_service(websocket_path, WebsocketService::new(websocket_sender))
+        .route(path, get(graphql::http::execute).post(graphql::http::execute))
+        .route_service(websocket_path, graphql::ws::WebsocketService::new(websocket_sender))
         .with_state(state);
 
     let ct = match &config.mcp {
@@ -117,7 +115,7 @@ where
         ));
 
     let mut router = inject_layers_before_cors(router)
-        .layer(HooksLayer::new(hooks))
+        .layer(layers::HooksLayer::new(hooks))
         .layer(compression)
         .layer(cors);
 
@@ -134,26 +132,6 @@ where
     }
 
     Ok((router, ct))
-}
-
-/// Executes a GraphQL request against the registered engine.
-async fn graphql_execute<R: engine::Runtime, SR: ServerRuntime>(
-    State(state): State<ServerState<R, SR>>,
-    request: axum::extract::Request,
-) -> impl IntoResponse {
-    let engine = state.engine.borrow().clone();
-
-    let response = engine_axum::execute(engine, request, state.request_body_limit_bytes).await;
-
-    // lambda must flush the trace events here, otherwise the
-    // function might fall asleep and the events are pending until
-    // the next wake-up.
-    //
-    // read more: https://github.com/open-telemetry/opentelemetry-lambda/blob/main/docs/design_proposal.md
-    #[cfg(feature = "lambda")]
-    state.server_runtime.after_request();
-
-    response
 }
 
 /// Creates a handler for public metadata endpoints that returns a pre-configured response.

@@ -30,7 +30,6 @@ pub struct Engine<R: Runtime> {
     pub schema: Arc<Schema>,
     pub runtime: R,
     pub(crate) retry_budgets: RetryBudgets,
-    pub(crate) default_response_format: ResponseFormat,
 }
 
 impl<R: Runtime> Engine<R> {
@@ -41,8 +40,6 @@ impl<R: Runtime> Engine<R> {
             retry_budgets: RetryBudgets::build(&schema),
             schema,
             runtime,
-            // Could be coming from configuration one day
-            default_response_format: ResponseFormat::application_json(),
         }
     }
 

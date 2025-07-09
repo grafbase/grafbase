@@ -116,10 +116,6 @@ impl GraphqlError {
         GraphqlError::new("Internal server error", ErrorCode::InternalServerError)
     }
 
-    pub fn internal_hook_error() -> Self {
-        GraphqlError::new("Internal hook error", ErrorCode::HookError)
-    }
-
     pub fn internal_extension_error() -> Self {
         GraphqlError::new("Internal extension error", ErrorCode::ExtensionError)
     }

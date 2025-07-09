@@ -87,7 +87,7 @@ impl RefusedRequestResponse {
 }
 
 impl Response {
-    pub(crate) fn refuse_request_with(
+    pub(crate) fn refused_request(
         status: http::StatusCode,
         errors: impl IntoIterator<Item = impl Into<GraphqlError>>,
         headers: http::HeaderMap,

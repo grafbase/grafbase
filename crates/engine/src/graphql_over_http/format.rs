@@ -1,13 +1,13 @@
 use mediatype::MediaType;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum ResponseFormat {
+pub enum ResponseFormat {
     Complete(CompleteResponseFormat),
     Streaming(StreamingResponseFormat),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum CompleteResponseFormat {
+pub enum CompleteResponseFormat {
     /// Follow the [GraphQL over HTTP spec][1]
     ///
     /// [1]: https://github.com/graphql/graphql-over-http/blob/main/spec/GraphQLOverHTTP.md
@@ -19,7 +19,7 @@ pub(crate) enum CompleteResponseFormat {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum StreamingResponseFormat {
+pub enum StreamingResponseFormat {
     /// Follow the [incremental delivery spec][1]
     ///
     /// [1]: https://github.com/graphql/graphql-over-http/blob/main/rfcs/IncrementalDelivery.md
@@ -69,6 +69,12 @@ impl ContentType {
     }
 }
 
+impl Default for ResponseFormat {
+    fn default() -> Self {
+        ResponseFormat::application_json()
+    }
+}
+
 impl ResponseFormat {
     pub fn application_json() -> Self {
         ResponseFormat::Complete(CompleteResponseFormat::Json)
@@ -114,9 +120,9 @@ mod accept {
 }
 
 impl ResponseFormat {
-    pub fn extract_from(headers: &http::HeaderMap, default: ResponseFormat) -> Option<Self> {
+    pub fn extract_from(headers: &http::HeaderMap) -> Option<Self> {
         if !headers.contains_key("accept") {
-            return Some(default);
+            return Some(ResponseFormat::default());
         }
         let (mediatype, _) = headers
             .get_all("accept")
@@ -142,7 +148,7 @@ impl ResponseFormat {
 
         let essence = mediatype.essence();
         if essence == accept::STAR_STAR || essence == accept::APPLICATION_STAR {
-            Some(default)
+            Some(ResponseFormat::default())
         } else if essence == accept::APPLICATION_JSON {
             Some(ResponseFormat::Complete(CompleteResponseFormat::Json))
         } else if essence == accept::APPLICATION_GRAPHQL_RESPONSE_JSON {

@@ -2,7 +2,6 @@
 mod lambda;
 
 use axum::Router;
-use engine_axum::middleware::TelemetryLayer;
 use gateway_config::{Config, TlsConfig};
 use std::{net::SocketAddr, path::PathBuf};
 use tokio::{
@@ -107,7 +106,7 @@ pub async fn serve(
     let inject_layers_before_cors = |router: axum::Router| {
         // Currently we're doing those after CORS handling in the request as we don't care
         // about pre-flight requests.
-        let telemetry_layer = TelemetryLayer::new(
+        let telemetry_layer = router::layers::TelemetryLayer::new(
             grafbase_telemetry::metrics::meter_from_global_provider(),
             Some(listen_address),
         );
