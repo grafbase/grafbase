@@ -65,7 +65,7 @@ fn main() -> anyhow::Result<()> {
             config_receiver,
             config_path: args.config_path().map(|p| p.to_owned()),
             config_hot_reload: args.hot_reload(),
-            fetch_method: args.fetch_method()?,
+            graph_loader: args.fetch_method()?,
             grafbase_access_token: args.grafbase_access_token()?,
             logging_filter,
         };

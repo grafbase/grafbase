@@ -10,13 +10,6 @@ pub struct LambdaLayer {
     trim_stage: bool,
 }
 
-impl LambdaLayer {
-    pub fn trim_stage(mut self) -> Self {
-        self.trim_stage = true;
-        self
-    }
-}
-
 impl<S> Layer<S> for LambdaLayer {
     type Service = LambdaService<S>;
 

@@ -138,7 +138,7 @@ async fn start(args: DevCommand, logging_filter: String) -> anyhow::Result<()> {
         config_path: None,
         config_hot_reload: false,
         config_receiver,
-        fetch_method: GraphLoader::FromChannel {
+        graph_loader: GraphLoader::FromChannel {
             current_dir,
             sdl_receiver,
         },

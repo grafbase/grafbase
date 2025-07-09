@@ -6,8 +6,8 @@ use std::path::PathBuf;
 use graph_ref::GraphRef;
 use tokio::sync::mpsc;
 
-pub(crate) use object_storage::*;
-pub(crate) use schema_file::*;
+pub use object_storage::*;
+pub use schema_file::*;
 
 use crate::{AccessToken, events::UpdateEvent, graph::Graph};
 

@@ -7,17 +7,17 @@ mod hot_reload;
 
 pub use access_token::AccessToken;
 pub use error::Error;
-pub use graph::GraphLoader;
-pub use server::ObjectStorageResponse;
+pub use graph::{GraphLoader, ObjectStorageResponse};
 
 mod engine;
 mod error;
 mod events;
 mod extensions;
 mod graph;
-mod server;
+pub mod router;
+mod serve;
 
 /// The crate result type.
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub use server::{ServeConfig, ServerRuntime, router, serve};
+pub use serve::{ServeConfig, ServerRuntime, serve};

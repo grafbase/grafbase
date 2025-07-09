@@ -11,8 +11,6 @@ use futures_util::TryFutureExt;
 /// to determine the appropriate Content-Type and status code handling according to
 /// the GraphQL-over-HTTP specification.
 pub mod error_response;
-#[cfg(feature = "lambda")]
-pub mod lambda;
 pub mod middleware;
 pub mod websocket;
 
