@@ -1,5 +1,7 @@
+mod cors;
 mod csrf;
 mod health;
+mod state;
 
 use std::pin::Pin;
 
@@ -16,9 +18,9 @@ use tower_http::{
     cors::CorsLayer,
 };
 
-use crate::engine::EngineWatcher;
+use crate::{engine::EngineWatcher, router::state::ServerState};
 
-use super::{ServerRuntime, ServerState, cors};
+use super::ServerRuntime;
 
 pub struct RouterConfig<R, SR, H, F>
 where
@@ -101,6 +103,14 @@ where
         );
     }
 
+    // Streaming and compression doesn't really work well today. Had a panic deep inside stream
+    // unfold. Furthermore there seem to be issues with it as pointed out by Apollo's router
+    // team:
+    // https://github.com/tower-rs/tower-http/issues/292
+    // They have copied the compression code and adjusted it, see PRs for:
+    // https://github.com/apollographql/router/issues/1572
+    // We'll need to see what we do. For now I'm disabling it as it's not important enough
+    // right now.
     let compression =
         CompressionLayer::new().compress_when(DefaultPredicate::new().and(
             NotForContentType::const_new("multipart/mixed").and(NotForContentType::const_new("text/event-stream")),
@@ -108,14 +118,6 @@ where
 
     let mut router = inject_layers_before_cors(router)
         .layer(HooksLayer::new(hooks))
-        // Streaming and compression doesn't really work well today. Had a panic deep inside stream
-        // unfold. Furthermore there seem to be issues with it as pointed out by Apollo's router
-        // team:
-        // https://github.com/tower-rs/tower-http/issues/292
-        // They have copied the compression code and adjusted it, see PRs for:
-        // https://github.com/apollographql/router/issues/1572
-        // We'll need to see what we do. For now I'm disabling it as it's not important enough
-        // right now.
         .layer(compression)
         .layer(cors);
 

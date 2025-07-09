@@ -11,7 +11,7 @@ workspace = true
 
 [features]
 default = []
-lambda = ["engine-axum/lambda", "dep:tower", "dep:lambda_http"]
+lambda = ["dep:tower", "dep:lambda_http"]
 
 [dependencies]
 ascii = { workspace = true, features = ["serde"] }
@@ -34,6 +34,8 @@ grafbase-workspace-hack.workspace = true
 graph-ref.workspace = true
 graphql-composition.workspace = true
 http.workspace = true
+http-body-util.workspace = true
+hyper.workspace = true
 notify.workspace = true
 reqwest = { workspace = true, features = ["http2", "json", "rustls-tls"] }
 rolling-logger.workspace = true
@@ -54,6 +56,7 @@ tower-http = { workspace = true, features = [
     "compression-gzip",
     "compression-br",
 ] }
+tower-service.workspace = true
 tracing.workspace = true
 ulid = { workspace = true, features = ["serde"] }
 url = { workspace = true, features = ["serde"] }
