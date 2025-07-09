@@ -50,7 +50,7 @@ WORKDIR /grafbase
 # used curl to run a health check query against the server in a docker-compose file
 RUN apt update && apt upgrade -y && apt install -y curl && rm -rf /var/lib/apt/lists/*
 
-RUN adduser --home "/data" grafbase && mkdir -p /data && chown grafbase /data
+RUN adduser -u 1000 --home /data grafbase && mkdir -p /data && chown grafbase /data
 USER grafbase
 
 COPY --from=builder /grafbase/target/release/grafbase-gateway /bin/grafbase-gateway

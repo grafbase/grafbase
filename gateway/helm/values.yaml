@@ -18,10 +18,10 @@ image:
 imagePullSecrets: []
 
 # Override Helm release name for custom resource names.
-nameOverride: ""
+nameOverride: ''
 
 # Override the full Helm release name for custom resource names.
-fullnameOverride: ""
+fullnameOverride: ''
 
 serviceAccount:
   # Whether to create a new service account.
@@ -31,7 +31,7 @@ serviceAccount:
   annotations: {}
 
   # Specify a custom name for the service account if `create` is false.
-  name: ""
+  name: ''
 
 # Annotations for the Grafbase gateway pods.
 # https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
@@ -41,7 +41,7 @@ podAnnotations: {}
 # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
 podSecurityContext:
   runAsNonRoot: true
-  runAsUser: 1001
+  runAsUser: 1000
 
 # Security context for each container, defining privileges and access control.
 # https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
@@ -75,7 +75,7 @@ ingress:
   enabled: false
 
   # Specify ingress class, e.g., nginx.
-  className: "nginx"
+  className: 'nginx'
 
   hosts:
     - # Hostname for the ingress route.
@@ -146,7 +146,7 @@ gateway:
   # Default GraphQL schema for the gateway.
   # Providing the schema through values does not require an explicit `--schema` flag to be passed in through `args: []`.
   # Alternatively one can leverage `volumes`, `volumeMounts` and `args` to make an external schema available.
-  schema: "type Query"
+  schema: 'type Query'
   # Opt-out of providing the federated schema through helm values
   externalSchema: false
 
