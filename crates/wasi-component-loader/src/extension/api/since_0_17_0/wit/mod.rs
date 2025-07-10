@@ -21,7 +21,6 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/token": crate::extension::api::since_0_10_0::wit::token,
         "grafbase:sdk/schema": schema,
         "grafbase:sdk/headers/headers": crate::resources::Headers,
-        "grafbase:sdk/authorization-types": crate::extension::api::since_0_14_0::wit::authorization_types,
         "grafbase:sdk/resolver-types": resolver_types,
         "grafbase:sdk/authorization-types": authorization_types,
         "grafbase:sdk/event-queue/event-queue": crate::resources::EventQueueProxy,

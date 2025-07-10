@@ -23,7 +23,7 @@ impl HostHttpClient for WasiState {
 
         let response = match send_request(request, self.request_durations().clone()).await {
             Ok(resp) => resp,
-            Err(e) => return Ok(Err(e.into())),
+            Err(e) => return Ok(Err(e)),
         };
 
         let (parts, body) = response.into_parts();
@@ -85,16 +85,6 @@ impl HostHttpClient for WasiState {
     async fn drop(&mut self, _: Resource<HttpClient>) -> wasmtime::Result<()> {
         // Singleton that is never allocated
         Ok(())
-    }
-}
-
-impl From<crate::extension::api::wit::HttpError> for HttpError {
-    fn from(err: crate::extension::api::wit::HttpError) -> Self {
-        match err {
-            crate::extension::api::wit::HttpError::Timeout => HttpError::Timeout,
-            crate::extension::api::wit::HttpError::Request(msg) => HttpError::Request(msg),
-            crate::extension::api::wit::HttpError::Connect(msg) => HttpError::Connect(msg),
-        }
     }
 }
 

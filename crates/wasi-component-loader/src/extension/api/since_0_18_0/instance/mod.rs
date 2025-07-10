@@ -61,7 +61,7 @@ impl SdkPre0_18_0 {
         let subgraph_schemas: Vec<(&'static str, WitSchema<'static>)> =
             unsafe { std::mem::transmute(subgraph_schemas) };
 
-        super::wit::shared_context::add_to_linker_impl(&mut linker)?;
+        super::wit::grafbase::sdk::shared_context::add_to_linker_impl(&mut linker)?;
         wit::Sdk::add_to_linker(&mut linker, |state| state)?;
 
         let instance_pre = linker.instantiate_pre(&component)?;
