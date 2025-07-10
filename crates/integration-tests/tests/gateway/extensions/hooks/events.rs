@@ -23,8 +23,7 @@ fn receive_events() {
                 events_header_name = "x-events"
             "#,
             )
-            .with_hook_extension("hooks")
-            .await
+            .with_extension("hooks")
             .with_subgraph(EchoSchema)
             .build()
             .await;
@@ -118,8 +117,7 @@ fn access_logs_with_working_subgraph() {
     let mut response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_hook_extension("access-logs")
-            .await
+            .with_extension("access-logs")
             .with_subgraph(EchoSchema)
             .build()
             .await;
@@ -224,8 +222,7 @@ fn access_logs_operation_limits() {
     let mut response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_hook_extension("access-logs")
-            .await
+            .with_extension("access-logs")
             .with_subgraph(EchoSchema)
             .build()
             .await;
@@ -327,8 +324,7 @@ fn access_logs_with_broken_query() {
     let mut response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_hook_extension("access-logs")
-            .await
+            .with_extension("access-logs")
             .with_subgraph(EchoSchema)
             .build()
             .await;
@@ -421,8 +417,7 @@ fn access_logs_with_caching() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_hook_extension("access-logs")
-            .await
+            .with_extension("access-logs")
             .with_subgraph(EchoSchema)
             .build()
             .await;

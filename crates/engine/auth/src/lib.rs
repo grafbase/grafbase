@@ -6,7 +6,7 @@ use error::{ErrorCode, ErrorResponse, GraphqlError};
 use extension_catalog::{ExtensionCatalog, ExtensionId};
 use futures_util::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
 use gateway_config::{AuthenticationProvider, DefaultAuthenticationBehavior};
-use runtime::{authentication::LegacyToken, extension::ExtensionRuntime, kv::KvStore};
+use runtime::{authentication::LegacyToken, extension::EngineExtensions, kv::KvStore};
 use tracing::{Instrument, info_span};
 
 trait LegacyAuthorizer: Send + Sync + 'static {
@@ -85,7 +85,7 @@ impl<Extensions> AuthenticationService<Extensions> {
     }
 }
 
-impl<Extensions: ExtensionRuntime> runtime::authentication::Authenticate<Extensions::Context>
+impl<Extensions: EngineExtensions> runtime::authentication::Authenticate<Extensions::Context>
     for AuthenticationService<Extensions>
 {
     async fn authenticate(

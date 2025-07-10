@@ -21,6 +21,7 @@ event-queue.workspace = true
 extension-catalog.workspace = true
 futures.workspace = true
 futures-util.workspace = true
+fxhash.workspace = true
 gateway-config.workspace = true
 grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true

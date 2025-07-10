@@ -30,7 +30,7 @@ where
     pub config: gateway_config::Config,
     pub engine: EngineWatcher<R>,
     pub server_runtime: SR,
-    pub hooks: H,
+    pub extensions: H,
     pub inject_layers_before_cors: F,
 }
 
@@ -39,7 +39,7 @@ pub async fn create<R, SR, H, F>(
         config,
         engine,
         server_runtime,
-        hooks,
+        extensions,
         inject_layers_before_cors,
     }: RouterConfig<R, SR, H, F>,
 ) -> crate::Result<(axum::Router, Option<CancellationToken>)>
@@ -115,7 +115,7 @@ where
         ));
 
     let mut router = inject_layers_before_cors(router)
-        .layer(layers::HooksLayer::new(hooks))
+        .layer(layers::HooksLayer::new(extensions))
         .layer(compression)
         .layer(cors);
 

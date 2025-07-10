@@ -142,7 +142,7 @@ impl EngineReloader {
         Ok(EngineReloader { engine_watcher })
     }
 
-    pub fn engine_watcher(&self) -> EngineWatcher<EngineRuntime> {
+    pub fn watcher(&self) -> EngineWatcher<EngineRuntime> {
         self.engine_watcher.clone()
     }
 }

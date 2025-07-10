@@ -6,7 +6,7 @@ use tokio_stream::{StreamExt, wrappers::BroadcastStream};
 
 use crate::{
     Error, SharedContext,
-    extension::{ExtensionGuard, WasmExtensions, api::wit::SubscriptionItem},
+    extension::{EngineWasmExtensions, ExtensionGuard, api::wit::SubscriptionItem},
 };
 
 use super::SubscriptionStream;
@@ -18,7 +18,7 @@ use super::SubscriptionStream;
 ///
 /// The extension determines if and how to deduplicate the subscription requests.
 pub struct DeduplicatedSubscription {
-    pub extensions: WasmExtensions,
+    pub extensions: EngineWasmExtensions,
     pub key: Vec<u8>,
     pub instance: ExtensionGuard,
     pub context: SharedContext,

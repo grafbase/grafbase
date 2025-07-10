@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use crate::{SharedContext, extension::WasmExtensions, resources::Lease};
+use crate::{SharedContext, extension::EngineWasmExtensions, resources::Lease};
 use engine_error::{ErrorCode, ErrorResponse};
 use extension_catalog::ExtensionId;
 use futures::{StreamExt as _, stream::FuturesUnordered};
 use runtime::extension::{AuthenticationExtension, Token};
 
-impl AuthenticationExtension<SharedContext> for WasmExtensions {
+impl AuthenticationExtension<SharedContext> for EngineWasmExtensions {
     async fn authenticate(
         &self,
         context: &SharedContext,

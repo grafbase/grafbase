@@ -104,7 +104,7 @@ pub struct TestExtensions {
     pub(super) state: Arc<Mutex<TestExtensionsState>>,
 }
 
-impl runtime::extension::ExtensionRuntime for TestExtensions {
+impl runtime::extension::EngineExtensions for TestExtensions {
     type Context = ExtContext;
 }
 

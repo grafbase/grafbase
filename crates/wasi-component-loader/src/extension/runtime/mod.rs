@@ -8,10 +8,10 @@ mod subscription;
 
 use crate::resources::SharedContext;
 
-use runtime::extension::ExtensionRuntime;
+use runtime::extension::EngineExtensions;
 
-use super::WasmExtensions;
+use super::EngineWasmExtensions;
 
-impl ExtensionRuntime for WasmExtensions {
+impl EngineExtensions for EngineWasmExtensions {
     type Context = SharedContext;
 }

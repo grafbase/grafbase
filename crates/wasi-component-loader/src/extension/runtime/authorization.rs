@@ -1,6 +1,6 @@
 use crate::{Error, SharedContext, cbor, extension::api::wit, resources::Lease};
 
-use super::WasmExtensions;
+use super::EngineWasmExtensions;
 
 use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
@@ -11,7 +11,7 @@ use runtime::extension::{
 };
 use std::{future::Future, ops::Range, sync::Arc};
 
-impl AuthorizationExtension<SharedContext> for WasmExtensions {
+impl AuthorizationExtension<SharedContext> for EngineWasmExtensions {
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
         ctx: &'ctx SharedContext,

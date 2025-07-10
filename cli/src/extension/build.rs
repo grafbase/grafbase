@@ -241,7 +241,9 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
             directives: extension_toml.directives.authorization,
         }),
         ExtensionType::SelectionSetResolver => Type::SelectionSetResolver(Default::default()),
-        ExtensionType::Hooks => Type::Hooks(Default::default()),
+        ExtensionType::Hooks => Type::Hooks(extension::HooksType {
+            event_filter: extension_toml.hooks.events,
+        }),
     };
 
     let sdl_path = extension_toml
@@ -302,7 +304,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
         repository_url: extension_toml.extension.repository_url,
         license: extension_toml.extension.license,
         permissions,
-        event_filter: extension_toml.hooks.events,
+        legacy_event_filter: None,
     };
 
     Ok(manifest)

@@ -8,7 +8,7 @@ use tokio::{
     signal,
     sync::{mpsc, watch},
 };
-use wasi_component_loader::extension::WasmHooks;
+use wasi_component_loader::extension::GatewayWasmExtensions;
 
 use crate::{
     AccessToken, GraphLoader,
@@ -79,10 +79,10 @@ pub async fn serve(
     }
 
     // We separate the hooks extension, which runs outside of the engine in the axum layers.
-    let (extension_catalog, hooks_extension) = create_extension_catalog(&config).await?;
+    let extension_catalog = create_extension_catalog(&config).await?;
 
     // The engine reloads itself when the graph, or configuration changes.
-    let update_handler = EngineReloader::spawn(EngineReloaderConfig {
+    let engine_reloader = EngineReloader::spawn(EngineReloaderConfig {
         update_receiver,
         initial_config: config.clone(),
         extension_catalog: &extension_catalog,
@@ -99,7 +99,7 @@ pub async fn serve(
         .map(|m| format!("http://{listen_address}{}", m.path));
 
     // On-request, on-response hooks extension.
-    let hooks = WasmHooks::new(&config, hooks_extension, logging_filter)
+    let gateway_extensions = GatewayWasmExtensions::new(&extension_catalog, &config, logging_filter)
         .await
         .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
@@ -116,9 +116,9 @@ pub async fn serve(
 
     let router_config = RouterConfig {
         config,
-        engine: update_handler.engine_watcher(),
+        engine: engine_reloader.watcher(),
         server_runtime: server_runtime.clone(),
-        hooks,
+        extensions: gateway_extensions,
         inject_layers_before_cors,
     };
 

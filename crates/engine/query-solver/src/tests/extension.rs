@@ -256,7 +256,7 @@ async fn mix_of_look_derive_require() {
         repository_url: None,
         license: None,
         permissions: Default::default(),
-        event_filter: Default::default(),
+        legacy_event_filter: Default::default(),
     };
 
     std::fs::write(

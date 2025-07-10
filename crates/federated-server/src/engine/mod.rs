@@ -42,7 +42,7 @@ pub(super) async fn generate(context: EngineBuildContext<'_>, graph: Graph) -> c
         Some(catalog) => Cow::Borrowed(catalog),
         None => {
             tracing::debug!("Creating extension catalog.");
-            let (catalog, _) = create_extension_catalog(context.gateway_config).await?;
+            let catalog = create_extension_catalog(context.gateway_config).await?;
 
             Cow::Owned(catalog)
         }

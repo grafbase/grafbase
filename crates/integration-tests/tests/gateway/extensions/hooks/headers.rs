@@ -22,8 +22,7 @@ fn incoming_header() {
 
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_hook_extension("hooks")
-            .await
+            .with_extension("hooks")
             .with_subgraph(EchoSchema)
             .build()
             .await;
@@ -62,8 +61,7 @@ fn outgoing_header() {
 
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_hook_extension("hooks")
-            .await
+            .with_extension("hooks")
             .with_subgraph(EchoSchema)
             .build()
             .await;

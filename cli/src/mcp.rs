@@ -16,7 +16,7 @@ use grafbase_telemetry::metrics::{EngineMetrics, meter_from_global_provider};
 use runtime::{entity_cache::EntityCache, kv::KvStore, rate_limiting::RateLimiter, trusted_documents_client};
 use runtime_local::{InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher};
 use std::io::stdout;
-use wasi_component_loader::extension::WasmExtensions;
+use wasi_component_loader::extension::EngineWasmExtensions;
 
 use crate::{cli_input::McpCommand, dev::DEFAULT_PORT};
 
@@ -70,7 +70,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
             .map_err(|err| anyhow::anyhow!("Internal: failed to build schema: {err}"))?
     };
 
-    let extensions = WasmExtensions::default();
+    let extensions = EngineWasmExtensions::default();
     let kv = InMemoryKvStore::runtime();
     let authentication = AuthenticationService::new(&config, &extensions_catalog, extensions.clone(), &kv);
     let runtime = MinimalRuntime {
@@ -128,17 +128,17 @@ struct MinimalRuntime {
     trusted_documents: trusted_documents_client::Client,
     kv: KvStore,
     metrics: EngineMetrics,
-    extensions: WasmExtensions,
+    extensions: EngineWasmExtensions,
     rate_limiter: RateLimiter,
     entity_cache: InMemoryEntityCache,
     operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
-    authentication: AuthenticationService<WasmExtensions>,
+    authentication: AuthenticationService<EngineWasmExtensions>,
 }
 
 impl engine::Runtime for MinimalRuntime {
     type Fetcher = NativeFetcher;
     type OperationCache = InMemoryOperationCache<Arc<CachedOperation>>;
-    type Extensions = WasmExtensions;
+    type Extensions = EngineWasmExtensions;
     type Authenticate = AuthenticationService<Self::Extensions>;
 
     fn fetcher(&self) -> &Self::Fetcher {

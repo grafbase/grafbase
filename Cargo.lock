@@ -11096,6 +11096,7 @@ dependencies = [
  "extension-catalog",
  "futures",
  "futures-util",
+ "fxhash",
  "gateway-config",
  "grafbase-telemetry",
  "grafbase-workspace-hack",

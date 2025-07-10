@@ -1,16 +1,16 @@
 use std::{future::Future, sync::Arc};
 
 use grafbase_telemetry::metrics::EngineMetrics;
-use runtime::{entity_cache::EntityCache, extension::ExtensionRuntime, kv::KvStore, rate_limiting::RateLimiter};
+use runtime::{entity_cache::EntityCache, extension::EngineExtensions, kv::KvStore, rate_limiting::RateLimiter};
 
 use crate::CachedOperation;
 
-pub type ExtensionContext<R> = <<R as Runtime>::Extensions as ExtensionRuntime>::Context;
+pub type ExtensionContext<R> = <<R as Runtime>::Extensions as EngineExtensions>::Context;
 
 pub trait Runtime: Send + Sync + 'static {
     type Fetcher: runtime::fetch::Fetcher;
     type OperationCache: runtime::operation_cache::OperationCache<Arc<CachedOperation>>;
-    type Extensions: ExtensionRuntime;
+    type Extensions: EngineExtensions;
     type Authenticate: runtime::authentication::Authenticate<ExtensionContext<Self>>;
 
     fn fetcher(&self) -> &Self::Fetcher;

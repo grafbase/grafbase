@@ -16,7 +16,7 @@ pub(crate) struct ExtensionLoader {
 }
 
 impl ExtensionLoader {
-    pub(crate) fn new<T: serde::Serialize>(schema: Arc<Schema>, config: ExtensionConfig<T>) -> crate::Result<Self> {
+    pub(crate) fn new<T: serde::Serialize>(schema: Arc<Schema>, config: &ExtensionConfig<T>) -> crate::Result<Self> {
         let mut wasm_config = wasmtime::Config::new();
 
         wasm_config
@@ -51,13 +51,13 @@ impl ExtensionLoader {
             wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
         }
 
-        let pre = SdkPre::new(schema, &config, component, linker)?;
+        let pre = SdkPre::new(schema, config, component, linker)?;
 
         Ok(Self {
-            wasm_config: config.wasm,
+            wasm_config: config.wasm.clone(),
             pre,
             cache: Arc::new(Cache::new()),
-            name: config.extension_name,
+            name: config.manifest_id.name.clone(),
         })
     }
 
