@@ -6,6 +6,7 @@
 
 - Implemented support for the `@internal` directive from the composite schemas spec (https://github.com/grafbase/grafbase/pull/3185)
 - Implemented support for the `@require` directive from the composite schemas spec (https://github.com/grafbase/grafbase/pull/3189)
+- Implemented validation that the root query type is not `@inaccessible`. (https://github.com/grafbase/grafbase/pull/3281)
 
 ## Breaking changes
 
