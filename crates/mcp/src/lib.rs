@@ -15,7 +15,7 @@ use engine::{Engine, Runtime};
 use gateway_config::ModelControlProtocolConfig;
 use rmcp::transport::{
     sse_server::{SseServer, SseServerConfig},
-    streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager},
+    streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager},
 };
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
@@ -34,10 +34,10 @@ pub fn router<R: Runtime>(
 
             let service = StreamableHttpService::new(
                 move || Ok(mcp_server.clone()),
-                Arc::new(LocalSessionManager::default()),
+                Arc::new(NeverSessionManager::default()),
                 StreamableHttpServerConfig {
                     sse_keep_alive: Some(Duration::from_secs(5)),
-                    stateful_mode: true,
+                    stateful_mode: false,
                 },
             );
 
