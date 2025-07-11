@@ -30,7 +30,7 @@ async fn single_call_caching_auth() {
 
     let loader = ExtensionLoader::new(
         Arc::new(Schema::from_sdl_or_panic("").await),
-        ExtensionConfig {
+        &ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Authentication,
             manifest_id: "caching_auth-1.0.0".parse().unwrap(),
@@ -42,7 +42,6 @@ async fn single_call_caching_auth() {
             })),
             can_skip_sending_events: false,
             logging_filter: String::from("info"),
-            extension_name: "caching_auth".to_string(),
         },
     )
     .unwrap();
@@ -90,7 +89,7 @@ async fn single_call_caching_auth_invalid() {
     assert!(config.location.exists());
     let loader = ExtensionLoader::new(
         Arc::new(Schema::empty().await),
-        ExtensionConfig {
+        &ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Authentication,
             manifest_id: "caching_auth-1.0.0".parse().unwrap(),
@@ -102,7 +101,6 @@ async fn single_call_caching_auth_invalid() {
             })),
             can_skip_sending_events: false,
             logging_filter: String::from("info"),
-            extension_name: "caching_auth".to_string(),
         },
     )
     .unwrap();
@@ -144,7 +142,7 @@ async fn multiple_cache_calls() {
     assert!(config.location.exists());
     let loader = ExtensionLoader::new(
         Arc::new(Schema::from_sdl_or_panic("").await),
-        ExtensionConfig {
+        &ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Authentication,
             manifest_id: "caching_auth-1.0.0".parse().unwrap(),
@@ -156,7 +154,6 @@ async fn multiple_cache_calls() {
             })),
             can_skip_sending_events: false,
             logging_filter: String::from("info"),
-            extension_name: "caching_auth".to_string(),
         },
     )
     .unwrap();
@@ -242,7 +239,7 @@ async fn on_request_hook() {
 
     let loader = ExtensionLoader::new(
         Arc::new(Schema::from_sdl_or_panic("").await),
-        ExtensionConfig {
+        &ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Hooks,
             manifest_id: "simple-hooks-1.0.0".parse().unwrap(),
@@ -252,7 +249,6 @@ async fn on_request_hook() {
             guest_config: Option::<toml::Value>::None,
             can_skip_sending_events: false,
             logging_filter: String::from("info"),
-            extension_name: "simple_hooks".to_string(),
         },
     )
     .unwrap();
@@ -283,7 +279,7 @@ async fn on_response_hook() {
 
     let loader = ExtensionLoader::new(
         Arc::new(Schema::from_sdl_or_panic("").await),
-        ExtensionConfig {
+        &ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Hooks,
             manifest_id: "simple-hooks-1.0.0".parse().unwrap(),
@@ -293,7 +289,6 @@ async fn on_response_hook() {
             guest_config: Option::<toml::Value>::None,
             can_skip_sending_events: false,
             logging_filter: String::from("info"),
-            extension_name: "simple_hooks".to_string(),
         },
     )
     .unwrap();

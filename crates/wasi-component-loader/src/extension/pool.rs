@@ -1,7 +1,13 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
 
 use deadpool::managed::{self, Manager};
+use engine_schema::Schema;
 use tracing::{Instrument, info_span};
+
+use crate::extension::ExtensionConfig;
 
 use super::{ExtensionInstance, ExtensionLoader};
 
@@ -28,16 +34,24 @@ impl DerefMut for ExtensionGuard {
 }
 
 impl Pool {
-    pub(super) fn new(loader: ExtensionLoader, size: Option<usize>) -> Self {
+    pub(super) async fn new<T: serde::Serialize>(
+        schema: Arc<Schema>,
+        config: &ExtensionConfig<T>,
+    ) -> crate::Result<Self> {
+        let loader = ExtensionLoader::new(schema, config)?;
         let mut builder = managed::Pool::builder(loader);
 
-        if let Some(size) = size {
+        if let Some(size) = config.pool.max_size {
             builder = builder.max_size(size);
         }
 
         let inner = builder.build().expect("only fails if not in a runtime");
+        let pool = Pool { inner };
 
-        Pool { inner }
+        // Load immediately an instance to check they can initialize themselves correctly.
+        let _ = pool.get().await?;
+
+        Ok(pool)
     }
 
     pub(crate) async fn get(&self) -> crate::Result<ExtensionGuard> {

@@ -16,9 +16,7 @@ pub enum Error {
     Io { context: String, err: io::Error },
 }
 
-pub(crate) async fn create_extension_catalog(
-    gateway_config: &Config,
-) -> Result<(ExtensionCatalog, Option<Extension>), Error> {
+pub(crate) async fn create_extension_catalog(gateway_config: &Config) -> Result<ExtensionCatalog, Error> {
     let cwd = env::current_dir().map_err(|e| Error::Io {
         context: "Failed to get current directory".to_string(),
         err: e,
@@ -27,12 +25,8 @@ pub(crate) async fn create_extension_catalog(
     create_extension_catalog_impl(gateway_config, &cwd).await
 }
 
-async fn create_extension_catalog_impl(
-    gateway_config: &Config,
-    cwd: &Path,
-) -> Result<(ExtensionCatalog, Option<Extension>), Error> {
+async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> Result<ExtensionCatalog, Error> {
     let mut catalog = ExtensionCatalog::default();
-    let mut hooks = None;
 
     let grafbase_extensions_dir = cwd.join(EXTENSION_DIR_NAME);
 
@@ -48,14 +42,10 @@ async fn create_extension_catalog_impl(
             None => find_matching_extensions_in_dir(config, &grafbase_extensions_dir, name).await?,
         };
 
-        if extension.manifest.r#type.is_hooks() && hooks.is_none() {
-            hooks = Some(extension);
-        } else {
-            catalog.push(extension);
-        }
+        catalog.push(extension);
     }
 
-    Ok((catalog, hooks))
+    Ok(catalog)
 }
 
 async fn find_matching_extensions_in_dir(
@@ -195,7 +185,6 @@ mod tests {
         let config = toml::from_str(config).unwrap();
 
         rt.block_on(create_extension_catalog_impl(&config, cwd))
-            .map(|(catalog, _)| catalog)
     }
 
     fn make_manifest(name: &str, version: &str) -> VersionedManifest {
@@ -216,7 +205,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: Default::default(),
-            event_filter: Default::default(),
+            legacy_event_filter: Default::default(),
         })
     }
 

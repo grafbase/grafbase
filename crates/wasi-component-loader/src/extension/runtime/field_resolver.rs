@@ -5,7 +5,7 @@ use crate::{
 };
 
 use super::{
-    WasmExtensions,
+    EngineWasmExtensions,
     subscription::{DeduplicatedSubscription, UniqueSubscription},
 };
 
@@ -15,7 +15,7 @@ use futures::stream::BoxStream;
 use runtime::extension::{Anything, Data, FieldResolverExtension};
 use std::future::Future;
 
-impl FieldResolverExtension for WasmExtensions {
+impl FieldResolverExtension for EngineWasmExtensions {
     #[allow(clippy::manual_async_fn)]
     fn resolve_field<'ctx, 'resp, 'f>(
         &'ctx self,

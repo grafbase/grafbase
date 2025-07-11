@@ -22,7 +22,7 @@ async fn direct_lookup_call() {
         repository_url: None,
         license: None,
         permissions: Default::default(),
-        event_filter: Default::default(),
+        legacy_event_filter: Default::default(),
     };
 
     std::fs::write(

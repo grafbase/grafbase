@@ -1,6 +1,13 @@
 pub(crate) mod api;
-mod manager;
+mod collection;
+mod config;
+mod instance;
+mod loader;
+mod pool;
 mod runtime;
 
-pub(crate) use manager::*;
-pub use manager::{WasmExtensions, WasmHooks};
+pub use collection::*;
+pub(crate) use config::*;
+pub(crate) use instance::*;
+pub(crate) use loader::*;
+pub(crate) use pool::*;

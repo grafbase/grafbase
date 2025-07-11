@@ -26,8 +26,9 @@ pub struct Manifest {
     pub license: Option<String>,
     #[serde(default)]
     pub permissions: Vec<ExtensionPermission>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub event_filter: Option<EventFilter>,
+    // LEGACY Hooks event filter
+    #[serde(skip_serializing_if = "Option::is_none", rename = "event_filter")]
+    pub legacy_event_filter: Option<EventFilter>,
 }
 
 impl Manifest {
@@ -118,7 +119,7 @@ pub enum Type {
     #[serde(alias = "Authenticator")]
     Authentication(Empty),
     Authorization(AuthorizationType),
-    Hooks(Empty),
+    Hooks(HooksType),
 }
 
 impl Type {
@@ -181,6 +182,12 @@ pub struct ResolverType {
     pub directives: Option<Vec<String>>,
 }
 
+#[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct HooksType {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_filter: Option<EventFilter>,
+}
+
 // Allows us to add fields later, as adding a value to an enum that doesn't have one would be
 // breaking change if not handled carefully in serde.
 #[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -232,7 +239,7 @@ mod tests {
                 ExtensionPermission::EnvironmentVariables,
                 ExtensionPermission::Network,
             ],
-            event_filter: None,
+            legacy_event_filter: None,
         };
 
         assert_eq!(manifest, expected,);
@@ -274,7 +281,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: Default::default(),
-            event_filter: None,
+            legacy_event_filter: None,
         };
 
         assert_eq!(manifest, expected,);
@@ -314,7 +321,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: Default::default(),
-            event_filter: None,
+            legacy_event_filter: None,
         };
 
         assert_eq!(manifest, expected,);
@@ -351,7 +358,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: Default::default(),
-            event_filter: None,
+            legacy_event_filter: None,
         };
 
         assert_eq!(manifest, expected,)
@@ -388,7 +395,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: Default::default(),
-            event_filter: None,
+            legacy_event_filter: None,
         };
 
         assert_eq!(manifest, expected,)
@@ -427,7 +434,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: Default::default(),
-            event_filter: None,
+            legacy_event_filter: None,
         };
         assert_eq!(manifest, expected);
 
@@ -477,7 +484,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: Default::default(),
-            event_filter: None,
+            legacy_event_filter: None,
         };
 
         assert_eq!(manifest, expected);
@@ -511,7 +518,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: Default::default(),
-            event_filter: None,
+            legacy_event_filter: None,
         };
         assert_eq!(manifest, expected);
     }
@@ -544,7 +551,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: Default::default(),
-            event_filter: None,
+            legacy_event_filter: None,
         };
         assert_eq!(manifest, expected);
 
@@ -578,7 +585,7 @@ mod tests {
             repository_url: None,
             license: None,
             permissions: Default::default(),
-            event_filter: None,
+            legacy_event_filter: None,
         };
         assert_eq!(manifest, expected);
     }
@@ -600,5 +607,169 @@ mod tests {
 
         let manifest: Manifest = serde_json::from_value(json).unwrap();
         assert!(manifest.sdl.is_none());
+    }
+
+    #[test]
+    fn hooks_compatibility_with_legacy_root_event_filter() {
+        // Test legacy format where event_filter was at the root level
+        let json = json!({
+            "id": {"name": "hooks-test", "version": "1.0.0"},
+            "kind": {
+                "Hooks": {}
+            },
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "A hooks extension test",
+            "homepage_url": "http://example.com/my-extension",
+            "event_filter": {
+                "All": null
+            }
+        });
+
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+
+        let expected = Manifest {
+            id: Id {
+                name: "hooks-test".to_string(),
+                version: semver::Version::new(1, 0, 0),
+            },
+            r#type: Type::Hooks(HooksType { event_filter: None }),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: None,
+            description: "A hooks extension test".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: Default::default(),
+            legacy_event_filter: Some(EventFilter::All),
+        };
+
+        assert_eq!(manifest, expected);
+
+        // Test with specific event types
+        let json = json!({
+            "id": {"name": "hooks-test", "version": "1.0.0"},
+            "kind": {
+                "Hooks": {}
+            },
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "A hooks extension test",
+            "homepage_url": "http://example.com/my-extension",
+            "event_filter": {
+                "Types": ["operation", "subgraph_request", "http_request"]
+            }
+        });
+
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+
+        let expected = Manifest {
+            id: Id {
+                name: "hooks-test".to_string(),
+                version: semver::Version::new(1, 0, 0),
+            },
+            r#type: Type::Hooks(HooksType { event_filter: None }),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: None,
+            description: "A hooks extension test".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: Default::default(),
+            legacy_event_filter: Some(EventFilter::Types(vec![
+                EventType::Operation,
+                EventType::SubgraphRequest,
+                EventType::HttpRequest,
+            ])),
+        };
+
+        assert_eq!(manifest, expected);
+    }
+
+    #[test]
+    fn hooks_compatibility_with_nested_event_filter() {
+        // Test new format where event_filter is nested inside the Hooks type
+        let json = json!({
+            "id": {"name": "hooks-test", "version": "2.0.0"},
+            "kind": {
+                "Hooks": {
+                    "event_filter": {
+                        "All": null
+                    }
+                }
+            },
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "A hooks extension test with nested filter",
+            "homepage_url": "http://example.com/my-extension"
+        });
+
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+
+        let expected = Manifest {
+            id: Id {
+                name: "hooks-test".to_string(),
+                version: semver::Version::new(2, 0, 0),
+            },
+            r#type: Type::Hooks(HooksType {
+                event_filter: Some(EventFilter::All),
+            }),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: None,
+            description: "A hooks extension test with nested filter".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: Default::default(),
+            legacy_event_filter: None,
+        };
+
+        assert_eq!(manifest, expected);
+
+        // Test with specific event types in nested format
+        let json = json!({
+            "id": {"name": "hooks-test", "version": "2.0.0"},
+            "kind": {
+                "Hooks": {
+                    "event_filter": {
+                        "Types": ["operation", "extension"]
+                    }
+                }
+            },
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "A hooks extension test with nested filter",
+            "homepage_url": "http://example.com/my-extension"
+        });
+
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+
+        let expected = Manifest {
+            id: Id {
+                name: "hooks-test".to_string(),
+                version: semver::Version::new(2, 0, 0),
+            },
+            r#type: Type::Hooks(HooksType {
+                event_filter: Some(EventFilter::Types(vec![EventType::Operation, EventType::Extension])),
+            }),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: None,
+            description: "A hooks extension test with nested filter".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: Default::default(),
+            legacy_event_filter: None,
+        };
+
+        assert_eq!(manifest, expected);
     }
 }

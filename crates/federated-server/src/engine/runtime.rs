@@ -12,7 +12,7 @@ use runtime_local::{
     redis::{RedisPoolFactory, RedisTlsConfig},
 };
 use url::Url;
-use wasi_component_loader::extension::WasmExtensions;
+use wasi_component_loader::extension::EngineWasmExtensions;
 
 use crate::{
     engine::{
@@ -30,11 +30,11 @@ pub struct EngineRuntime {
     pub(super) trusted_documents: runtime::trusted_documents_client::Client,
     kv: runtime::kv::KvStore,
     metrics: EngineMetrics,
-    pub(crate) extensions: WasmExtensions,
+    pub(crate) extensions: EngineWasmExtensions,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
     pub(crate) operation_cache: TieredOperationCache<Arc<CachedOperation>>,
-    authentication: engine_auth::AuthenticationService<WasmExtensions>,
+    authentication: engine_auth::AuthenticationService<EngineWasmExtensions>,
 }
 
 impl EngineRuntime {
@@ -100,7 +100,7 @@ impl EngineRuntime {
 
         tracing::debug!("Building extensions");
 
-        let extensions = WasmExtensions::new(
+        let extensions = EngineWasmExtensions::new(
             extension_catalog,
             ctx.gateway_config,
             schema,
@@ -164,7 +164,7 @@ impl EngineRuntime {
 impl engine::Runtime for EngineRuntime {
     type Fetcher = NativeFetcher;
     type OperationCache = TieredOperationCache<Arc<CachedOperation>>;
-    type Extensions = WasmExtensions;
+    type Extensions = EngineWasmExtensions;
     type Authenticate = engine_auth::AuthenticationService<Self::Extensions>;
 
     fn fetcher(&self) -> &Self::Fetcher {

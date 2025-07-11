@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use engine::{CachedOperation, Schema};
 use engine_auth::AuthenticationService;
-use extension_catalog::Extension;
 use gateway_config::Config;
 use grafbase_telemetry::metrics::{self, EngineMetrics};
 use runtime::{entity_cache::EntityCache, fetch::dynamic::DynamicFetcher, trusted_documents_client};
@@ -28,15 +27,14 @@ pub struct TestRuntime {
     pub metrics: EngineMetrics,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
     pub entity_cache: InMemoryEntityCache,
-    pub extensions: ExtensionsDispatcher,
+    pub engine_extensions: ExtensionsDispatcher,
     pub authentication: engine_auth::AuthenticationService<ExtensionsDispatcher>,
-    pub hooks: TestHooks,
+    pub gateway_extensions: GatewayTestExtensions,
 }
 
 pub(super) struct TestRuntimeBuilder {
     pub trusted_documents: Option<trusted_documents_client::Client>,
     pub fetcher: Option<DynamicFetcher>,
-    pub hooks_extension: Option<Extension>,
     pub extensions: ExtensionsBuilder,
 }
 
@@ -48,15 +46,15 @@ impl TestRuntimeBuilder {
     ) -> Result<TestRuntime, String> {
         let TestRuntimeBuilder {
             trusted_documents,
-            hooks_extension,
             fetcher,
             extensions,
         } = self;
 
-        let (extensions, catalog) = extensions.build_and_ingest_catalog_into_config(config, schema).await?;
+        let (gateway_extensions, engine_extensions, catalog) =
+            extensions.build_and_ingest_catalog_into_config(config, schema).await?;
 
         let kv = InMemoryKvStore::runtime();
-        let authentication = engine_auth::AuthenticationService::new(config, &catalog, extensions.clone(), &kv);
+        let authentication = engine_auth::AuthenticationService::new(config, &catalog, engine_extensions.clone(), &kv);
 
         let (_, rx) = watch::channel(Default::default());
 
@@ -70,9 +68,9 @@ impl TestRuntimeBuilder {
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
             operation_cache: InMemoryOperationCache::default(),
-            extensions,
+            engine_extensions,
             authentication,
-            hooks: TestHooks::new(config, hooks_extension).await,
+            gateway_extensions,
         })
     }
 }
@@ -101,8 +99,8 @@ impl Default for TestRuntime {
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
-            extensions: ExtensionsDispatcher::default(),
-            hooks: TestHooks::default(),
+            engine_extensions: ExtensionsDispatcher::default(),
+            gateway_extensions: GatewayTestExtensions::default(),
             authentication,
         }
     }
@@ -147,7 +145,7 @@ impl engine::Runtime for TestRuntime {
     }
 
     fn extensions(&self) -> &Self::Extensions {
-        &self.extensions
+        &self.engine_extensions
     }
 
     fn authentication(&self) -> &Self::Authenticate {

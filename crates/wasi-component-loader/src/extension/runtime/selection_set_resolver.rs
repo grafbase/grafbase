@@ -6,13 +6,13 @@ use runtime::extension::{Anything, ArgumentsId, Data, Field as _, SelectionSet a
 use crate::{
     Error, cbor,
     extension::{
-        WasmExtensions,
+        EngineWasmExtensions,
         api::wit::{self, Field, SelectionSet},
     },
 };
 
 #[allow(clippy::manual_async_fn)]
-impl SelectionSetResolverExtension for WasmExtensions {
+impl SelectionSetResolverExtension for EngineWasmExtensions {
     async fn prepare<'ctx, F: runtime::extension::Field<'ctx>>(
         &'ctx self,
         extension_id: ExtensionId,

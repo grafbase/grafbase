@@ -8,13 +8,13 @@ use runtime::extension::{Anything, ArgumentsId, Field as _, ResolverExtension, R
 use crate::{
     Error, SharedContext, cbor,
     extension::{
-        WasmExtensions,
+        EngineWasmExtensions,
         api::wit::{self, Field, SelectionSet},
     },
 };
 
 #[allow(clippy::manual_async_fn)]
-impl ResolverExtension<SharedContext> for WasmExtensions {
+impl ResolverExtension<SharedContext> for EngineWasmExtensions {
     async fn prepare<'ctx, F: runtime::extension::Field<'ctx>>(
         &'ctx self,
         ctx: &'ctx SharedContext,

@@ -2,11 +2,10 @@ mod bench;
 mod engine;
 mod router;
 
-use std::{any::TypeId, collections::HashSet, fmt::Display, fs, path::Path, sync::Arc};
+use std::{any::TypeId, collections::HashSet, fmt::Display, sync::Arc};
 
-use crate::{TestTrustedDocument, gateway::EXTENSIONS_DIR, mock_trusted_documents::MockTrustedDocumentsClient};
+use crate::{TestTrustedDocument, mock_trusted_documents::MockTrustedDocumentsClient};
 pub use bench::*;
-use extension_catalog::Extension;
 use futures::{FutureExt, future::BoxFuture};
 use graphql_mocks::MockGraphQlServer;
 use runtime::{
@@ -51,7 +50,6 @@ impl Default for GatewayBuilder {
                 trusted_documents: Default::default(),
                 fetcher: Default::default(),
                 extensions: ExtensionsBuilder::new(extensions_dir),
-                hooks_extension: None,
             },
             tmpdir,
         }
@@ -111,23 +109,6 @@ impl GatewayBuilder {
 
     pub fn with_extension(mut self, ext: impl AnyExtension) -> Self {
         ext.register(&mut self.runtime.extensions);
-        self
-    }
-
-    pub async fn with_hook_extension(mut self, name: &str) -> Self {
-        let path = Path::new(EXTENSIONS_DIR).join(name).join("build");
-
-        let manifest_path = path.join("manifest.json");
-        let manifest = fs::read_to_string(manifest_path).unwrap();
-        let manifest = serde_json::from_str(&manifest).unwrap();
-
-        let extension = Extension {
-            manifest,
-            wasm_path: path.join("extension.wasm"),
-        };
-
-        self.runtime.hooks_extension = Some(extension);
-
         self
     }
 

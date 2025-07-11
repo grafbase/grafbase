@@ -6,13 +6,12 @@ use std::{
 
 use extension_catalog::{Extension, ExtensionCatalog, ExtensionId, Manifest};
 use url::Url;
-use wasi_component_loader::extension::WasmExtensions;
+use wasi_component_loader::extension::{EngineWasmExtensions, GatewayWasmExtensions};
 
-use crate::gateway::DispatchRule;
+use crate::gateway::{DispatchRule, GatewayTestExtensions, runtime::extension::PLACEHOLDER_EXTENSION_DIR};
 
 use super::{
-    EXTENSIONS_DIR, ExtensionsDispatcher, PLACEHOLDER_EXTENSION_DIR, TestExtensions, TestExtensionsState, TestManifest,
-    placeholder_sdk_version,
+    EXTENSIONS_DIR, ExtensionsDispatcher, TestExtensions, TestExtensionsState, TestManifest, placeholder_sdk_version,
 };
 
 pub struct ExtensionsBuilder {
@@ -20,6 +19,7 @@ pub struct ExtensionsBuilder {
     catalog: ExtensionCatalog,
     has_wasm_extension: bool,
     dispatch: HashMap<ExtensionId, DispatchRule>,
+    logging_filter: String,
     pub test: TestExtensionsState,
 }
 
@@ -40,6 +40,7 @@ impl ExtensionsBuilder {
             catalog: ExtensionCatalog::default(),
             has_wasm_extension: false,
             dispatch: HashMap::new(),
+            logging_filter: "info".to_string(),
             test: TestExtensionsState::default(),
         }
     }
@@ -103,7 +104,7 @@ impl ExtensionsBuilder {
             readme: None,
             repository_url: None,
             permissions: Default::default(),
-            event_filter: None,
+            legacy_event_filter: None,
         };
 
         let dir = self.tmpdir.join(manifest.id.to_string());
@@ -135,8 +136,8 @@ impl ExtensionsBuilder {
         self,
         config: &mut gateway_config::Config,
         schema: &Arc<engine::Schema>,
-    ) -> Result<(ExtensionsDispatcher, ExtensionCatalog), String> {
-        let wasm_extensions = if self.has_wasm_extension {
+    ) -> Result<(GatewayTestExtensions, ExtensionsDispatcher, ExtensionCatalog), String> {
+        let (engine_extensions, gateway_extensions) = if self.has_wasm_extension {
             for ext in self.catalog.iter() {
                 let version = ext.manifest.id.version.to_string().parse().unwrap();
                 let path = Some(ext.wasm_path.parent().unwrap().to_path_buf());
@@ -165,9 +166,14 @@ impl ExtensionsBuilder {
                 }
             }
 
-            WasmExtensions::new(&self.catalog, config, schema, String::from("info"))
+            let engine_extensions =
+                EngineWasmExtensions::new(&self.catalog, config, schema, self.logging_filter.clone())
+                    .await
+                    .map_err(|err| err.to_string())?;
+            let gateway_extensions = GatewayWasmExtensions::new(&self.catalog, config, self.logging_filter.clone())
                 .await
-                .map_err(|err| err.to_string())?
+                .map_err(|err| err.to_string())?;
+            (engine_extensions, gateway_extensions)
         } else {
             // If no real wasm extensions was used, we skip the initialization as it would compile
             // the placeholder extension for nothing and we have a lot of extension tests, most of
@@ -176,13 +182,16 @@ impl ExtensionsBuilder {
         };
 
         let extensions = ExtensionsDispatcher {
-            wasm: wasm_extensions,
+            wasm: engine_extensions,
             test: TestExtensions {
                 state: Arc::new(tokio::sync::Mutex::new(self.test)),
             },
             dispatch: self.dispatch,
         };
+        let gateway_extensions = GatewayTestExtensions {
+            wasm: gateway_extensions,
+        };
 
-        Ok((extensions, self.catalog))
+        Ok((gateway_extensions, extensions, self.catalog))
     }
 }

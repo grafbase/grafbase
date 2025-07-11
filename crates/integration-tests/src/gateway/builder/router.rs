@@ -14,7 +14,7 @@ pub(super) async fn build(engine: Arc<Engine<TestRuntime>>, config: Config) -> R
         config,
         engine: engine_watcher,
         server_runtime: (),
-        hooks: engine.runtime.hooks.clone(),
+        extensions: engine.runtime.gateway_extensions.clone(),
         inject_layers_before_cors: |r| r,
     };
 

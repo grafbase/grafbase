@@ -1,23 +1,14 @@
-use extension_catalog::Extension;
-use gateway_config::Config;
 use runtime::extension::HooksExtension;
-use wasi_component_loader::extension::WasmHooks;
+use wasi_component_loader::extension::GatewayWasmExtensions;
 
 use crate::gateway::ExtContext;
 
 #[derive(Default, Clone)]
-pub struct TestHooks {
-    wasm: WasmHooks,
+pub struct GatewayTestExtensions {
+    pub wasm: GatewayWasmExtensions,
 }
 
-impl TestHooks {
-    pub async fn new(config: &Config, extension: Option<Extension>) -> Self {
-        let wasm = WasmHooks::new(config, extension, String::from("info")).await.unwrap();
-        Self { wasm }
-    }
-}
-
-impl HooksExtension for TestHooks {
+impl HooksExtension for GatewayTestExtensions {
     type Context = ExtContext;
 
     fn new_context(&self) -> Self::Context {

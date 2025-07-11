@@ -18,7 +18,7 @@ pub use selection_set_resolver::*;
 pub trait Anything<'a>: serde::Serialize + Send + 'a {}
 impl<'a, T> Anything<'a> for T where T: serde::Serialize + Send + 'a {}
 
-pub trait ExtensionRuntime:
+pub trait EngineExtensions:
     AuthenticationExtension<Self::Context>
     + AuthorizationExtension<Self::Context>
     + FieldResolverExtension
