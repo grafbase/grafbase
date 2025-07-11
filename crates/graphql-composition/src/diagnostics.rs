@@ -1,3 +1,5 @@
+use std::fmt;
+
 /// Warnings and errors produced by composition.
 #[derive(Default, Debug)]
 pub struct Diagnostics(Vec<Diagnostic>);
@@ -38,10 +40,24 @@ impl Diagnostics {
         self.0.iter().map(|diagnostic| diagnostic.message.as_str())
     }
 
+    pub(crate) fn push_composite_schemas_source_schema_validation_error(
+        &mut self,
+        source_schema_name: &str,
+        message: fmt::Arguments<'_>,
+        error_code: CompositeSchemasErrorCode,
+    ) {
+        self.0.push(Diagnostic {
+            message: format!("[{source_schema_name}] {message}"),
+            is_fatal: true,
+            error_code: Some(error_code),
+        });
+    }
+
     pub(crate) fn push_fatal(&mut self, message: String) {
         self.0.push(Diagnostic {
             message,
             is_fatal: true,
+            error_code: None,
         });
     }
 
@@ -49,6 +65,7 @@ impl Diagnostics {
         self.0.push(Diagnostic {
             message,
             is_fatal: false,
+            error_code: None,
         });
     }
 }
@@ -59,4 +76,12 @@ pub(crate) struct Diagnostic {
     message: String,
     /// Should this diagnostic be interpreted as a composition failure?
     is_fatal: bool,
+    #[expect(unused)]
+    error_code: Option<CompositeSchemasErrorCode>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum CompositeSchemasErrorCode {
+    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Query-Root-Type-Inaccessible
+    QueryRootTypeInaccessible,
 }

@@ -16,6 +16,12 @@ impl From<usize> for DirectiveSiteId {
     }
 }
 
+impl DirectiveSiteId {
+    pub(crate) fn inaccessible(&self, subgraphs: &Subgraphs) -> bool {
+        subgraphs.directives.inaccessible.contains(self)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct DirectiveDefinitionId(usize);
 

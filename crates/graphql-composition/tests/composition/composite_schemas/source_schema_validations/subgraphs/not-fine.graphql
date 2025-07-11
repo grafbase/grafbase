@@ -1,0 +1,5 @@
+extend schema @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@inaccessible"])
+
+type Query @inaccessible {
+  hi: String!
+}

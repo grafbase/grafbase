@@ -1,6 +1,7 @@
 use crate::{federated_graph::OverrideLabel, subgraphs};
 
 mod compose_directive;
+mod composite_schemas;
 mod extension_names;
 mod selection;
 mod subgraph_names;
@@ -9,6 +10,7 @@ type ValidateContext<'a> = crate::ComposeContext<'a>;
 
 /// Pre-composition validations happen here.
 pub(crate) fn validate(ctx: &mut ValidateContext<'_>) {
+    composite_schemas::validate(ctx);
     extension_names::validate_extension_names(ctx);
     subgraph_names::validate_subgraph_names(ctx);
     validate_root_nonempty(ctx);

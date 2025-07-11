@@ -13,11 +13,11 @@ pub(crate) struct Definitions {
 
 #[derive(Debug)]
 pub(crate) struct Definition {
-    subgraph_id: SubgraphId,
+    pub(crate) subgraph_id: SubgraphId,
     pub(crate) name: StringId,
-    kind: DefinitionKind,
-    description: Option<StringId>,
-    directives: DirectiveSiteId,
+    pub(crate) kind: DefinitionKind,
+    pub(crate) description: Option<StringId>,
+    pub(crate) directives: DirectiveSiteId,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

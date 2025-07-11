@@ -15,6 +15,13 @@ impl Subgraphs {
         })
     }
 
+    pub(crate) fn iter_subgraph_views(&self) -> impl ExactSizeIterator<Item = View<'_, SubgraphId, Subgraph>> {
+        self.subgraphs
+            .iter()
+            .enumerate()
+            .map(|(idx, record)| View { id: idx.into(), record })
+    }
+
     pub(crate) fn push_subgraph(&mut self, name: &str, url: Option<&str>) -> SubgraphId {
         let url = url.map(|url| self.strings.intern(url));
 
@@ -53,12 +60,12 @@ impl Subgraphs {
 pub(crate) struct Subgraph {
     /// The name of the subgraph. It is not contained in the GraphQL schema of the subgraph, it
     /// only makes sense within a project.
-    name: StringId,
-    url: Option<StringId>,
+    pub(crate) name: StringId,
+    pub(crate) url: Option<StringId>,
 
-    query_type: Option<DefinitionId>,
-    mutation_type: Option<DefinitionId>,
-    subscription_type: Option<DefinitionId>,
+    pub(crate) query_type: Option<DefinitionId>,
+    pub(crate) mutation_type: Option<DefinitionId>,
+    pub(crate) subscription_type: Option<DefinitionId>,
 }
 
 impl Subgraph {
