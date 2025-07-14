@@ -26,11 +26,16 @@ pub struct SharedContextInner {
     // FIXME: legacy kv for sdk 0.9
     pub(crate) kv: HashMap<String, String>,
     pub(crate) event_queue: EventQueue,
+    pub(crate) contract_key: Option<String>,
 }
 
 impl ExtensionContext for SharedContext {
     fn event_queue(&self) -> &EventQueue {
         &self.event_queue
+    }
+
+    fn contract_key(&self) -> Option<&str> {
+        self.contract_key.as_deref()
     }
 }
 
@@ -40,17 +45,19 @@ impl Default for SharedContext {
             kv: Default::default(),
             authorization_states: Default::default(),
             event_queue: Default::default(),
+            contract_key: None,
         }))
     }
 }
 
 impl SharedContext {
     /// Creates a new shared context.
-    pub fn new(event_queue: EventQueue) -> Self {
+    pub fn new(event_queue: EventQueue, contract_key: Option<String>) -> Self {
         Self(Arc::new(SharedContextInner {
             event_queue,
             kv: Default::default(),
             authorization_states: Default::default(),
+            contract_key,
         }))
     }
 }

@@ -87,7 +87,7 @@ impl GraphqlResolver {
                 .request_context
                 .websocket_init_payload
                 .as_ref()
-                .filter(|_| ctx.schema().settings.websocket_forward_connection_init_payload)
+                .filter(|_| ctx.schema().config.websocket_forward_connection_init_payload)
                 .cloned(),
             method: http::Method::POST,
             headers,

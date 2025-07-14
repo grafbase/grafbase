@@ -41,6 +41,7 @@ http-body-util.workspace = true
 hyper.workspace = true
 indoc.workspace = true
 lambda_http = { workspace = true, optional = true }
+mini-moka.workspace = true
 minicbor-serde = { workspace = true, features = ["alloc"] }
 notify.workspace = true
 rand.workspace = true

@@ -39,7 +39,7 @@ impl ValidationError {
 }
 
 pub(crate) fn validate(schema: &Schema, operation: &ParsedOperation) -> Result<(), Vec<ValidationError>> {
-    let limits = &schema.settings.operation_limits;
+    let limits = &schema.config.operation_limits;
     let operation = operation.operation();
 
     let result = Visitor {

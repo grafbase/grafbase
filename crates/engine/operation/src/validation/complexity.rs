@@ -16,7 +16,7 @@ pub fn compute_and_validate_complexity(
     ctx: OperationContext<'_>,
     variables: &Variables,
 ) -> Result<Option<ComplexityCost>, ComplexityError> {
-    match ctx.schema.settings.complexity_control {
+    match ctx.schema.config.complexity_control {
         ComplexityControl::Disabled => Ok(None),
         ComplexityControl::Enforce { limit, .. } => {
             let complexity = calculate_complexity(ctx, variables)?;
@@ -43,7 +43,7 @@ pub fn calculate_complexity(
     let context = ComplexityContext {
         default_list_size: ctx
             .schema
-            .settings
+            .config
             .complexity_control
             .list_size()
             .expect("should be some unless disabled"),

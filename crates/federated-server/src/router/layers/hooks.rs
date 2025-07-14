@@ -3,53 +3,53 @@ use std::{fmt::Display, future::Future, pin::Pin};
 use event_queue::ExecutedHttpRequest;
 use http::{Request, Response};
 use http_body::Body;
-use runtime::extension::{ExtensionContext, HooksExtension};
+use runtime::extension::{ExtensionContext, GatewayExtensions};
 use tower::Layer;
 
 use crate::engine::into_axum_response;
 
 #[derive(Clone)]
-pub struct HooksLayer<Hooks> {
-    hooks: Hooks,
+pub struct HooksLayer<Ext> {
+    extensions: Ext,
 }
 
-impl<Hooks> HooksLayer<Hooks>
+impl<Ext> HooksLayer<Ext>
 where
-    Hooks: HooksExtension,
+    Ext: GatewayExtensions,
 {
-    pub fn new(hooks: Hooks) -> Self {
-        Self { hooks }
+    pub fn new(extensions: Ext) -> Self {
+        Self { extensions }
     }
 }
 
-impl<Service, Hooks> Layer<Service> for HooksLayer<Hooks>
+impl<Service, Ext> Layer<Service> for HooksLayer<Ext>
 where
-    Hooks: HooksExtension + Clone,
+    Ext: GatewayExtensions + Clone,
     Service: Send + Clone,
 {
-    type Service = HooksService<Service, Hooks>;
+    type Service = HooksService<Service, Ext>;
 
     fn layer(&self, inner: Service) -> Self::Service {
         HooksService {
             inner,
-            hooks: self.hooks.clone(),
+            extensions: self.extensions.clone(),
         }
     }
 }
 
 #[derive(Clone)]
-pub struct HooksService<Service, Hooks> {
+pub struct HooksService<Service, Ext> {
     inner: Service,
-    hooks: Hooks,
+    extensions: Ext,
 }
 
-impl<Service, Hooks, ReqBody> tower::Service<Request<ReqBody>> for HooksService<Service, Hooks>
+impl<Service, Ext, ReqBody> tower::Service<Request<ReqBody>> for HooksService<Service, Ext>
 where
     Service: tower::Service<Request<ReqBody>, Response = Response<axum::body::Body>> + Send + Clone + 'static,
     Service::Future: Send,
-    Hooks: HooksExtension + Clone,
     Service::Error: Display + 'static,
     ReqBody: Body + Send + 'static,
+    Ext: GatewayExtensions,
 {
     type Response = http::Response<axum::body::Body>;
     type Error = Service::Error;
@@ -61,8 +61,7 @@ where
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
         let mut inner = self.inner.clone();
-        let hooks = self.hooks.clone();
-        let context = hooks.new_context();
+        let extensions = self.extensions.clone();
 
         Box::pin(async move {
             let (parts, body) = req.into_parts();
@@ -71,7 +70,7 @@ where
 
             let response_format = engine::ResponseFormat::extract_from(&parts.headers).unwrap_or_default();
 
-            let parts = match hooks.on_request(&context, parts).await {
+            let (context, parts) = match extensions.on_request(parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
                     let error_response = engine::http_error_response(response_format, err);
@@ -92,7 +91,7 @@ where
 
             context.event_queue().push_http_request(builder);
 
-            let parts = match hooks.on_response(&context, parts).await {
+            let parts = match extensions.on_response(&context, parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
                     let error_response = engine::http_error_response(

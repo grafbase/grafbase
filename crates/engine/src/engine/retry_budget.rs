@@ -15,7 +15,7 @@ impl RetryBudgets {
             by_graphql_endpoints: schema
                 .graphql_endpoints()
                 .map(|endpoint| {
-                    let retry_config = endpoint.config.retry.as_ref().or(schema.settings.retry.as_ref())?;
+                    let retry_config = endpoint.config.retry.as_ref().or(schema.config.retry.as_ref())?;
 
                     // Defaults: https://docs.rs/tower/0.4.13/src/tower/retry/budget.rs.html#137-139
                     let ttl = retry_config.ttl.unwrap_or(std::time::Duration::from_secs(10));

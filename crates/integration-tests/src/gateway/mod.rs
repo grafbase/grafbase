@@ -23,7 +23,7 @@ pub struct Gateway {
     tmpdir: Arc<tempfile::TempDir>,
     router: axum::Router,
     #[allow(unused)]
-    engine: Arc<engine::Engine<TestRuntime>>,
+    engine: Arc<engine::ContractAwareEngine<TestRuntime>>,
     subgraphs: subgraph::Subgraphs,
 }
 

@@ -1,4 +1,6 @@
-use schema::DirectiveSiteId;
+use std::sync::Arc;
+
+use schema::{DirectiveSiteId, Schema};
 
 #[derive(Clone, Debug)]
 pub struct McpRequestContext {
@@ -7,5 +9,6 @@ pub struct McpRequestContext {
 
 #[derive(Clone, Debug)]
 pub struct McpResponseExtension {
+    pub schema: Arc<Schema>,
     pub site_ids: Vec<DirectiveSiteId>,
 }

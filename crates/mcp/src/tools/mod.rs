@@ -21,8 +21,8 @@ pub(crate) trait Tool: Send + Sync + 'static {
     fn description(&self) -> Cow<'_, str>;
     fn call(
         &self,
+        parts: http::request::Parts,
         parameters: Self::Parameters,
-        http_headers: Option<http::HeaderMap>,
     ) -> impl Future<Output = anyhow::Result<CallToolResult>> + Send;
     fn annotations(&self) -> ToolAnnotations;
 }
@@ -32,8 +32,8 @@ pub(crate) trait RmcpTool: Send + Sync + 'static {
     fn to_tool(&self) -> rmcp::model::Tool;
     fn call(
         &self,
+        ctx: RequestContext<RoleServer>,
         parameters: Option<JsonObject>,
-        context: RequestContext<RoleServer>,
     ) -> BoxFuture<'_, Result<CallToolResult, ErrorData>>;
 }
 
@@ -54,18 +54,19 @@ impl<T: Tool> RmcpTool for T {
 
     fn call(
         &self,
+        mut ctx: RequestContext<RoleServer>,
         parameters: Option<JsonObject>,
-        mut context: RequestContext<RoleServer>,
     ) -> BoxFuture<'_, Result<CallToolResult, ErrorData>> {
-        let http_headers = context
+        let parts = ctx
             .extensions
-            .get_mut::<http::request::Parts>()
-            .map(|parts| std::mem::take(&mut parts.headers));
+            .remove::<http::request::Parts>()
+            .unwrap_or_else(|| http::Request::builder().body(Vec::<u8>::new()).unwrap().into_parts().0);
+
         Box::pin(async move {
             let parameters: T::Parameters =
                 serde_json::from_value(serde_json::Value::Object(parameters.unwrap_or_default()))
                     .map_err(|err| ErrorData::new(ErrorCode::INVALID_PARAMS, err.to_string(), None))?;
-            match Tool::call(self, parameters, http_headers).await {
+            match Tool::call(self, parts, parameters).await {
                 Ok(data) => Ok(data),
                 Err(err) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, err.to_string(), None)),
             }

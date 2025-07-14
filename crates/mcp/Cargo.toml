@@ -26,6 +26,7 @@ itertools.workspace = true
 minicbor-serde.workspace = true
 ordered-float.workspace = true
 priority-queue.workspace = true
+quick_cache.workspace = true
 rmcp.workspace = true
 schemars.workspace = true
 serde.workspace = true

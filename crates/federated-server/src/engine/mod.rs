@@ -6,15 +6,13 @@ use crate::{extensions::create_extension_catalog, graph::Graph};
 
 pub use self::runtime::*;
 use axum::response::IntoResponse as _;
-use engine::Body;
+use engine::{Body, ContractAwareEngine};
 pub(crate) use reloader::*;
 
 use super::AccessToken;
-use ::engine::Engine;
 use extension_catalog::ExtensionCatalog;
 use gateway_config::Config;
 use std::{borrow::Cow, path::PathBuf, sync::Arc};
-use tokio::sync::watch;
 
 /// Context struct that bundles all the semi-static parameters needed to build an engine.
 #[derive(Clone, Copy)]
@@ -26,16 +24,11 @@ pub(super) struct EngineBuildContext<'a> {
     pub logging_filter: &'a str,
 }
 
-/// Send half of the gateway watch channel
-pub(crate) type EngineSender = watch::Sender<Arc<Engine<EngineRuntime>>>;
-
-/// Receive half of the gateway watch channel.
-///
-/// Anything part of the system that needs access to the gateway can use this
-pub(crate) type EngineWatcher<R> = watch::Receiver<Arc<Engine<R>>>;
-
 /// Generates a new gateway from the provided graph definition.
-pub(super) async fn generate(context: EngineBuildContext<'_>, graph: Graph) -> crate::Result<Engine<EngineRuntime>> {
+pub(super) async fn generate(
+    context: EngineBuildContext<'_>,
+    graph: Graph,
+) -> crate::Result<ContractAwareEngine<EngineRuntime>> {
     // let graph = graph_definition.into_graph(context.gateway_config, context.access_token);
 
     let extension_catalog = match context.extension_catalog {
@@ -61,7 +54,7 @@ pub(super) async fn generate(context: EngineBuildContext<'_>, graph: Graph) -> c
 
     let runtime = EngineRuntime::build(context, &graph, &schema, &extension_catalog).await?;
 
-    Ok(Engine::new(schema, runtime).await)
+    Ok(ContractAwareEngine::new(schema, runtime))
 }
 
 pub(crate) fn into_axum_response(response: http::Response<Body>) -> axum::response::Response {

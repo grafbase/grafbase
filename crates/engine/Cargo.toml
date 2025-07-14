@@ -44,6 +44,7 @@ multipart-stream.workspace = true
 operation = { path = "./operation", package = "engine-operation" }
 percent-encoding.workspace = true
 query-solver = { path = "./query-solver", package = "engine-query-solver" }
+quick_cache.workspace = true
 ramhorns.workspace = true
 rand.workspace = true
 runtime.workspace = true

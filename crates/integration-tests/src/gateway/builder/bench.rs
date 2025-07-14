@@ -10,13 +10,13 @@ use futures::{StreamExt, TryStreamExt};
 use runtime::fetch::{FetchRequest, FetchResult, dynamic::DynFetcher};
 use runtime_local::InMemoryOperationCache;
 
-use crate::gateway::{GraphqlResponse, GraphqlStreamingResponse};
+use crate::gateway::{ExtContext, GraphqlResponse, GraphqlStreamingResponse};
 
 use super::TestRuntime;
 
 #[derive(Clone)]
 pub struct DeterministicEngine {
-    engine: Arc<engine::Engine<TestRuntime>>,
+    engine: Arc<engine::ContractAwareEngine<TestRuntime>>,
     request_parts: http::request::Parts,
     body: Bytes,
     dummy_responses_index: Arc<AtomicUsize>,
@@ -54,14 +54,13 @@ impl DeterministicEngineBuilder<'_> {
         );
 
         let schema = engine::Schema::from_sdl_or_panic(self.schema).await;
-        let engine = engine::Engine::new(
+        let engine = engine::ContractAwareEngine::new(
             Arc::new(schema),
             TestRuntime {
                 fetcher: fetcher.into(),
                 ..self.runtime
             },
-        )
-        .await;
+        );
         let body = Bytes::from(serde_json::to_vec(&serde_json::json!({"query": self.query})).unwrap());
         DeterministicEngine {
             engine: Arc::new(engine),
@@ -72,6 +71,7 @@ impl DeterministicEngineBuilder<'_> {
                     http::header::CONTENT_TYPE,
                     http::HeaderValue::from_static("application/json"),
                 )
+                .extension(ExtContext::default())
                 .body(())
                 .unwrap()
                 .into_parts()

@@ -3,22 +3,15 @@ use std::future::Future;
 use error::ErrorResponse;
 use http::{request, response};
 
-use super::ExtensionContext;
-
-pub trait HooksExtension: Clone + Send + Sync + 'static {
-    type Context: ExtensionContext + Clone + Send + Sync + 'static;
-
-    fn new_context(&self) -> Self::Context;
-
+pub trait HooksExtension<Context>: Clone + Send + Sync + 'static {
     fn on_request(
         &self,
-        context: &Self::Context,
         parts: request::Parts,
-    ) -> impl Future<Output = Result<request::Parts, ErrorResponse>> + Send;
+    ) -> impl Future<Output = Result<(Context, request::Parts), ErrorResponse>> + Send;
 
     fn on_response(
         &self,
-        context: &Self::Context,
+        context: &Context,
         parts: response::Parts,
     ) -> impl Future<Output = Result<response::Parts, String>> + Send;
 }

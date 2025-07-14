@@ -65,10 +65,10 @@ impl ServerHandler for McpServer {
     async fn call_tool(
         &self,
         CallToolRequestParam { name, arguments }: CallToolRequestParam,
-        context: RequestContext<RoleServer>,
+        ctx: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, ErrorData> {
         if let Some(tool) = self.tools.iter().find(|tool| tool.name() == name) {
-            return tool.call(arguments, context).await;
+            return tool.call(ctx, arguments).await;
         }
 
         Err(ErrorData::new(

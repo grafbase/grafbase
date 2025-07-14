@@ -85,7 +85,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
         authentication,
     };
 
-    let engine = engine::Engine::new(Arc::new(schema), runtime).await;
+    let engine = engine::ContractAwareEngine::new(Arc::new(schema), runtime);
     let (_, rx) = tokio::sync::watch::channel(Arc::new(engine));
 
     let mcp_config = gateway_config::ModelControlProtocolConfig {

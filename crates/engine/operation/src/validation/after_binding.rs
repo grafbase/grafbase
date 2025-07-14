@@ -35,7 +35,7 @@ pub(crate) fn validate(schema: &Schema, operation: &Operation) -> Result<(), Vec
 }
 
 fn ensure_introspection_is_accepted(ctx: OperationContext<'_>) -> Result<(), ValidationError> {
-    if ctx.operation.attributes.ty.is_query() && ctx.schema.settings.disable_introspection {
+    if ctx.operation.attributes.ty.is_query() && ctx.schema.config.disable_introspection {
         for field in ctx.root_selection_set().fields() {
             if let Some(field) = field.as_data() {
                 if ctx
@@ -57,7 +57,7 @@ fn ensure_introspection_is_accepted(ctx: OperationContext<'_>) -> Result<(), Val
 }
 
 fn enforce_operation_limits(ctx: OperationContext<'_>) -> Result<(), ValidationError> {
-    let operation_limits = &ctx.schema.settings.operation_limits;
+    let operation_limits = &ctx.schema.config.operation_limits;
     let selection_set = ctx.root_selection_set();
 
     // All other limits are verified before the binding step.

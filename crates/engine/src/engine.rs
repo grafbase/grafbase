@@ -3,7 +3,7 @@ pub mod mcp;
 mod retry_budget;
 mod runtime;
 
-use ::runtime::operation_cache::OperationCache;
+use ::runtime::{extension::ExtensionContext as _, operation_cache::OperationCache};
 use bytes::Bytes;
 use cache::CacheKey;
 use futures::{StreamExt, TryFutureExt};
@@ -14,7 +14,7 @@ use std::{borrow::Cow, future::Future, sync::Arc};
 
 use crate::{
     Body,
-    execution::{EarlyHttpContext, RequestContext, StreamResponse},
+    execution::{EarlyHttpContext, Parts, RequestContext, StreamResponse},
     graphql_over_http::{ContentType, Http, ResponseFormat, StreamingResponseFormat},
     prepare::OperationDocument,
     response::Response,
@@ -23,6 +23,90 @@ use crate::{
 pub(crate) use runtime::*;
 
 pub use runtime::Runtime;
+
+pub struct ContractAwareEngine<R: Runtime> {
+    // FIXME: do not expose this.
+    pub no_contract: Arc<Engine<R>>,
+    by_contract_key: quick_cache::sync::Cache<String, Arc<Engine<R>>>,
+}
+
+impl<R: Runtime> ContractAwareEngine<R> {
+    pub fn new(schema: Arc<Schema>, runtime: R) -> Self {
+        let no_contract = Arc::new(Engine::new(schema.clone(), runtime));
+        let by_contract_key = quick_cache::sync::Cache::new(100);
+        Self {
+            no_contract,
+            by_contract_key,
+        }
+    }
+
+    pub async fn execute<F>(&self, request: http::Request<F>) -> http::Response<Body>
+    where
+        F: Future<Output = Result<Bytes, (http::StatusCode, String)>> + Send,
+    {
+        let (parts, body) = match self.unpack_http_request(request) {
+            Ok(unpacked) => unpacked,
+            Err(response) => return response,
+        };
+        if let Some(key) = parts.extension_context.contract_key() {
+            self.get_engine_for_contract(key).await.execute(parts, body).await
+        } else {
+            self.no_contract.execute(parts, body).await
+        }
+    }
+
+    pub async fn create_websocket_session(
+        self: &Arc<Self>,
+        mut parts: http::request::Parts,
+        payload: InitPayload,
+    ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
+        let ctx = EarlyHttpContext {
+            method: parts.method,
+            uri: parts.uri,
+            can_mutate: true,
+            response_format: ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket),
+            include_grafbase_response_extension: false,
+            include_mcp_response_extension: false,
+            content_type: ContentType::Json,
+        };
+        let parts: Parts<R> = Parts {
+            ctx,
+            headers: parts.headers,
+            extension_context: parts.extensions.remove().expect("Missing extension context"),
+        };
+
+        if let Some(key) = parts.extension_context.contract_key() {
+            self.get_engine_for_contract(key)
+                .await
+                .create_websocket_session(parts, payload)
+                .await
+        } else {
+            self.no_contract.create_websocket_session(parts, payload).await
+        }
+    }
+
+    pub async fn get_schema(&self, parts: &http::request::Parts) -> Arc<Schema> {
+        if let Some(key) = parts
+            .extensions
+            .get::<ExtensionContext<R>>()
+            .expect("Missing extension context")
+            .contract_key()
+        {
+            self.get_engine_for_contract(key).await.schema.clone()
+        } else {
+            self.no_contract.schema.clone()
+        }
+    }
+
+    async fn get_engine_for_contract(&self, key: &str) -> Arc<Engine<R>> {
+        self.by_contract_key
+            .get_or_insert_with::<_, std::convert::Infallible>(key, || {
+                // FIXME: apply contract.
+                Ok(self.no_contract.clone())
+            })
+            .unwrap()
+    }
+}
 
 pub struct Engine<R: Runtime> {
     // We use an Arc for the schema to have a self-contained response which may still
@@ -35,7 +119,7 @@ pub struct Engine<R: Runtime> {
 impl<R: Runtime> Engine<R> {
     /// schema_version is used in operation cache key which ensures we only retrieve cached
     /// operation for the same schema version. If none is provided, a random one is generated.
-    pub async fn new(schema: Arc<Schema>, runtime: R) -> Self {
+    pub(crate) fn new(schema: Arc<Schema>, runtime: R) -> Self {
         Self {
             retry_budgets: RetryBudgets::build(&schema),
             schema,
@@ -72,25 +156,20 @@ impl<R: Runtime> Engine<R> {
         tracing::info!("Finished warming {} operations", count);
     }
 
-    pub async fn execute<F>(self: &Arc<Self>, mut request: http::Request<F>) -> http::Response<Body>
+    pub(crate) async fn execute<F>(
+        self: &Arc<Self>,
+        Parts {
+            ctx,
+            headers,
+            extension_context,
+        }: Parts<R>,
+        body: F,
+    ) -> http::Response<Body>
     where
         F: Future<Output = Result<Bytes, (http::StatusCode, String)>> + Send,
     {
-        // Hey, you. If this returns the default, go check in the engine-axum crate the hooks middleware.
-        // Did you insert the context there?
-        let extension_ctx = request
-            .extensions_mut()
-            .remove::<ExtensionContext<R>>()
-            // FIXME: mcp should should go through the hooks...
-            .unwrap_or_default();
-
-        let (ctx, headers, body) = match self.unpack_http_request(request) {
-            Ok(req) => req,
-            Err(response) => return response,
-        };
-
         let context_fut = self
-            .create_graphql_context(&ctx, headers, None, extension_ctx)
+            .create_graphql_context(&ctx, headers, extension_context, None)
             .map_err(|response| response);
 
         let request_fut = self
@@ -108,30 +187,17 @@ impl<R: Runtime> Engine<R> {
         }
     }
 
-    pub async fn create_websocket_session(
+    pub(crate) async fn create_websocket_session(
         self: &Arc<Self>,
-        mut parts: http::request::Parts,
+        Parts {
+            ctx,
+            headers,
+            extension_context,
+        }: Parts<R>,
         payload: InitPayload,
     ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
-        let ctx = EarlyHttpContext {
-            method: parts.method,
-            uri: parts.uri,
-            can_mutate: true,
-            response_format: ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket),
-            include_grafbase_response_extension: false,
-            include_mcp_response_extension: false,
-            content_type: ContentType::Json,
-        };
-
-        // Hey, you. If this returns the default, go check in the engine-axum crate the hooks middleware.
-        // Did you insert the context there?
-        let extension_context = parts
-            .extensions
-            .remove::<ExtensionContext<R>>()
-            .expect("Missing Wasm context");
-
         let request_context = self
-            .create_graphql_context(&ctx, parts.headers, Some(payload), extension_context)
+            .create_graphql_context(&ctx, headers, extension_context, Some(payload))
             .await
             .map_err(|response| {
                 response
@@ -148,7 +214,7 @@ impl<R: Runtime> Engine<R> {
     }
 
     pub(crate) async fn with_gateway_timeout<T>(&self, fut: impl Future<Output = T> + Send) -> Option<T> {
-        self.runtime.with_timeout(self.schema.settings.timeout, fut).await
+        self.runtime.with_timeout(self.schema.config.timeout, fut).await
     }
 }
 

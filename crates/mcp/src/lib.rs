@@ -11,7 +11,7 @@ use std::{
 };
 
 use axum::Router;
-use engine::{Engine, Runtime};
+use engine::{ContractAwareEngine, Runtime};
 use gateway_config::ModelControlProtocolConfig;
 use rmcp::transport::{
     sse_server::{SseServer, SseServerConfig},
@@ -20,7 +20,7 @@ use rmcp::transport::{
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
-type EngineWatcher<R> = watch::Receiver<Arc<Engine<R>>>;
+type EngineWatcher<R> = watch::Receiver<Arc<ContractAwareEngine<R>>>;
 
 pub fn router<R: Runtime>(
     engine: &EngineWatcher<R>,

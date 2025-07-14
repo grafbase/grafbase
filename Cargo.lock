@@ -2834,6 +2834,7 @@ dependencies = [
  "multipart-stream",
  "percent-encoding",
  "pretty_assertions",
+ "quick_cache",
  "ramhorns",
  "rand 0.9.1",
  "runtime",
@@ -3362,6 +3363,7 @@ dependencies = [
  "indoc",
  "insta",
  "lambda_http",
+ "mini-moka",
  "minicbor-serde",
  "notify",
  "rand 0.9.1",
@@ -4079,6 +4081,7 @@ dependencies = [
  "minicbor-serde",
  "ordered-float 5.0.0",
  "priority-queue",
+ "quick_cache",
  "rmcp",
  "schemars",
  "serde",
@@ -7554,6 +7557,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d3a6e5838b60e0e8fa7a43f22ade549a37d61f8bdbe636d0d7816191de969c2"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "quick_cache"
+version = "0.6.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b450dad8382b1b95061d5ca1eb792081fb082adf48c678791fe917509596d5f"
+dependencies = [
+ "ahash 0.8.11",
+ "equivalent",
+ "hashbrown 0.15.2",
+ "parking_lot",
 ]
 
 [[package]]
