@@ -9,7 +9,8 @@ use std::{pin::Pin, sync::Arc};
 
 use axum::{body::Bytes, routing::get};
 use engine::ContractAwareEngine;
-use runtime::{authentication::Authenticate, extension::GatewayExtensions};
+use runtime::extension::GatewayExtensions;
+use runtime_local::InMemoryKvStore;
 use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
 use tower_http::{
@@ -32,7 +33,7 @@ where
     pub engine: EngineWatcher<R>,
     pub server_runtime: SR,
     pub extensions: E,
-    pub inject_layers_before_cors: F,
+    pub inject_telemetry: F,
 }
 
 pub type EngineWatcher<R> = watch::Receiver<Arc<ContractAwareEngine<R>>>;
@@ -43,7 +44,7 @@ pub async fn create<R, SR, E, F>(
         engine,
         server_runtime,
         extensions,
-        inject_layers_before_cors,
+        inject_telemetry,
     }: RouterConfig<R, SR, E, F>,
 ) -> crate::Result<(axum::Router, Option<CancellationToken>)>
 where
@@ -87,24 +88,6 @@ where
         _ => None,
     };
 
-    for public_metadata_endpoint in engine
-        .borrow()
-        .no_contract
-        .runtime
-        .authentication()
-        .public_metadata_endpoints()
-        .await
-        .unwrap_or_default()
-    {
-        router = router.route(
-            &public_metadata_endpoint.path,
-            get(public_metadata_handler(
-                public_metadata_endpoint.response_body.into(),
-                public_metadata_endpoint.headers,
-            )),
-        );
-    }
-
     // Streaming and compression doesn't really work well today. Had a panic deep inside stream
     // unfold. Furthermore there seem to be issues with it as pointed out by Apollo's router
     // team:
@@ -118,10 +101,24 @@ where
             NotForContentType::const_new("multipart/mixed").and(NotForContentType::const_new("text/event-stream")),
         ));
 
-    let mut router = inject_layers_before_cors(router)
-        .layer(layers::HooksLayer::new(extensions))
-        .layer(compression)
-        .layer(cors);
+    let authentication =
+        engine_auth::AuthenticationService::new(&config, extensions.clone(), &InMemoryKvStore::runtime());
+
+    // Currently we're adding telemetry after CORS handling in the request as we don't care
+    // about pre-flight requests.
+    router = inject_telemetry(router).layer(layers::ExtensionLayer::new(extensions.clone(), authentication));
+
+    // Added after extension as it shouldn't require authentication.
+    for public_metadata_endpoint in extensions.public_metadata_endpoints().await? {
+        router = router.route(
+            &public_metadata_endpoint.path,
+            get(public_metadata_handler(
+                public_metadata_endpoint.response_body.into(),
+                public_metadata_endpoint.headers,
+            )),
+        );
+    }
+    router = router.layer(compression).layer(cors);
 
     if config.csrf.enabled {
         router = csrf::inject_layer(router, &config.csrf);

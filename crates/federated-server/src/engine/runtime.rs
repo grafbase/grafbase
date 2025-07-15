@@ -6,7 +6,7 @@ use gateway_config::{Config, EntityCachingRedisConfig};
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::{entity_cache::EntityCache, trusted_documents_client::TrustedDocumentsEnforcementMode};
 use runtime_local::{
-    InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher, RedisEntityCache,
+    InMemoryEntityCache, InMemoryOperationCache, NativeFetcher, RedisEntityCache,
     operation_cache::{RedisOperationCache, TieredOperationCache},
     rate_limiting::{in_memory::key_based::InMemoryRateLimiter, redis::RedisRateLimiter},
     redis::{RedisPoolFactory, RedisTlsConfig},
@@ -28,13 +28,11 @@ use crate::{
 pub struct EngineRuntime {
     fetcher: NativeFetcher,
     pub(super) trusted_documents: runtime::trusted_documents_client::Client,
-    kv: runtime::kv::KvStore,
     metrics: EngineMetrics,
     pub(crate) extensions: EngineWasmExtensions,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
     pub(crate) operation_cache: TieredOperationCache<Arc<CachedOperation>>,
-    authentication: engine_auth::AuthenticationService<EngineWasmExtensions>,
 }
 
 impl EngineRuntime {
@@ -109,12 +107,7 @@ impl EngineRuntime {
         .await
         .map_err(|e| crate::Error::InternalError(format!("Error building an extension: {e}")))?;
 
-        let kv = InMemoryKvStore::runtime();
-
         tracing::debug!("Setting up authentication");
-
-        let authentication =
-            engine_auth::AuthenticationService::new(ctx.gateway_config, extension_catalog, extensions.clone(), &kv);
 
         let trusted_documents = if let Some((access_token, branch_id)) = ctx.access_token.zip(graph.branch_id()) {
             let cfg = &ctx.gateway_config.trusted_documents;
@@ -147,14 +140,12 @@ impl EngineRuntime {
         let runtime = EngineRuntime {
             fetcher: NativeFetcher::new(ctx.gateway_config)
                 .map_err(|e| crate::Error::FetcherConfigError(e.to_string()))?,
-            kv,
             trusted_documents,
             extensions,
             metrics: EngineMetrics::build(&meter, graph.version_id().map(|id| id.to_string())),
             rate_limiter,
             entity_cache,
             operation_cache,
-            authentication,
         };
 
         Ok(runtime)
@@ -165,7 +156,6 @@ impl engine::Runtime for EngineRuntime {
     type Fetcher = NativeFetcher;
     type OperationCache = TieredOperationCache<Arc<CachedOperation>>;
     type Extensions = EngineWasmExtensions;
-    type Authenticate = engine_auth::AuthenticationService<Self::Extensions>;
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
@@ -173,10 +163,6 @@ impl engine::Runtime for EngineRuntime {
 
     fn trusted_documents(&self) -> &runtime::trusted_documents_client::Client {
         &self.trusted_documents
-    }
-
-    fn kv(&self) -> &runtime::kv::KvStore {
-        &self.kv
     }
 
     fn operation_cache(&self) -> &Self::OperationCache {
@@ -201,10 +187,6 @@ impl engine::Runtime for EngineRuntime {
 
     fn extensions(&self) -> &Self::Extensions {
         &self.extensions
-    }
-
-    fn authentication(&self) -> &Self::Authenticate {
-        &self.authentication
     }
 }
 

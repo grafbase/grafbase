@@ -1,32 +1,37 @@
 mod anonymous;
 mod jwt;
 
+use std::sync::Arc;
+
 use anonymous::AnonymousAuthorizer;
 use error::{ErrorCode, ErrorResponse, GraphqlError};
-use extension_catalog::{ExtensionCatalog, ExtensionId};
 use futures_util::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
 use gateway_config::{AuthenticationProvider, DefaultAuthenticationBehavior};
-use runtime::{authentication::LegacyToken, extension::EngineExtensions, kv::KvStore};
+use runtime::{authentication::LegacyToken, extension::GatewayExtensions, kv::KvStore};
 use tracing::{Instrument, info_span};
 
 trait LegacyAuthorizer: Send + Sync + 'static {
     fn get_access_token<'a>(&'a self, headers: &'a http::HeaderMap) -> BoxFuture<'a, Option<LegacyToken>>;
 }
 
-pub struct AuthenticationService<Extensions> {
+#[derive(Clone)]
+pub struct AuthenticationService<Extensions>(Arc<AuthenticationServiceInner<Extensions>>);
+
+impl<Extensions> std::ops::Deref for AuthenticationService<Extensions> {
+    type Target = AuthenticationServiceInner<Extensions>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+pub struct AuthenticationServiceInner<Extensions> {
     extensions: Extensions,
-    authentication_extension_ids: Vec<ExtensionId>,
     authorizers: Vec<Box<dyn LegacyAuthorizer>>,
-    default_token: Option<LegacyToken>,
+    default_behavior: Option<DefaultAuthenticationBehavior>,
 }
 
 impl<Extensions> AuthenticationService<Extensions> {
-    pub fn new(
-        config: &gateway_config::Config,
-        catalog: &ExtensionCatalog,
-        extensions: Extensions,
-        kv: &KvStore,
-    ) -> Self {
+    pub fn new(config: &gateway_config::Config, extensions: Extensions, kv: &KvStore) -> Self {
         let authorizers = config
             .authentication
             .providers
@@ -40,37 +45,14 @@ impl<Extensions> AuthenticationService<Extensions> {
             })
             .collect::<Vec<_>>();
 
-        let authentication_extension_ids = catalog
-            .iter_with_id()
-            .filter_map(|(id, extension)| match extension.manifest.r#type {
-                extension_catalog::Type::Authentication(_) => Some(id),
-                _ => None,
-            })
-            .collect::<Vec<_>>();
-
-        let default_token = match config.authentication.default {
-            Some(DefaultAuthenticationBehavior::Anonymous) => Some(LegacyToken::Anonymous),
-            Some(DefaultAuthenticationBehavior::Deny) => None,
-            None => {
-                if !authorizers.is_empty() || !authentication_extension_ids.is_empty() {
-                    None
-                } else {
-                    Some(LegacyToken::Anonymous)
-                }
-            }
-        };
-        Self {
+        Self(Arc::new(AuthenticationServiceInner {
             authorizers,
             extensions,
-            authentication_extension_ids,
-            default_token,
-        }
+            default_behavior: config.authentication.default,
+        }))
     }
 
     async fn legacy_authorizers(&self, headers: &http::HeaderMap) -> Option<LegacyToken> {
-        if self.authorizers.is_empty() {
-            return None;
-        }
         let fut = self
             .authorizers
             .iter()
@@ -85,7 +67,7 @@ impl<Extensions> AuthenticationService<Extensions> {
     }
 }
 
-impl<Extensions: EngineExtensions> runtime::authentication::Authenticate<Extensions::Context>
+impl<Extensions: GatewayExtensions> runtime::authentication::Authenticate<Extensions::Context>
     for AuthenticationService<Extensions>
 {
     async fn authenticate(
@@ -93,37 +75,41 @@ impl<Extensions: EngineExtensions> runtime::authentication::Authenticate<Extensi
         context: &Extensions::Context,
         headers: http::HeaderMap,
     ) -> Result<(http::HeaderMap, LegacyToken), ErrorResponse> {
-        if !self.authentication_extension_ids.is_empty() {
-            let (headers, result) = self
-                .extensions
-                .authenticate(context, &self.authentication_extension_ids, headers)
-                .await;
+        let (headers, result) = self.extensions.authenticate(context, headers).await;
 
-            match result {
-                Ok(token) => Ok((headers, LegacyToken::Extension(token))),
-                Err(error) => match self.legacy_authorizers(&headers).await {
+        match result {
+            None => {
+                if self.authorizers.is_empty() {
+                    return match self.default_behavior {
+                        Some(DefaultAuthenticationBehavior::Anonymous) | None => Ok((headers, LegacyToken::Anonymous)),
+                        _ => Err(unauthenticated()),
+                    };
+                }
+                match self.legacy_authorizers(&headers).await {
                     Some(token) => Ok((headers, token)),
-                    None => match self.default_token.clone() {
-                        Some(token) => Ok((headers, token)),
-                        None => Err(error),
+                    None => match self.default_behavior {
+                        Some(DefaultAuthenticationBehavior::Anonymous) => Ok((headers, LegacyToken::Anonymous)),
+                        _ => Err(unauthenticated()),
                     },
-                },
+                }
             }
-        } else {
-            match self.legacy_authorizers(&headers).await {
-                Some(token) => Ok((headers, token)),
-                None => match self.default_token.clone() {
+            Some(Ok(token)) => Ok((headers, LegacyToken::Extension(token))),
+            Some(Err(error)) => {
+                if self.authorizers.is_empty() {
+                    return match self.default_behavior {
+                        Some(DefaultAuthenticationBehavior::Anonymous) => Ok((headers, LegacyToken::Anonymous)),
+                        _ => Err(error),
+                    };
+                }
+                match self.legacy_authorizers(&headers).await {
                     Some(token) => Ok((headers, token)),
-                    None => Err(unauthenticated()),
-                },
+                    None => match self.default_behavior {
+                        Some(DefaultAuthenticationBehavior::Anonymous) => Ok((headers, LegacyToken::Anonymous)),
+                        _ => Err(error),
+                    },
+                }
             }
         }
-    }
-
-    fn public_metadata_endpoints(
-        &self,
-    ) -> impl Future<Output = Result<Vec<runtime::authentication::PublicMetadataEndpoint>, String>> + Send {
-        self.extensions.public_metadata(&self.authentication_extension_ids)
     }
 }
 

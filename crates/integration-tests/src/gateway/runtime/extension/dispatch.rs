@@ -15,12 +15,12 @@ pub enum DispatchRule {
 }
 
 #[derive(Clone, Default)]
-pub struct ExtensionsDispatcher {
+pub struct EngineTestExtensions {
     pub(super) dispatch: HashMap<ExtensionId, DispatchRule>,
     pub(super) test: TestExtensions,
     pub(super) wasm: EngineWasmExtensions,
 }
 
-impl EngineExtensions for ExtensionsDispatcher {
+impl EngineExtensions for EngineTestExtensions {
     type Context = ExtContext;
 }

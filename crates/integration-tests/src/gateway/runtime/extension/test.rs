@@ -16,7 +16,7 @@ use super::{
 
 #[derive(Default)]
 pub struct TestExtensionsState {
-    pub authentication: HashMap<ExtensionId, Arc<dyn AuthenticationTestExtension>>,
+    pub authentication: Vec<Arc<dyn AuthenticationTestExtension>>,
     pub authorization: HashMap<ExtensionId, Arc<dyn AuthorizationTestExtension>>,
     pub resolver_builders: HashMap<ExtensionId, Arc<dyn ResolverTestExtensionBuilder>>,
     pub resolvers: HashMap<(ExtensionId, SubgraphId), Arc<dyn ResolverTestExtension>>,
@@ -82,10 +82,6 @@ impl TestExtensionsState {
                 )
             })
             .clone()
-    }
-
-    pub(super) fn get_authentication_ext(&self, extension_id: ExtensionId) -> Arc<dyn AuthenticationTestExtension> {
-        Arc::clone(self.authentication.get(&extension_id).unwrap())
     }
 
     pub(super) fn get_authorization_ext(&self, extension_id: ExtensionId) -> Arc<dyn AuthorizationTestExtension> {

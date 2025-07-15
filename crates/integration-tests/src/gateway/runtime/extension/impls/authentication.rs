@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use engine::ErrorResponse;
-use extension_catalog::{ExtensionId, Id};
+use extension_catalog::Id;
 use futures::{StreamExt as _, stream::FuturesUnordered};
 use runtime::{
     authentication::PublicMetadataEndpoint,
@@ -9,63 +9,40 @@ use runtime::{
 };
 
 use crate::gateway::{
-    DispatchRule, ExtContext, ExtensionsBuilder, ExtensionsDispatcher, TestExtensions, TestManifest,
+    ExtContext, ExtensionsBuilder, GatewayTestExtensions, TestExtensions, TestManifest,
     runtime::extension::builder::AnyExtension,
 };
 
-impl AuthenticationExtension<ExtContext> for ExtensionsDispatcher {
+impl AuthenticationExtension<ExtContext> for GatewayTestExtensions {
     async fn authenticate(
         &self,
         ctx: &ExtContext,
-        extension_ids: &[ExtensionId],
         gateway_headers: http::HeaderMap,
-    ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
-        let mut wasm_extensions = Vec::new();
-        let mut test_extensions = Vec::new();
-        for id in extension_ids {
-            match self.dispatch[id] {
-                DispatchRule::Wasm => wasm_extensions.push(*id),
-                DispatchRule::Test => test_extensions.push(*id),
-            }
-        }
-
-        assert!(
-            wasm_extensions.is_empty() ^ test_extensions.is_empty(),
-            "Cannot mix test & wasm authentication extensions, feel free to implement it if you need it. Shouldn't be that hard."
-        );
-
-        if !wasm_extensions.is_empty() {
-            self.wasm
-                .authenticate(&ctx.wasm, &wasm_extensions, gateway_headers)
-                .await
-        } else {
-            self.test.authenticate(ctx, &test_extensions, gateway_headers).await
+    ) -> (http::HeaderMap, Option<Result<Token, ErrorResponse>>) {
+        let (headers, result) = self.wasm.authenticate(&ctx.wasm, gateway_headers).await;
+        let error = match result {
+            None => None,
+            Some(Ok(token)) => return (headers, Some(Ok(token))),
+            Some(Err(err)) => Some(err),
+        };
+        let (headers, result) = self.test.authenticate(ctx, headers).await;
+        match (result, error) {
+            (Some(Ok(token)), _) => (headers, Some(Ok(token))),
+            (None, None) => (headers, None),
+            (None, Some(err)) | (Some(Err(_)), Some(err)) => (headers, Some(Err(err))),
+            (Some(Err(err)), _) => (headers, Some(Err(err))),
         }
     }
 
-    fn public_metadata(
-        &self,
-        extension_ids: &[ExtensionId],
-    ) -> impl Future<Output = Result<Vec<runtime::authentication::PublicMetadataEndpoint>, String>> {
-        let mut wasm_extensions = Vec::new();
-        let mut test_extensions = Vec::new();
-        for id in extension_ids {
-            match self.dispatch[id] {
-                DispatchRule::Wasm => wasm_extensions.push(*id),
-                DispatchRule::Test => test_extensions.push(*id),
-            }
-        }
+    async fn public_metadata_endpoints(&self) -> Result<Vec<PublicMetadataEndpoint>, String> {
+        let mut endpoints = Vec::new();
+        let mut wasm_public_metadata = self.wasm.public_metadata_endpoints().await?;
+        let mut native_public_metadata = self.test.public_metadata_endpoints().await?;
 
-        async move {
-            let mut endpoints = Vec::new();
-            let mut wasm_public_metadata = self.wasm.public_metadata(&wasm_extensions).await?;
-            let mut native_public_metadata = self.test.public_metadata(&test_extensions).await?;
+        endpoints.append(&mut wasm_public_metadata);
+        endpoints.append(&mut native_public_metadata);
 
-            endpoints.append(&mut wasm_public_metadata);
-            endpoints.append(&mut native_public_metadata);
-
-            Ok(endpoints)
-        }
+        Ok(endpoints)
     }
 }
 
@@ -73,15 +50,13 @@ impl AuthenticationExtension<ExtContext> for TestExtensions {
     async fn authenticate(
         &self,
         _ctx: &ExtContext,
-        extension_ids: &[ExtensionId],
         headers: http::HeaderMap,
-    ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
-        let mut futures = extension_ids
+    ) -> (http::HeaderMap, Option<Result<Token, ErrorResponse>>) {
+        let guard = self.state.lock().await;
+        let mut futures = guard
+            .authentication
             .iter()
-            .map(|id| async {
-                let instance = self.state.lock().await.get_authentication_ext(*id);
-                instance.authenticate(&headers).await
-            })
+            .map(|instance| instance.authenticate(&headers))
             .collect::<FuturesUnordered<_>>();
 
         let mut last_error = None;
@@ -89,7 +64,7 @@ impl AuthenticationExtension<ExtContext> for TestExtensions {
             match result {
                 Ok(token) => {
                     drop(futures);
-                    return (headers, Ok(token));
+                    return (headers, Some(Ok(token)));
                 }
                 Err(err) => {
                     last_error = Some(err);
@@ -99,24 +74,18 @@ impl AuthenticationExtension<ExtContext> for TestExtensions {
 
         drop(futures);
 
-        (headers, Err(last_error.unwrap()))
+        match last_error {
+            None => (headers, None),
+            Some(err) => (headers, Some(Err(err))),
+        }
     }
 
-    async fn public_metadata(
-        &self,
-        extension_ids: &[ExtensionId],
-    ) -> Result<Vec<runtime::authentication::PublicMetadataEndpoint>, String> {
-        let authentication_extensions: Vec<_> = {
-            let state = self.state.lock().await;
-            extension_ids
-                .iter()
-                .map(|id| state.get_authentication_ext(*id))
-                .collect()
-        };
-
-        let mut futures = authentication_extensions
-            .into_iter()
-            .map(|instance| async move { instance.public_metadata_endpoints().await })
+    async fn public_metadata_endpoints(&self) -> Result<Vec<PublicMetadataEndpoint>, String> {
+        let guard = self.state.lock().await;
+        let mut futures = guard
+            .authentication
+            .iter()
+            .map(|instance| instance.public_metadata_endpoints())
             .collect::<FuturesUnordered<_>>();
 
         let mut endpoints = Vec::new();
@@ -163,7 +132,7 @@ impl AuthenticationExt {
 
 impl AnyExtension for AuthenticationExt {
     fn register(self, state: &mut ExtensionsBuilder) {
-        let id = state.push_test_extension(TestManifest {
+        state.push_test_extension(TestManifest {
             id: Id {
                 name: self.name.to_string(),
                 version: "1.0.0".parse().unwrap(),
@@ -171,7 +140,7 @@ impl AnyExtension for AuthenticationExt {
             r#type: extension_catalog::Type::Authentication(Default::default()),
             sdl: None,
         });
-        state.test.authentication.insert(id, self.instance);
+        state.test.authentication.push(self.instance);
     }
 }
 

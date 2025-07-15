@@ -10,11 +10,10 @@ use crossterm::{
     terminal::{Clear, ClearType},
 };
 use engine::CachedOperation;
-use engine_auth::AuthenticationService;
 use gateway_config::{Config, HeaderInsert, HeaderRule};
 use grafbase_telemetry::metrics::{EngineMetrics, meter_from_global_provider};
-use runtime::{entity_cache::EntityCache, kv::KvStore, rate_limiting::RateLimiter, trusted_documents_client};
-use runtime_local::{InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher};
+use runtime::{entity_cache::EntityCache, rate_limiting::RateLimiter, trusted_documents_client};
+use runtime_local::{InMemoryEntityCache, InMemoryOperationCache, NativeFetcher};
 use std::io::stdout;
 use wasi_component_loader::extension::EngineWasmExtensions;
 
@@ -71,18 +70,14 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
     };
 
     let extensions = EngineWasmExtensions::default();
-    let kv = InMemoryKvStore::runtime();
-    let authentication = AuthenticationService::new(&config, &extensions_catalog, extensions.clone(), &kv);
     let runtime = MinimalRuntime {
         fetcher: NativeFetcher::new(&config).unwrap(),
         trusted_documents: trusted_documents_client::Client::new(()),
-        kv,
         metrics: EngineMetrics::build(&meter_from_global_provider(), None),
         extensions,
         rate_limiter: Default::default(),
         entity_cache: Default::default(),
         operation_cache: Default::default(),
-        authentication,
     };
 
     let engine = engine::ContractAwareEngine::new(Arc::new(schema), runtime);
@@ -126,27 +121,20 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
 struct MinimalRuntime {
     fetcher: NativeFetcher,
     trusted_documents: trusted_documents_client::Client,
-    kv: KvStore,
     metrics: EngineMetrics,
     extensions: EngineWasmExtensions,
     rate_limiter: RateLimiter,
     entity_cache: InMemoryEntityCache,
     operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
-    authentication: AuthenticationService<EngineWasmExtensions>,
 }
 
 impl engine::Runtime for MinimalRuntime {
     type Fetcher = NativeFetcher;
     type OperationCache = InMemoryOperationCache<Arc<CachedOperation>>;
     type Extensions = EngineWasmExtensions;
-    type Authenticate = AuthenticationService<Self::Extensions>;
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
-    }
-
-    fn kv(&self) -> &runtime::kv::KvStore {
-        &self.kv
     }
 
     fn trusted_documents(&self) -> &trusted_documents_client::Client {
@@ -175,9 +163,5 @@ impl engine::Runtime for MinimalRuntime {
 
     fn extensions(&self) -> &Self::Extensions {
         &self.extensions
-    }
-
-    fn authentication(&self) -> &Self::Authenticate {
-        &self.authentication
     }
 }

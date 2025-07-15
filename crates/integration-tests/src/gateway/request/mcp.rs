@@ -104,7 +104,10 @@ impl StreamableHttpClient for RouterClient {
         let Ok(response) = router.as_service().call(request).await;
 
         if !response.status().is_success() {
-            panic!("Non-200 response from MCP: {}", response.status())
+            return Err(StreamableHttpError::Client(std::io::Error::other(format!(
+                "Non-200 response from MCP: {}",
+                response.status()
+            ))));
         }
 
         if response.status() == reqwest::StatusCode::ACCEPTED {

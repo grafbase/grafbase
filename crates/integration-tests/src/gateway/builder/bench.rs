@@ -7,7 +7,10 @@ use bytes::Bytes;
 use engine::Body;
 use event_queue::SubgraphResponseBuilder;
 use futures::{StreamExt, TryStreamExt};
-use runtime::fetch::{FetchRequest, FetchResult, dynamic::DynFetcher};
+use runtime::{
+    authentication::LegacyToken,
+    fetch::{FetchRequest, FetchResult, dynamic::DynFetcher},
+};
 use runtime_local::InMemoryOperationCache;
 
 use crate::gateway::{ExtContext, GraphqlResponse, GraphqlStreamingResponse};
@@ -72,6 +75,7 @@ impl DeterministicEngineBuilder<'_> {
                     http::HeaderValue::from_static("application/json"),
                 )
                 .extension(ExtContext::default())
+                .extension(LegacyToken::Anonymous)
                 .body(())
                 .unwrap()
                 .into_parts()

@@ -21,8 +21,7 @@ pub trait Anything<'a>: serde::Serialize + Send + 'a {}
 impl<'a, T> Anything<'a> for T where T: serde::Serialize + Send + 'a {}
 
 pub trait EngineExtensions:
-    AuthenticationExtension<Self::Context>
-    + AuthorizationExtension<Self::Context>
+    AuthorizationExtension<Self::Context>
     + FieldResolverExtension
     + SelectionSetResolverExtension
     + ResolverExtension<Self::Context>
@@ -33,7 +32,9 @@ pub trait EngineExtensions:
     type Context: ExtensionContext;
 }
 
-pub trait GatewayExtensions: HooksExtension<Self::Context> + Send + Sync + 'static {
+pub trait GatewayExtensions:
+    HooksExtension<Self::Context> + AuthenticationExtension<Self::Context> + Send + Sync + 'static
+{
     type Context: ExtensionContext;
 }
 

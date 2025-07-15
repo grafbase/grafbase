@@ -15,7 +15,7 @@ pub(super) async fn build(engine: Arc<ContractAwareEngine<TestRuntime>>, config:
         engine: engine_watcher,
         server_runtime: (),
         extensions: engine.no_contract.runtime.gateway_extensions.clone(),
-        inject_layers_before_cors: |r| r,
+        inject_telemetry: |r| r,
     };
 
     let (router, _) = federated_server::router::create(router_config).await.unwrap();

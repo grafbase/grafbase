@@ -11,11 +11,11 @@ use runtime::{
 use tokio::sync::RwLock;
 
 use crate::gateway::{
-    DispatchRule, ExtContext, ExtensionsBuilder, ExtensionsDispatcher, TestExtensions, TestManifest,
+    DispatchRule, EngineTestExtensions, ExtContext, ExtensionsBuilder, TestExtensions, TestManifest,
     runtime::extension::builder::AnyExtension,
 };
 
-impl AuthorizationExtension<ExtContext> for ExtensionsDispatcher {
+impl AuthorizationExtension<ExtContext> for EngineTestExtensions {
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
         ctx: &'ctx ExtContext,

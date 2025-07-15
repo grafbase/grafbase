@@ -5,6 +5,7 @@ mod search;
 
 pub use execute::*;
 use futures::future::BoxFuture;
+use http::request::Parts;
 pub use introspect::*;
 pub use search::*;
 use std::borrow::Cow;
@@ -21,7 +22,7 @@ pub(crate) trait Tool: Send + Sync + 'static {
     fn description(&self) -> Cow<'_, str>;
     fn call(
         &self,
-        parts: http::request::Parts,
+        parts: Parts,
         parameters: Self::Parameters,
     ) -> impl Future<Output = anyhow::Result<CallToolResult>> + Send;
     fn annotations(&self) -> ToolAnnotations;
@@ -59,7 +60,7 @@ impl<T: Tool> RmcpTool for T {
     ) -> BoxFuture<'_, Result<CallToolResult, ErrorData>> {
         let parts = ctx
             .extensions
-            .remove::<http::request::Parts>()
+            .remove::<Parts>()
             .unwrap_or_else(|| http::Request::builder().body(Vec::<u8>::new()).unwrap().into_parts().0);
 
         Box::pin(async move {

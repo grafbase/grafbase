@@ -73,6 +73,7 @@ impl<R: Runtime> ContractAwareEngine<R> {
             ctx,
             headers: parts.headers,
             extension_context: parts.extensions.remove().expect("Missing extension context"),
+            token: parts.extensions.remove().expect("Missing authentication token"),
         };
 
         if let Some(key) = parts.extension_context.contract_key() {
@@ -162,6 +163,7 @@ impl<R: Runtime> Engine<R> {
             ctx,
             headers,
             extension_context,
+            token,
         }: Parts<R>,
         body: F,
     ) -> http::Response<Body>
@@ -169,7 +171,7 @@ impl<R: Runtime> Engine<R> {
         F: Future<Output = Result<Bytes, (http::StatusCode, String)>> + Send,
     {
         let context_fut = self
-            .create_graphql_context(&ctx, headers, extension_context, None)
+            .create_graphql_context(&ctx, headers, extension_context, token, None)
             .map_err(|response| response);
 
         let request_fut = self
@@ -193,11 +195,12 @@ impl<R: Runtime> Engine<R> {
             ctx,
             headers,
             extension_context,
+            token,
         }: Parts<R>,
         payload: InitPayload,
     ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
         let request_context = self
-            .create_graphql_context(&ctx, headers, extension_context, Some(payload))
+            .create_graphql_context(&ctx, headers, extension_context, token, Some(payload))
             .await
             .map_err(|response| {
                 response
