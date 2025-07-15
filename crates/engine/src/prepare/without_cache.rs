@@ -18,7 +18,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
         document: OperationDocument<'_>,
         variables: RawVariables,
     ) -> Result<PreparedOperation, Response> {
-        if document.content.len() >= self.schema().settings.executable_document_limit_bytes {
+        if document.content.len() >= self.schema().config.executable_document_limit_bytes {
             let error = GraphqlError::new(
                 "Executable document exceeded the maximum configured size",
                 ErrorCode::OperationValidationError,
@@ -33,7 +33,10 @@ impl<R: Runtime> PrepareContext<'_, R> {
                     let site_ids = items.iter().filter_map(|error| error.site_id).collect::<Vec<_>>();
                     Response::request_error(items.into_iter().map(operation_error_into_graphql_error)).with_extensions(
                         ResponseExtensions {
-                            mcp: Some(McpResponseExtension { site_ids }),
+                            mcp: Some(McpResponseExtension {
+                                schema: self.engine.schema.clone(),
+                                site_ids,
+                            }),
                             ..Default::default()
                         },
                     )

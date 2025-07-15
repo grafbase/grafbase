@@ -20,7 +20,7 @@ use operation::{BatchRequest, QueryParamsRequest};
 use std::{future::Future, sync::Arc};
 
 use crate::{
-    Body, Engine, Runtime,
+    Body, ContractAwareEngine, Engine, Runtime,
     engine::ExtensionContext,
     graphql_over_http::{ContentType, ResponseFormat},
     mcp::McpRequestContext,
@@ -28,13 +28,13 @@ use crate::{
     websocket::InitPayload,
 };
 
-impl<R: Runtime> Engine<R> {
+impl<R: Runtime> ContractAwareEngine<R> {
     #[allow(clippy::result_large_err)]
     pub(crate) fn unpack_http_request<B>(
         &self,
         request: http::Request<B>,
-    ) -> Result<(EarlyHttpContext, http::HeaderMap, B), http::Response<Body>> {
-        let (parts, body) = request.into_parts();
+    ) -> Result<(Parts<R>, B), http::Response<Body>> {
+        let (mut parts, body) = request.into_parts();
 
         let Some(response_format) = ResponseFormat::extract_from(&parts.headers) else {
             // GraphQL-over-HTTP spec:
@@ -59,8 +59,9 @@ impl<R: Runtime> Engine<R> {
             ContentType::Json
         };
 
+        // Config doesn't depend on the contract.
         let include_grafbase_response_extension =
-            should_include_grafbase_response_extension(&self.schema, &parts.headers);
+            should_include_grafbase_response_extension(&self.no_contract.schema.config, &parts.headers);
 
         let mut ctx = EarlyHttpContext {
             can_mutate: !parts.method.is_safe(),
@@ -77,15 +78,32 @@ impl<R: Runtime> Engine<R> {
             ctx.include_mcp_response_extension = true;
         }
 
-        Ok((ctx, parts.headers, body))
-    }
+        let parts = Parts {
+            ctx,
+            headers: parts.headers,
+            extension_context: parts
+                .extensions
+                .remove::<ExtensionContext<R>>()
+                .expect("Missing extension context"),
+        };
 
+        Ok((parts, body))
+    }
+}
+
+pub(crate) struct Parts<R: Runtime> {
+    pub ctx: EarlyHttpContext,
+    pub headers: http::HeaderMap,
+    pub extension_context: ExtensionContext<R>,
+}
+
+impl<R: Runtime> Engine<R> {
     pub(crate) async fn create_graphql_context(
         self: &Arc<Self>,
         ctx: &EarlyHttpContext,
         headers: http::HeaderMap,
-        websocket_init_payload: Option<InitPayload>,
         extension_context: ExtensionContext<R>,
+        websocket_init_payload: Option<InitPayload>,
     ) -> Result<Arc<RequestContext<ExtensionContext<R>>>, Response> {
         let client = Client::extract_from(&headers);
 

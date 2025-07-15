@@ -3,6 +3,7 @@ mod authorization;
 mod field_resolver;
 mod hooks;
 mod resolver;
+mod schema_contract;
 mod selection_set_resolver;
 
 pub use authentication::*;
@@ -13,6 +14,7 @@ use event_queue::EventQueue;
 pub use field_resolver::*;
 pub use hooks::*;
 pub use resolver::*;
+pub use schema_contract::*;
 pub use selection_set_resolver::*;
 
 pub trait Anything<'a>: serde::Serialize + Send + 'a {}
@@ -31,8 +33,13 @@ pub trait EngineExtensions:
     type Context: ExtensionContext;
 }
 
-pub trait ExtensionContext: Default + Send + Sync + 'static {
+pub trait GatewayExtensions: HooksExtension<Self::Context> + Send + Sync + 'static {
+    type Context: ExtensionContext;
+}
+
+pub trait ExtensionContext: Default + Clone + Send + Sync + 'static {
     fn event_queue(&self) -> &EventQueue;
+    fn contract_key(&self) -> Option<&str>;
 }
 
 #[derive(Debug, Clone)]

@@ -16,6 +16,10 @@ impl ExtensionContext for ExtContext {
     fn event_queue(&self) -> &EventQueue {
         self.wasm.event_queue()
     }
+
+    fn contract_key(&self) -> Option<&str> {
+        self.wasm.contract_key()
+    }
 }
 
 impl ExtContext {

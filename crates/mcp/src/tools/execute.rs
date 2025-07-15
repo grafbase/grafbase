@@ -1,10 +1,8 @@
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
 
-use engine::{
-    Schema,
-    mcp::{McpRequestContext, McpResponseExtension},
-};
+use engine::mcp::{McpRequestContext, McpResponseExtension};
 use engine_operation::RawVariables;
+use http::request::Parts;
 use rmcp::model::{CallToolResult, Content};
 use serde::Serialize as _;
 
@@ -73,14 +71,10 @@ impl<R: engine::Runtime> Tool for ExecuteTool<R> {
         "Executes a GraphQL request. Additional GraphQL SDL may be provided upon errors.".into()
     }
 
-    async fn call(
-        &self,
-        parameters: Self::Parameters,
-        http_headers: Option<http::HeaderMap>,
-    ) -> anyhow::Result<CallToolResult> {
-        let EngineResponse { schema, json, mcp } = self.execute(parameters, http_headers).await?;
+    async fn call(&self, parts: Parts, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {
+        let EngineResponse { json, mcp } = self.execute(parts, parameters).await?;
         let mut content = vec![Content::text(String::from_utf8(json).unwrap())];
-        if let Some(McpResponseExtension { mut site_ids }) = mcp {
+        if let Some(McpResponseExtension { schema, mut site_ids }) = mcp {
             if !site_ids.is_empty() {
                 site_ids.sort_unstable();
                 site_ids.dedup();
@@ -107,7 +101,6 @@ impl<R: engine::Runtime> Tool for ExecuteTool<R> {
 }
 
 struct EngineResponse {
-    schema: Arc<Schema>,
     json: Vec<u8>,
     mcp: Option<McpResponseExtension>,
 }
@@ -120,7 +113,7 @@ impl<R: engine::Runtime> ExecuteTool<R> {
         }
     }
 
-    async fn execute(&self, request: Request, http_headers: Option<http::HeaderMap>) -> anyhow::Result<EngineResponse> {
+    async fn execute(&self, mut parts: Parts, request: Request) -> anyhow::Result<EngineResponse> {
         let engine = self.engine.borrow().clone();
         let mut body = Vec::new();
         let mut serializer = minicbor_serde::Serializer::new(&mut body);
@@ -128,27 +121,23 @@ impl<R: engine::Runtime> ExecuteTool<R> {
         // Necessary for serde_json::Value which serializes `Null` as unit rather than none...
         serializer.serialize_unit_as_null(true);
         request.serialize(&mut serializer)?;
+        let body = async move { Ok(body.into()) };
 
-        let mut headers = http_headers.unwrap_or_default();
+        parts.method = http::Method::POST;
+        parts
+            .headers
+            .insert("Content-Type", http::HeaderValue::from_static("application/cbor"));
+        parts
+            .headers
+            .insert("Accept", http::HeaderValue::from_static("application/json"));
+        parts.extensions.insert(McpRequestContext {
+            execute_mutations: self.execute_mutations,
+        });
 
-        headers.insert("Content-Type", "application/cbor".parse().unwrap());
-        headers.insert("Accept", "application/json".parse().unwrap());
-
-        let mut http_request = http::Request::builder();
-
-        *http_request.headers_mut().unwrap() = headers;
-
-        let http_request = http_request
-            .method(http::Method::POST)
-            .extension(McpRequestContext {
-                execute_mutations: self.execute_mutations,
-            })
-            .body(async move { Ok(body.into()) })?;
-
+        let http_request = http::Request::from_parts(parts, body);
         let mut response = engine.execute(http_request).await;
         let mcp = response.extensions_mut().remove();
         Ok(EngineResponse {
-            schema: engine.schema.clone(),
             json: response.into_body().into_bytes().unwrap().into(),
             mcp,
         })

@@ -1,14 +1,15 @@
 use std::{path::PathBuf, sync::Arc};
 
 use ::engine::CachedOperation;
+use engine::ContractAwareEngine;
 use extension_catalog::ExtensionCatalog;
 use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
 };
 
-use super::{EngineBuildContext, EngineRuntime, EngineSender, EngineWatcher};
-use crate::{events::UpdateEvent, graph::Graph};
+use super::{EngineBuildContext, EngineRuntime};
+use crate::{events::UpdateEvent, graph::Graph, router::EngineWatcher};
 
 use super::AccessToken;
 
@@ -152,25 +153,26 @@ async fn build_engine(
     context: EngineBuildContext<'_>,
     graph: Graph,
     operations_to_warm: Vec<Arc<CachedOperation>>,
-) -> crate::Result<Arc<engine::Engine<EngineRuntime>>> {
+) -> crate::Result<Arc<engine::ContractAwareEngine<EngineRuntime>>> {
     let engine = crate::engine::generate(context, graph).await?;
     let engine = Arc::new(engine);
 
-    engine.warm(operations_to_warm).await;
+    // FIXME: warm up all contracts.
+    engine.no_contract.warm(operations_to_warm).await;
 
     Ok(engine)
 }
 
 fn extract_operations_to_warm(
     config: &gateway_config::Config,
-    engine_sender: &EngineSender,
+    engine_sender: &watch::Sender<Arc<ContractAwareEngine<EngineRuntime>>>,
 ) -> Vec<Arc<CachedOperation>> {
     if !config.operation_caching.enabled || !config.operation_caching.warm_on_reload {
         return Vec::new();
     }
 
     let (operations, cache_count) = {
-        let cache = &engine_sender.borrow().runtime.operation_cache;
+        let cache = &engine_sender.borrow().no_contract.runtime.operation_cache;
         (cache.values().collect(), cache.entry_count())
     };
 

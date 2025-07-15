@@ -163,7 +163,7 @@ impl BuildContext<'_> {
             strings,
             regexps: regexps.into(),
             urls: urls.into(),
-            settings,
+            config: settings,
         })
     }
 }

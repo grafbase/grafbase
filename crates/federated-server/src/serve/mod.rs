@@ -55,7 +55,7 @@ pub async fn serve(
         config_receiver,
         config_path,
         config_hot_reload,
-        graph_loader: fetch_method,
+        graph_loader,
         grafbase_access_token,
         logging_filter,
     }: ServeConfig,
@@ -71,7 +71,7 @@ pub async fn serve(
     let (update_sender, update_receiver) = mpsc::channel::<UpdateEvent>(16);
 
     // Start the graph producer
-    fetch_method.start_producer(update_sender.clone()).await?;
+    graph_loader.start_producer(update_sender.clone()).await?;
 
     // Bridge config updates to the central channel if hot reload is enabled
     if config_hot_reload {

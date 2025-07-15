@@ -3,7 +3,7 @@ use std::{path::Path, str::FromStr, sync::Arc};
 use crate::gateway::{TestRuntimeBuilder, subgraph::Subgraphs};
 use gateway_config::Config;
 
-use engine::Engine;
+use engine::ContractAwareEngine;
 
 use super::{TestConfig, TestRuntime};
 
@@ -13,7 +13,7 @@ pub(super) async fn build(
     mut config: TestConfig,
     runtime: TestRuntimeBuilder,
     subgraphs: &Subgraphs,
-) -> Result<Arc<Engine<TestRuntime>>, String> {
+) -> Result<Arc<ContractAwareEngine<TestRuntime>>, String> {
     let federated_sdl = {
         let mut federated_graph = match federated_sdl {
             Some(sdl) => graphql_composition::FederatedGraph::from_sdl(&sdl).unwrap(),
@@ -98,7 +98,7 @@ pub(super) async fn build(
 
     println!("=== CONFIG ===\n{config:#?}\n");
 
-    let engine = engine::Engine::new(schema, runtime).await;
+    let engine = engine::ContractAwareEngine::new(schema, runtime);
 
     Ok(Arc::new(engine))
 }

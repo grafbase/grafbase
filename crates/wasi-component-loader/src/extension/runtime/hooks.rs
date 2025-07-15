@@ -5,22 +5,11 @@ use runtime::extension::HooksExtension;
 
 use crate::{SharedContext, extension::GatewayWasmExtensions};
 
-impl HooksExtension for GatewayWasmExtensions {
-    type Context = SharedContext;
-
-    fn new_context(&self) -> Self::Context {
-        let event_queue = EventQueue::new(self.hooks_event_filter);
-
-        SharedContext::new(event_queue)
-    }
-
-    async fn on_request(
-        &self,
-        context: &Self::Context,
-        parts: request::Parts,
-    ) -> Result<request::Parts, ErrorResponse> {
+impl HooksExtension<SharedContext> for GatewayWasmExtensions {
+    async fn on_request(&self, parts: request::Parts) -> Result<(SharedContext, request::Parts), ErrorResponse> {
+        let context = SharedContext::new(EventQueue::new(self.hooks_event_filter), None);
         let Some(pool) = self.hooks.as_ref() else {
-            return Ok(parts);
+            return Ok((context, parts));
         };
 
         let mut instance = pool.get().await.map_err(|e| ErrorResponse {
@@ -32,13 +21,15 @@ impl HooksExtension for GatewayWasmExtensions {
             headers: Default::default(),
         })?;
 
-        instance
+        let parts = instance
             .on_request(context.clone(), parts)
             .await
-            .map_err(|e| e.into_graphql_error_response(engine_error::ErrorCode::ExtensionError))
+            .map_err(|e| e.into_graphql_error_response(engine_error::ErrorCode::ExtensionError))?;
+
+        Ok((context, parts))
     }
 
-    async fn on_response(&self, context: &Self::Context, parts: response::Parts) -> Result<response::Parts, String> {
+    async fn on_response(&self, context: &SharedContext, parts: response::Parts) -> Result<response::Parts, String> {
         let Some(pool) = self.hooks.as_ref() else {
             return Ok(parts);
         };

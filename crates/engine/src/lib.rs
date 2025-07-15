@@ -11,7 +11,7 @@ mod response;
 mod utils;
 pub mod websocket;
 
-pub use engine::{Engine, Runtime, WebsocketSession, mcp};
+pub use engine::{ContractAwareEngine, Engine, Runtime, WebsocketSession, mcp};
 pub use error::{ErrorCode, ErrorResponse, GraphqlError};
 pub use graphql_over_http::{Body, ResponseFormat, TelemetryExtension};
 pub use prepare::cached::CachedOperation;

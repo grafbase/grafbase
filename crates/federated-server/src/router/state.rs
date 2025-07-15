@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::engine::EngineWatcher;
+use crate::router::EngineWatcher;
 
 pub struct ServerStateInner<R: engine::Runtime, SR> {
     /// The gateway responsible for handling engine communication.

@@ -81,7 +81,7 @@ pub struct Schema {
     #[indexed_by(UrlId)]
     urls: Vec<url::Url>,
 
-    pub settings: PartialConfig,
+    pub config: PartialConfig,
 }
 
 impl Schema {

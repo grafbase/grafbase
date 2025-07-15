@@ -1,10 +1,11 @@
 mod tokenizer;
 
-use std::{borrow::Cow, collections::VecDeque, marker::PhantomData, sync::Arc};
+use std::{borrow::Cow, collections::VecDeque, sync::Arc};
 
-use engine::Schema;
+use engine::{ContractAwareEngine, Schema};
 use engine_schema::FieldDefinitionId;
 use fxhash::FxHashMap;
+use http::request::Parts;
 use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -27,8 +28,7 @@ const BOUNDARIES: &[convert_case::Boundary] = &[
 ];
 
 pub struct SearchTool<R: engine::Runtime> {
-    schema_index: tokio::sync::watch::Receiver<Arc<SchemaIndex>>,
-    _marker: PhantomData<R>,
+    indices: tokio::sync::watch::Receiver<Arc<ContractAwareSchemaIndices<R>>>,
 }
 
 impl<R: engine::Runtime> Tool for SearchTool<R> {
@@ -42,12 +42,10 @@ impl<R: engine::Runtime> Tool for SearchTool<R> {
         format!("Search for relevant fields to use in a GraphQL query. A list of matching fields with their score is returned with partial GraphQL SDL indicating how to query them. Use `{}` tool to request additional information on children field types if necessary to refine the selection set.", IntrospectTool::<R>::name()).into()
     }
 
-    async fn call(
-        &self,
-        parameters: Self::Parameters,
-        _headers: Option<http::HeaderMap>,
-    ) -> anyhow::Result<CallToolResult> {
-        let resp = self.schema_index.borrow().clone().search(parameters.keywords)?;
+    async fn call(&self, parts: Parts, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {
+        let indices = self.indices.borrow().clone();
+        let index = indices.get(&parts).await?;
+        let resp = index.search(parameters.keywords)?;
         Ok(SdlAndErrors {
             sdl: resp.sdl,
             errors: Vec::new(),
@@ -78,26 +76,78 @@ struct FieldMatch {
 }
 
 impl<R: engine::Runtime> SearchTool<R> {
-    pub fn new(engine: &EngineWatcher<R>, execute_mutations: bool) -> anyhow::Result<Self> {
-        let schema_index = Arc::new(SchemaIndex::new(engine.borrow().schema.clone(), execute_mutations)?);
-        let current_hash = schema_index.schema.hash;
-        let (tx, rx) = tokio::sync::watch::channel(schema_index.clone());
-        let stream = WatchStream::from_changes(engine.clone());
+    pub fn new(watcher: &EngineWatcher<R>, execute_mutations: bool) -> anyhow::Result<Self> {
+        let indices = Arc::new(ContractAwareSchemaIndices::new(
+            watcher.borrow().clone(),
+            execute_mutations,
+        )?);
+        let current_hash = indices.engine.no_contract.schema.hash;
+        let (tx, rx) = tokio::sync::watch::channel(indices.clone());
+        let stream = WatchStream::from_changes(watcher.clone());
         tokio::spawn(async move {
             let mut current_hash = current_hash;
             let mut stream = stream;
             while let Some(engine) = stream.next().await {
-                if engine.schema.hash == current_hash {
+                if engine.no_contract.schema.hash == current_hash {
                     continue;
                 }
-                let schema_index = SchemaIndex::new(engine.schema.clone(), execute_mutations).unwrap();
-                current_hash = schema_index.schema.hash;
-                tx.send(Arc::new(schema_index)).unwrap();
+                let indices = ContractAwareSchemaIndices::new(engine, execute_mutations).unwrap();
+                current_hash = indices.engine.no_contract.schema.hash;
+                tx.send(Arc::new(indices)).unwrap();
             }
         });
+        Ok(Self { indices: rx })
+    }
+}
+
+struct SchemaKey(Arc<Schema>);
+
+impl std::hash::Hash for SchemaKey {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.hash.hash(state);
+    }
+}
+
+impl std::cmp::Eq for SchemaKey {}
+
+impl std::cmp::PartialEq for SchemaKey {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.0, &other.0)
+    }
+}
+
+impl ToOwned for SchemaKey {
+    type Owned = Self;
+    fn to_owned(&self) -> Self::Owned {
+        Self(self.0.clone())
+    }
+}
+
+struct ContractAwareSchemaIndices<R: engine::Runtime> {
+    engine: Arc<ContractAwareEngine<R>>,
+    execute_mutations: bool,
+    by_contract: quick_cache::sync::Cache<SchemaKey, Arc<SchemaIndex>>,
+}
+
+impl<R: engine::Runtime> ContractAwareSchemaIndices<R> {
+    pub fn new(engine: Arc<ContractAwareEngine<R>>, execute_mutations: bool) -> anyhow::Result<Self> {
+        let schema = engine.no_contract.schema.clone();
+        let schema_index = Arc::new(SchemaIndex::new(schema.clone(), execute_mutations)?);
+
+        let by_contract = quick_cache::sync::Cache::new(101);
+        by_contract.insert(SchemaKey(schema), schema_index);
         Ok(Self {
-            schema_index: rx,
-            _marker: PhantomData,
+            engine,
+            execute_mutations,
+            by_contract,
+        })
+    }
+
+    pub async fn get(&self, parts: &Parts) -> anyhow::Result<Arc<SchemaIndex>> {
+        let schema = self.engine.get_schema(parts).await;
+        let key = SchemaKey(schema);
+        self.by_contract.get_or_insert_with(&key, || {
+            Ok(Arc::new(SchemaIndex::new(key.0.clone(), self.execute_mutations)?))
         })
     }
 }

@@ -66,7 +66,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         let persisted_query_extension = request.extensions.persisted_query.as_ref();
         let doc_id = request.doc_id.as_ref();
         let operation_name = request.operation_name.as_deref().map(Cow::Borrowed);
-        let apq_enabled = self.schema().settings.apq_enabled;
+        let apq_enabled = self.schema().config.apq_enabled;
 
         match (trusted_documents.enforcement_mode(), persisted_query_extension, doc_id) {
             (TrustedDocumentsEnforcementMode::Enforce, None, None) => {
@@ -106,11 +106,8 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
                         document_or_future: DocumentOrFuture::Future(
                             handle_trusted_document_query(self.engine, client_name, Cow::Owned(doc_id.clone()))
                                 .map_err({
-                                    let log_level = self
-                                        .schema()
-                                        .settings
-                                        .trusted_documents
-                                        .inline_document_unknown_log_level;
+                                    let log_level =
+                                        self.schema().config.trusted_documents.inline_document_unknown_log_level;
 
                                     move |err| {
                                         log_unknown_inline_document(log_level, doc_id.as_str());
@@ -346,7 +343,7 @@ async fn handle_apq<'r, 'f>(
 fn log_unknown_trusted_document_id<R: Runtime>(engine: &Engine<R>, document_id: &str) {
     const MESSAGE: &str = "Unknown trusted document";
 
-    match engine.schema.settings.trusted_documents.document_id_unknown_log_level {
+    match engine.schema.config.trusted_documents.document_id_unknown_log_level {
         LogLevel::Off => (),
         LogLevel::Debug => tracing::debug!(MESSAGE, document_id),
         LogLevel::Info => tracing::info!(MESSAGE, document_id),
@@ -361,7 +358,7 @@ fn log_document_id_and_query_mismatch<R: Runtime>(engine: &Engine<R>, document_i
 
     match engine
         .schema
-        .settings
+        .config
         .trusted_documents
         .document_id_and_query_mismatch_log_level
     {

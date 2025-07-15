@@ -1,14 +1,14 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use ::axum::extract::ws::{self, WebSocket};
-use engine::{Engine, Runtime, WebsocketSession};
+use engine::{Runtime, WebsocketSession};
 use futures_util::{SinkExt, Stream, StreamExt, pin_mut, stream::SplitStream};
-use tokio::sync::{mpsc, watch};
+use tokio::sync::mpsc;
+
+use crate::router::EngineWatcher;
 
 use super::{WebsocketReceiver, WebsocketRequest, service::MessageConvert};
 use engine::websocket::{Event, Message};
-
-pub type EngineWatcher<R> = watch::Receiver<Arc<Engine<R>>>;
 
 const CONNECTION_INIT_WAIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
 

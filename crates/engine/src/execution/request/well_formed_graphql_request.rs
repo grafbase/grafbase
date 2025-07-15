@@ -43,14 +43,14 @@ impl<R: Runtime> Engine<R> {
                     );
                 };
 
-                if !self.schema.settings.batching.enabled {
+                if !self.schema.config.batching.enabled {
                     return self.bad_request_but_well_formed_graphql_over_http_request(
                         &request_context,
                         "batching is not enabled for this service",
                     );
                 }
 
-                if let Some(limit) = self.schema.settings.batching.limit {
+                if let Some(limit) = self.schema.config.batching.limit {
                     if requests.len() > (limit as usize) {
                         return self.bad_request_but_well_formed_graphql_over_http_request(
                             &request_context,

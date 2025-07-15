@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use http::request::Parts;
 use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -22,12 +23,10 @@ impl<R: engine::Runtime> Tool for IntrospectTool<R> {
         format!("Provide the complete GraphQL SDL for the requested types. Always use `{}` first to identify relevant fields before if information on a specific type was not explicitly requested. Continue using this tool until you have the definition of all nested types you intend to query.", SearchTool::<R>::name()).into()
     }
 
-    async fn call(
-        &self,
-        parameters: Self::Parameters,
-        _http_headers: Option<http::HeaderMap>,
-    ) -> anyhow::Result<CallToolResult> {
-        Ok(self.introspect(parameters.types).into())
+    async fn call(&self, parts: Parts, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {
+        let engine = self.engine.borrow().clone();
+        let schema = engine.get_schema(&parts).await;
+        Ok(self.introspect(&schema, parameters.types).into())
     }
 
     fn annotations(&self) -> rmcp::model::ToolAnnotations {
@@ -45,8 +44,7 @@ impl<R: engine::Runtime> IntrospectTool<R> {
         Self { engine: engine.clone() }
     }
 
-    fn introspect(&self, types: Vec<String>) -> SdlAndErrors {
-        let schema = self.engine.borrow().schema.clone();
+    fn introspect(&self, schema: &engine::Schema, types: Vec<String>) -> SdlAndErrors {
         let mut site_ids = Vec::new();
         let mut errors = Vec::new();
 
@@ -69,7 +67,7 @@ impl<R: engine::Runtime> IntrospectTool<R> {
                 max_size_for_extra_content: 2048,
                 site_ids_and_score: site_ids.into_iter().map(|id| (id, 1.0)).collect(),
             }
-            .generate(&schema),
+            .generate(schema),
             errors,
         }
     }

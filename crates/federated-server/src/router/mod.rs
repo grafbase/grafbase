@@ -5,48 +5,51 @@ mod health;
 pub(crate) mod layers;
 mod state;
 
-use std::pin::Pin;
+use std::{pin::Pin, sync::Arc};
 
 use axum::{body::Bytes, routing::get};
-use runtime::{authentication::Authenticate, extension::HooksExtension};
-use tokio::sync::mpsc;
+use engine::ContractAwareEngine;
+use runtime::{authentication::Authenticate, extension::GatewayExtensions};
+use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
 use tower_http::{
     compression::{CompressionLayer, DefaultPredicate, Predicate, predicate::NotForContentType},
     cors::CorsLayer,
 };
 
-use crate::{engine::EngineWatcher, router::state::ServerState};
+use crate::router::state::ServerState;
 
 use super::ServerRuntime;
 
-pub struct RouterConfig<R, SR, H, F>
+pub struct RouterConfig<R, SR, E, F>
 where
     R: engine::Runtime,
     SR: ServerRuntime,
-    H: HooksExtension,
+    E: GatewayExtensions,
     F: FnOnce(axum::Router<()>) -> axum::Router<()>,
 {
     pub config: gateway_config::Config,
     pub engine: EngineWatcher<R>,
     pub server_runtime: SR,
-    pub extensions: H,
+    pub extensions: E,
     pub inject_layers_before_cors: F,
 }
 
-pub async fn create<R, SR, H, F>(
+pub type EngineWatcher<R> = watch::Receiver<Arc<ContractAwareEngine<R>>>;
+
+pub async fn create<R, SR, E, F>(
     RouterConfig {
         config,
         engine,
         server_runtime,
         extensions,
         inject_layers_before_cors,
-    }: RouterConfig<R, SR, H, F>,
+    }: RouterConfig<R, SR, E, F>,
 ) -> crate::Result<(axum::Router, Option<CancellationToken>)>
 where
     R: engine::Runtime,
     SR: ServerRuntime,
-    H: HooksExtension,
+    E: GatewayExtensions,
     F: FnOnce(axum::Router<()>) -> axum::Router<()>,
 {
     let path = &config.graph.path;
@@ -86,6 +89,7 @@ where
 
     for public_metadata_endpoint in engine
         .borrow()
+        .no_contract
         .runtime
         .authentication()
         .public_metadata_endpoints()
