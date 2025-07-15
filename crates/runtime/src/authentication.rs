@@ -66,14 +66,12 @@ impl LegacyToken {
     }
 }
 
-pub trait Authenticate<Context> {
+pub trait Authenticate<Context>: Send + Sync + Clone + 'static {
     fn authenticate(
         &self,
         context: &Context,
         headers: http::HeaderMap,
     ) -> impl Future<Output = Result<(http::HeaderMap, LegacyToken), ErrorResponse>> + Send;
-
-    fn public_metadata_endpoints(&self) -> impl Future<Output = Result<Vec<PublicMetadataEndpoint>, String>> + Send;
 }
 
 pub struct PublicMetadataEndpoint {

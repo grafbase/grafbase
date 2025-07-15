@@ -23,6 +23,7 @@ impl std::ops::Deref for GatewayWasmExtensions {
 pub struct GatewayWasmExtensionsInner {
     pub(crate) hooks: Option<Pool>,
     pub(crate) hooks_event_filter: Option<event_queue::EventFilter>,
+    pub(crate) authentication: Vec<Pool>,
 }
 
 impl GatewayWasmExtensions {
@@ -32,7 +33,7 @@ impl GatewayWasmExtensions {
         logging_filter: String,
     ) -> crate::Result<Self> {
         let extensions = load_extensions_config(extension_catalog, gateway_config, logging_filter, |ty| {
-            matches!(ty, TypeDiscriminants::Hooks)
+            matches!(ty, TypeDiscriminants::Hooks | TypeDiscriminants::Authentication)
         });
 
         let mut inner = GatewayWasmExtensionsInner::default();
@@ -54,6 +55,9 @@ impl GatewayWasmExtensions {
                         .or(manifiest.legacy_event_filter.as_ref())
                         .map(convert_event_filter);
                     inner.hooks = Some(Pool::new(schema.clone(), &extension).await?);
+                }
+                extension_catalog::Type::Authentication(_) => {
+                    inner.authentication.push(Pool::new(schema.clone(), &extension).await?);
                 }
                 _ => continue,
             }

@@ -3,53 +3,62 @@ use std::{fmt::Display, future::Future, pin::Pin};
 use event_queue::ExecutedHttpRequest;
 use http::{Request, Response};
 use http_body::Body;
-use runtime::extension::{ExtensionContext, GatewayExtensions};
+use runtime::{
+    authentication::Authenticate,
+    extension::{ExtensionContext, GatewayExtensions},
+};
 use tower::Layer;
 
 use crate::engine::into_axum_response;
 
 #[derive(Clone)]
-pub struct HooksLayer<Ext> {
+pub struct ExtensionLayer<Ext, A> {
     extensions: Ext,
+    auth: A,
 }
 
-impl<Ext> HooksLayer<Ext>
+impl<Ext, A> ExtensionLayer<Ext, A>
 where
     Ext: GatewayExtensions,
+    A: Authenticate<<Ext as GatewayExtensions>::Context>,
 {
-    pub fn new(extensions: Ext) -> Self {
-        Self { extensions }
+    pub fn new(extensions: Ext, auth: A) -> Self {
+        Self { extensions, auth }
     }
 }
 
-impl<Service, Ext> Layer<Service> for HooksLayer<Ext>
+impl<Service, Ext, A> Layer<Service> for ExtensionLayer<Ext, A>
 where
-    Ext: GatewayExtensions + Clone,
+    Ext: GatewayExtensions,
+    A: Authenticate<<Ext as GatewayExtensions>::Context>,
     Service: Send + Clone,
 {
-    type Service = HooksService<Service, Ext>;
+    type Service = ExtensionService<Service, Ext, A>;
 
     fn layer(&self, inner: Service) -> Self::Service {
-        HooksService {
+        ExtensionService {
             inner,
             extensions: self.extensions.clone(),
+            auth: self.auth.clone(),
         }
     }
 }
 
 #[derive(Clone)]
-pub struct HooksService<Service, Ext> {
+pub struct ExtensionService<Service, Ext, A> {
     inner: Service,
     extensions: Ext,
+    auth: A,
 }
 
-impl<Service, Ext, ReqBody> tower::Service<Request<ReqBody>> for HooksService<Service, Ext>
+impl<Service, Ext, A, ReqBody> tower::Service<Request<ReqBody>> for ExtensionService<Service, Ext, A>
 where
     Service: tower::Service<Request<ReqBody>, Response = Response<axum::body::Body>> + Send + Clone + 'static,
     Service::Future: Send,
     Service::Error: Display + 'static,
     ReqBody: Body + Send + 'static,
     Ext: GatewayExtensions,
+    A: Authenticate<<Ext as GatewayExtensions>::Context>,
 {
     type Response = http::Response<axum::body::Body>;
     type Error = Service::Error;
@@ -62,6 +71,7 @@ where
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
         let mut inner = self.inner.clone();
         let extensions = self.extensions.clone();
+        let auth = self.auth.clone();
 
         Box::pin(async move {
             let (parts, body) = req.into_parts();
@@ -70,7 +80,7 @@ where
 
             let response_format = engine::ResponseFormat::extract_from(&parts.headers).unwrap_or_default();
 
-            let (context, parts) = match extensions.on_request(parts).await {
+            let (context, mut parts) = match extensions.on_request(parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
                     let error_response = engine::http_error_response(response_format, err);
@@ -78,10 +88,21 @@ where
                 }
             };
 
-            let mut request = Request::from_parts(parts, body);
-            request.extensions_mut().insert(context.clone());
+            let headers = std::mem::take(&mut parts.headers);
+            let response = match auth.authenticate(&context, headers).await {
+                Ok((headers, token)) => {
+                    parts.headers = headers;
+                    parts.extensions.insert(token);
+                    let mut request = Request::from_parts(parts, body);
+                    request.extensions_mut().insert(context.clone());
 
-            let response = inner.call(request).await?;
+                    inner.call(request).await?
+                }
+                Err(err) => {
+                    let error_response = engine::http_error_response(response_format, err);
+                    into_axum_response(error_response)
+                }
+            };
 
             let (parts, body) = response.into_parts();
 

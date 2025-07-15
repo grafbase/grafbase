@@ -11,7 +11,7 @@ use wasi_component_loader::extension::{EngineWasmExtensions, GatewayWasmExtensio
 use crate::gateway::{DispatchRule, GatewayTestExtensions, runtime::extension::PLACEHOLDER_EXTENSION_DIR};
 
 use super::{
-    EXTENSIONS_DIR, ExtensionsDispatcher, TestExtensions, TestExtensionsState, TestManifest, placeholder_sdk_version,
+    EXTENSIONS_DIR, EngineTestExtensions, TestExtensions, TestExtensionsState, TestManifest, placeholder_sdk_version,
 };
 
 pub struct ExtensionsBuilder {
@@ -136,7 +136,7 @@ impl ExtensionsBuilder {
         self,
         config: &mut gateway_config::Config,
         schema: &Arc<engine::Schema>,
-    ) -> Result<(GatewayTestExtensions, ExtensionsDispatcher, ExtensionCatalog), String> {
+    ) -> Result<(GatewayTestExtensions, EngineTestExtensions), String> {
         let (engine_extensions, gateway_extensions) = if self.has_wasm_extension {
             for ext in self.catalog.iter() {
                 let version = ext.manifest.id.version.to_string().parse().unwrap();
@@ -181,17 +181,19 @@ impl ExtensionsBuilder {
             Default::default()
         };
 
-        let extensions = ExtensionsDispatcher {
+        let test = TestExtensions {
+            state: Arc::new(tokio::sync::Mutex::new(self.test)),
+        };
+        let extensions = EngineTestExtensions {
             wasm: engine_extensions,
-            test: TestExtensions {
-                state: Arc::new(tokio::sync::Mutex::new(self.test)),
-            },
+            test: test.clone(),
             dispatch: self.dispatch,
         };
         let gateway_extensions = GatewayTestExtensions {
             wasm: gateway_extensions,
+            test,
         };
 
-        Ok((gateway_extensions, extensions, self.catalog))
+        Ok((gateway_extensions, extensions))
     }
 }

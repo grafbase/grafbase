@@ -39,7 +39,6 @@ impl EngineWasmExtensions {
                     | TypeDiscriminants::FieldResolver
                     | TypeDiscriminants::SelectionSetResolver
                     | TypeDiscriminants::Authorization
-                    | TypeDiscriminants::Authentication
             )
         });
 

@@ -14,6 +14,7 @@ use tantivy::{
     query::{BoostQuery, DisjunctionMaxQuery, PhraseQuery, Query, TermQuery},
     schema::{Field, IndexRecordOption, TextFieldIndexing, TextOptions},
 };
+use tokio::sync::watch;
 use tokio_stream::{StreamExt as _, wrappers::WatchStream};
 
 use super::{IntrospectTool, SdlAndErrors, Tool};
@@ -28,7 +29,7 @@ const BOUNDARIES: &[convert_case::Boundary] = &[
 ];
 
 pub struct SearchTool<R: engine::Runtime> {
-    indices: tokio::sync::watch::Receiver<Arc<ContractAwareSchemaIndices<R>>>,
+    indices: watch::Receiver<Arc<ContractAwareSchemaIndices<R>>>,
 }
 
 impl<R: engine::Runtime> Tool for SearchTool<R> {
@@ -82,7 +83,7 @@ impl<R: engine::Runtime> SearchTool<R> {
             execute_mutations,
         )?);
         let current_hash = indices.engine.no_contract.schema.hash;
-        let (tx, rx) = tokio::sync::watch::channel(indices.clone());
+        let (tx, rx) = watch::channel(indices.clone());
         let stream = WatchStream::from_changes(watcher.clone());
         tokio::spawn(async move {
             let mut current_hash = current_hash;

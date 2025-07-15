@@ -5,12 +5,11 @@ mod hooks;
 use std::sync::Arc;
 
 use engine::{CachedOperation, Schema};
-use engine_auth::AuthenticationService;
 use gateway_config::Config;
 use grafbase_telemetry::metrics::{self, EngineMetrics};
 use runtime::{entity_cache::EntityCache, fetch::dynamic::DynamicFetcher, trusted_documents_client};
 use runtime_local::{
-    InMemoryEntityCache, InMemoryKvStore, InMemoryOperationCache, NativeFetcher,
+    InMemoryEntityCache, InMemoryOperationCache, NativeFetcher,
     rate_limiting::in_memory::key_based::InMemoryRateLimiter,
 };
 use tokio::sync::watch;
@@ -22,13 +21,11 @@ pub use hooks::*;
 pub struct TestRuntime {
     pub fetcher: DynamicFetcher,
     pub trusted_documents: trusted_documents_client::Client,
-    pub kv: runtime::kv::KvStore,
     pub operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
     pub metrics: EngineMetrics,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
     pub entity_cache: InMemoryEntityCache,
-    pub engine_extensions: ExtensionsDispatcher,
-    pub authentication: engine_auth::AuthenticationService<ExtensionsDispatcher>,
+    pub engine_extensions: EngineTestExtensions,
     pub gateway_extensions: GatewayTestExtensions,
 }
 
@@ -50,11 +47,8 @@ impl TestRuntimeBuilder {
             extensions,
         } = self;
 
-        let (gateway_extensions, engine_extensions, catalog) =
+        let (gateway_extensions, engine_extensions) =
             extensions.build_and_ingest_catalog_into_config(config, schema).await?;
-
-        let kv = InMemoryKvStore::runtime();
-        let authentication = engine_auth::AuthenticationService::new(config, &catalog, engine_extensions.clone(), &kv);
 
         let (_, rx) = watch::channel(Default::default());
 
@@ -63,13 +57,11 @@ impl TestRuntimeBuilder {
                 DynamicFetcher::wrap(NativeFetcher::new(config).expect("couldnt construct NativeFetcher"))
             }),
             trusted_documents: trusted_documents.unwrap_or_else(|| trusted_documents_client::Client::new(())),
-            kv,
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
             operation_cache: InMemoryOperationCache::default(),
             engine_extensions,
-            authentication,
             gateway_extensions,
         })
     }
@@ -82,26 +74,15 @@ impl Default for TestRuntime {
         let fetcher =
             DynamicFetcher::wrap(NativeFetcher::new(&Config::default()).expect("couldnt construct NativeFetcher"));
 
-        let kv = InMemoryKvStore::runtime();
-
-        let authentication = engine_auth::AuthenticationService::new(
-            &Config::default(),
-            &Default::default(),
-            ExtensionsDispatcher::default(),
-            &kv,
-        );
-
         Self {
             fetcher,
             trusted_documents: trusted_documents_client::Client::new(()),
-            kv,
             operation_cache: InMemoryOperationCache::default(),
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
-            engine_extensions: ExtensionsDispatcher::default(),
+            engine_extensions: EngineTestExtensions::default(),
             gateway_extensions: GatewayTestExtensions::default(),
-            authentication,
         }
     }
 }
@@ -109,15 +90,10 @@ impl Default for TestRuntime {
 impl engine::Runtime for TestRuntime {
     type Fetcher = DynamicFetcher;
     type OperationCache = InMemoryOperationCache<Arc<CachedOperation>>;
-    type Extensions = ExtensionsDispatcher;
-    type Authenticate = AuthenticationService<Self::Extensions>;
+    type Extensions = EngineTestExtensions;
 
     fn fetcher(&self) -> &Self::Fetcher {
         &self.fetcher
-    }
-
-    fn kv(&self) -> &runtime::kv::KvStore {
-        &self.kv
     }
 
     fn trusted_documents(&self) -> &trusted_documents_client::Client {
@@ -146,9 +122,5 @@ impl engine::Runtime for TestRuntime {
 
     fn extensions(&self) -> &Self::Extensions {
         &self.engine_extensions
-    }
-
-    fn authentication(&self) -> &Self::Authenticate {
-        &self.authentication
     }
 }

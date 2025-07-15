@@ -32,3 +32,15 @@ impl<T> From<mpsc::error::SendError<T>> for Error {
         Self::InternalError(value.to_string())
     }
 }
+
+impl From<String> for Error {
+    fn from(value: String) -> Self {
+        Self::InternalError(value)
+    }
+}
+
+impl From<&str> for Error {
+    fn from(value: &str) -> Self {
+        Self::InternalError(value.to_string())
+    }
+}

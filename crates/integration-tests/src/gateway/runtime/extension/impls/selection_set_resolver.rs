@@ -9,10 +9,10 @@ use runtime::{
     extension::{ArgumentsId, Data, DynField, Field, SelectionSetResolverExtension},
 };
 
-use crate::gateway::{DispatchRule, ExtensionsDispatcher, TestExtensions};
+use crate::gateway::{DispatchRule, EngineTestExtensions, TestExtensions};
 
 #[allow(clippy::manual_async_fn, unused_variables)]
-impl SelectionSetResolverExtension for ExtensionsDispatcher {
+impl SelectionSetResolverExtension for EngineTestExtensions {
     async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
         extension_id: ExtensionId,

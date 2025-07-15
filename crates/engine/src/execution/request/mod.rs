@@ -10,7 +10,7 @@ pub(crate) use context::*;
 pub(crate) use header_rule::*;
 use response_extension::should_include_grafbase_response_extension;
 pub(crate) use response_extension::*;
-use runtime::authentication::Authenticate as _;
+use runtime::authentication::LegacyToken;
 pub(crate) use stream::*;
 
 use ::runtime::rate_limiting::RateLimitKey;
@@ -81,10 +81,8 @@ impl<R: Runtime> ContractAwareEngine<R> {
         let parts = Parts {
             ctx,
             headers: parts.headers,
-            extension_context: parts
-                .extensions
-                .remove::<ExtensionContext<R>>()
-                .expect("Missing extension context"),
+            extension_context: parts.extensions.remove().expect("Missing extension context"),
+            token: parts.extensions.remove().expect("Missing authentication token"),
         };
 
         Ok((parts, body))
@@ -95,6 +93,7 @@ pub(crate) struct Parts<R: Runtime> {
     pub ctx: EarlyHttpContext,
     pub headers: http::HeaderMap,
     pub extension_context: ExtensionContext<R>,
+    pub token: LegacyToken,
 }
 
 impl<R: Runtime> Engine<R> {
@@ -103,22 +102,10 @@ impl<R: Runtime> Engine<R> {
         ctx: &EarlyHttpContext,
         headers: http::HeaderMap,
         extension_context: ExtensionContext<R>,
+        token: LegacyToken,
         websocket_init_payload: Option<InitPayload>,
     ) -> Result<Arc<RequestContext<ExtensionContext<R>>>, Response> {
         let client = Client::extract_from(&headers);
-
-        let (headers, token) = match self
-            .runtime
-            .authentication()
-            .authenticate(&extension_context, headers)
-            .await
-        {
-            Ok((headers, token)) => (headers, token),
-            Err(resp) => {
-                let response = Response::refused_request(resp.status, resp.errors, resp.headers);
-                return Err(response);
-            }
-        };
 
         // Currently it doesn't rely on authentication, but likely will at some point.
         if self.runtime.rate_limiter().limit(&RateLimitKey::Global).await.is_err() {

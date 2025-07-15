@@ -2,20 +2,17 @@ use std::future::Future;
 
 use crate::authentication::PublicMetadataEndpoint;
 use error::ErrorResponse;
-use extension_catalog::ExtensionId;
 
 pub trait AuthenticationExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
+    // Returns None if there isn't any authentication extension to apply any configured default
+    // behavior
     fn authenticate(
         &self,
         ctx: &Context,
-        extension_ids: &[ExtensionId],
         gateway_headers: http::HeaderMap,
-    ) -> impl Future<Output = (http::HeaderMap, Result<Token, ErrorResponse>)> + Send;
+    ) -> impl Future<Output = (http::HeaderMap, Option<Result<Token, ErrorResponse>>)> + Send;
 
-    fn public_metadata(
-        &self,
-        extension_ids: &[ExtensionId],
-    ) -> impl Future<Output = Result<Vec<PublicMetadataEndpoint>, String>> + Send;
+    fn public_metadata_endpoints(&self) -> impl Future<Output = Result<Vec<PublicMetadataEndpoint>, String>> + Send;
 }
 
 #[derive(Clone, Debug)]
