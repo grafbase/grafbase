@@ -10,8 +10,9 @@ use crossterm::{
     terminal::{Clear, ClearType},
 };
 use engine::CachedOperation;
-use gateway_config::{Config, HeaderInsert, HeaderRule};
+use gateway_config::{Config, HeaderForward, HeaderInsert, HeaderRule, NameOrPattern};
 use grafbase_telemetry::metrics::{EngineMetrics, meter_from_global_provider};
+use regex::Regex;
 use runtime::{entity_cache::EntityCache, rate_limiting::RateLimiter, trusted_documents_client};
 use runtime_local::{InMemoryEntityCache, InMemoryOperationCache, NativeFetcher};
 use std::io::stdout;
@@ -34,6 +35,11 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
 
     println!("{} the MCP server...\n", "Preparing".yellow().bold());
     let mut config = Config::default();
+    config.headers.push(HeaderRule::Forward(HeaderForward {
+        name: NameOrPattern::Pattern(Regex::new(r".*").unwrap()),
+        default: None,
+        rename: None,
+    }));
     for (name, value) in args.headers() {
         config.headers.push(HeaderRule::Insert(HeaderInsert {
             name: name
