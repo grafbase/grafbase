@@ -13,10 +13,12 @@ use engine::CachedOperation;
 use gateway_config::{Config, HeaderForward, HeaderInsert, HeaderRule, NameOrPattern};
 use grafbase_telemetry::metrics::{EngineMetrics, meter_from_global_provider};
 use regex::Regex;
-use runtime::{entity_cache::EntityCache, rate_limiting::RateLimiter, trusted_documents_client};
+use runtime::{
+    authentication::LegacyToken, entity_cache::EntityCache, rate_limiting::RateLimiter, trusted_documents_client,
+};
 use runtime_local::{InMemoryEntityCache, InMemoryOperationCache, NativeFetcher};
 use std::io::stdout;
-use wasi_component_loader::extension::EngineWasmExtensions;
+use wasi_component_loader::{SharedContext, extension::EngineWasmExtensions};
 
 use crate::{cli_input::McpCommand, dev::DEFAULT_PORT};
 
@@ -101,6 +103,14 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
 
     let (router, ct) = grafbase_mcp::router(&rx, &mcp_config);
 
+    let router = router.layer(
+        tower::ServiceBuilder::new().map_request(|mut request: axum::http::Request<_>| {
+            // FIXME: Imitating the federated-server extension layer... not great
+            request.extensions_mut().insert(SharedContext::default());
+            request.extensions_mut().insert(LegacyToken::Anonymous);
+            request
+        }),
+    );
     // Do something with the router, e.g., add routes or middleware
 
     let addr = SocketAddr::from((Ipv4Addr::LOCALHOST, args.port.unwrap_or(DEFAULT_PORT)));

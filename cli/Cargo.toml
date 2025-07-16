@@ -1,5 +1,5 @@
 [package]
-version = "0.99.4"
+version = "0.99.5"
 name = "grafbase"
 description = "The Grafbase command line interface"
 categories = ["command-line-utilities"]
@@ -46,6 +46,7 @@ reqwest = { workspace = true, features = [
     "json",
     "multipart",
 ], default-features = false }
+rmcp.workspace = true
 rustls = { workspace = true, features = ["aws-lc-rs", "tls12"] }
 serde.workspace = true
 serde-dynamic-string.workspace = true
@@ -61,6 +62,7 @@ tokio = { workspace = true, features = ["full"] }
 tokio-stream.workspace = true
 tokio-util = { workspace = true, features = ["futures-io", "compat"] }
 toml.workspace = true
+tower.workspace = true
 tower-http = { workspace = true, features = ["trace", "fs", "set-header"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
