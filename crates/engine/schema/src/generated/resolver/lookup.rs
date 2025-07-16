@@ -25,7 +25,7 @@ use walker::{Iter, Walk};
 ///   injections: [ArgumentInjection!]!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct LookupResolverDefinitionRecord {
     pub key_record: FieldSetRecord,
     pub field_definition_id: FieldDefinitionId,

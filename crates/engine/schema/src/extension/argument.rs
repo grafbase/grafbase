@@ -7,7 +7,7 @@ use super::ExtensionInputValueRecord;
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
 pub struct ExtensionDirectiveArgumentId(u32);
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct ExtensionDirectiveArgumentRecord {
     pub name_id: StringId,
     pub value: ExtensionInputValueRecord,

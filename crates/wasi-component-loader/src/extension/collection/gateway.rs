@@ -32,7 +32,7 @@ impl GatewayWasmExtensions {
         gateway_config: &Config,
         logging_filter: String,
     ) -> crate::Result<Self> {
-        let extensions = load_extensions_config(extension_catalog, gateway_config, logging_filter, |ty| {
+        let extension_configs = load_extensions_config(extension_catalog, gateway_config, logging_filter, |ty| {
             matches!(ty, TypeDiscriminants::Hooks | TypeDiscriminants::Authentication)
         });
 
@@ -40,8 +40,8 @@ impl GatewayWasmExtensions {
 
         // dummy schema as we use a common extension loader struct for all extensions.
         let schema = Arc::new(Schema::empty().await);
-        for extension in extensions {
-            let manifiest = &extension_catalog[extension.id].manifest;
+        for config in extension_configs {
+            let manifiest = &extension_catalog[config.id].manifest;
             match &manifiest.r#type {
                 extension_catalog::Type::Hooks(HooksType { event_filter }) => {
                     if inner.hooks.is_some() {
@@ -54,10 +54,12 @@ impl GatewayWasmExtensions {
                         .as_ref()
                         .or(manifiest.legacy_event_filter.as_ref())
                         .map(convert_event_filter);
-                    inner.hooks = Some(Pool::new(schema.clone(), &extension).await?);
+                    inner.hooks = Some(Pool::new(schema.clone(), Arc::new(config)).await?);
                 }
                 extension_catalog::Type::Authentication(_) => {
-                    inner.authentication.push(Pool::new(schema.clone(), &extension).await?);
+                    inner
+                        .authentication
+                        .push(Pool::new(schema.clone(), Arc::new(config)).await?);
                 }
                 _ => continue,
             }

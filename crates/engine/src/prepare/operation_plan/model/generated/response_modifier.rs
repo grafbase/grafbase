@@ -23,7 +23,7 @@ use walker::{Iter, Walk};
 ///   children: [Executable!]!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct ResponseModifierRecord {
     pub rule: ResponseModifierRule,
     pub sorted_target_records: Vec<ResponseModifierTargetRecord>,

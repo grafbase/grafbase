@@ -21,7 +21,7 @@ use walker::{Iter, Walk};
 ///   selection_set: SelectionSet!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InlineFragmentRecord {
     pub type_condition_id: Option<CompositeTypeId>,
     pub directive_ids: Vec<ExecutableDirectiveId>,

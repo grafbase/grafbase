@@ -12,7 +12,6 @@ use futures::{
 };
 use http::{HeaderMap, HeaderValue, Request, Response};
 use runtime::extension::Token;
-use serde_json::json;
 
 const LATEST_SDK: semver::Version = semver::Version::new(0, 19, 0);
 
@@ -30,19 +29,22 @@ async fn single_call_caching_auth() {
 
     let loader = ExtensionLoader::new(
         Arc::new(Schema::from_sdl_or_panic("").await),
-        &ExtensionConfig {
+        Arc::new(ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Authentication,
             manifest_id: "caching_auth-1.0.0".parse().unwrap(),
             sdk_version: LATEST_SDK,
             pool: Default::default(),
             wasm: config,
-            guest_config: Some(json!({
-                "cache_config": "test"
-            })),
+            guest_config: toml::from_str(
+                r#"
+                cache_config = "test"
+                "#,
+            )
+            .unwrap(),
             can_skip_sending_events: false,
             logging_filter: String::from("info"),
-        },
+        }),
     )
     .unwrap();
 
@@ -89,19 +91,22 @@ async fn single_call_caching_auth_invalid() {
     assert!(config.location.exists());
     let loader = ExtensionLoader::new(
         Arc::new(Schema::empty().await),
-        &ExtensionConfig {
+        Arc::new(ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Authentication,
             manifest_id: "caching_auth-1.0.0".parse().unwrap(),
             sdk_version: LATEST_SDK,
             pool: Default::default(),
             wasm: config,
-            guest_config: Some(json!({
-                "cache_config": "test"
-            })),
+            guest_config: toml::from_str(
+                r#"
+                cache_config = "test"
+                "#,
+            )
+            .unwrap(),
             can_skip_sending_events: false,
             logging_filter: String::from("info"),
-        },
+        }),
     )
     .unwrap();
 
@@ -142,19 +147,22 @@ async fn multiple_cache_calls() {
     assert!(config.location.exists());
     let loader = ExtensionLoader::new(
         Arc::new(Schema::from_sdl_or_panic("").await),
-        &ExtensionConfig {
+        Arc::new(ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Authentication,
             manifest_id: "caching_auth-1.0.0".parse().unwrap(),
             sdk_version: LATEST_SDK,
             pool: Default::default(),
             wasm: config,
-            guest_config: Some(json!({
-                "cache_config": "test"
-            })),
+            guest_config: toml::from_str(
+                r#"
+                cache_config = "test"
+                "#,
+            )
+            .unwrap(),
             can_skip_sending_events: false,
             logging_filter: String::from("info"),
-        },
+        }),
     )
     .unwrap();
 
@@ -239,17 +247,17 @@ async fn on_request_hook() {
 
     let loader = ExtensionLoader::new(
         Arc::new(Schema::from_sdl_or_panic("").await),
-        &ExtensionConfig {
+        Arc::new(ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Hooks,
             manifest_id: "simple-hooks-1.0.0".parse().unwrap(),
             sdk_version: LATEST_SDK,
             pool: Default::default(),
             wasm: config,
-            guest_config: Option::<toml::Value>::None,
+            guest_config: toml::Value::Table(Default::default()),
             can_skip_sending_events: false,
             logging_filter: String::from("info"),
-        },
+        }),
     )
     .unwrap();
 
@@ -279,17 +287,17 @@ async fn on_response_hook() {
 
     let loader = ExtensionLoader::new(
         Arc::new(Schema::from_sdl_or_panic("").await),
-        &ExtensionConfig {
+        Arc::new(ExtensionConfig {
             id: ExtensionId::from(0usize),
             r#type: TypeDiscriminants::Hooks,
             manifest_id: "simple-hooks-1.0.0".parse().unwrap(),
             sdk_version: LATEST_SDK,
             pool: Default::default(),
             wasm: config,
-            guest_config: Option::<toml::Value>::None,
+            guest_config: toml::Value::Table(Default::default()),
             can_skip_sending_events: false,
             logging_filter: String::from("info"),
-        },
+        }),
     )
     .unwrap();
 

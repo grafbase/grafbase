@@ -8,7 +8,7 @@ pub use response_extensions::*;
 pub use retry::*;
 pub use trusted_documents::*;
 
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PartialConfig {
     pub timeout: std::time::Duration,
     pub operation_limits: gateway_config::OperationLimitsConfig,

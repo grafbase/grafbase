@@ -1,5 +1,6 @@
 mod authentication;
 mod authorization;
+mod contracts;
 mod error;
 mod extension;
 mod hooks;

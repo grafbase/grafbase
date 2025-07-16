@@ -34,11 +34,8 @@ impl DerefMut for ExtensionGuard {
 }
 
 impl Pool {
-    pub(super) async fn new<T: serde::Serialize>(
-        schema: Arc<Schema>,
-        config: &ExtensionConfig<T>,
-    ) -> crate::Result<Self> {
-        let loader = ExtensionLoader::new(schema, config)?;
+    pub(super) async fn new(schema: Arc<Schema>, config: Arc<ExtensionConfig>) -> crate::Result<Self> {
+        let loader = ExtensionLoader::new(schema, config.clone())?;
         let mut builder = managed::Pool::builder(loader);
 
         if let Some(size) = config.pool.max_size {
@@ -63,6 +60,11 @@ impl Pool {
         })?;
 
         Ok(ExtensionGuard { inner })
+    }
+
+    pub(crate) async fn clone_and_adjust_for_contract(&self, schema: &Arc<Schema>) -> crate::Result<Self> {
+        let config = self.inner.manager().config.clone();
+        Self::new(schema.clone(), config).await
     }
 }
 

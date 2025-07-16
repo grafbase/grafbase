@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq, serde::Deserialize)]
 #[serde(default, deny_unknown_fields)]
-pub struct OperationCaching {
+pub struct OperationCacheConfig {
     /// If operation caching should be enabled.
     pub enabled: bool,
     /// The maximum number of operations that can be kept in the cache.
@@ -18,7 +18,7 @@ pub struct OperationCaching {
     pub redis: Option<OperationCachingRedisConfig>,
 }
 
-impl Default for OperationCaching {
+impl Default for OperationCacheConfig {
     fn default() -> Self {
         Self {
             enabled: true,

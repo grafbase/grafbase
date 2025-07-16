@@ -14,7 +14,7 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type QueryModifier @meta(module: "modifier", derive: ["Clone"]) {
+/// type QueryModifier @meta(module: "modifier") {
 ///   rule: QueryModifierRule!
 ///   impacts_root_object: Boolean!
 ///   impacted_fields: [PartitionField!]!
@@ -87,7 +87,7 @@ impl std::fmt::Debug for QueryModifier<'_> {
 ///   impacted_fields: [DataField!]! @vec
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct ResponseModifierDefinitionRecord {
     pub rule: ResponseModifierRule,
     pub impacted_field_ids: Vec<DataFieldId>,

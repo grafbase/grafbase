@@ -23,7 +23,7 @@ use walker::{Iter, Walk};
 ///   directives: [ExecutableDirective!]!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct TypenameFieldRecord {
     pub response_key: ResponseKey,
     pub location: Location,

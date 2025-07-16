@@ -2,7 +2,7 @@ pub use gateway_config::LogLevel;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TrustedDocumentsConfig {
     pub document_id_unknown_log_level: LogLevel,
     pub document_id_and_query_mismatch_log_level: LogLevel,

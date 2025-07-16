@@ -2,7 +2,7 @@ use std::{borrow::Cow, str::FromStr};
 
 use gateway_config::telemetry::exporters::ResponseExtensionExporterConfig;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ResponseExtensionConfig {
     /// Whether the traceId is exposed in the grafbase response extension. Defaults to true.
     pub include_trace_id: bool,
@@ -41,13 +41,13 @@ impl From<ResponseExtensionExporterConfig> for ResponseExtensionConfig {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum AccessControl {
     Header(HeaderAccessControl),
     Deny,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct HeaderAccessControl {
     /// Name of the header that must be present.
     pub name: http::HeaderName,

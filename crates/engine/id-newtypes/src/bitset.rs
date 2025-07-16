@@ -66,6 +66,10 @@ where
     {
         self.inner.ones().map(|ix| Id::from(ix))
     }
+
+    pub fn set_all(&mut self, value: bool) {
+        self.inner.set_range(.., value);
+    }
 }
 
 impl<Id> std::ops::Index<Id> for BitSet<Id>

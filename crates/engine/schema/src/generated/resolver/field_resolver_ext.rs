@@ -17,7 +17,7 @@ use walker::{Iter, Walk};
 ///   directive: ExtensionDirective!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct FieldResolverExtensionDefinitionRecord {
     pub directive_id: ExtensionDirectiveId,
 }

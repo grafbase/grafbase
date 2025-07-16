@@ -16,7 +16,7 @@ use walker::{Iter, Walk};
 ///   value_record: PlanValueRecord!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct PartitionFieldArgumentRecord {
     pub definition_id: InputValueDefinitionId,
     pub value_record: PlanValueRecord,

@@ -12,7 +12,7 @@ use wasmtime::Store;
 
 use crate::{
     Error, WasiState, cbor,
-    extension::{ExtensionConfig, ExtensionInstance},
+    extension::{ContractsExtensionInstance, ExtensionConfig, ExtensionInstance},
 };
 
 use anyhow::Context as _;
@@ -104,6 +104,10 @@ struct ExtensionInstanceSince0_10_0 {
 }
 
 impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
+    fn store(&self) -> &Store<WasiState> {
+        &self.store
+    }
+
     fn recycle(&mut self) -> Result<(), Error> {
         if self.poisoned {
             return Err(anyhow::anyhow!("this instance is poisoned").into());
@@ -112,3 +116,5 @@ impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
         Ok(())
     }
 }
+
+impl ContractsExtensionInstance for ExtensionInstanceSince0_10_0 {}

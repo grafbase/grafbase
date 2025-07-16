@@ -21,7 +21,7 @@ use walker::{Iter, Walk};
 ///   children: [Executable!]!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct PlanRecord {
     pub query_partition_id: QueryPartitionId,
     pub required_fields_record: RequiredFieldSetRecord,

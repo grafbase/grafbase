@@ -11120,6 +11120,7 @@ dependencies = [
  "indoc",
  "insta",
  "minicbor-serde",
+ "rapidhash",
  "reqwest 0.12.15",
  "rolling-logger",
  "rskafka",

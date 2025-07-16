@@ -21,6 +21,15 @@ impl TemplateRecord {
     }
 }
 
+impl Clone for TemplateRecord {
+    fn clone(&self) -> Self {
+        Self {
+            inner: ramhorns::Template::new(self.inner.source().to_owned()).unwrap(),
+            escaping: self.escaping,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub enum TemplateEscaping {
     Json,

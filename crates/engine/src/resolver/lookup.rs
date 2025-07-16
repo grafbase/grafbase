@@ -12,13 +12,13 @@ use crate::{
 
 use super::{ResolverResult, extension::ExtensionResolver, graphql::GraphqlResolver};
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LookupResolver {
     guest_batch: bool,
     pub proxied: LookupProxiedResolver,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) enum LookupProxiedResolver {
     Graphql(GraphqlResolver),
     Extension(ExtensionResolver),

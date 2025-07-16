@@ -1,0 +1,16 @@
+interface contracts-types {
+    record contract {
+        // Same order as the directive.
+        // absolute value is the priority
+        // positive int means it's accessible
+        accessible: list<s8>,
+        accessible-by-default: bool,
+        // Any subgraph changes, identified by their name.
+        subgraphs: list<graphql-subgraph>
+    }
+
+    record graphql-subgraph {
+        name: string,
+        url: string
+    }
+}

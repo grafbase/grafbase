@@ -19,7 +19,7 @@ use walker::{Iter, Walk};
 ///   field_set: FieldSet!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct FieldProvidesRecord {
     pub subgraph_id: SubgraphId,
     pub field_set_record: FieldSetRecord,

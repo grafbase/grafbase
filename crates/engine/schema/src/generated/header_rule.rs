@@ -131,7 +131,7 @@ impl<'a> NameOrPattern<'a> {
 ///   | RemoveHeaderRule
 ///   | RenameDuplicateHeaderRule
 /// ```
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub enum HeaderRuleRecord {
     Forward(ForwardHeaderRuleRecord),
     Insert(InsertHeaderRuleRecord),

@@ -6,6 +6,7 @@ mod resolvers;
 use crate::builder::{Error, extension::ingest_extension_schema_directives, sdl};
 
 use super::*;
+pub(in crate::builder) use common::finalize_inaccessible;
 
 pub(crate) struct DirectivesIngester<'a, 'sdl> {
     pub builder: &'a mut GraphBuilder<'sdl>,

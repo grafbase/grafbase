@@ -13,6 +13,7 @@ pub mod world {
         ResponseElements,
     };
     pub use sdk::cache::Cache;
+    pub use sdk::contracts_types::{Contract, GraphqlSubgraphParam, GraphqlSubgraphResult};
     pub use sdk::error::{Error, ErrorResponse};
     pub use sdk::headers::{HeaderError, Headers};
     pub use sdk::http_client::{HttpClient, HttpError, HttpMethod, HttpRequest, HttpResponse};

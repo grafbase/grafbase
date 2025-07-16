@@ -8,6 +8,7 @@ use crate::{
     graphql::{GraphqlOperationAttributes, GraphqlResponseStatus, OperationName, SubgraphResponseStatus},
 };
 
+#[derive(Clone)]
 pub struct EngineMetrics {
     graph_version: Option<String>,
     operation_latency: Histogram<u64>,

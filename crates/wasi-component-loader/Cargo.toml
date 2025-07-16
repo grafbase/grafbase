@@ -28,6 +28,7 @@ grafbase-workspace-hack.workspace = true
 http.workspace = true
 http-body-util.workspace = true
 minicbor-serde = { workspace = true, features = ["alloc"] }
+rapidhash.workspace = true
 reqwest.workspace = true
 rolling-logger.workspace = true
 rskafka = { workspace = true, features = ["full"] }

@@ -31,11 +31,16 @@ pub fn generate_enum(
             derives = quote! { ,#(#names),* };
         }
         match &union.kind {
-            UnionKind::Record(record) if record.copy => derives.extend(quote! { , Clone, Copy }),
+            UnionKind::Record(record) => {
+                if record.copy {
+                    derives.extend(quote! { , Clone, Copy })
+                } else {
+                    derives.extend(quote! { , Clone })
+                }
+            }
             UnionKind::Id(_) | UnionKind::BitpackedId(_) => {
                 derives.extend(quote! { , Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash })
             }
-            _ => {}
         }
         derives
     };

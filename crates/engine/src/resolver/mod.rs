@@ -19,7 +19,7 @@ use crate::{
     response::{ParentObjects, ResponseBuilder, ResponsePartBuilder},
 };
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) enum Resolver {
     Graphql(GraphqlResolver),
     FederationEntity(FederationEntityResolver),

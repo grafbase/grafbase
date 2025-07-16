@@ -22,7 +22,7 @@ use super::{
     request::{PreparedFederationEntityOperation, execute_subgraph_request},
 };
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FederationEntityResolver {
     pub endpoint_id: GraphqlEndpointId,
     pub shape_id: RootFieldsShapeId,

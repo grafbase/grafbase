@@ -36,7 +36,7 @@ impl<'a> Subgraph<'a> {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct SubgraphConfig {
     pub timeout: Duration,
     pub retry: Option<RetryConfig>,

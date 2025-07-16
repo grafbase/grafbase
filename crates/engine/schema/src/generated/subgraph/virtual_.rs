@@ -24,7 +24,7 @@ use walker::{Iter, Walk};
 ///   header_rules: [HeaderRule!]!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct VirtualSubgraphRecord {
     pub subgraph_name_id: StringId,
     /// Schema directives applied by the given subgraph

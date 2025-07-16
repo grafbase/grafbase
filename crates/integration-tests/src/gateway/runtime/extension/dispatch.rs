@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
+use engine::Schema;
 use extension_catalog::ExtensionId;
 use runtime::extension::EngineExtensions;
 use wasi_component_loader::extension::EngineWasmExtensions;
@@ -23,4 +24,18 @@ pub struct EngineTestExtensions {
 
 impl EngineExtensions for EngineTestExtensions {
     type Context = ExtContext;
+}
+
+impl EngineTestExtensions {
+    pub async fn clone_and_adjust_for_contract(&self, schema: &Arc<Schema>) -> Result<Self, String> {
+        Ok(Self {
+            dispatch: self.dispatch.clone(),
+            test: self.test.clone(),
+            wasm: self
+                .wasm
+                .clone_and_adjust_for_contract(schema)
+                .await
+                .map_err(|err| err.to_string())?,
+        })
+    }
 }

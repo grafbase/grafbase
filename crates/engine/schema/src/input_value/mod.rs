@@ -17,7 +17,7 @@ pub use set::*;
 pub use value::*;
 pub use walker::*;
 
-#[derive(Default, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
+#[derive(Clone, Default, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct SchemaInputValues {
     /// Individual input values and list values
     #[indexed_by(SchemaInputValueId)]

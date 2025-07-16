@@ -1,11 +1,14 @@
-pub struct Client(Box<dyn TrustedDocumentsClient>);
+use std::sync::Arc;
+
+#[derive(Clone)]
+pub struct Client(Arc<dyn TrustedDocumentsClient>);
 
 impl Client {
     pub fn new<T>(inner: T) -> Self
     where
         T: TrustedDocumentsClient + 'static,
     {
-        Client(Box::new(inner))
+        Client(Arc::new(inner))
     }
 }
 

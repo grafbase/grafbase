@@ -1,5 +1,5 @@
 use apq::AutomaticPersistedQueries;
-use operation_caching::OperationCaching;
+use operation_caching::OperationCacheConfig;
 use serde::Deserialize;
 
 pub mod apq;
@@ -213,7 +213,7 @@ pub struct Config {
     /// Automatic persisted queries' configuration
     pub apq: AutomaticPersistedQueries,
     /// Operation caching configuration
-    pub operation_caching: OperationCaching,
+    pub operation_caching: OperationCacheConfig,
     /// Websockets configuration
     pub websockets: WebsocketsConfig,
     /// Model Control Protocol configuration

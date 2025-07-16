@@ -23,7 +23,7 @@ use walker::{Iter, Walk};
 ///   exists_in_subgraphs: [Subgraph!]!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct ScalarDefinitionRecord {
     pub name_id: StringId,
     pub ty: ScalarType,

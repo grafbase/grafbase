@@ -10,7 +10,7 @@ use crate::prepare::{PlanFieldArguments, PlanQueryPartition, PlanValueRecord, Su
 
 const VARIABLE_PREFIX: &str = "var";
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PreparedGraphqlOperation {
     pub ty: OperationType,
     pub query: String,
@@ -68,7 +68,7 @@ impl PreparedGraphqlOperation {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct PreparedFederationEntityOperation {
     pub query: String,
     pub entities_variable_name: String,
@@ -121,7 +121,7 @@ impl PreparedFederationEntityOperation {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct QueryVariable {
     pub name: String,
     pub ty: TypeRecord,

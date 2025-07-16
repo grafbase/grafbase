@@ -28,7 +28,7 @@ use walker::{Iter, Walk};
 ///   selection_set: SelectionSet!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct DataFieldRecord {
     pub response_key: ResponseKey,
     pub location: Location,

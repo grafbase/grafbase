@@ -16,7 +16,7 @@ use walker::{Iter, Walk};
 ///   selection_set: SelectionSet!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct FragmentRecord {
     pub type_condition_id: CompositeTypeId,
     pub selection_set_record: SelectionSetRecord,

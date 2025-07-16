@@ -21,7 +21,7 @@ use walker::{Iter, Walk};
 ///   value: SchemaInputValue!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub struct SchemaFieldArgumentRecord {
     pub definition_id: InputValueDefinitionId,
     pub value_id: SchemaInputValueId,

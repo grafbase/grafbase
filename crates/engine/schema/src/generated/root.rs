@@ -19,7 +19,7 @@ use walker::{Iter, Walk};
 ///   subscription: ObjectDefinition
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct RootOperationTypesRecord {
     pub query_id: ObjectDefinitionId,
     pub mutation_id: Option<ObjectDefinitionId>,

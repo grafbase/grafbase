@@ -145,7 +145,11 @@ impl<R: engine::Runtime> ContractAwareSchemaIndices<R> {
     }
 
     pub async fn get(&self, parts: &Parts) -> anyhow::Result<Arc<SchemaIndex>> {
-        let schema = self.engine.get_schema(parts).await;
+        let schema = self
+            .engine
+            .get_schema(parts)
+            .await
+            .map_err(|err| anyhow::anyhow!(err.into_owned()))?;
         let key = SchemaKey(schema);
         self.by_contract.get_or_insert_with(&key, || {
             Ok(Arc::new(SchemaIndex::new(key.0.clone(), self.execute_mutations)?))

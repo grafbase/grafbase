@@ -17,7 +17,7 @@ use walker::{Iter, Walk};
 ///   weight: Int!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct CostDirectiveRecord {
     pub weight: i32,
 }
@@ -79,7 +79,7 @@ impl std::fmt::Debug for CostDirective<'_> {
 ///   require_one_slicing_argument: Boolean!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct ListSizeDirectiveRecord {
     pub assumed_size: Option<u32>,
     pub slicing_argument_ids: Vec<InputValueDefinitionId>,

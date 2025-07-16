@@ -79,6 +79,8 @@ pub trait Fetcher: Send + Sync + 'static {
 }
 
 pub mod dynamic {
+    use std::sync::Arc;
+
     use super::*;
 
     #[allow(unused_variables)] // makes it easier to copy-paste relevant functions
@@ -104,7 +106,8 @@ pub mod dynamic {
         }
     }
 
-    pub struct DynamicFetcher(Box<dyn DynFetcher>);
+    #[derive(Clone)]
+    pub struct DynamicFetcher(Arc<dyn DynFetcher>);
 
     impl<T: DynFetcher> From<T> for DynamicFetcher {
         fn from(fetcher: T) -> Self {
@@ -118,7 +121,7 @@ pub mod dynamic {
         }
 
         pub fn new(fetcher: impl DynFetcher) -> Self {
-            Self(Box::new(fetcher))
+            Self(Arc::new(fetcher))
         }
     }
 

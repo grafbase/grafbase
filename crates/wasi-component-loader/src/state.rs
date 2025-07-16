@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use super::cache::Cache;
 use dashmap::DashMap;
+use extension_catalog::ExtensionId;
 use grafbase_telemetry::{metrics::meter_from_global_provider, otel::opentelemetry::metrics::Histogram};
 use sqlx::Postgres;
 use wasmtime::component::Resource;
@@ -11,7 +12,10 @@ use wasmtime_wasi::{
 };
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
-use crate::resources::{self, FileLogger, GrpcClient};
+use crate::{
+    extension::ExtensionConfig,
+    resources::{self, FileLogger, GrpcClient},
+};
 
 /// Represents the state of the WASI environment.
 ///
@@ -37,9 +41,6 @@ pub(crate) struct WasiState {
     /// A cache to be used for storing data between calls to different instances of the same extension.
     cache: Arc<Cache>,
 
-    /// If false, network operations are disabled.
-    network_enabled: bool,
-
     /// A map of PostgreSQL connection pools per named connection.
     postgres_pools: DashMap<String, sqlx::Pool<Postgres>>,
 
@@ -53,7 +54,7 @@ pub(crate) struct WasiState {
     file_loggers: DashMap<String, resources::FileLogger>,
 
     /// The name of the extension.
-    extension_name: String,
+    config: Arc<ExtensionConfig>,
 }
 
 impl WasiState {
@@ -67,24 +68,23 @@ impl WasiState {
     ///
     /// A new `WasiState` instance initialized with the provided context and default
     /// HTTP and resource table contexts.
-    pub fn new(ctx: WasiCtx, cache: Arc<Cache>, network_enabled: bool, extension_name: String) -> Self {
+    pub fn new(config: Arc<ExtensionConfig>, cache: Arc<Cache>) -> Self {
         let meter = meter_from_global_provider();
         let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").build();
         let http_client = reqwest::Client::new();
 
         Self {
-            ctx,
+            ctx: crate::config::build_context(&config.wasm),
             http_ctx: WasiHttpCtx::new(),
             table: ResourceTable::new(),
             request_durations,
             http_client,
             cache,
-            network_enabled,
             postgres_pools: DashMap::new(),
             grpc_clients: DashMap::new(),
             kafka_producers: DashMap::new(),
             file_loggers: DashMap::new(),
-            extension_name,
+            config,
         }
     }
 
@@ -156,12 +156,15 @@ impl WasiState {
     ///
     /// When `false`, any network operations attempted by the guest will fail.
     pub fn network_enabled(&self) -> bool {
-        self.network_enabled
+        self.config.wasm.networking
     }
 
-    /// Returns the name of the extension.
     pub fn extension_name(&self) -> &str {
-        &self.extension_name
+        &self.config.manifest_id.name
+    }
+
+    pub fn extension_id(&self) -> ExtensionId {
+        self.config.id
     }
 }
 

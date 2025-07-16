@@ -23,7 +23,7 @@ use walker::{Iter, Walk};
 ///   requirements: FieldSet!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct ExtensionDirectiveRecord {
     pub subgraph_id: SubgraphId,
     pub extension_id: ExtensionId,

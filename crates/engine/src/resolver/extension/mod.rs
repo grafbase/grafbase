@@ -17,13 +17,13 @@ use crate::{
     prepare::{DataOrLookupFieldId, PartitionFieldArgumentId, PlanResult, PrepareContext, SubgraphSelectionSet},
 };
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ExtensionResolver {
     pub definition: ExtensionResolverDefinitionRecord,
     prepared_fields: Vec<PreparedField>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct PreparedField {
     id: DataOrLookupFieldId,
     extension_data: Vec<u8>,

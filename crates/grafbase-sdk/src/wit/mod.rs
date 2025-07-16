@@ -15,29 +15,31 @@ wit_bindgen::generate!({
     }
 });
 
-pub use exports::grafbase::sdk::authentication::{Guest as AuthenticationGuest, PublicMetadataEndpoint};
-pub use exports::grafbase::sdk::authorization::Guest as AuthorizationGuest;
-pub use exports::grafbase::sdk::hooks::Guest as HooksGuest;
-pub use exports::grafbase::sdk::resolver::Guest as ResolverGuest;
+pub(crate) use exports::grafbase::sdk::authentication::{Guest as AuthenticationGuest, PublicMetadataEndpoint};
+pub(crate) use exports::grafbase::sdk::authorization::Guest as AuthorizationGuest;
+pub(crate) use exports::grafbase::sdk::contracts::Guest as ContractsGuest;
+pub(crate) use exports::grafbase::sdk::hooks::Guest as HooksGuest;
+pub(crate) use exports::grafbase::sdk::resolver::Guest as ResolverGuest;
 
-pub use grafbase::sdk::authorization_types::{
+pub(crate) use grafbase::sdk::authorization_types::{
     AuthorizationDecisions, AuthorizationDecisionsDenySome, QueryElement, QueryElements, ResponseElement,
     ResponseElements,
 };
-pub use grafbase::sdk::cache::*;
-pub use grafbase::sdk::error::{Error, ErrorResponse};
-pub use grafbase::sdk::event_queue::{
+pub(crate) use grafbase::sdk::cache::*;
+pub(crate) use grafbase::sdk::contracts_types::{Contract, GraphqlSubgraph};
+pub(crate) use grafbase::sdk::error::{Error, ErrorResponse};
+pub(crate) use grafbase::sdk::event_queue::{
     CacheStatus, Event, EventQueue, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, ExtensionEvent,
     FieldError, GraphqlResponseStatus, OperationType, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
 };
-pub use grafbase::sdk::grpc::*;
-pub use grafbase::sdk::headers::HeaderError;
-pub use grafbase::sdk::http_client::*;
-pub use grafbase::sdk::kafka_client::*;
-pub use grafbase::sdk::logger::*;
+pub(crate) use grafbase::sdk::grpc::*;
+pub(crate) use grafbase::sdk::headers::HeaderError;
+pub(crate) use grafbase::sdk::http_client::*;
+pub(crate) use grafbase::sdk::kafka_client::*;
+pub(crate) use grafbase::sdk::logger::*;
 pub use grafbase::sdk::nats_client::*;
 pub use grafbase::sdk::postgres::*;
-pub use grafbase::sdk::schema::*;
-pub use grafbase::sdk::shared_context::SharedContext;
-pub use grafbase::sdk::token::*;
-pub use resolver_types::{ArgumentsId, Data, Field, FieldId, Response, SelectionSet, SubscriptionItem};
+pub(crate) use grafbase::sdk::schema::*;
+pub(crate) use grafbase::sdk::shared_context::SharedContext;
+pub(crate) use grafbase::sdk::token::*;
+pub(crate) use resolver_types::{ArgumentsId, Data, Field, FieldId, Response, SelectionSet, SubscriptionItem};

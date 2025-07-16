@@ -22,6 +22,7 @@ impl<S: serde::Serialize> FromIterator<S> for InputList {
 
 pub(crate) type SubscriptionItem = Vec<Result<Data, GraphqlError>>;
 
+#[allow(unused_variables)]
 pub(crate) trait FieldResolverExtensionInstance {
     fn resolve_field<'a>(
         &'a mut self,
@@ -29,7 +30,9 @@ pub(crate) trait FieldResolverExtensionInstance {
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
         inputs: InputList,
-    ) -> BoxFuture<'a, Result<Vec<Result<Data, GraphqlError>>, Error>>;
+    ) -> BoxFuture<'a, Result<Vec<Result<Data, GraphqlError>>, Error>> {
+        Box::pin(async { unreachable!("Not supported by this SDK") })
+    }
 
     #[allow(clippy::type_complexity)]
     fn subscription_key<'a>(
@@ -37,16 +40,22 @@ pub(crate) trait FieldResolverExtensionInstance {
         headers: Lease<http::HeaderMap>,
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
-    ) -> BoxFuture<'a, Result<(Lease<http::HeaderMap>, Option<Vec<u8>>), Error>>;
+    ) -> BoxFuture<'a, Result<(Lease<http::HeaderMap>, Option<Vec<u8>>), Error>> {
+        Box::pin(async { unreachable!("Not supported by this SDK") })
+    }
 
     fn resolve_subscription<'a>(
         &'a mut self,
         headers: http::HeaderMap,
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
-    ) -> BoxFuture<'a, Result<(), Error>>;
+    ) -> BoxFuture<'a, Result<(), Error>> {
+        Box::pin(async { unreachable!("Not supported by this SDK") })
+    }
 
     fn field_resolver_resolve_next_subscription_item(
         &mut self,
-    ) -> BoxFuture<'_, Result<Option<SubscriptionItem>, Error>>;
+    ) -> BoxFuture<'_, Result<Option<SubscriptionItem>, Error>> {
+        Box::pin(async { unreachable!("Not supported by this SDK") })
+    }
 }

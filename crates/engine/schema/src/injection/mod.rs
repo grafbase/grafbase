@@ -5,7 +5,7 @@ use crate::{
     SchemaFieldArgumentRecord, SchemaFieldId, SchemaFieldRecord, SchemaInputValueId, StringId,
 };
 
-#[derive(Default, id_derives::IndexedFields, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Default, id_derives::IndexedFields, serde::Serialize, serde::Deserialize)]
 pub struct Selections {
     // deduplicated
     #[indexed_by(SchemaFieldId)]
