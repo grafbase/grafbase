@@ -21,7 +21,7 @@ use walker::{Iter, Walk};
 ///   directives: [TypeSystemDirective!]!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct EnumValueRecord {
     pub name_id: StringId,
     pub description_id: Option<StringId>,

@@ -25,7 +25,10 @@ impl<R: engine::Runtime> Tool for IntrospectTool<R> {
 
     async fn call(&self, parts: Parts, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {
         let engine = self.engine.borrow().clone();
-        let schema = engine.get_schema(&parts).await;
+        let schema = engine
+            .get_schema(&parts)
+            .await
+            .map_err(|err| anyhow::anyhow!(err.into_owned()))?;
         Ok(self.introspect(&schema, parameters.types).into())
     }
 

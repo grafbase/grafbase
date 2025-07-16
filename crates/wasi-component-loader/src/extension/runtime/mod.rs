@@ -1,5 +1,6 @@
 mod authentication;
 mod authorization;
+mod contracts;
 mod field_resolver;
 mod hooks;
 mod resolver;

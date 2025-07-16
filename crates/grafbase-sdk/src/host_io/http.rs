@@ -2,7 +2,7 @@
 
 use std::{string::FromUtf8Error, time::Duration};
 
-pub use crate::wit::{HttpError, HttpMethod, HttpVersion};
+use crate::wit::{HttpError, HttpMethod};
 pub use http::{HeaderName, HeaderValue, Method, StatusCode};
 pub use serde_json::Error as JsonDeserializeError;
 pub use url::Url;

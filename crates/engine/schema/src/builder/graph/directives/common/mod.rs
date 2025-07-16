@@ -65,15 +65,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
             }
             sdl::SdlDefinition::Object(def) => {
                 self.graph[def.id].directive_ids = directive_ids;
-                if inaccessible {
-                    self.graph.inaccessible_object_definitions.set(def.id, true);
-                    for interface_id in &self.builder.graph.object_definitions[usize::from(def.id)].interface_ids {
-                        self.builder
-                            .graph
-                            .interface_has_inaccessible_implementor
-                            .set(*interface_id, true);
-                    }
-                }
+                self.graph.inaccessible_object_definitions.set(def.id, inaccessible);
             }
             sdl::SdlDefinition::Interface(def) => {
                 self.graph[def.id].directive_ids = directive_ids;
@@ -119,13 +111,23 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
     }
 }
 
-pub(super) fn finalize_inaccessible(graph: &mut Graph) {
+pub(in crate::builder) fn finalize_inaccessible(graph: &mut Graph) {
     // Must be done after ingesting all @inaccessible for objects.
     for (ix, union) in graph.union_definitions.iter().enumerate() {
         let id = UnionDefinitionId::from(ix);
         for possible_type in &union.possible_type_ids {
             if graph.inaccessible_object_definitions[*possible_type] {
                 graph.union_has_inaccessible_member.set(id, true);
+                break;
+            }
+        }
+    }
+
+    for (ix, interface) in graph.interface_definitions.iter().enumerate() {
+        let id = ix.into();
+        for implementor in &interface.possible_type_ids {
+            if graph.inaccessible_object_definitions[*implementor] {
+                graph.interface_has_inaccessible_implementor.set(id, true);
                 break;
             }
         }

@@ -18,7 +18,7 @@ use walker::{Iter, Walk};
 ///   fragment: Fragment!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct FragmentSpreadRecord {
     pub directive_ids: Vec<ExecutableDirectiveId>,
     pub fragment_id: FragmentId,

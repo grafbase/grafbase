@@ -94,7 +94,6 @@ impl Manifest {
                     Some(DirectiveType::Authorization)
                 }
             }
-            Type::Authentication(_) | Type::Hooks(_) => Default::default(),
             Type::SelectionSetResolver(_) => Some(DirectiveType::SelectionSetResolver),
             Type::Resolver(ResolverType { directives }) => {
                 if let Some(directives) = directives {
@@ -106,6 +105,7 @@ impl Manifest {
                     Some(DirectiveType::Resolver)
                 }
             }
+            Type::Authentication(_) | Type::Hooks(_) | Type::Contracts(_) => Default::default(),
         }
         .unwrap_or_default()
     }
@@ -120,6 +120,7 @@ pub enum Type {
     Authentication(Empty),
     Authorization(AuthorizationType),
     Hooks(HooksType),
+    Contracts(Empty),
 }
 
 impl Type {

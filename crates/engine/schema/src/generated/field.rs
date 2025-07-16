@@ -43,7 +43,7 @@ use walker::{Iter, Walk};
 ///   derives: [DeriveDefinition!]!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct FieldDefinitionRecord {
     pub name_id: StringId,
     pub description_id: Option<StringId>,

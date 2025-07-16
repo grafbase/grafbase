@@ -123,4 +123,21 @@ impl engine::Runtime for TestRuntime {
     fn extensions(&self) -> &Self::Extensions {
         &self.engine_extensions
     }
+
+    async fn clone_and_adjust_for_contract(&self, schema: &Arc<Schema>) -> Result<Self, String> {
+        Ok(TestRuntime {
+            fetcher: self.fetcher.clone(),
+            trusted_documents: self.trusted_documents.clone(),
+            metrics: self.metrics.clone(),
+            engine_extensions: self
+                .engine_extensions
+                .clone_and_adjust_for_contract(schema)
+                .await
+                .map_err(|err| format!("Failed to adjust extensions for contract: {err}"))?,
+            rate_limiter: self.rate_limiter.clone(),
+            entity_cache: InMemoryEntityCache::default(),
+            operation_cache: InMemoryOperationCache::default(),
+            gateway_extensions: self.gateway_extensions.clone(),
+        })
+    }
 }

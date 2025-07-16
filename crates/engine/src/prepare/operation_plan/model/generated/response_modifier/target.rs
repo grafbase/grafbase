@@ -18,7 +18,7 @@ use walker::{Iter, Walk};
 ///   field: DataField!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct ResponseModifierTargetRecord {
     pub set_id: ResponseObjectSetDefinitionId,
     pub ty_id: CompositeTypeId,

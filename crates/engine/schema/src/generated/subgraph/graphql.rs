@@ -26,7 +26,7 @@ use walker::{Iter, Walk};
 ///   subscription_protocol: SubscriptionProtocol!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct GraphqlEndpointRecord {
     pub subgraph_name_id: StringId,
     pub url_id: UrlId,

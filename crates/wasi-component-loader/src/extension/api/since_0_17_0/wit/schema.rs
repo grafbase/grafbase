@@ -178,7 +178,7 @@ pub struct EnumValue<'a> {
     pub directives: Vec<Directive<'a>>,
 }
 
-#[derive(Clone, Debug, ComponentType, Lower)]
+#[derive(Clone, Debug, ComponentType, Lower, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[component(record)]
 pub struct Directive<'a> {
     pub name: &'a str,

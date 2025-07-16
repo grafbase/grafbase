@@ -31,6 +31,8 @@ pub fn generate_struct(
         }
         if object.copy {
             derives.extend(quote! { , Clone, Copy })
+        } else {
+            derives.extend(quote! { , Clone })
         }
         derives
     };

@@ -1,18 +1,21 @@
 mod authentication;
 mod authorization;
+mod contracts;
 mod field_resolver;
 mod hooks;
 mod resolver;
 mod selection_set_resolver;
 
-use crate::Error;
+use crate::{Error, WasiState};
 
 pub(crate) use authentication::*;
 pub(crate) use authorization::*;
+pub(crate) use contracts::*;
 pub(crate) use field_resolver::*;
 pub(crate) use hooks::*;
 pub(crate) use resolver::*;
 pub(crate) use selection_set_resolver::*;
+use wasmtime::Store;
 
 pub trait ExtensionInstance:
     AuthenticationExtensionInstance
@@ -21,8 +24,10 @@ pub trait ExtensionInstance:
     + SelectionSetResolverExtensionInstance
     + HooksInstance
     + ResolverExtensionInstance
+    + ContractsExtensionInstance
     + Send
     + 'static
 {
+    fn store(&self) -> &Store<WasiState>;
     fn recycle(&mut self) -> Result<(), Error>;
 }

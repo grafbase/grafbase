@@ -26,7 +26,7 @@ use walker::{Iter, Walk};
 ///   shape_id: RootFieldsShapeId!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct QueryPartitionRecord {
     pub entity_definition_id: EntityDefinitionId,
     pub resolver_definition_id: ResolverDefinitionId,

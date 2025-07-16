@@ -135,7 +135,7 @@ pub enum __Directive {
     IsRepeatable,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct IntrospectionSubgraph {
     pub resolver_definition_id: ResolverDefinitionId,
     pub meta_fields: [FieldDefinitionId; 2],
@@ -151,7 +151,7 @@ pub struct IntrospectionSubgraph {
 }
 
 #[serde_with::serde_as]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 #[serde(bound(serialize = "E: serde::Serialize", deserialize = "E: serde::Deserialize<'de>"))]
 pub struct IntrospectionObject<E, const N: usize> {
     pub id: ObjectDefinitionId,
@@ -183,7 +183,7 @@ impl IntrospectionSubgraph {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct TypeKind {
     pub scalar: StringId,
     pub object: StringId,
@@ -195,7 +195,7 @@ pub struct TypeKind {
     pub non_null: StringId,
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct DirectiveLocation {
     pub query: StringId,
     pub mutation: StringId,

@@ -5,8 +5,9 @@ mod hooks;
 mod resolver;
 mod selection_set_resolver;
 
-use crate::extension::api::since_0_15_0::instance::utils::{
-    create_complete_subgraph_schemas, create_subgraph_schema_directives,
+use crate::extension::{
+    ContractsExtensionInstance,
+    api::since_0_15_0::instance::utils::{create_complete_subgraph_schemas, create_subgraph_schema_directives},
 };
 use anyhow::Context as _;
 use engine_schema::Schema;
@@ -42,12 +43,13 @@ impl SdkPre0_16_0 {
         mut linker: Linker<WasiState>,
     ) -> crate::Result<Self> {
         let subgraph_schemas: Vec<(&str, ws::Schema<'_>)> = match config.r#type {
-            TypeDiscriminants::Authentication | TypeDiscriminants::Authorization | TypeDiscriminants::Hooks => {
-                Vec::new()
-            }
             TypeDiscriminants::FieldResolver => create_subgraph_schema_directives(&schema, config.id),
             TypeDiscriminants::SelectionSetResolver => create_complete_subgraph_schemas(&schema, config.id),
             TypeDiscriminants::Resolver => unreachable!("Not part of SDK 0.16"),
+            TypeDiscriminants::Authentication
+            | TypeDiscriminants::Authorization
+            | TypeDiscriminants::Hooks
+            | TypeDiscriminants::Contracts => Vec::new(),
         };
 
         // SAFETY: We keep an owned Arc<Schema> which is immutable (without inner
@@ -95,6 +97,10 @@ struct ExtensionInstanceSince0_16_0 {
 }
 
 impl ExtensionInstance for ExtensionInstanceSince0_16_0 {
+    fn store(&self) -> &Store<WasiState> {
+        &self.store
+    }
+
     fn recycle(&mut self) -> Result<(), Error> {
         if self.poisoned {
             return Err(anyhow::anyhow!("this instance is poisoned").into());
@@ -103,3 +109,5 @@ impl ExtensionInstance for ExtensionInstanceSince0_16_0 {
         Ok(())
     }
 }
+
+impl ContractsExtensionInstance for ExtensionInstanceSince0_16_0 {}

@@ -20,7 +20,7 @@ use walker::{Iter, Walk};
 ///   injections: [ArgumentInjection!]!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct FieldRequiresRecord {
     pub subgraph_id: SubgraphId,
     pub field_set_record: FieldSetRecord,

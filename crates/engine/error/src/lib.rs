@@ -26,6 +26,14 @@ impl ErrorResponse {
         self.errors.push(error);
         self
     }
+
+    pub fn into_message(self) -> Cow<'static, str> {
+        self.errors
+            .into_iter()
+            .map(|err| err.message)
+            .next()
+            .unwrap_or_else(|| self.status.canonical_reason().unwrap_or("Internal server error").into())
+    }
 }
 
 impl From<GraphqlError> for ErrorResponse {

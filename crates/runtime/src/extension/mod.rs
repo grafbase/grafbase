@@ -1,20 +1,20 @@
 mod authentication;
 mod authorization;
+mod contracts;
 mod field_resolver;
 mod hooks;
 mod resolver;
-mod schema_contract;
 mod selection_set_resolver;
 
 pub use authentication::*;
 pub use authorization::*;
 use bytes::Bytes;
+pub use contracts::*;
 use error::GraphqlError;
 use event_queue::EventQueue;
 pub use field_resolver::*;
 pub use hooks::*;
 pub use resolver::*;
-pub use schema_contract::*;
 pub use selection_set_resolver::*;
 
 pub trait Anything<'a>: serde::Serialize + Send + 'a {}
@@ -25,6 +25,7 @@ pub trait EngineExtensions:
     + FieldResolverExtension
     + SelectionSetResolverExtension
     + ResolverExtension<Self::Context>
+    + ContractsExtension<Self::Context>
     + Send
     + Sync
     + 'static

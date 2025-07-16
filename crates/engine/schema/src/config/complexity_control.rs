@@ -1,4 +1,4 @@
-#[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, Debug, Default)]
 pub enum ComplexityControl {
     #[default]
     Disabled,

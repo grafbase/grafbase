@@ -17,7 +17,7 @@ use wasmtime::{
 
 use crate::{
     Error, ErrorResponse, WasiState, cbor,
-    extension::{ExtensionConfig, ExtensionInstance},
+    extension::{ContractsExtensionInstance, ExtensionConfig, ExtensionInstance},
 };
 
 use super::wit;
@@ -40,13 +40,14 @@ impl SdkPre0_17_0 {
         mut linker: Linker<WasiState>,
     ) -> crate::Result<Self> {
         let subgraph_schemas: Vec<(&str, wit::schema::Schema<'_>)> = match config.r#type {
-            TypeDiscriminants::Authentication | TypeDiscriminants::Authorization | TypeDiscriminants::Hooks => {
-                Vec::new()
-            }
             TypeDiscriminants::Resolver => schema::create_complete_subgraph_schemas(&schema, config.id),
             TypeDiscriminants::FieldResolver | TypeDiscriminants::SelectionSetResolver => {
                 unreachable!("Not supported anymore in the SDK.")
             }
+            TypeDiscriminants::Authentication
+            | TypeDiscriminants::Authorization
+            | TypeDiscriminants::Hooks
+            | TypeDiscriminants::Contracts => Vec::new(),
         };
 
         // SAFETY: We keep an owned Arc<Schema> which is immutable (without inner
@@ -102,6 +103,10 @@ struct ExtensionInstanceSince0_17_0 {
 }
 
 impl ExtensionInstance for ExtensionInstanceSince0_17_0 {
+    fn store(&self) -> &Store<WasiState> {
+        &self.store
+    }
+
     fn recycle(&mut self) -> Result<(), Error> {
         if self.poisoned {
             return Err(anyhow::anyhow!("this instance is poisoned").into());
@@ -130,3 +135,5 @@ fn error_response_from_wit(store: &mut Store<WasiState>, error: super::wit::erro
         headers,
     }
 }
+
+impl ContractsExtensionInstance for ExtensionInstanceSince0_17_0 {}

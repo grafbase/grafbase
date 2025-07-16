@@ -1,6 +1,6 @@
 use crate::{FieldSetRecord, InputValueSet, StringId, TemplateId};
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum ExtensionInputValueRecord {
     Null,
     String(StringId),

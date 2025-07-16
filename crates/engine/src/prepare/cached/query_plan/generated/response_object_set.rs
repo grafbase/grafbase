@@ -19,7 +19,7 @@ use walker::{Iter, Walk};
 ///   query_partition: [QueryPartition!]! @vec
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct ResponseObjectSetDefinitionRecord {
     pub ty_id: CompositeTypeId,
     pub query_partition_ids: Vec<QueryPartitionId>,

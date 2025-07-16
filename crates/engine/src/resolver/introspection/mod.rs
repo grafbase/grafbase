@@ -9,7 +9,7 @@ use crate::{
 
 mod writer;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct IntrospectionResolver;
 
 impl IntrospectionResolver {

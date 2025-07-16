@@ -59,7 +59,7 @@ pub type Walker<'a, T> = walker::Walker<'a, T, &'a Schema>;
 /// /!\ This is *NOT* backwards-compatible. /!\
 /// Only a schema serialized with the exact same version is expected to work. For backwards
 /// compatibility use engine-config instead.
-#[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct Schema {
     pub subgraphs: SubGraphs,
     pub graph: Graph,
@@ -79,7 +79,7 @@ pub struct Schema {
     #[indexed_by(RegexId)]
     regexps: Vec<Regex>,
     #[indexed_by(UrlId)]
-    urls: Vec<url::Url>,
+    pub(crate) urls: Vec<url::Url>,
 
     pub config: PartialConfig,
 }
@@ -126,7 +126,7 @@ id_newtypes::forward_with_range! {
     impl Index<ArgumentValueInjectionId, Output = ArgumentValueInjection> for Schema.selections,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct Graph {
     pub description_id: Option<StringId>,
     pub root_operation_types_record: RootOperationTypesRecord,
@@ -193,7 +193,7 @@ pub struct Graph {
     templates: Vec<TemplateRecord>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
+#[derive(Clone, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct SubGraphs {
     #[indexed_by(GraphqlEndpointId)]
     graphql_endpoints: Vec<GraphqlEndpointRecord>,

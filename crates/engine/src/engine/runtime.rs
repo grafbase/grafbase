@@ -2,12 +2,13 @@ use std::{future::Future, sync::Arc};
 
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::{entity_cache::EntityCache, extension::EngineExtensions, rate_limiting::RateLimiter};
+use schema::Schema;
 
 use crate::CachedOperation;
 
 pub type ExtensionContext<R> = <<R as Runtime>::Extensions as EngineExtensions>::Context;
 
-pub trait Runtime: Send + Sync + 'static {
+pub trait Runtime: Send + Sync + Sized + 'static {
     type Fetcher: runtime::fetch::Fetcher;
     type OperationCache: runtime::operation_cache::OperationCache<Arc<CachedOperation>>;
     type Extensions: EngineExtensions;
@@ -20,6 +21,8 @@ pub trait Runtime: Send + Sync + 'static {
     fn sleep(&self, duration: std::time::Duration) -> impl Future<Output = ()> + Send;
     fn entity_cache(&self) -> &dyn EntityCache;
     fn extensions(&self) -> &Self::Extensions;
+
+    fn clone_and_adjust_for_contract(&self, schema: &Arc<Schema>) -> impl Future<Output = Result<Self, String>> + Send;
 }
 
 pub(crate) trait RuntimeExt: Runtime {

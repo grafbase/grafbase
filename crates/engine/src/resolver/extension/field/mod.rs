@@ -9,13 +9,13 @@ use crate::{
     prepare::{DataOrLookupFieldId, PlanResult, PrepareContext, SubgraphSelectionSet},
 };
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FieldResolverExtension {
     pub directive_id: ExtensionDirectiveId,
     prepared: Vec<PreparedField>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 struct PreparedField {
     field_id: DataOrLookupFieldId,
 }

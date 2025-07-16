@@ -12,6 +12,7 @@ world sdk {
     import token;
     import schema;
     import authorization-types;
+    import contracts-types;
     import resolver-types;
     import event-queue;
     import shared-context;
@@ -21,6 +22,7 @@ world sdk {
     export authorization;
     export hooks;
     export resolver;
+    export contracts;
 
     use schema.{schema};
 

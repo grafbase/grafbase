@@ -27,7 +27,7 @@ use walker::{Iter, Walk};
 ///   is_internal_in: Subgraph
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct InputValueDefinitionRecord {
     pub name_id: StringId,
     pub description_id: Option<StringId>,

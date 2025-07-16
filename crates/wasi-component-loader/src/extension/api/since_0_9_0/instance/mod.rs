@@ -18,7 +18,7 @@ use wasmtime::{
 use super::wit;
 use crate::{
     Error, cbor,
-    extension::{ExtensionConfig, ExtensionInstance},
+    extension::{ContractsExtensionInstance, ExtensionConfig, ExtensionInstance},
     state::WasiState,
 };
 use wit::grafbase::sdk::directive::SchemaDirective;
@@ -105,6 +105,10 @@ struct ExtensionInstanceSince090 {
 }
 
 impl ExtensionInstance for ExtensionInstanceSince090 {
+    fn store(&self) -> &Store<WasiState> {
+        &self.store
+    }
+
     fn recycle(&mut self) -> Result<(), Error> {
         if self.poisoned {
             return Err(anyhow::anyhow!("this instance is poisoned").into());
@@ -113,3 +117,5 @@ impl ExtensionInstance for ExtensionInstanceSince090 {
         Ok(())
     }
 }
+
+impl ContractsExtensionInstance for ExtensionInstanceSince090 {}

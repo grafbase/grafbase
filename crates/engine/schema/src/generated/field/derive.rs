@@ -20,7 +20,7 @@ use walker::{Iter, Walk};
 ///   mapping: DeriveMapping!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct DeriveDefinitionRecord {
     pub subgraph_id: SubgraphId,
     pub batch_field_id: Option<FieldDefinitionId>,
@@ -154,7 +154,7 @@ impl std::fmt::Debug for DeriveScalarAsField<'_> {
 ///   fields: [DeriveObjectField!]!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct DeriveObjectRecord {
     pub field_records: Vec<DeriveObjectFieldRecord>,
 }

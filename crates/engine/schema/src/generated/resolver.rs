@@ -42,7 +42,7 @@ use walker::{Iter, Walk};
 ///   | ExtensionResolverDefinition
 ///   | LookupResolverDefinition
 /// ```
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub enum ResolverDefinitionRecord {
     Extension(ExtensionResolverDefinitionRecord),
     FieldResolverExtension(FieldResolverExtensionDefinitionRecord),

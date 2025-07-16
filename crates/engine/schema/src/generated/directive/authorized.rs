@@ -17,7 +17,7 @@ use walker::{Iter, Walk};
 ///   metadata: SchemaInputValue
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct AuthorizedDirectiveRecord {
     pub arguments: InputValueSet,
     pub fields_record: Option<FieldSetRecord>,

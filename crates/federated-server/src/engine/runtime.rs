@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ::engine::{CachedOperation, Schema};
 use extension_catalog::ExtensionCatalog;
-use gateway_config::{Config, EntityCachingRedisConfig};
+use gateway_config::{EntityCachingRedisConfig, operation_caching::OperationCacheConfig};
 use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::{entity_cache::EntityCache, trusted_documents_client::TrustedDocumentsEnforcementMode};
 use runtime_local::{
@@ -32,7 +32,10 @@ pub struct EngineRuntime {
     pub(crate) extensions: EngineWasmExtensions,
     rate_limiter: runtime::rate_limiting::RateLimiter,
     entity_cache: Box<dyn EntityCache>,
+    entity_cache_config: gateway_config::EntityCachingConfig,
     pub(crate) operation_cache: TieredOperationCache<Arc<CachedOperation>>,
+    operation_cache_config: OperationCacheConfig,
+    redis_factory: Arc<tokio::sync::Mutex<RedisPoolFactory>>,
 }
 
 impl EngineRuntime {
@@ -74,27 +77,8 @@ impl EngineRuntime {
         };
 
         tracing::debug!("Building cache");
-
-        let entity_cache: Box<dyn EntityCache> = match ctx.gateway_config.entity_caching.storage {
-            gateway_config::EntityCachingStorage::Memory => Box::new(InMemoryEntityCache::default()),
-            gateway_config::EntityCachingStorage::Redis => {
-                let EntityCachingRedisConfig { url, key_prefix, tls } = &ctx.gateway_config.entity_caching.redis;
-
-                let tls = tls.as_ref().map(|tls| RedisTlsConfig {
-                    cert: tls.cert.as_deref(),
-                    key: tls.key.as_deref(),
-                    ca: tls.ca.as_deref(),
-                });
-
-                let pool = redis_factory
-                    .pool(url.as_str(), tls)
-                    .map_err(|e| crate::Error::InternalError(e.to_string()))?;
-
-                Box::new(RedisEntityCache::new(pool, key_prefix))
-            }
-        };
-
-        let operation_cache = operation_cache(ctx.gateway_config, &mut redis_factory)?;
+        let entity_cache = build_entity_cache(&ctx.gateway_config.entity_caching, &mut redis_factory)?;
+        let operation_cache = build_operation_cache(&ctx.gateway_config.operation_caching, &mut redis_factory)?;
 
         tracing::debug!("Building extensions");
 
@@ -145,7 +129,10 @@ impl EngineRuntime {
             metrics: EngineMetrics::build(&meter, graph.version_id().map(|id| id.to_string())),
             rate_limiter,
             entity_cache,
+            entity_cache_config: ctx.gateway_config.entity_caching.clone(),
             operation_cache,
+            operation_cache_config: ctx.gateway_config.operation_caching.clone(),
+            redis_factory: Arc::new(tokio::sync::Mutex::new(redis_factory)),
         };
 
         Ok(runtime)
@@ -188,38 +175,75 @@ impl engine::Runtime for EngineRuntime {
     fn extensions(&self) -> &Self::Extensions {
         &self.extensions
     }
+
+    async fn clone_and_adjust_for_contract(&self, schema: &Arc<Schema>) -> Result<Self, String> {
+        let mut redis_facttory = self.redis_factory.lock().await;
+        let entity_cache = build_entity_cache(&self.entity_cache_config, &mut redis_facttory)
+            .map_err(|err| format!("Failed to build entity cache: {err}"))?;
+        let operation_cache = build_operation_cache(&self.operation_cache_config, &mut redis_facttory)
+            .map_err(|err| format!("Failed to build operation cache: {err}"))?;
+        Ok(EngineRuntime {
+            fetcher: self.fetcher.clone(),
+            trusted_documents: self.trusted_documents.clone(),
+            metrics: self.metrics.clone(),
+            extensions: self
+                .extensions
+                .clone_and_adjust_for_contract(schema)
+                .await
+                .map_err(|err| format!("Failed to adjust extensions for contract: {err}"))?,
+            rate_limiter: self.rate_limiter.clone(),
+            entity_cache,
+            entity_cache_config: self.entity_cache_config.clone(),
+            operation_cache,
+            operation_cache_config: self.operation_cache_config.clone(),
+            redis_factory: self.redis_factory.clone(),
+        })
+    }
 }
 
-fn operation_cache(
-    gateway_config: &Config,
+fn build_entity_cache(
+    config: &gateway_config::EntityCachingConfig,
+    redis_factory: &mut RedisPoolFactory,
+) -> Result<Box<dyn EntityCache>, crate::Error> {
+    Ok(match config.storage {
+        gateway_config::EntityCachingStorage::Memory => Box::new(InMemoryEntityCache::default()),
+        gateway_config::EntityCachingStorage::Redis => {
+            let EntityCachingRedisConfig { url, key_prefix, tls } = &config.redis;
+            let tls = tls.as_ref().map(|tls| RedisTlsConfig {
+                cert: tls.cert.as_deref(),
+                key: tls.key.as_deref(),
+                ca: tls.ca.as_deref(),
+            });
+            let pool = redis_factory
+                .pool(url.as_str(), tls)
+                .map_err(|e| crate::Error::InternalError(e.to_string()))?;
+            Box::new(RedisEntityCache::new(pool, key_prefix))
+        }
+    })
+}
+
+fn build_operation_cache(
+    config: &OperationCacheConfig,
     redis_factory: &mut RedisPoolFactory,
 ) -> Result<TieredOperationCache<Arc<CachedOperation>>, crate::Error> {
-    Ok(
-        match (
-            gateway_config.operation_caching.enabled,
-            gateway_config.operation_caching.redis.as_ref(),
-        ) {
-            (false, _) => TieredOperationCache::new(InMemoryOperationCache::inactive(), None),
-            (true, None) => TieredOperationCache::new(
-                InMemoryOperationCache::new(gateway_config.operation_caching.limit),
-                None,
-            ),
-            (true, Some(redis_config)) => {
-                let tls = redis_config.tls.as_ref().map(|tls| RedisTlsConfig {
-                    cert: tls.cert.as_deref(),
-                    key: tls.key.as_deref(),
-                    ca: tls.ca.as_deref(),
-                });
+    Ok(match (config.enabled, config.redis.as_ref()) {
+        (false, _) => TieredOperationCache::new(InMemoryOperationCache::inactive(), None),
+        (true, None) => TieredOperationCache::new(InMemoryOperationCache::new(config.limit), None),
+        (true, Some(redis_config)) => {
+            let tls = redis_config.tls.as_ref().map(|tls| RedisTlsConfig {
+                cert: tls.cert.as_deref(),
+                key: tls.key.as_deref(),
+                ca: tls.ca.as_deref(),
+            });
 
-                let pool = redis_factory
-                    .pool(redis_config.url.as_ref(), tls)
-                    .map_err(|e| crate::Error::InternalError(e.to_string()))?;
+            let pool = redis_factory
+                .pool(redis_config.url.as_ref(), tls)
+                .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
-                TieredOperationCache::new(
-                    InMemoryOperationCache::new(gateway_config.operation_caching.limit),
-                    Some(RedisOperationCache::new(pool, &redis_config.key_prefix)),
-                )
-            }
-        },
-    )
+            TieredOperationCache::new(
+                InMemoryOperationCache::new(config.limit),
+                Some(RedisOperationCache::new(pool, &redis_config.key_prefix)),
+            )
+        }
+    })
 }

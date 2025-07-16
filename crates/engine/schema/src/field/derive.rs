@@ -2,7 +2,7 @@ use walker::Walk;
 
 use crate::{DeriveObject, DeriveObjectRecord, DeriveScalarAsField, DeriveScalarAsFieldRecord, Schema};
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum DeriveMappingRecord {
     Object(DeriveObjectRecord),
     ScalarAsField(DeriveScalarAsFieldRecord),

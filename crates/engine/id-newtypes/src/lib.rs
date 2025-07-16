@@ -32,6 +32,12 @@ macro_rules! forward_with_range {
                 }
             }
 
+            impl$(< $( $ltOrGeneric $( : $bound $(+ $bounds )* )? ),+ >)? std::ops::IndexMut<$index> for $ty$(< $( $ltOrGeneric  ),+ >)?{
+                fn index_mut(&mut self, index: $index) -> &mut Self::Output {
+                    &mut self$(.$field)+[index]
+                }
+            }
+
             impl$(< $( $ltOrGeneric $( : $bound $(+ $bounds )* )? ),+ >)? std::ops::Index<$crate::IdRange<$index>> for $ty$(< $( $ltOrGeneric  ),+ >)? {
                 type Output = [$output];
 

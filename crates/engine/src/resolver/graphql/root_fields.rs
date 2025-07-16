@@ -21,7 +21,7 @@ use crate::{
     response::{Deserializable, ErrorPath, ErrorPathSegment, GraphqlError, ParentObjectSet, ResponsePartBuilder},
 };
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct GraphqlResolver {
     pub endpoint_id: GraphqlEndpointId,
     pub subgraph_operation: PreparedGraphqlOperation,

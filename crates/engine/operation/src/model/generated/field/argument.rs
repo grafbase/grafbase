@@ -16,7 +16,7 @@ use walker::{Iter, Walk};
 ///   value_id: QueryInputValueId!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct FieldArgumentRecord {
     pub definition_id: InputValueDefinitionId,
     pub value_id: QueryInputValueId,

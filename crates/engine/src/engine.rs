@@ -3,9 +3,13 @@ pub mod mcp;
 mod retry_budget;
 mod runtime;
 
-use ::runtime::{extension::ExtensionContext as _, operation_cache::OperationCache};
+use ::runtime::{
+    extension::{ContractsExtension as _, ExtensionContext as _},
+    operation_cache::OperationCache,
+};
 use bytes::Bytes;
 use cache::CacheKey;
+use error::{ErrorCode, ErrorResponse, GraphqlError};
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
 use retry_budget::RetryBudgets;
@@ -49,7 +53,10 @@ impl<R: Runtime> ContractAwareEngine<R> {
             Err(response) => return response,
         };
         if let Some(key) = parts.extension_context.contract_key() {
-            self.get_engine_for_contract(key).await.execute(parts, body).await
+            match self.get_engine_for_contract(&parts.extension_context, key).await {
+                Ok(engine) => engine.execute(parts, body).await,
+                Err(err) => crate::http_error_response(parts.ctx.response_format, err),
+            }
         } else {
             self.no_contract.execute(parts, body).await
         }
@@ -77,35 +84,62 @@ impl<R: Runtime> ContractAwareEngine<R> {
         };
 
         if let Some(key) = parts.extension_context.contract_key() {
-            self.get_engine_for_contract(key)
+            let engine = self
+                .get_engine_for_contract(&parts.extension_context, key)
                 .await
-                .create_websocket_session(parts, payload)
-                .await
+                .map_err(|err| err.into_message())?;
+            engine.create_websocket_session(parts, payload).await
         } else {
             self.no_contract.create_websocket_session(parts, payload).await
         }
     }
 
-    pub async fn get_schema(&self, parts: &http::request::Parts) -> Arc<Schema> {
-        if let Some(key) = parts
+    pub async fn get_schema(&self, parts: &http::request::Parts) -> Result<Arc<Schema>, Cow<'static, str>> {
+        let ctx = parts
             .extensions
             .get::<ExtensionContext<R>>()
-            .expect("Missing extension context")
-            .contract_key()
-        {
-            self.get_engine_for_contract(key).await.schema.clone()
+            .expect("Missing extension context");
+        if let Some(key) = ctx.contract_key() {
+            let engine = self
+                .get_engine_for_contract(ctx, key)
+                .await
+                .map_err(|err| err.into_message())?;
+            Ok(engine.schema.clone())
         } else {
-            self.no_contract.schema.clone()
+            Ok(self.no_contract.schema.clone())
         }
     }
 
-    async fn get_engine_for_contract(&self, key: &str) -> Arc<Engine<R>> {
-        self.by_contract_key
-            .get_or_insert_with::<_, std::convert::Infallible>(key, || {
-                // FIXME: apply contract.
-                Ok(self.no_contract.clone())
-            })
-            .unwrap()
+    async fn get_engine_for_contract(
+        &self,
+        ctx: &ExtensionContext<R>,
+        key: &str,
+    ) -> Result<Arc<Engine<R>>, ErrorResponse> {
+        match self.by_contract_key.get_value_or_guard_async(key).await {
+            Ok(engine) => Ok(engine),
+            Err(guard) => {
+                let schema: Schema = self.no_contract.schema.as_ref().clone();
+                let schema = self
+                    .no_contract
+                    .runtime
+                    .extensions()
+                    .construct(ctx, key.to_owned(), schema)
+                    .await?;
+                let schema = Arc::new(schema);
+                let runtime = self
+                    .no_contract
+                    .runtime
+                    .clone_and_adjust_for_contract(&schema)
+                    .await
+                    .map_err(|err| {
+                        ErrorResponse::new(http::StatusCode::INTERNAL_SERVER_ERROR)
+                            .with_error(GraphqlError::new(err, ErrorCode::ExtensionError))
+                    })?;
+                let engine = Arc::new(Engine::new(schema, runtime));
+                let _ = guard.insert(engine.clone());
+                Ok(engine)
+            }
+        }
     }
 }
 

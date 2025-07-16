@@ -180,4 +180,20 @@ impl engine::Runtime for MinimalRuntime {
     fn extensions(&self) -> &Self::Extensions {
         &self.extensions
     }
+
+    async fn clone_and_adjust_for_contract(&self, schema: &Arc<engine::Schema>) -> Result<Self, String> {
+        Ok(MinimalRuntime {
+            fetcher: self.fetcher.clone(),
+            trusted_documents: self.trusted_documents.clone(),
+            metrics: self.metrics.clone(),
+            extensions: self
+                .extensions
+                .clone_and_adjust_for_contract(schema)
+                .await
+                .map_err(|err| err.to_string())?,
+            rate_limiter: self.rate_limiter.clone(),
+            entity_cache: InMemoryEntityCache::default(),
+            operation_cache: InMemoryOperationCache::default(),
+        })
+    }
 }

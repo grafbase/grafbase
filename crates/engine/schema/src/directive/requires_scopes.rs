@@ -2,7 +2,7 @@ use walker::{Iter, Walk};
 
 use crate::{Schema, StringId};
 
-#[derive(Debug, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct RequiresScopesDirectiveRecord {
     scope_ids: Vec<Vec<StringId>>,
 }

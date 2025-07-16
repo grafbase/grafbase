@@ -21,7 +21,7 @@ use walker::{Iter, Walk};
 ///   one_of_input_field_usage: OneOfInputField
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct VariableDefinitionRecord {
     pub name: String,
     pub name_location: Location,

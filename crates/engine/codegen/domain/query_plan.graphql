@@ -67,7 +67,7 @@ type PartitionFieldArgument @meta(module: "argument") {
 
 scalar QueryModifierRule
 
-type QueryModifier @meta(module: "modifier", derive: ["Clone"]) {
+type QueryModifier @meta(module: "modifier") {
   rule: QueryModifierRule!
   impacts_root_object: Boolean!
   impacted_fields: [PartitionField!]!

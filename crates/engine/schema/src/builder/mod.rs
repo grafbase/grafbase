@@ -1,5 +1,6 @@
 mod coerce;
 mod context;
+mod contract;
 mod error;
 mod extension;
 mod graph;

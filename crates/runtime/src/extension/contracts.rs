@@ -3,8 +3,8 @@ use std::future::Future;
 use engine_schema::Schema;
 use error::ErrorResponse;
 
-pub trait SchemaContractExtension<Context>: Clone + Send + Sync + 'static {
-    fn apply(
+pub trait ContractsExtension<Context>: Clone + Send + Sync + 'static {
+    fn construct(
         &self,
         context: &Context,
         key: String,

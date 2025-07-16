@@ -6,8 +6,6 @@ use runtime::extension::Data;
 use serde::Serialize;
 use tokio::sync::Mutex;
 
-use crate::gateway::ExtContext;
-
 use super::{
     AuthenticationTestExtension, AuthorizationTestExtension, FieldResolverTestExtension,
     FieldResolverTestExtensionBuilder, ResolverTestExtension, ResolverTestExtensionBuilder,
@@ -98,10 +96,6 @@ pub struct TestManifest {
 #[derive(Default, Clone)]
 pub struct TestExtensions {
     pub(super) state: Arc<Mutex<TestExtensionsState>>,
-}
-
-impl runtime::extension::EngineExtensions for TestExtensions {
-    type Context = ExtContext;
 }
 
 pub fn json_data(value: impl Serialize) -> Data {

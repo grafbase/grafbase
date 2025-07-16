@@ -79,7 +79,7 @@ impl std::fmt::Debug for GraphqlRootFieldResolverDefinition<'_> {
 ///   key_fields: FieldSet!
 /// }
 /// ```
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct GraphqlFederationEntityResolverDefinitionRecord {
     pub endpoint_id: GraphqlEndpointId,
     pub key_fields_record: FieldSetRecord,
