@@ -73,6 +73,8 @@ spec:
             httpGet:
               path: /health
               port: http
+              initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+              timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:

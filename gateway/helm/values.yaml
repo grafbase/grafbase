@@ -186,6 +186,10 @@ gateway:
     [telemetry.tracing.exporters.stdout]
     enabled = true
 
+readinessProbe:
+  initialDelaySeconds: 5
+  timeoutSeconds: 30
+
 # Secrets to be mounted as env vars
 # https://kubernetes.io/docs/concepts/configuration/secret/
 secrets:
