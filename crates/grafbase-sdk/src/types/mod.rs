@@ -3,6 +3,7 @@
 mod authentication;
 mod authorization;
 mod configuration;
+mod contract;
 mod data;
 mod directive_site;
 mod elements;
@@ -21,6 +22,7 @@ mod token;
 pub use self::authentication::*;
 pub use authorization::*;
 pub use configuration::*;
+pub use contract::*;
 pub use data::*;
 pub use directive_site::*;
 pub use elements::*;

@@ -19,7 +19,7 @@ async fn test_mcp() {
     // Pick a port number in the dynamic range.
     let port = random::<u16>() | 0xc000;
 
-    let _handle = cmd(
+    let handle = cmd(
         cargo_bin("grafbase"),
         &[
             "mcp",
@@ -203,4 +203,5 @@ async fn test_mcp() {
     "#);
 
     client.cancel().await.unwrap();
+    handle.kill().unwrap();
 }
