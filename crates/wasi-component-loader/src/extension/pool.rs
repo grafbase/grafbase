@@ -5,6 +5,7 @@ use std::{
 
 use deadpool::managed::{self, Manager};
 use engine_schema::Schema;
+use extension_catalog::ExtensionId;
 use tracing::{Instrument, info_span};
 
 use crate::extension::ExtensionConfig;
@@ -60,6 +61,10 @@ impl Pool {
         })?;
 
         Ok(ExtensionGuard { inner })
+    }
+
+    pub(crate) fn id(&self) -> ExtensionId {
+        self.inner.manager().config.id
     }
 
     pub(crate) async fn clone_and_adjust_for_contract(&self, schema: &Arc<Schema>) -> crate::Result<Self> {

@@ -1,6 +1,8 @@
 use gateway_config::{AnyOrAsciiStringArray, AnyOrHttpMethodArray, AnyOrUrlArray, CorsConfig};
 use http::{HeaderName, HeaderValue};
-use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer, ExposeHeaders};
+use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, ExposeHeaders};
+
+pub(crate) use tower_http::cors::CorsLayer;
 
 /// Generates a CORS layer based on the provided configuration.
 ///
@@ -18,7 +20,7 @@ use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer, Expos
 /// # Returns
 ///
 /// Returns a `CorsLayer` configured with the specified settings.
-pub(super) fn generate(
+pub(crate) fn cors_layer(
     CorsConfig {
         allow_credentials,
         allow_origins,
@@ -29,12 +31,12 @@ pub(super) fn generate(
         allow_private_network,
     }: &CorsConfig,
 ) -> CorsLayer {
-    let mut cors_layer = CorsLayer::new()
+    let mut layer = CorsLayer::new()
         .allow_credentials(*allow_credentials)
         .allow_private_network(*allow_private_network);
 
     if let Some(allow_origins) = allow_origins {
-        cors_layer = cors_layer.allow_origin(match allow_origins {
+        layer = layer.allow_origin(match allow_origins {
             AnyOrUrlArray::Any => AllowOrigin::any(),
             AnyOrUrlArray::Explicit(origins) => {
                 let mut constants = Vec::new();
@@ -81,11 +83,11 @@ pub(super) fn generate(
     }
 
     if let Some(max_age) = max_age {
-        cors_layer = cors_layer.max_age(*max_age);
+        layer = layer.max_age(*max_age);
     }
 
     if let Some(allow_methods) = allow_methods {
-        cors_layer = cors_layer.allow_methods(match allow_methods {
+        layer = layer.allow_methods(match allow_methods {
             AnyOrHttpMethodArray::Any => AllowMethods::any(),
             AnyOrHttpMethodArray::Explicit(methods) => {
                 let methods = methods.iter().map(|method| http::Method::from(*method));
@@ -95,7 +97,7 @@ pub(super) fn generate(
     }
 
     if let Some(allow_headers) = allow_headers {
-        cors_layer = cors_layer.allow_headers(match allow_headers {
+        layer = layer.allow_headers(match allow_headers {
             AnyOrAsciiStringArray::Any => AllowHeaders::any(),
             AnyOrAsciiStringArray::Explicit(headers) => {
                 let headers = headers
@@ -108,7 +110,7 @@ pub(super) fn generate(
     }
 
     if let Some(expose_headers) = expose_headers {
-        cors_layer = cors_layer.expose_headers(match expose_headers {
+        layer = layer.expose_headers(match expose_headers {
             AnyOrAsciiStringArray::Any => ExposeHeaders::any(),
             AnyOrAsciiStringArray::Explicit(headers) => {
                 let headers = headers
@@ -120,5 +122,5 @@ pub(super) fn generate(
         });
     }
 
-    cors_layer
+    layer
 }

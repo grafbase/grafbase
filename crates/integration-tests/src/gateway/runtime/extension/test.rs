@@ -14,7 +14,7 @@ use super::{
 
 #[derive(Default)]
 pub struct TestExtensionsState {
-    pub authentication: Vec<Arc<dyn AuthenticationTestExtension>>,
+    pub authentication: Vec<(ExtensionId, Arc<dyn AuthenticationTestExtension>)>,
     pub authorization: HashMap<ExtensionId, Arc<dyn AuthorizationTestExtension>>,
     pub resolver_builders: HashMap<ExtensionId, Arc<dyn ResolverTestExtensionBuilder>>,
     pub resolvers: HashMap<(ExtensionId, SubgraphId), Arc<dyn ResolverTestExtension>>,

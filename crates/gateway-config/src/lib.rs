@@ -1168,6 +1168,16 @@ mod tests {
         insta::assert_debug_snapshot!(&result.authentication, @r#"
         AuthenticationConfig {
             default: None,
+            protected_resources: AuthenticationResources {
+                graphql: AuthenticationResourcesConfig {
+                    extensions: None,
+                    default: None,
+                },
+                mcp: AuthenticationResourcesConfig {
+                    extensions: None,
+                    default: None,
+                },
+            },
             providers: [
                 Jwt(
                     JwtProvider {
@@ -1229,6 +1239,16 @@ mod tests {
         insta::assert_debug_snapshot!(&result.authentication, @r#"
         AuthenticationConfig {
             default: None,
+            protected_resources: AuthenticationResources {
+                graphql: AuthenticationResourcesConfig {
+                    extensions: None,
+                    default: None,
+                },
+                mcp: AuthenticationResourcesConfig {
+                    extensions: None,
+                    default: None,
+                },
+            },
             providers: [
                 Jwt(
                     JwtProvider {

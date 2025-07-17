@@ -145,8 +145,9 @@ impl GatewayBuilder {
         )
         .await;
 
-        let engine = self::engine::build(tmpdir.path(), federated_sdl, config, runtime, &subgraphs).await?;
-        let router = self::router::build(engine.clone(), gateway_config).await;
+        let (engine, extension_catalog) =
+            self::engine::build(tmpdir.path(), federated_sdl, config, runtime, &subgraphs).await?;
+        let router = self::router::build(engine.clone(), gateway_config, extension_catalog).await;
 
         Ok(Gateway {
             tmpdir: Arc::new(tmpdir),

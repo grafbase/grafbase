@@ -15,8 +15,8 @@ impl StaticToken {
         Self(Ok(Token::Anonymous))
     }
 
-    pub fn bytes(bytes: Vec<u8>) -> Self {
-        Self(Ok(Token::Bytes(bytes)))
+    pub fn bytes(bytes: impl AsRef<[u8]>) -> Self {
+        Self(Ok(Token::Bytes(bytes.as_ref().to_vec())))
     }
 
     pub fn error_response(resp: impl Into<ErrorResponse>) -> Self {

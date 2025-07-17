@@ -103,21 +103,13 @@ pub async fn serve(
         .await
         .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
-    let inject_telemetry = |router: axum::Router| {
-        let telemetry_layer = router::layers::TelemetryLayer::new(
-            grafbase_telemetry::metrics::meter_from_global_provider(),
-            Some(listen_address),
-        );
-
-        router.layer(telemetry_layer)
-    };
-
     let router_config = RouterConfig {
         config,
+        extension_catalog,
         engine: engine_reloader.watcher(),
         server_runtime: server_runtime.clone(),
         extensions: gateway_extensions,
-        inject_telemetry,
+        listen_address: Some(listen_address),
     };
 
     // Generate all routes for the HTTP server.

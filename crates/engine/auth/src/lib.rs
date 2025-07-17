@@ -5,8 +5,9 @@ use std::sync::Arc;
 
 use anonymous::AnonymousAuthorizer;
 use error::{ErrorCode, ErrorResponse, GraphqlError};
+use extension_catalog::ExtensionId;
 use futures_util::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
-use gateway_config::{AuthenticationProvider, DefaultAuthenticationBehavior};
+use gateway_config::{AuthenticationProvider, Config, DefaultAuthenticationBehavior};
 use runtime::{authentication::LegacyToken, extension::GatewayExtensions, kv::KvStore};
 use tracing::{Instrument, info_span};
 
@@ -26,13 +27,20 @@ impl<Extensions> std::ops::Deref for AuthenticationService<Extensions> {
 
 pub struct AuthenticationServiceInner<Extensions> {
     extensions: Extensions,
+    extension_ids: Option<Vec<ExtensionId>>,
     authorizers: Vec<Box<dyn LegacyAuthorizer>>,
     default_behavior: Option<DefaultAuthenticationBehavior>,
 }
 
 impl<Extensions> AuthenticationService<Extensions> {
-    pub fn new(config: &gateway_config::Config, extensions: Extensions, kv: &KvStore) -> Self {
-        let authorizers = config
+    pub fn new(
+        gateway_config: &Config,
+        extensions: Extensions,
+        extension_ids: Option<Vec<ExtensionId>>,
+        default_behavior: Option<DefaultAuthenticationBehavior>,
+        kv: &KvStore,
+    ) -> Self {
+        let authorizers = gateway_config
             .authentication
             .providers
             .iter()
@@ -48,7 +56,8 @@ impl<Extensions> AuthenticationService<Extensions> {
         Self(Arc::new(AuthenticationServiceInner {
             authorizers,
             extensions,
-            default_behavior: config.authentication.default,
+            extension_ids,
+            default_behavior,
         }))
     }
 
@@ -75,7 +84,10 @@ impl<Extensions: GatewayExtensions> runtime::authentication::Authenticate<Extens
         context: &Extensions::Context,
         headers: http::HeaderMap,
     ) -> Result<(http::HeaderMap, LegacyToken), ErrorResponse> {
-        let (headers, result) = self.extensions.authenticate(context, headers).await;
+        let (headers, result) = self
+            .extensions
+            .authenticate(context, headers, self.extension_ids.as_deref())
+            .await;
 
         match result {
             None => {
