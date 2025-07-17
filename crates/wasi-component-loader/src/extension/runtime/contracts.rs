@@ -18,10 +18,12 @@ impl ContractsExtension<SharedContext> for EngineWasmExtensions {
         };
 
         let (directives, sites_by_directive) = SiteIngester::ingest(instance.store().data().extension_id(), &schema);
+        let n_directives = directives.len();
 
-        let contract = instance
+        let mut contract = instance
             .construct(
                 context.clone(),
+                &key,
                 directives,
                 schema
                     .subgraphs()
@@ -49,14 +51,25 @@ impl ContractsExtension<SharedContext> for EngineWasmExtensions {
         if !contract.accessible_by_default {
             schema.mark_all_as_inaccessible();
         }
+        if contract.accessible.len() < n_directives {
+            contract.accessible.resize(n_directives, -1);
+        } else {
+            // Just in case we truncate the rest.
+            contract.accessible.truncate(n_directives);
+        }
 
         let mut output = contract
             .accessible
             .into_iter()
             .enumerate()
             .map(|(ix, output)| {
-                let priority = output.unsigned_abs();
-                let accessible = output > 0;
+                // [0, 127] => accessible
+                // [-128, -1] => inaccessible
+                //
+                // As accessible is shifted down by one to use the complete i8 range. So we add 1
+                // back for accessible case (positive) to have the [1, 128] range for priorities.
+                let accessible = output >= 0;
+                let priority = output.unsigned_abs() + accessible as u8;
                 DirectiveResult {
                     priority,
                     accessible,

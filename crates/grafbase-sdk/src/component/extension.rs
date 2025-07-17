@@ -2,8 +2,9 @@ use crate::{
     extension::resolver::SubscriptionCallback,
     host_io::event_queue::EventQueue,
     types::{
-        AuthorizationDecisions, Error, ErrorResponse, GatewayHeaders, PublicMetadataEndpoint, QueryElements,
-        ResolvedField, Response, ResponseElements, SubgraphHeaders, Token, Variables,
+        AuthorizationDecisions, Contract, ContractDirective, Error, ErrorResponse, GatewayHeaders, GraphqlSubgraph,
+        PublicMetadataEndpoint, QueryElements, ResolvedField, Response, ResponseElements, SubgraphHeaders, Token,
+        Variables,
     },
 };
 
@@ -15,6 +16,15 @@ pub(crate) trait AnyExtension {
 
     fn public_metadata(&mut self) -> Result<Vec<PublicMetadataEndpoint>, Error> {
         Err(Error::new("Authentication extension not initialized correctly."))
+    }
+
+    fn construct(
+        &mut self,
+        key: String,
+        directives: Vec<ContractDirective<'_>>,
+        subgraphs: Vec<GraphqlSubgraph>,
+    ) -> Result<Contract, String> {
+        Err("Contracts extension not initialized correctly.".to_string())
     }
 
     fn prepare(&mut self, field: ResolvedField<'_>) -> Result<Vec<u8>, Error> {

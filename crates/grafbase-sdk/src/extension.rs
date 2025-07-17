@@ -1,5 +1,6 @@
 pub mod authentication;
 pub mod authorization;
+pub mod contracts;
 pub mod hooks;
 pub mod resolver;
 

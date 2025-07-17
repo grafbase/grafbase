@@ -7,6 +7,7 @@ pub(crate) trait ContractsExtensionInstance {
     fn construct<'a>(
         &'a mut self,
         context: SharedContext,
+        key: &'a str,
         directives: Vec<wit::Directive<'a>>,
         subgraphs: Vec<wit::GraphqlSubgraphParam<'a>>,
     ) -> BoxFuture<'a, Result<Result<wit::Contract, String>, Error>> {

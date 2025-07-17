@@ -1,12 +1,21 @@
 use super::Component;
-use crate::wit;
+use crate::{component::state, wit};
 
 impl wit::ContractsGuest for Component {
     fn construct(
-        _key: String,
-        _directives: Vec<wit::Directive>,
-        _subgraphs: Vec<wit::GraphqlSubgraph>,
+        ctx: wit::SharedContext,
+        key: String,
+        directives: Vec<wit::Directive>,
+        subgraphs: Vec<wit::GraphqlSubgraph>,
     ) -> Result<wit::Contract, String> {
-        todo!()
+        state::with_context(ctx, || {
+            let directives = directives.iter().enumerate().map(Into::into).collect();
+            let subgraphs = subgraphs.into_iter().map(Into::into).collect();
+
+            state::extension()
+                .map_err(|err| err.message)?
+                .construct(key, directives, subgraphs)
+                .map(Into::into)
+        })
     }
 }
