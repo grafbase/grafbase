@@ -1,0 +1,17 @@
+type Fish {
+  id: ID!
+  name: String!
+  species: String!
+  habitat: Habitat!
+  size: Float
+  color: String
+}
+
+type Query {
+  fishesByHabitat(habitat: Habitat!): [Fish!]!
+}
+
+enum Habitat {
+  OCEAN
+  RIVER
+}

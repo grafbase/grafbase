@@ -134,10 +134,16 @@ fn merge_exactly_matching<'a>(
     let expected: Vec<_> = first.enum_values().map(|v| v.name().id).collect();
 
     for definition in definitions {
-        if !is_slice_match(&expected, definition.enum_values().map(|v| v.name().id)) {
+        if !expected
+            .iter()
+            .copied()
+            .eq(definition.enum_values().map(|v| v.name().id))
+        {
             ctx.diagnostics.push_fatal(format!(
-                "The enum {} should match exactly in all subgraphs, but it does not",
-                first.name().as_str()
+                "The values of enum \"{}\" should match exactly in all subgraphs because the enum is used both in input and output positions, but they do not match in subgraphs \"{}\" and \"{}\".",
+                first.name().as_str(),
+                first.subgraph().name().as_str(),
+                definition.subgraph().name().as_str(),
             ));
             return;
         }
@@ -151,18 +157,4 @@ fn merge_exactly_matching<'a>(
         let composed_directives = collect_composed_directives(sites, ctx);
         ctx.insert_enum_value(first.walk(value).as_str(), None, composed_directives, enum_id);
     }
-}
-
-fn is_slice_match<T: PartialEq>(slice: &[T], iterator: impl Iterator<Item = T>) -> bool {
-    let mut idx = 0;
-
-    for item in iterator {
-        if slice[idx] != item {
-            return false;
-        }
-
-        idx += 1;
-    }
-
-    idx == slice.len()
 }
