@@ -1,15 +1,17 @@
-mod cors;
-mod csrf;
 mod graphql;
 mod health;
 pub(crate) mod layers;
+mod public_metadata;
 mod state;
 
-use std::{pin::Pin, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 
-use axum::{body::Bytes, routing::get};
+use axum::routing::get;
 use engine::ContractAwareEngine;
-use runtime::extension::GatewayExtensions;
+use engine_auth::AuthenticationService;
+use extension_catalog::ExtensionCatalog;
+use gateway_config::{AuthenticationResourcesConfig, Config};
+use runtime::{extension::GatewayExtensions, kv::KvStore};
 use runtime_local::InMemoryKvStore;
 use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
@@ -18,112 +20,150 @@ use tower_http::{
     cors::CorsLayer,
 };
 
-use crate::router::state::ServerState;
+use crate::router::{
+    layers::{ExtensionLayer, TelemetryLayer},
+    state::ServerState,
+};
 
 use super::ServerRuntime;
 
-pub struct RouterConfig<R, SR, E, F>
+pub struct RouterConfig<R, SR, E>
 where
     R: engine::Runtime,
     SR: ServerRuntime,
     E: GatewayExtensions,
-    F: FnOnce(axum::Router<()>) -> axum::Router<()>,
 {
-    pub config: gateway_config::Config,
+    pub config: Config,
+    pub extension_catalog: ExtensionCatalog,
     pub engine: EngineWatcher<R>,
     pub server_runtime: SR,
     pub extensions: E,
-    pub inject_telemetry: F,
+    pub listen_address: Option<SocketAddr>,
 }
 
 pub type EngineWatcher<R> = watch::Receiver<Arc<ContractAwareEngine<R>>>;
 
-pub async fn create<R, SR, E, F>(
+pub async fn create<R, SR, E>(
     RouterConfig {
         config,
+        extension_catalog,
         engine,
         server_runtime,
         extensions,
-        inject_telemetry,
-    }: RouterConfig<R, SR, E, F>,
+        listen_address,
+    }: RouterConfig<R, SR, E>,
 ) -> crate::Result<(axum::Router, Option<CancellationToken>)>
 where
     R: engine::Runtime,
     SR: ServerRuntime,
     E: GatewayExtensions,
-    F: FnOnce(axum::Router<()>) -> axum::Router<()>,
 {
-    let path = &config.graph.path;
-    let websocket_path = &config.graph.websocket_path;
+    let kv = InMemoryKvStore::runtime();
+    let common_layers = {
+        let cors = match config.cors {
+            Some(ref cors_config) => layers::cors_layer(cors_config),
+            None => CorsLayer::permissive(),
+        };
+        let csrf = layers::CsrfLayer::new(&config.csrf);
 
-    let (websocket_sender, websocket_receiver) = mpsc::channel(16);
-    let websocket_accepter = graphql::ws::WebsocketAccepter::new(websocket_receiver, engine.clone());
+        // Streaming and compression doesn't really work well today. Had a panic deep inside stream
+        // unfold. Furthermore there seem to be issues with it as pointed out by Apollo's router
+        // team:
+        // https://github.com/tower-rs/tower-http/issues/292
+        // They have copied the compression code and adjusted it, see PRs for:
+        // https://github.com/apollographql/router/issues/1572
+        // We'll need to see what we do. For now I'm disabling it as it's not important enough
+        // right now.
+        let compression = CompressionLayer::new().compress_when(DefaultPredicate::new().and(
+            NotForContentType::const_new("multipart/mixed").and(NotForContentType::const_new("text/event-stream")),
+        ));
+        let telemetry = TelemetryLayer::new_from_global_meter_provider(listen_address);
 
-    tokio::spawn(websocket_accepter.handler());
-
-    let cors = match config.cors {
-        Some(ref cors_config) => cors::generate(cors_config),
-        None => CorsLayer::permissive(),
+        tower::ServiceBuilder::new()
+            .layer(cors)
+            .layer(csrf)
+            .layer(compression)
+            .layer(telemetry)
     };
-
-    let state = ServerState::new(
-        engine.clone(),
-        config.request_body_limit.bytes().max(0) as usize,
-        server_runtime.clone(),
-    );
 
     let mut router = server_runtime
         .base_router()
         .unwrap_or_default()
-        .route(path, get(graphql::http::execute).post(graphql::http::execute))
-        .route_service(websocket_path, graphql::ws::WebsocketService::new(websocket_sender))
-        .with_state(state);
+        //
+        // == /graphql ==
+        //
+        .route(
+            &config.graph.path,
+            get(graphql::http::execute).post(graphql::http::execute),
+        )
+        //
+        // == /ws ==
+        //
+        .route_service(&config.graph.websocket_path, {
+            let (websocket_sender, websocket_receiver) = mpsc::channel(16);
+            let websocket_accepter = graphql::ws::WebsocketAccepter::new(websocket_receiver, engine.clone());
 
+            tokio::spawn(websocket_accepter.handler());
+            graphql::ws::WebsocketService::new(websocket_sender)
+        })
+        //
+        // State
+        //
+        .with_state(ServerState::new(
+            engine.clone(),
+            config.request_body_limit.bytes().max(0) as usize,
+            server_runtime.clone(),
+        ))
+        //
+        // Layers
+        //
+        .layer(common_layers.clone().layer(build_extension_layer(
+            &config,
+            &extension_catalog,
+            &extensions,
+            &kv,
+            &config.authentication.protected_resources.graphql,
+        )?));
+
+    //
+    // Public metadata endpoints
+    //
+    let public_metadata_endpoints = extensions.public_metadata_endpoints().await?;
+    if !public_metadata_endpoints.is_empty() {
+        let mut public_router = axum::Router::new();
+        for endpoint in public_metadata_endpoints {
+            public_router = public_router.route(
+                &endpoint.path,
+                get(public_metadata::handler(
+                    endpoint.response_body.into(),
+                    endpoint.headers,
+                )),
+            );
+        }
+        router = router.merge(public_router.layer(common_layers.clone()));
+    }
+
+    //
+    // == /mcp ==
+    //
     let ct = match &config.mcp {
         Some(mcp_config) if mcp_config.enabled => {
             let (mcp_router, ct) = grafbase_mcp::router(&engine, mcp_config);
-            router = router.merge(mcp_router);
+            router = router.merge(mcp_router.layer(common_layers.clone().layer(build_extension_layer(
+                &config,
+                &extension_catalog,
+                &extensions,
+                &kv,
+                &config.authentication.protected_resources.mcp,
+            )?)));
             ct
         }
         _ => None,
     };
 
-    // Streaming and compression doesn't really work well today. Had a panic deep inside stream
-    // unfold. Furthermore there seem to be issues with it as pointed out by Apollo's router
-    // team:
-    // https://github.com/tower-rs/tower-http/issues/292
-    // They have copied the compression code and adjusted it, see PRs for:
-    // https://github.com/apollographql/router/issues/1572
-    // We'll need to see what we do. For now I'm disabling it as it's not important enough
-    // right now.
-    let compression =
-        CompressionLayer::new().compress_when(DefaultPredicate::new().and(
-            NotForContentType::const_new("multipart/mixed").and(NotForContentType::const_new("text/event-stream")),
-        ));
-
-    let authentication =
-        engine_auth::AuthenticationService::new(&config, extensions.clone(), &InMemoryKvStore::runtime());
-
-    // Currently we're adding telemetry after CORS handling in the request as we don't care
-    // about pre-flight requests.
-    router = inject_telemetry(router).layer(layers::ExtensionLayer::new(extensions.clone(), authentication));
-
-    // Added after extension as it shouldn't require authentication.
-    for public_metadata_endpoint in extensions.public_metadata_endpoints().await? {
-        router = router.route(
-            &public_metadata_endpoint.path,
-            get(public_metadata_handler(
-                public_metadata_endpoint.response_body.into(),
-                public_metadata_endpoint.headers,
-            )),
-        );
-    }
-    router = router.layer(compression).layer(cors);
-
-    if config.csrf.enabled {
-        router = csrf::inject_layer(router, &config.csrf);
-    }
-
+    //
+    // == /health ==
+    //
     if config.health.enabled {
         if let Some(listen) = config.health.listen {
             tokio::spawn(health::bind_health_endpoint(listen, config.tls.clone(), config.health));
@@ -135,20 +175,32 @@ where
     Ok((router, ct))
 }
 
-/// Creates a handler for public metadata endpoints that returns a pre-configured response.
-fn public_metadata_handler(
-    response_body: Bytes,
-    headers: http::HeaderMap,
-) -> impl FnOnce() -> Pin<Box<dyn Future<Output = axum::response::Response> + Send + Sync + 'static>> + Clone {
-    move || {
-        let headers = headers.clone();
-        let response_body = response_body.clone();
-        Box::pin(async move {
-            let mut response = axum::response::Response::new(axum::body::Body::from(response_body));
-
-            *response.headers_mut() = headers;
-
-            response
+fn build_extension_layer<E: GatewayExtensions>(
+    gateway_config: &Config,
+    extension_catalog: &ExtensionCatalog,
+    extensions: &E,
+    kv: &KvStore,
+    config: &AuthenticationResourcesConfig,
+) -> crate::Result<ExtensionLayer<E, AuthenticationService<E>>> {
+    let extension_ids = config
+        .extensions
+        .as_ref()
+        .map(|keys| {
+            keys.iter()
+                .map(|key| {
+                    extension_catalog
+                        .get_id_by_config_key(key)
+                        .ok_or_else(|| "Could not find extension named {key}".into())
+                })
+                .collect::<crate::Result<Vec<_>>>()
         })
-    }
+        .transpose()?;
+    let authentication = AuthenticationService::new(
+        gateway_config,
+        extensions.clone(),
+        extension_ids,
+        config.default.or(gateway_config.authentication.default),
+        kv,
+    );
+    Ok(layers::ExtensionLayer::new(extensions.clone(), authentication))
 }

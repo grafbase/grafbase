@@ -5,6 +5,7 @@ mod hooks;
 use std::sync::Arc;
 
 use engine::{CachedOperation, Schema};
+use extension_catalog::ExtensionCatalog;
 use gateway_config::Config;
 use grafbase_telemetry::metrics::{self, EngineMetrics};
 use runtime::{entity_cache::EntityCache, fetch::dynamic::DynamicFetcher, trusted_documents_client};
@@ -40,19 +41,19 @@ impl TestRuntimeBuilder {
         self,
         config: &mut Config,
         schema: &Arc<Schema>,
-    ) -> Result<TestRuntime, String> {
+    ) -> Result<(TestRuntime, ExtensionCatalog), String> {
         let TestRuntimeBuilder {
             trusted_documents,
             fetcher,
             extensions,
         } = self;
 
-        let (gateway_extensions, engine_extensions) =
+        let (gateway_extensions, engine_extensions, extension_catalog) =
             extensions.build_and_ingest_catalog_into_config(config, schema).await?;
 
         let (_, rx) = watch::channel(Default::default());
 
-        Ok(TestRuntime {
+        let runtime = TestRuntime {
             fetcher: fetcher.unwrap_or_else(|| {
                 DynamicFetcher::wrap(NativeFetcher::new(config).expect("couldnt construct NativeFetcher"))
             }),
@@ -63,7 +64,8 @@ impl TestRuntimeBuilder {
             operation_cache: InMemoryOperationCache::default(),
             engine_extensions,
             gateway_extensions,
-        })
+        };
+        Ok((runtime, extension_catalog))
     }
 }
 

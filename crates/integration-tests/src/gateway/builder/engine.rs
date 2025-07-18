@@ -1,6 +1,7 @@
 use std::{path::Path, str::FromStr, sync::Arc};
 
 use crate::gateway::{TestRuntimeBuilder, subgraph::Subgraphs};
+use extension_catalog::ExtensionCatalog;
 use gateway_config::Config;
 
 use engine::ContractAwareEngine;
@@ -13,7 +14,7 @@ pub(super) async fn build(
     mut config: TestConfig,
     runtime: TestRuntimeBuilder,
     subgraphs: &Subgraphs,
-) -> Result<Arc<ContractAwareEngine<TestRuntime>>, String> {
+) -> Result<(Arc<ContractAwareEngine<TestRuntime>>, ExtensionCatalog), String> {
     let federated_sdl = {
         let mut federated_graph = match federated_sdl {
             Some(sdl) => graphql_composition::FederatedGraph::from_sdl(&sdl).unwrap(),
@@ -94,11 +95,11 @@ pub(super) async fn build(
             .map_err(|err| err.to_string())?,
     );
 
-    let runtime = runtime.finalize_runtime_and_config(&mut config, &schema).await?;
+    let (runtime, extension_catalog) = runtime.finalize_runtime_and_config(&mut config, &schema).await?;
 
     println!("=== CONFIG ===\n{config:#?}\n");
 
     let engine = engine::ContractAwareEngine::new(schema, runtime);
 
-    Ok(Arc::new(engine))
+    Ok((Arc::new(engine), extension_catalog))
 }

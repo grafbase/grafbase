@@ -13,6 +13,7 @@ pub struct ExtensionCatalog {
 
 #[derive(Clone, Debug)]
 pub struct Extension {
+    pub config_key: String,
     pub manifest: Manifest,
     pub wasm_path: PathBuf,
 }
@@ -32,6 +33,14 @@ impl ExtensionCatalog {
             .iter()
             .enumerate()
             .find(|(_, existing)| existing.manifest.name() == name)
+            .map(|(ix, _)| ix.into())
+    }
+
+    pub fn get_id_by_config_key(&self, config_key: &str) -> Option<ExtensionId> {
+        self.extensions
+            .iter()
+            .enumerate()
+            .find(|(_, existing)| existing.config_key == config_key)
             .map(|(ix, _)| ix.into())
     }
 

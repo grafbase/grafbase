@@ -30,16 +30,16 @@ async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> R
 
     let grafbase_extensions_dir = cwd.join(EXTENSION_DIR_NAME);
 
-    for (name, config) in gateway_config.extensions.iter() {
+    for (config_key, config) in gateway_config.extensions.iter() {
         let extension = match config.path() {
             Some(path) => {
                 if path.is_relative() {
-                    load_extension_from_path(&cwd.join(path), name)?
+                    load_extension_from_path(&cwd.join(path), config_key)?
                 } else {
-                    load_extension_from_path(path, name)?
+                    load_extension_from_path(path, config_key)?
                 }
             }
-            None => find_matching_extensions_in_dir(config, &grafbase_extensions_dir, name).await?,
+            None => find_matching_extensions_in_dir(config, &grafbase_extensions_dir, config_key).await?,
         };
 
         catalog.push(extension);
@@ -51,9 +51,9 @@ async fn create_extension_catalog_impl(gateway_config: &Config, cwd: &Path) -> R
 async fn find_matching_extensions_in_dir(
     config: &ExtensionConfig,
     grafbase_extensions_dir: &Path,
-    name: &str,
+    config_key: &str,
 ) -> Result<Extension, Error> {
-    let all_versions_for_this_extension_dir = grafbase_extensions_dir.join(name);
+    let all_versions_for_this_extension_dir = grafbase_extensions_dir.join(config_key);
 
     let mut entries = fs::read_dir(&all_versions_for_this_extension_dir)
         .await
@@ -101,10 +101,10 @@ async fn find_matching_extensions_in_dir(
         )));
     };
 
-    load_extension_from_path(&matching_entry, name)
+    load_extension_from_path(&matching_entry, config_key)
 }
 
-fn load_extension_from_path(path: &Path, expected_name: &str) -> Result<Extension, Error> {
+fn load_extension_from_path(path: &Path, config_key: &str) -> Result<Extension, Error> {
     let extension_dir = path.read_dir().map_err(|err| Error::Io {
         context: format!(
             "Failed to read extension directory '{}', does it exist?",
@@ -155,19 +155,20 @@ fn load_extension_from_path(path: &Path, expected_name: &str) -> Result<Extensio
     let Some((manifest, wasm_path)) = manifest.zip(wasm_path) else {
         return Err(Error::Message(format!(
             "Could not load extension '{}', missing manifest.json or extension.wasm in {}",
-            expected_name,
+            config_key,
             path.display()
         )));
     };
 
-    if manifest.id.name != expected_name {
+    if manifest.id.name != config_key {
         return Err(Error::Message(format!(
-            "Extension name mismatch, expected '{expected_name}' but found {}",
+            "Extension name mismatch, expected '{config_key}' but found {}",
             manifest.id.name
         )));
     }
 
     Ok(Extension {
+        config_key: config_key.to_owned(),
         manifest,
         wasm_path: wasm_path
             .canonicalize()

@@ -81,6 +81,7 @@ impl ExtensionsBuilder {
         };
         let manifest: extension_catalog::VersionedManifest = serde_json::from_str(&manifest).unwrap();
         let extension = Extension {
+            config_key: name.to_string(),
             manifest: manifest.into_latest(),
             wasm_path,
         };
@@ -115,6 +116,7 @@ impl ExtensionsBuilder {
         )
         .unwrap();
         let id = self.catalog.push(Extension {
+            config_key: manifest.id.name.to_string(),
             manifest,
             wasm_path: Path::new(PLACEHOLDER_EXTENSION_DIR).join("extension.wasm"),
         });
@@ -136,7 +138,7 @@ impl ExtensionsBuilder {
         self,
         config: &mut gateway_config::Config,
         schema: &Arc<engine::Schema>,
-    ) -> Result<(GatewayTestExtensions, EngineTestExtensions), String> {
+    ) -> Result<(GatewayTestExtensions, EngineTestExtensions, ExtensionCatalog), String> {
         let (engine_extensions, gateway_extensions) = if self.has_wasm_extension {
             for ext in self.catalog.iter() {
                 let version = ext.manifest.id.version.to_string().parse().unwrap();
@@ -187,13 +189,14 @@ impl ExtensionsBuilder {
         let extensions = EngineTestExtensions {
             wasm: engine_extensions,
             test: test.clone(),
-            dispatch: self.dispatch,
+            dispatch: self.dispatch.clone(),
         };
         let gateway_extensions = GatewayTestExtensions {
             wasm: gateway_extensions,
             test,
+            dispatch: self.dispatch,
         };
 
-        Ok((gateway_extensions, extensions))
+        Ok((gateway_extensions, extensions, self.catalog))
     }
 }

@@ -9,8 +9,23 @@ use url::Url;
 #[serde(default, deny_unknown_fields)]
 pub struct AuthenticationConfig {
     pub default: Option<DefaultAuthenticationBehavior>,
+    pub protected_resources: AuthenticationResources,
     /// Enabled authentication providers
     pub providers: Vec<AuthenticationProvider>,
+}
+
+#[derive(Default, Debug, PartialEq, serde::Deserialize, Clone)]
+#[serde(default, deny_unknown_fields)]
+pub struct AuthenticationResources {
+    pub graphql: AuthenticationResourcesConfig,
+    pub mcp: AuthenticationResourcesConfig,
+}
+
+#[derive(Default, Debug, PartialEq, serde::Deserialize, Clone)]
+#[serde(default, deny_unknown_fields)]
+pub struct AuthenticationResourcesConfig {
+    pub extensions: Option<Vec<String>>,
+    pub default: Option<DefaultAuthenticationBehavior>,
 }
 
 #[derive(Debug, PartialEq, serde::Deserialize, Clone, Copy)]

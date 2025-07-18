@@ -1,8 +1,8 @@
 use std::{fmt::Display, future::Future, pin::Pin};
 
+use axum::body::Body;
 use event_queue::ExecutedHttpRequest;
 use http::{Request, Response};
-use http_body::Body;
 use runtime::{
     authentication::Authenticate,
     extension::{ExtensionContext, GatewayExtensions},
@@ -53,16 +53,16 @@ pub struct ExtensionService<Service, Ext, A> {
 
 impl<Service, Ext, A, ReqBody> tower::Service<Request<ReqBody>> for ExtensionService<Service, Ext, A>
 where
-    Service: tower::Service<Request<ReqBody>, Response = Response<axum::body::Body>> + Send + Clone + 'static,
+    Service: tower::Service<Request<ReqBody>, Response = Response<Body>> + Send + Clone + 'static,
     Service::Future: Send,
     Service::Error: Display + 'static,
-    ReqBody: Body + Send + 'static,
+    ReqBody: http_body::Body + Send + 'static,
     Ext: GatewayExtensions,
     A: Authenticate<<Ext as GatewayExtensions>::Context>,
 {
-    type Response = http::Response<axum::body::Body>;
+    type Response = http::Response<Body>;
     type Error = Service::Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Response<axum::body::Body>, Self::Error>> + Send>>;
+    type Future = Pin<Box<dyn Future<Output = Result<Response<Body>, Self::Error>> + Send>>;
 
     fn poll_ready(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<Result<(), Self::Error>> {
         self.inner.poll_ready(cx)

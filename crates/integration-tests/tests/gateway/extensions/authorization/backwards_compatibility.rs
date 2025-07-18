@@ -43,7 +43,7 @@ fn sdk_0100() {
                 )
                 .into_subgraph("x"),
             )
-            .with_extension(AuthenticationExt::new(StaticToken::bytes("Hello world!".into())))
+            .with_extension(AuthenticationExt::new(StaticToken::bytes("Hello world!")))
             .with_extension("authorization-010")
             .build()
             .await;

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use engine::ErrorResponse;
-use extension_catalog::Id;
+use extension_catalog::{ExtensionId, Id};
 use futures::{StreamExt as _, stream::FuturesUnordered};
 use runtime::{
     authentication::PublicMetadataEndpoint,
@@ -9,7 +9,7 @@ use runtime::{
 };
 
 use crate::gateway::{
-    ExtContext, ExtensionsBuilder, GatewayTestExtensions, TestExtensions, TestManifest,
+    DispatchRule, ExtContext, ExtensionsBuilder, GatewayTestExtensions, TestExtensions, TestManifest,
     runtime::extension::builder::AnyExtension,
 };
 
@@ -18,14 +18,33 @@ impl AuthenticationExtension<ExtContext> for GatewayTestExtensions {
         &self,
         ctx: &ExtContext,
         gateway_headers: http::HeaderMap,
+        ids: Option<&[ExtensionId]>,
     ) -> (http::HeaderMap, Option<Result<Token, ErrorResponse>>) {
-        let (headers, result) = self.wasm.authenticate(&ctx.wasm, gateway_headers).await;
+        let (wasm_extensions, test_extensions) = if let Some(ids) = ids {
+            let mut wasm_extensions = Vec::new();
+            let mut test_extensions = Vec::new();
+
+            for id in ids {
+                match self.dispatch[id] {
+                    DispatchRule::Wasm => wasm_extensions.push(*id),
+                    DispatchRule::Test => test_extensions.push(*id),
+                }
+            }
+            (Some(wasm_extensions), Some(test_extensions))
+        } else {
+            (None, None)
+        };
+
+        let (headers, result) = self
+            .wasm
+            .authenticate(&ctx.wasm, gateway_headers, wasm_extensions.as_deref())
+            .await;
         let error = match result {
             None => None,
             Some(Ok(token)) => return (headers, Some(Ok(token))),
             Some(Err(err)) => Some(err),
         };
-        let (headers, result) = self.test.authenticate(ctx, headers).await;
+        let (headers, result) = self.test.authenticate(ctx, headers, test_extensions.as_deref()).await;
         match (result, error) {
             (Some(Ok(token)), _) => (headers, Some(Ok(token))),
             (None, None) => (headers, None),
@@ -51,12 +70,14 @@ impl AuthenticationExtension<ExtContext> for TestExtensions {
         &self,
         _ctx: &ExtContext,
         headers: http::HeaderMap,
+        ids: Option<&[ExtensionId]>,
     ) -> (http::HeaderMap, Option<Result<Token, ErrorResponse>>) {
         let guard = self.state.lock().await;
         let mut futures = guard
             .authentication
             .iter()
-            .map(|instance| instance.authenticate(&headers))
+            .filter(|(id, _)| ids.is_none_or(|ids| ids.contains(id)))
+            .map(|(_, instance)| instance.authenticate(&headers))
             .collect::<FuturesUnordered<_>>();
 
         let mut last_error = None;
@@ -85,7 +106,7 @@ impl AuthenticationExtension<ExtContext> for TestExtensions {
         let mut futures = guard
             .authentication
             .iter()
-            .map(|instance| instance.public_metadata_endpoints())
+            .map(|(_, instance)| instance.public_metadata_endpoints())
             .collect::<FuturesUnordered<_>>();
 
         let mut endpoints = Vec::new();
@@ -132,7 +153,7 @@ impl AuthenticationExt {
 
 impl AnyExtension for AuthenticationExt {
     fn register(self, state: &mut ExtensionsBuilder) {
-        state.push_test_extension(TestManifest {
+        let id = state.push_test_extension(TestManifest {
             id: Id {
                 name: self.name.to_string(),
                 version: "1.0.0".parse().unwrap(),
@@ -140,7 +161,7 @@ impl AnyExtension for AuthenticationExt {
             r#type: extension_catalog::Type::Authentication(Default::default()),
             sdl: None,
         });
-        state.test.authentication.push(self.instance);
+        state.test.authentication.push((id, self.instance));
     }
 }
 

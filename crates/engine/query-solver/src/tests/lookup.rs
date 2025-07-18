@@ -34,7 +34,11 @@ async fn direct_lookup_call() {
     let mut catalog = extension_catalog::ExtensionCatalog::default();
     let wasm_path = tmpdir.path().join("extension.wasm");
     std::fs::write(&wasm_path, b"wasm").unwrap();
-    catalog.push(extension_catalog::Extension { manifest, wasm_path });
+    catalog.push(extension_catalog::Extension {
+        config_key: String::new(),
+        manifest,
+        wasm_path,
+    });
 
     let sdl = format!(
         r#"

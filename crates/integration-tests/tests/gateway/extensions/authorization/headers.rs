@@ -43,7 +43,7 @@ fn can_inject_token_into_headers() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::bytes("Hello world!".into())))
+            .with_extension(AuthenticationExt::new(StaticToken::bytes("Hello world!")))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
             .build()
             .await;

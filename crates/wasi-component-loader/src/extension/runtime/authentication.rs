@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::{SharedContext, extension::GatewayWasmExtensions, resources::Lease};
 use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
+use extension_catalog::ExtensionId;
 use futures::{StreamExt as _, TryStreamExt as _, stream::FuturesUnordered};
 use runtime::extension::{AuthenticationExtension, Token};
 
@@ -10,12 +11,14 @@ impl AuthenticationExtension<SharedContext> for GatewayWasmExtensions {
         &self,
         context: &SharedContext,
         gateway_headers: http::HeaderMap,
+        ids: Option<&[ExtensionId]>,
     ) -> (http::HeaderMap, Option<Result<Token, ErrorResponse>>) {
         let headers = Arc::new(gateway_headers);
 
         let mut futures = self
             .authentication
             .iter()
+            .filter(|pool| ids.is_none_or(|ids| ids.contains(&pool.id())))
             .map(|pool| async {
                 let mut instance = pool.get().await.map_err(|err| {
                     tracing::error!("Failed to retrieve extension: {err}");

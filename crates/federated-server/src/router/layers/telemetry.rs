@@ -13,7 +13,7 @@ use grafbase_telemetry::{
     grafbase_client::Client,
     metrics::{RequestMetrics, RequestMetricsAttributes},
     otel::{
-        opentelemetry::{self, metrics::Meter, propagation::Extractor},
+        opentelemetry::{self, propagation::Extractor},
         tracing_opentelemetry::OpenTelemetrySpanExt,
     },
     span::http_request::{HttpRequestSpan, HttpRequestSpanBuilder},
@@ -29,9 +29,9 @@ pub struct TelemetryLayer {
 }
 
 impl TelemetryLayer {
-    pub fn new(meter: Meter, listen_address: Option<SocketAddr>) -> Self {
+    pub fn new_from_global_meter_provider(listen_address: Option<SocketAddr>) -> Self {
         Self {
-            metrics: RequestMetrics::build(&meter),
+            metrics: RequestMetrics::build(&grafbase_telemetry::metrics::meter_from_global_provider()),
             listen_address,
         }
     }
