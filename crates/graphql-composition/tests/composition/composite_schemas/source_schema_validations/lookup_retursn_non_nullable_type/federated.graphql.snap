@@ -1,7 +1,7 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: "Check that `@link` imports are only valid for the subgraph that define the import. The import for the composite schemas spec `@key` should lead to `resolvable: false` only in the subgraph where it is imported."
-input_file: crates/graphql-composition/tests/composition/link_import_scoping/test.md
+expression: "https://graphql.github.io/composite-schemas-spec/draft/#sec-Lookup-Returns-Non-Nullable-Type"
+input_file: crates/graphql-composition/tests/composition/composite_schemas/source_schema_validations/lookup_retursn_non_nullable_type/test.md
 ---
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
@@ -19,23 +19,12 @@ directive @composite__lookup on FIELD_DEFINITION
 
 scalar join__FieldSet
 
-type Product
-  @join__type(graph: EXT, key: "id", resolvable: false)
-  @join__type(graph: GQL, key: "id ab")
-{
-  ab: String @join__field(graph: GQL)
-  code: String! @join__field(graph: EXT)
-  id: ID!
-}
-
 type Query
 {
-  productBatch(ids: [ID!]!): [Product!] @composite__lookup(graph: EXT) @join__field(graph: EXT)
-  products: [Product!]! @join__field(graph: GQL)
+  requiredLookup: String! @composite__lookup(graph: REQUIRED_LOOKUP) @join__field(graph: REQUIRED_LOOKUP)
 }
 
 enum join__Graph
 {
-  EXT @join__graph(name: "ext", url: "http://example.com/ext")
-  GQL @join__graph(name: "gql", url: "http://example.com/gql")
+  REQUIRED_LOOKUP @join__graph(name: "required-lookup", url: "http://example.com/required-lookup")
 }

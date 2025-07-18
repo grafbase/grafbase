@@ -34,7 +34,7 @@ fn basic() {
                     @init
 
                 type Query {
-                    productBatch(ids: [ID!]!): [Product!]! @lookup
+                    productBatch(ids: [ID!]!): [Product!] @lookup
                 }
 
                 type Product @key(fields: "id") {

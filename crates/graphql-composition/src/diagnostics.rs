@@ -50,12 +50,12 @@ impl Diagnostics {
     pub(crate) fn push_composite_schemas_source_schema_validation_error(
         &mut self,
         source_schema_name: &str,
-        message: fmt::Arguments<'_>,
+        message: impl fmt::Display,
         error_code: CompositeSchemasErrorCode,
     ) {
         self.0.push(Diagnostic {
             message: format!("[{source_schema_name}] {message}"),
-            severity: Severity::Error,
+            severity: error_code.severity(),
             error_code: Some(error_code),
         });
     }
@@ -129,4 +129,15 @@ impl Severity {
 pub(crate) enum CompositeSchemasErrorCode {
     /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Query-Root-Type-Inaccessible
     QueryRootTypeInaccessible,
+    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Lookup-Returns-Non-Nullable-Type
+    LookupReturnsNonNullableType,
+}
+
+impl CompositeSchemasErrorCode {
+    fn severity(&self) -> Severity {
+        match self {
+            CompositeSchemasErrorCode::QueryRootTypeInaccessible => Severity::Error,
+            CompositeSchemasErrorCode::LookupReturnsNonNullableType => Severity::Warning,
+        }
+    }
 }
