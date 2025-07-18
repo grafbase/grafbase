@@ -318,6 +318,9 @@ fn mcp() {
                 [cors]
                 allow_origins = ["https://app.grafbase.com"]
                 expose_headers = ["Content-Encoding"]
+
+                [mcp]
+                enabled = true
             "#,
             )
             .build()

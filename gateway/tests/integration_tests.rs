@@ -1008,7 +1008,7 @@ fn health_custom_path() {
         let response = client.client().get(url.clone()).send().await.unwrap();
 
         assert_eq!(response.status(), 404);
-        assert_eq!(response.text().await.unwrap(), "");
+        assert_eq!(response.text().await.unwrap(), "Not Found");
 
         // Now with the configured path
         url.set_path("/gezondheid");
@@ -1043,7 +1043,7 @@ fn health_disabled() {
         let response = client.client().get(url).send().await.unwrap();
 
         assert_eq!(response.status(), 404);
-        assert_eq!(response.text().await.unwrap(), "");
+        assert_eq!(response.text().await.unwrap(), "Not Found");
     });
 }
 
@@ -1065,7 +1065,7 @@ fn health_custom_listener() {
         let response = client.client().get(url).send().await.unwrap();
 
         assert_eq!(response.status(), 404);
-        assert_eq!(response.text().await.unwrap(), "");
+        assert_eq!(response.text().await.unwrap(), "Not Found");
 
         // Then check at the configured port.
 
