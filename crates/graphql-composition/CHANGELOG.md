@@ -13,6 +13,10 @@
 - The graphql-federated-graph dependency, which was always an implementation detail, is now deprecated. Its functionality has been folded into graphql-composition, as a module. As a result, the crate does not re-export the `graphql_federated_graph` crate anymore, just a select few items. Most fields of `FederatedGraph` have also become private. Please get in touch if this is something you were relying on.
 - The Grafbase-specific, non-standard `@authorized` directive is no longer getting special treatment (https://github.com/grafbase/grafbase/pull/3189).
 
+## Fixes
+
+- When an enum is used both in input and output positions, composition enforces that definitions of that enum in all subgraphs must have exactly the same values. In the case where one subgraph had more values than another, composition would do an out of bound access to test equality, and panic. It's order dependent, so it was not encountered in the existing tests. This commit fixes the out of bound errors, preserving the same logic, and improves the composition error message formulation. (https://github.com/grafbase/grafbase/pull/3292)
+
 ## 0.8.0 - 2025-05-16
 
 ### Breaking changes

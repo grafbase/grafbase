@@ -1,0 +1,16 @@
+type Bird {
+  id: ID!
+  name: String!
+  species: String!
+  wingspan: Float
+  habitat: String
+  isEndangered: Boolean!
+}
+
+type Query {
+  birdsByHabitat(habitat: Habitat!): [Bird!]!
+}
+
+enum Habitat {
+  RIVER
+}
