@@ -1,22 +1,6 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: actual_api_sdl
+expression: Test that unknown directives are reported as warnings.
 input_file: crates/graphql-composition/tests/composition/unknown_directives/test.md
 ---
-type Farm {
-    chiliDetails: ChiliVariety
-    chiliId: ID!
-    id: ID!
-}
 
-type ChiliVariety {
-    description: String
-    id: ID!
-    name: String!
-    spicinessScale: Int!
-}
-
-type Query {
-    chiliVarieties: [ChiliVariety]
-    chiliVariety(id: ID!): ChiliVariety
-}

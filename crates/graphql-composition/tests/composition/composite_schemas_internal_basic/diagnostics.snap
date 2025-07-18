@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "Internal fields should not appear in the composite schema, but they should be represented in the composite execution schema.\n\nAlso, internal fields do not count toward field collisions"
+input_file: crates/graphql-composition/tests/composition/composite_schemas_internal_basic/test.md
+---
+

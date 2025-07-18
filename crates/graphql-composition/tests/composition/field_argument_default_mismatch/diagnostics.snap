@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/field_argument_default_mismatch/test.md
+---
+- ❌ The argument Query.sayHi.language has incompatible defaults in subgraphs "paris" and "tokyo"

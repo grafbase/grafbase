@@ -1,18 +1,6 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: actual_api_sdl
+expression: "Imports _must_ be of the same type, meaning if the original name has an `@` prefix, the imported name must also have an `@` prefix, and conversely, if the original name does not have an `@` prefix, the imported name must also not have an `@` prefix.\n\nReference: https://specs.apollo.dev/link/v1.0/#Import"
 input_file: crates/graphql-composition/tests/composition/link_import_as_errors/test.md
 ---
-type AppleSauce {
-    appleVariety: String
-    chunky: Boolean!
-    id: ID!
-    organic: Boolean
-    servingSize: Float
-    sweetness: Int!
-}
 
-type Query {
-    allAppleSauces: [AppleSauce!]!
-    getAppleSauce(id: ID!): AppleSauce
-}

@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Tests that extension names are case insensitive and unique.
+input_file: crates/graphql-composition/tests/composition/extensions_name_collision/test.md
+---
+- ❌ Found two extensions named "REST-CONNECTOR". The urls must match, but got "https://extensions.grafbase.com/rest" and "file://my/home/rest-connector-dev".

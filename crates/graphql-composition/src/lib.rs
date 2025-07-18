@@ -1,9 +1,10 @@
 #![deny(unsafe_code, missing_docs, rust_2018_idioms)]
 #![doc = include_str!("../README.md")]
 
+pub mod diagnostics;
+
 mod compose;
 mod composition_ir;
-mod diagnostics;
 mod emit_federated_graph;
 mod federated_graph;
 mod grafbase_extensions;

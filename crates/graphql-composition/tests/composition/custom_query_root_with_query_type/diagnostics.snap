@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/custom_query_root_with_query_type/test.md
+---
+- ❌ [almond-products]: The Query type has the default name for a root but is itself not a root. This is not valid in a federation context.

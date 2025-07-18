@@ -1,0 +1,7 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/namespaced_directive_without_import_are_ignored/subgraphs/test.md
+---
+- ⚠️ [alerts]: Unknown directive `@post` at `Mutation.createAlert`
+- ⚠️ Directive `post` is not defined in any extension or composed directive

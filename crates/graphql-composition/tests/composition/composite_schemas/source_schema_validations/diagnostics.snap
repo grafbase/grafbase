@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "https://graphql.github.io/composite-schemas-spec/draft/#sec-Query-Root-Type-Inaccessible"
+input_file: crates/graphql-composition/tests/composition/composite_schemas/source_schema_validations/test.md
+---
+- ❌ [not-fine] The query root type cannot be inaccessible

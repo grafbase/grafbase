@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/accessible_argument_with_inaccessible_type/test.md
+---
+- ❌ The argument `ChiaSeedProduct.checkNutritionalInfo(expected:)` is of an @inaccessible type, but is itself not marked as @inaccessible.

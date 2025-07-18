@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/no_root_type/test.md
+---
+- ❌ None of the subgraphs define any root (Query, Mutation, Subscription) type. The federated graph cannot be empty.

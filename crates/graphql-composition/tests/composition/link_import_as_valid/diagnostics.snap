@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "We want to test that a directive can be imported and renamed with `as`.\nExample: `@link(url: \"...\", import: [{name: \"@shareable\", as: \"@partageable\"}])`."
+input_file: crates/graphql-composition/tests/composition/link_import_as_valid/test.md
+---
+
