@@ -86,9 +86,10 @@ where
             .layer(telemetry)
     };
 
-    let mut router = server_runtime
-        .base_router()
-        .unwrap_or_default()
+    let mut router = server_runtime.base_router().unwrap_or_default().fallback(fallback);
+
+    // Protected routes that need authentication
+    let graphql = axum::Router::new()
         //
         // == /graphql ==
         //
@@ -124,6 +125,8 @@ where
             &kv,
             &config.authentication.protected_resources.graphql,
         )?));
+
+    router = router.merge(graphql);
 
     //
     // Public metadata endpoints
@@ -203,4 +206,8 @@ fn build_extension_layer<E: GatewayExtensions>(
         kv,
     );
     Ok(layers::ExtensionLayer::new(extensions.clone(), authentication))
+}
+
+async fn fallback() -> (http::StatusCode, &'static str) {
+    (http::StatusCode::NOT_FOUND, "Not Found")
 }

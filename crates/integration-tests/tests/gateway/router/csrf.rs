@@ -89,6 +89,9 @@ fn mcp() {
                 r#"
                 [csrf]
                 enabled = true
+
+                [mcp]
+                enabled = true
             "#,
             )
             .build()
