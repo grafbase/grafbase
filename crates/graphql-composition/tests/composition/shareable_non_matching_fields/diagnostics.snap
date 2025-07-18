@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/shareable_non_matching_fields/test.md
+---
+- ❌ [algae-one] The shareable object `AlgaeFarm` is missing the `productionCapacity` field defined in other subgraphs.

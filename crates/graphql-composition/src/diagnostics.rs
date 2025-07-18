@@ -1,3 +1,5 @@
+//! Composition warnings and errors.
+
 use std::fmt;
 
 /// Warnings and errors produced by composition.
@@ -7,7 +9,7 @@ pub struct Diagnostics(Vec<Diagnostic>);
 impl Diagnostics {
     /// Is any of the diagnostics fatal, i.e. a hard error?
     pub fn any_fatal(&self) -> bool {
-        self.0.iter().any(|diagnostic| diagnostic.is_fatal)
+        self.0.iter().any(|diagnostic| diagnostic.severity.is_error())
     }
 
     /// Is there any diagnostic warning or error
@@ -15,11 +17,16 @@ impl Diagnostics {
         self.0.is_empty()
     }
 
+    /// Iterate over all diagnostics.
+    pub fn iter(&self) -> impl Iterator<Item = &Diagnostic> {
+        self.0.iter()
+    }
+
     /// Iterate non-fatal diagnostics.
     pub fn iter_warnings(&self) -> impl Iterator<Item = &str> {
         self.0
             .iter()
-            .filter(|diagnostic| !diagnostic.is_fatal)
+            .filter(|diagnostic| !diagnostic.severity.is_warning())
             .map(|diagnostic| diagnostic.message.as_str())
     }
 
@@ -27,7 +34,7 @@ impl Diagnostics {
     pub fn iter_errors(&self) -> impl Iterator<Item = &str> {
         self.0
             .iter()
-            .filter(|diagnostic| diagnostic.is_fatal)
+            .filter(|diagnostic| diagnostic.severity.is_error())
             .map(|diagnostic| diagnostic.message.as_str())
     }
 
@@ -48,7 +55,7 @@ impl Diagnostics {
     ) {
         self.0.push(Diagnostic {
             message: format!("[{source_schema_name}] {message}"),
-            is_fatal: true,
+            severity: Severity::Error,
             error_code: Some(error_code),
         });
     }
@@ -56,7 +63,7 @@ impl Diagnostics {
     pub(crate) fn push_fatal(&mut self, message: String) {
         self.0.push(Diagnostic {
             message,
-            is_fatal: true,
+            severity: Severity::Error,
             error_code: None,
         });
     }
@@ -64,7 +71,7 @@ impl Diagnostics {
     pub(crate) fn push_warning(&mut self, message: String) {
         self.0.push(Diagnostic {
             message,
-            is_fatal: false,
+            severity: Severity::Warning,
             error_code: None,
         });
     }
@@ -72,15 +79,53 @@ impl Diagnostics {
 
 /// A composition diagnostic.
 #[derive(Debug, Clone)]
-pub(crate) struct Diagnostic {
+pub struct Diagnostic {
     message: String,
-    /// Should this diagnostic be interpreted as a composition failure?
-    is_fatal: bool,
+    severity: Severity,
     #[expect(unused)]
     error_code: Option<CompositeSchemasErrorCode>,
 }
 
-#[derive(Debug, Clone, Copy)]
+impl Diagnostic {
+    /// The warning or error message.
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    /// See [Severity].
+    pub fn severity(&self) -> Severity {
+        self.severity
+    }
+}
+
+/// The severity of a [Diagnostic].
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Severity {
+    /// A fatal error.
+    Error,
+    /// A warning to be displayed to the user.
+    Warning,
+}
+
+impl Severity {
+    /// Returns `true` if the severity is [`Error`].
+    ///
+    /// [`Error`]: Severity::Error
+    #[must_use]
+    pub fn is_error(&self) -> bool {
+        matches!(self, Self::Error)
+    }
+
+    /// Returns `true` if the severity is [`Warning`].
+    ///
+    /// [`Warning`]: Severity::Warning
+    #[must_use]
+    pub fn is_warning(&self) -> bool {
+        matches!(self, Self::Warning)
+    }
+}
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum CompositeSchemasErrorCode {
     /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Query-Root-Type-Inaccessible
     QueryRootTypeInaccessible,

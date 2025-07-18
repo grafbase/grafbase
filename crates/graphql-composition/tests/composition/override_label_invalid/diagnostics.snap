@@ -1,0 +1,7 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/override_label_invalid/test.md
+---
+- ❌ Invalid @override label argument on User.name: Expected a field of the format "percent(<number>)" 
+- ❌ Invalid @override label argument on User.email: Expected a field of the format "percent(<number>)"

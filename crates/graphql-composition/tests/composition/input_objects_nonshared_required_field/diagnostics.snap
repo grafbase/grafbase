@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/input_objects_nonshared_required_field/test.md
+---
+- ❌ The CyclistInput.coach field is not defined in all subgraphs, but it is required in withCoach

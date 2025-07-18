@@ -3,6 +3,4 @@ source: crates/graphql-composition/tests/composition_tests.rs
 expression: Test that unknown directives are reported as warnings.
 input_file: crates/graphql-composition/tests/composition/unknown_directives/test.md
 ---
-# [test]: Unknown directive `@doesNotExist` on schema definition or extension.
-# [test]: Unknown directive `@whose` at `ChiliVariety.name`
-# Error in @requires at Farm.chiliDetails: the nonExistent field does not exist on Farm
+

@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/object_field_arguments_required_not_in_all_subgraphs/test.md
+---
+- ❌ The argument `Vendor.details(weighedAverage:)` is required in customer-feedback but missing in vendor-statistics.

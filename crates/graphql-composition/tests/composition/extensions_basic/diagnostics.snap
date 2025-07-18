@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "A test with three extensions, used in different subgraphs with different imports. We expect to see the `extension__Link` enum and `extension__directive` instances in the right places.\n\nAlso note we have a facebook linked schema, that should not appear in the federated graph."
+input_file: crates/graphql-composition/tests/composition/extensions_basic/test.md
+---
+- ⚠️ Directive `add` is not defined in any extension or composed directive

@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/requires_with_invalid_inline_fragment/test.md
+---
+- ❌ Error in requires at Payroll.amount: type condition `... Musician` is invalid on MusicEntity

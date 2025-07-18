@@ -1,0 +1,7 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/subgraph_defining_join__Graph/test.md
+---
+- ⚠️ [bad]: Unknown directive `@graph` at `join__Graph`
+- ❌ [bad] Definition name `join__Graph` is a reserved federation definition name, it cannot be defined in subgraphs.

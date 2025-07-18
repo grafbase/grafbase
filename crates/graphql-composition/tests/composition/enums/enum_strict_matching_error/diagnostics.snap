@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/enums/enum_strict_matching_error/test.md
+---
+- ❌ The values of enum "FavoriteToy" should match exactly in all subgraphs because the enum is used both in input and output positions, but they do not match in subgraphs "activities" and "episodes".

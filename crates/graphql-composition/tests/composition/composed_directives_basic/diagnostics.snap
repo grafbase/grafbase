@@ -1,0 +1,8 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/composed_directives_basic/test.md
+---
+- ⚠️ [observations]: Unknown directive `@id` at `BirdObservation`
+- ⚠️ [observations]: Unknown directive `@notComposed` at `ObserverDetails`
+- ⚠️ Directive `pelagic` is not defined in any extension or composed directive
