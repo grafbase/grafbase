@@ -10,7 +10,7 @@ pub trait ContractsExtension: Sized + 'static {
         key: String,
         directives: Vec<ContractDirective<'_>>,
         subgraphs: Vec<GraphqlSubgraph>,
-    ) -> Result<Contract, String>;
+    ) -> Result<Contract, Error>;
 }
 
 #[doc(hidden)]
@@ -23,7 +23,7 @@ pub fn register<T: ContractsExtension>() {
             key: String,
             directives: Vec<ContractDirective<'_>>,
             subgraphs: Vec<GraphqlSubgraph>,
-        ) -> Result<Contract, String> {
+        ) -> Result<Contract, Error> {
             ContractsExtension::construct(&mut self.0, key, directives, subgraphs)
         }
     }

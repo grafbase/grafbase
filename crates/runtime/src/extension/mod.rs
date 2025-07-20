@@ -39,9 +39,8 @@ pub trait GatewayExtensions:
     type Context: ExtensionContext;
 }
 
-pub trait ExtensionContext: Default + Clone + Send + Sync + 'static {
+pub trait ExtensionContext: Clone + Default + Send + Sync + 'static {
     fn event_queue(&self) -> &EventQueue;
-    fn contract_key(&self) -> Option<&str>;
 }
 
 #[derive(Debug, Clone)]

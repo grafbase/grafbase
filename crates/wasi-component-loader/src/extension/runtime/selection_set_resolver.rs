@@ -1,14 +1,15 @@
-use engine_error::{ErrorCode, GraphqlError};
+use engine_error::GraphqlError;
 use engine_schema::Subgraph;
 use extension_catalog::ExtensionId;
 use runtime::extension::{Anything, ArgumentsId, Data, Field as _, SelectionSet as _, SelectionSetResolverExtension};
 
 use crate::{
-    Error, cbor,
+    cbor,
     extension::{
         EngineWasmExtensions,
         api::wit::{self, Field, SelectionSet},
     },
+    wasmsafe,
 };
 
 #[allow(clippy::manual_async_fn)]
@@ -52,16 +53,11 @@ impl SelectionSetResolverExtension for EngineWasmExtensions {
             }
         }
 
-        instance
-            .selection_set_resolver_prepare(subgraph.name(), 0, &fields)
-            .await
-            .map_err(|err| match err {
-                Error::Internal(err) => {
-                    tracing::error!("Wasm error: {err}");
-                    GraphqlError::new("Internal error", ErrorCode::ExtensionError)
-                }
-                Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
-            })?
+        wasmsafe!(
+            instance
+                .selection_set_resolver_prepare(subgraph.name(), 0, &fields)
+                .await
+        )
     }
 
     fn resolve<'ctx, 'resp, 'f>(
@@ -84,16 +80,11 @@ impl SelectionSetResolverExtension for EngineWasmExtensions {
                 .map(|(id, value)| (*id, value.as_slice()))
                 .collect::<Vec<_>>();
             let mut instance = self.get(extension_id).await?;
-            instance
-                .resolve_query_or_mutation_field(subgraph_headers, subgraph.name(), prepared_data, &arguments_refs)
-                .await
-                .map_err(|err| match err {
-                    Error::Internal(err) => {
-                        tracing::error!("Wasm error: {err}");
-                        GraphqlError::new("Internal error", ErrorCode::ExtensionError)
-                    }
-                    Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
-                })?
+            wasmsafe!(
+                instance
+                    .resolve_query_or_mutation_field(subgraph_headers, subgraph.name(), prepared_data, &arguments_refs)
+                    .await
+            )
         }
     }
 }

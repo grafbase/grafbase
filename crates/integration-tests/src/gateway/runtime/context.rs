@@ -8,17 +8,13 @@ use runtime::extension::ExtensionContext;
 
 #[derive(Default, Clone)]
 pub struct ExtContext {
-    pub wasm: wasi_component_loader::SharedContext,
+    pub wasm: wasi_component_loader::WasmContext,
     pub kv: Arc<Mutex<HashMap<String, serde_json::Value>>>,
 }
 
 impl ExtensionContext for ExtContext {
     fn event_queue(&self) -> &EventQueue {
         self.wasm.event_queue()
-    }
-
-    fn contract_key(&self) -> Option<&str> {
-        self.wasm.contract_key()
     }
 }
 

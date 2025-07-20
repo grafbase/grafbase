@@ -4,7 +4,7 @@ use crate::{SdkError, cbor, wit};
 
 /// Graphql Error with a message and extensions
 #[derive(Clone)]
-pub struct Error(wit::Error);
+pub struct Error(pub(crate) wit::Error);
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

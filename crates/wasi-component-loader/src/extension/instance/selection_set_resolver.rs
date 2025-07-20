@@ -2,10 +2,7 @@ use engine_error::GraphqlError;
 use futures::future::BoxFuture;
 use runtime::extension::Data;
 
-use crate::{
-    Error,
-    extension::api::wit::{ArgumentsId, Field, FieldId},
-};
+use crate::extension::api::wit::{ArgumentsId, Field, FieldId};
 
 #[allow(unused_variables)]
 pub(crate) trait SelectionSetResolverExtensionInstance {
@@ -14,7 +11,7 @@ pub(crate) trait SelectionSetResolverExtensionInstance {
         subgraph_name: &'a str,
         field_id: FieldId,
         fields: &'a [Field<'a>],
-    ) -> BoxFuture<'a, Result<Result<Vec<u8>, GraphqlError>, Error>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<Vec<u8>, GraphqlError>>> {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 
@@ -24,7 +21,7 @@ pub(crate) trait SelectionSetResolverExtensionInstance {
         subgraph_name: &'a str,
         prepared: &'a [u8],
         arguments: &'a [(ArgumentsId, &'a [u8])],
-    ) -> BoxFuture<'a, Result<Result<Data, GraphqlError>, Error>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<Data, GraphqlError>>> {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 }

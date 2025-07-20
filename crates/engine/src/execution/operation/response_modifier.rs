@@ -72,6 +72,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         .extensions()
                         .authorize_response(
                             &self.request_context.extension_context,
+                            &self.gql_context.authorization_state,
                             directive.extension_id,
                             directive.name(),
                             DirectiveSiteId::from(rule_target).walk(self),
@@ -177,6 +178,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                         .extensions()
                         .authorize_response(
                             &self.request_context.extension_context,
+                            &self.gql_context.authorization_state,
                             directive.extension_id,
                             directive.name(),
                             DirectiveSiteId::from(rule_target).walk(self),

@@ -2,7 +2,7 @@ use wasmtime::component::{Resource, ResourceType, WasmList, WasmStr};
 
 use crate::WasiState;
 
-pub(crate) use crate::SharedContext;
+pub(crate) use crate::WasmContext as SharedContext;
 
 pub fn add_to_linker_impl(linker: &mut wasmtime::component::Linker<WasiState>) -> wasmtime::Result<()> {
     let mut inst = linker.instance("grafbase:sdk/shared-context")?;

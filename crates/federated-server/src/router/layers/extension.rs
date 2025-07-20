@@ -1,11 +1,12 @@
 use std::{fmt::Display, future::Future, pin::Pin};
 
 use axum::body::Body;
+use engine::RequestExtensions;
 use event_queue::ExecutedHttpRequest;
 use http::{Request, Response};
 use runtime::{
     authentication::Authenticate,
-    extension::{ExtensionContext, GatewayExtensions},
+    extension::{ExtensionContext, GatewayExtensions, OnRequest},
 };
 use tower::Layer;
 
@@ -80,8 +81,12 @@ where
 
             let response_format = engine::ResponseFormat::extract_from(&parts.headers).unwrap_or_default();
 
-            let (context, mut parts) = match extensions.on_request(parts).await {
-                Ok(parts) => parts,
+            let OnRequest {
+                context,
+                mut parts,
+                contract_key,
+            } = match extensions.on_request(parts).await {
+                Ok(on_request) => on_request,
                 Err(err) => {
                     let error_response = engine::http_error_response(response_format, err);
                     return Ok(into_axum_response(error_response));
@@ -92,11 +97,15 @@ where
             let response = match auth.authenticate(&context, headers).await {
                 Ok((headers, token)) => {
                     parts.headers = headers;
-                    parts.extensions.insert(token);
-                    let mut request = Request::from_parts(parts, body);
-                    request.extensions_mut().insert(context.clone());
+                    parts
+                        .extensions
+                        .insert(RequestExtensions::<<Ext as GatewayExtensions>::Context> {
+                            context: context.clone(),
+                            token,
+                            contract_key,
+                        });
 
-                    inner.call(request).await?
+                    inner.call(Request::from_parts(parts, body)).await?
                 }
                 Err(err) => {
                     let error_response = engine::http_error_response(response_format, err);
@@ -112,7 +121,7 @@ where
 
             context.event_queue().push_http_request(builder);
 
-            let parts = match extensions.on_response(&context, parts).await {
+            let parts = match extensions.on_response(context, parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
                     let error_response = engine::http_error_response(

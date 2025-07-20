@@ -2,10 +2,10 @@ use std::collections::VecDeque;
 
 use super::SubscriptionStream;
 use crate::{
-    Error,
     extension::{ExtensionGuard, api::wit},
+    wasmsafe,
 };
-use engine_error::{ErrorCode, GraphqlError};
+use engine_error::GraphqlError;
 use engine_schema::Subgraph;
 use futures::stream;
 
@@ -31,16 +31,7 @@ impl<'ctx> UniqueSubscription<'ctx, '_> {
             directive,
         } = self;
 
-        instance
-            .resolve_subscription(headers, subgraph.name(), directive)
-            .await
-            .map_err(|err| match err {
-                Error::Internal(err) => {
-                    tracing::error!("Wasm error: {err}");
-                    GraphqlError::new("Internal error", ErrorCode::ExtensionError)
-                }
-                Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
-            })?;
+        wasmsafe!(instance.resolve_subscription(headers, subgraph.name(), directive).await)?;
 
         let stream = stream::unfold((instance, VecDeque::new()), async move |(mut instance, mut tail)| {
             if let Some(data) = tail.pop_front() {
@@ -48,7 +39,7 @@ impl<'ctx> UniqueSubscription<'ctx, '_> {
             }
 
             let items = loop {
-                match instance.field_resolver_resolve_next_subscription_item().await {
+                match wasmsafe!(instance.field_resolver_resolve_next_subscription_item().await) {
                     Ok(Some(items)) if items.is_empty() => {
                         continue;
                     }

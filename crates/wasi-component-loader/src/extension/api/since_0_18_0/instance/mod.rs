@@ -1,11 +1,12 @@
 mod authentication;
 mod authorization;
-mod field_resolver;
 mod hooks;
 mod resolver;
-mod selection_set_resolver;
 
-use crate::extension::{ContractsExtensionInstance, api::since_0_17_0::wit::schema::Schema as WitSchema};
+use crate::extension::{
+    ContractsExtensionInstance, FieldResolverExtensionInstance, SelectionSetResolverExtensionInstance,
+    api::since_0_17_0::wit::schema::Schema as WitSchema,
+};
 use anyhow::Context as _;
 use engine_schema::Schema;
 use extension_catalog::TypeDiscriminants;
@@ -16,7 +17,7 @@ use wasmtime::{
 };
 
 use crate::{
-    Error, WasiState, cbor,
+    WasiState, cbor,
     extension::{ExtensionConfig, ExtensionInstance},
 };
 
@@ -39,7 +40,7 @@ impl SdkPre0_18_0 {
         config: &ExtensionConfig<T>,
         component: Component,
         mut linker: Linker<WasiState>,
-    ) -> crate::Result<Self> {
+    ) -> wasmtime::Result<Self> {
         let subgraph_schemas: Vec<(&str, WitSchema<'_>)> = match config.r#type {
             TypeDiscriminants::Resolver => {
                 crate::extension::api::since_0_17_0::instance::schema::create_complete_subgraph_schemas(
@@ -77,7 +78,7 @@ impl SdkPre0_18_0 {
         })
     }
 
-    pub(crate) async fn instantiate(&self, state: WasiState) -> crate::Result<Box<dyn ExtensionInstance>> {
+    pub(crate) async fn instantiate(&self, state: WasiState) -> wasmtime::Result<Box<dyn ExtensionInstance>> {
         let mut store = Store::new(self.pre.engine(), state);
 
         let inner = self.pre.instantiate_async(&mut store).await?;
@@ -91,13 +92,10 @@ impl SdkPre0_18_0 {
                 self.can_skip_sending_events,
                 &self.logging_filter,
             )
-            .await??;
+            .await?
+            .map_err(wasmtime::Error::msg)?;
 
-        let instance = ExtensionInstanceSince0_18_0 {
-            store,
-            inner,
-            poisoned: false,
-        };
+        let instance = ExtensionInstanceSince0_18_0 { store, inner };
 
         Ok(Box::new(instance))
     }
@@ -106,21 +104,14 @@ impl SdkPre0_18_0 {
 struct ExtensionInstanceSince0_18_0 {
     store: Store<WasiState>,
     inner: super::wit::Sdk,
-    poisoned: bool,
 }
 
 impl ExtensionInstance for ExtensionInstanceSince0_18_0 {
     fn store(&self) -> &Store<WasiState> {
         &self.store
     }
-
-    fn recycle(&mut self) -> Result<(), Error> {
-        if self.poisoned {
-            return Err(anyhow::anyhow!("this instance is poisoned").into());
-        }
-
-        Ok(())
-    }
 }
 
 impl ContractsExtensionInstance for ExtensionInstanceSince0_18_0 {}
+impl FieldResolverExtensionInstance for ExtensionInstanceSince0_18_0 {}
+impl SelectionSetResolverExtensionInstance for ExtensionInstanceSince0_18_0 {}

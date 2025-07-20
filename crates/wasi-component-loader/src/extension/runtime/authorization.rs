@@ -1,8 +1,8 @@
-use crate::{Error, SharedContext, cbor, extension::api::wit, resources::Lease};
+use crate::{WasmContext, cbor, extension::api::wit, resources::Lease, wasmsafe};
 
 use super::EngineWasmExtensions;
 
-use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
+use engine_error::{ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use extension_catalog::ExtensionId;
 use futures::{TryStreamExt, stream::FuturesUnordered};
@@ -11,17 +11,21 @@ use runtime::extension::{
 };
 use std::{future::Future, ops::Range, sync::Arc};
 
-impl AuthorizationExtension<SharedContext> for EngineWasmExtensions {
+impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
+    type State = Vec<(ExtensionId, Vec<u8>)>;
+
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
-        ctx: &'ctx SharedContext,
+        ctx: &'ctx WasmContext,
         headers: http::HeaderMap,
         token: TokenRef<'ctx>,
         extensions: Extensions,
         // (directive name, range within query_elements)
         directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
         query_elements: impl ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
-    ) -> impl Future<Output = Result<(http::HeaderMap, Vec<QueryAuthorizationDecisions>), ErrorResponse>> + Send + 'fut
+    ) -> impl Future<Output = Result<(Self::State, http::HeaderMap, Vec<QueryAuthorizationDecisions>), ErrorResponse>>
+    + Send
+    + 'fut
     where
         'ctx: 'fut,
         // (extension id, range within directives, range within query_elements)
@@ -86,28 +90,29 @@ impl AuthorizationExtension<SharedContext> for EngineWasmExtensions {
                 .map(
                     move |(extension_id, directive_range, query_elements_range)| async move {
                         let mut instance = self.get(extension_id).await?;
-                        match instance
-                            .authorize_query(
-                                ctx.clone(),
-                                Lease::SharedMut(headers_ref.clone()),
-                                token,
-                                wit::QueryElements {
-                                    directive_names: &directive_names[directive_range],
-                                    elements: &elements[query_elements_range.clone()],
-                                },
-                            )
-                            .await
-                        {
-                            Ok((_, decisions, state)) => Ok((
+                        wasmsafe!(
+                            instance
+                                .authorize_query(
+                                    ctx,
+                                    Lease::SharedMut(headers_ref.clone()),
+                                    token,
+                                    wit::QueryElements {
+                                        directive_names: &directive_names[directive_range],
+                                        elements: &elements[query_elements_range.clone()],
+                                    },
+                                )
+                                .await
+                        )
+                        .map(|(_, decisions, state)| {
+                            (
                                 QueryAuthorizationDecisions {
                                     extension_id,
                                     query_elements_range,
                                     decisions,
                                 },
                                 (extension_id, state),
-                            )),
-                            Err(err) => Err(err.into_graphql_error_response(ErrorCode::Unauthorized)),
-                        }
+                            )
+                        })
                     },
                 )
                 .collect::<FuturesUnordered<_>>()
@@ -116,18 +121,15 @@ impl AuthorizationExtension<SharedContext> for EngineWasmExtensions {
                 .into_iter()
                 .unzip();
 
-            ctx.authorization_states
-                .set(state)
-                .expect("Failed to set authorization states");
-
             let headers = Arc::into_inner(headers).unwrap().into_inner();
-            Ok((headers, decisions))
+            Ok((state, headers, decisions))
         }
     }
 
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
-        ctx: &'ctx SharedContext,
+        ctx: &'ctx WasmContext,
+        state: &'ctx Self::State,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
@@ -142,43 +144,35 @@ impl AuthorizationExtension<SharedContext> for EngineWasmExtensions {
             .collect::<Vec<_>>();
 
         async move {
-            let state = ctx
-                .authorization_states
-                .get()
-                .and_then(|states| {
-                    states.iter().find_map(|(id, state)| {
-                        if *id == extension_id {
-                            Some(state.as_slice())
-                        } else {
-                            None
-                        }
-                    })
+            let state = state
+                .iter()
+                .find_map(|(id, state)| {
+                    if *id == extension_id {
+                        Some(state.as_slice())
+                    } else {
+                        None
+                    }
                 })
                 .unwrap_or(&[]);
 
             let mut instance = self.get(extension_id).await?;
 
-            instance
-                .authorize_response(
-                    ctx.clone(),
-                    state,
-                    wit::ResponseElements {
-                        directive_names: vec![(directive_name, 0, 1)],
-                        elements: vec![wit::ResponseElement {
-                            query_element_id: directive_site.id().as_guid(),
-                            items_range: (0, items.len() as u32),
-                        }],
-                        items,
-                    },
-                )
-                .await
-                .map_err(|err| match err {
-                    Error::Internal(err) => {
-                        tracing::error!("Wasm error: {err}");
-                        GraphqlError::new("Internal error", ErrorCode::ExtensionError)
-                    }
-                    Error::Guest(err) => err.into_graphql_error(ErrorCode::Unauthorized),
-                })
+            wasmsafe!(
+                instance
+                    .authorize_response(
+                        ctx,
+                        state,
+                        wit::ResponseElements {
+                            directive_names: vec![(directive_name, 0, 1)],
+                            elements: vec![wit::ResponseElement {
+                                query_element_id: directive_site.id().as_guid(),
+                                items_range: (0, items.len() as u32),
+                            }],
+                            items,
+                        },
+                    )
+                    .await
+            )
         }
     }
 }

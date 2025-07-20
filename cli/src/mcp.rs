@@ -9,7 +9,7 @@ use crossterm::{
     style::Stylize,
     terminal::{Clear, ClearType},
 };
-use engine::CachedOperation;
+use engine::{CachedOperation, RequestExtensions};
 use gateway_config::{Config, HeaderForward, HeaderInsert, HeaderRule, NameOrPattern};
 use grafbase_telemetry::metrics::{EngineMetrics, meter_from_global_provider};
 use regex::Regex;
@@ -18,7 +18,7 @@ use runtime::{
 };
 use runtime_local::{InMemoryEntityCache, InMemoryOperationCache, NativeFetcher};
 use std::io::stdout;
-use wasi_component_loader::{SharedContext, extension::EngineWasmExtensions};
+use wasi_component_loader::{WasmContext, extension::EngineWasmExtensions};
 
 use crate::{cli_input::McpCommand, dev::DEFAULT_PORT};
 
@@ -106,8 +106,11 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
     let router = router.layer(
         tower::ServiceBuilder::new().map_request(|mut request: axum::http::Request<_>| {
             // FIXME: Imitating the federated-server extension layer... not great
-            request.extensions_mut().insert(SharedContext::default());
-            request.extensions_mut().insert(LegacyToken::Anonymous);
+            request.extensions_mut().insert(RequestExtensions::<WasmContext> {
+                context: Default::default(),
+                token: LegacyToken::Anonymous,
+                contract_key: None,
+            });
             request
         }),
     );

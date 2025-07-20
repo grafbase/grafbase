@@ -1,16 +1,16 @@
 use futures::future::BoxFuture;
 
-use crate::{Error, SharedContext, extension::api::wit};
+use crate::{WasmContext, extension::api::wit};
 
 #[allow(unused_variables)]
 pub(crate) trait ContractsExtensionInstance {
     fn construct<'a>(
         &'a mut self,
-        context: SharedContext,
+        context: &'a WasmContext,
         key: &'a str,
         directives: Vec<wit::Directive<'a>>,
         subgraphs: Vec<wit::GraphqlSubgraphParam<'a>>,
-    ) -> BoxFuture<'a, Result<Result<wit::Contract, String>, Error>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<wit::Contract, String>>> {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 }

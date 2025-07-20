@@ -1,15 +1,18 @@
 use std::sync::Arc;
 
-use crate::{SharedContext, extension::GatewayWasmExtensions, resources::Lease};
-use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
+use crate::{WasmContext, extension::GatewayWasmExtensions, resources::Lease, wasmsafe};
+use engine_error::ErrorResponse;
 use extension_catalog::ExtensionId;
 use futures::{StreamExt as _, TryStreamExt as _, stream::FuturesUnordered};
-use runtime::extension::{AuthenticationExtension, Token};
+use runtime::{
+    authentication::PublicMetadataEndpoint,
+    extension::{AuthenticationExtension, Token},
+};
 
-impl AuthenticationExtension<SharedContext> for GatewayWasmExtensions {
+impl AuthenticationExtension<WasmContext> for GatewayWasmExtensions {
     async fn authenticate(
         &self,
-        context: &SharedContext,
+        context: &WasmContext,
         gateway_headers: http::HeaderMap,
         ids: Option<&[ExtensionId]>,
     ) -> (http::HeaderMap, Option<Result<Token, ErrorResponse>>) {
@@ -21,17 +24,16 @@ impl AuthenticationExtension<SharedContext> for GatewayWasmExtensions {
             .filter(|pool| ids.is_none_or(|ids| ids.contains(&pool.id())))
             .map(|pool| async {
                 let mut instance = pool.get().await.map_err(|err| {
-                    tracing::error!("Failed to retrieve extension: {err}");
-                    GraphqlError::internal_extension_error()
+                    tracing::error!("Failed to get authentication instance: {err}");
+                    ErrorResponse::internal_extension_error()
                 })?;
-
-                instance
-                    .authenticate(context.clone(), Lease::Shared(headers.clone()))
-                    .await
-                    .map(|(_, token)| token)
-                    .map_err(|err| err.into_graphql_error_response(ErrorCode::Unauthenticated))
+                wasmsafe!(instance.authenticate(context, Lease::Shared(headers.clone())).await)
             })
-            .collect::<FuturesUnordered<_>>();
+            .collect::<FuturesUnordered<_>>()
+            .map(|result| match result {
+                Ok((_, token)) => Ok(token),
+                Err(err) => Err(err),
+            });
 
         let result = if let Some(mut result) = futures.next().await {
             // In pure Rust, we would cancel all the remaining futures as soon as we retrieve the first token.
@@ -48,8 +50,7 @@ impl AuthenticationExtension<SharedContext> for GatewayWasmExtensions {
             while let Some(next_result) = futures.next().await {
                 result = match (result, next_result) {
                     // Take the token if there is any.
-                    (Ok(token), _) => Ok(token),
-                    (_, Ok(token)) => Ok(token),
+                    (Ok(token), _) | (_, Ok(token)) => Ok(token),
                     // If there is a client error, we use it. Server error are likely to be logged and
                     // be less useful for clients.
                     (Err(err), _) if err.status.is_client_error() => Err(err),
@@ -66,17 +67,17 @@ impl AuthenticationExtension<SharedContext> for GatewayWasmExtensions {
         (Arc::into_inner(headers).unwrap(), result)
     }
 
-    async fn public_metadata_endpoints(&self) -> Result<Vec<runtime::authentication::PublicMetadataEndpoint>, String> {
+    async fn public_metadata_endpoints(&self) -> Result<Vec<PublicMetadataEndpoint>, String> {
         let endpoints = self
             .authentication
             .iter()
             .map(|pool| async {
                 let mut instance = pool.get().await.map_err(|err| {
-                    tracing::error!("Failed to retrieve extension: {err}");
-                    "Internal error".to_string()
+                    tracing::error!("Failed to get public metadata instance: {err}");
+                    "Failed to get public metadata instance".to_string()
                 })?;
 
-                instance.public_metadata().await.map_err(|err| err.to_string())
+                wasmsafe!(instance.public_metadata().await)
             })
             .collect::<FuturesUnordered<_>>()
             .try_collect::<Vec<_>>()

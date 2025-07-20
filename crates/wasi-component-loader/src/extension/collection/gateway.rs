@@ -31,7 +31,7 @@ impl GatewayWasmExtensions {
         extension_catalog: &ExtensionCatalog,
         gateway_config: &Config,
         logging_filter: String,
-    ) -> crate::Result<Self> {
+    ) -> wasmtime::Result<Self> {
         let extension_configs = load_extensions_config(extension_catalog, gateway_config, logging_filter, |ty| {
             matches!(ty, TypeDiscriminants::Hooks | TypeDiscriminants::Authentication)
         });
@@ -45,10 +45,9 @@ impl GatewayWasmExtensions {
             match &manifiest.r#type {
                 extension_catalog::Type::Hooks(HooksType { event_filter }) => {
                     if inner.hooks.is_some() {
-                        return Err(anyhow::anyhow!(
-                            "Multiple hooks extensions found in the configuration, but only one is allowed."
-                        )
-                        .into());
+                        return Err(wasmtime::Error::msg(
+                            "Multiple hooks extensions found in the configuration, but only one is allowed.",
+                        ));
                     }
                     inner.hooks_event_filter = event_filter
                         .as_ref()

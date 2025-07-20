@@ -1,6 +1,6 @@
 use wasmtime::component::{ComponentType, Lower};
 
-pub use crate::extension::api::since_0_9_0::wit::directive::{
+pub use crate::extension::api::since_0_10_0::wit::directive::{
     DirectiveSite, EnumDirectiveSite, FieldDefinitionDirective, FieldDefinitionDirectiveSite, InterfaceDirectiveSite,
     ObjectDirectiveSite, ScalarDirectiveSite, UnionDirectiveSite,
 };

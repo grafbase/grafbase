@@ -13,14 +13,14 @@ use crate::{load_schema, runtime, with_static_server};
 fn extension_loads_and_passes_headers() {
     let wasi_path = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../crates/integration-tests/data/extensions/crates/hooks/build"
+        "/../crates/integration-tests/data/extensions/crates/hooks-17/build"
     );
 
     let config = indoc::formatdoc! {r#"
         [graph]
         introspection = true
 
-        [extensions.hooks]
+        [extensions.hooks-17]
         path = "{wasi_path}"
         stdout = true
         stderr = true
@@ -29,7 +29,7 @@ fn extension_loads_and_passes_headers() {
         rule = "forward"
         name = "x-incoming-header"
 
-        [extensions.hooks.config]
+        [extensions.hooks-17.config]
         incoming_header.key = "X-Incoming-Header"
         incoming_header.value = "kekw"
     "#};

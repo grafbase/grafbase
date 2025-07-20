@@ -1,5 +1,11 @@
+pub mod access_log;
 pub mod authorization;
+pub mod cache;
+pub mod directive;
+pub mod error;
 pub mod headers;
+pub mod http_client;
+pub mod nats_client;
 pub mod resolver;
 pub mod token;
 
@@ -9,12 +15,11 @@ wasmtime::component::bindgen!({
     async: true,
     with: {
         "grafbase:sdk/headers/headers": crate::resources::Headers,
-        "grafbase:sdk/directive": crate::extension::api::since_0_9_0::wit::directive,
-        "grafbase:sdk/access-log": crate::extension::api::since_0_9_0::wit::access_log,
-        "grafbase:sdk/nats-client": crate::extension::api::since_0_9_0::wit::nats_client,
-        "grafbase:sdk/http-client": crate::extension::api::since_0_9_0::wit::http_client,
-        "grafbase:sdk/cache": crate::extension::api::since_0_9_0::wit::cache,
-        "grafbase:sdk/error": crate::extension::api::since_0_9_0::wit::error,
+        "grafbase:sdk/access-log/access-log": crate::resources::AccessLogSender,
+        "grafbase:sdk/nats-client/nats-client": crate::resources::NatsClient,
+        "grafbase:sdk/nats-client/nats-subscriber": crate::resources::NatsSubscriber,
+        "grafbase:sdk/nats-client/nats-key-value": crate::resources::NatsKeyValue,
+        "grafbase:sdk/directive": directive,
     },
     trappable_imports: true,
     ownership: Borrowing {

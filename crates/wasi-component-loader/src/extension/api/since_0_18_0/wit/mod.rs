@@ -6,10 +6,10 @@ wasmtime::component::bindgen!({
     world: "sdk",
     async: true,
     with: {
-        "grafbase:sdk/cache": crate::extension::api::since_0_9_0::wit::cache,
+        "grafbase:sdk/cache": crate::extension::api::since_0_10_0::wit::cache,
         "grafbase:sdk/grpc": crate::extension::api::since_0_14_0::wit::grpc,
         "grafbase:sdk/kafka-client": crate::extension::api::since_0_16_0::wit::kafka_client,
-        "grafbase:sdk/nats-client": crate::extension::api::since_0_9_0::wit::nats_client,
+        "grafbase:sdk/nats-client": crate::extension::api::since_0_10_0::wit::nats_client,
         "grafbase:sdk/http-client": crate::extension::api::since_0_17_0::wit::http_client,
         "grafbase:sdk/postgres": crate::extension::api::since_0_15_0::wit::postgres,
         "grafbase:sdk/token": crate::extension::api::since_0_10_0::wit::token,

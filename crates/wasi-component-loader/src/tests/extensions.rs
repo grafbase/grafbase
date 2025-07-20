@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use crate::{
-    SharedContext,
+    WasmContext,
     extension::{ExtensionConfig, ExtensionLoader, WasmConfig},
 };
 use engine_schema::Schema;
@@ -51,14 +51,15 @@ async fn single_call_caching_auth() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
-    let context = SharedContext::default();
+    let context = WasmContext::default();
 
     let (headers, token) = loader
         .instantiate()
         .await
         .unwrap()
-        .authenticate(context, headers.into())
+        .authenticate(&context, headers.into())
         .await
+        .unwrap()
         .unwrap();
 
     let headers = headers.into_inner().unwrap();
@@ -113,20 +114,21 @@ async fn single_call_caching_auth_invalid() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
-    let context = SharedContext::default();
+    let context = WasmContext::default();
 
     let err = loader
         .instantiate()
         .await
         .unwrap()
-        .authenticate(context, http::HeaderMap::new().into())
+        .authenticate(&context, http::HeaderMap::new().into())
         .await
+        .unwrap()
         .err();
 
     insta::assert_debug_snapshot!(err, @r#"
     Some(
-        Guest {
-            status_code: 401,
+        ErrorResponse {
+            status: 401,
             errors: [],
             headers: {},
         },
@@ -181,9 +183,9 @@ async fn multiple_cache_calls() {
             headers.insert("Authorization", HeaderValue::from_static("valid"));
             headers.insert("value", HeaderValue::from_str(&format!("value_{i}")).unwrap());
 
-            let context = SharedContext::default();
+            let context = WasmContext::default();
 
-            let (_, token) = extension.authenticate(context, headers.into()).await.unwrap();
+            let (_, token) = extension.authenticate(&context, headers.into()).await.unwrap().unwrap();
 
             let claims = match token {
                 Token::Anonymous => serde_json::Value::Null,
@@ -209,14 +211,15 @@ async fn multiple_cache_calls() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("nonvalid"));
 
-    let context = SharedContext::default();
+    let context = WasmContext::default();
 
     let (_, token) = loader
         .instantiate()
         .await
         .unwrap()
-        .authenticate(context, headers.into())
+        .authenticate(&context, headers.into())
         .await
+        .unwrap()
         .unwrap();
 
     let claims = match token {
@@ -268,8 +271,9 @@ async fn on_request_hook() {
         .instantiate()
         .await
         .unwrap()
-        .on_request(Default::default(), parts)
+        .on_request(&WasmContext::default(), parts)
         .await
+        .unwrap()
         .unwrap();
 }
 
@@ -308,7 +312,8 @@ async fn on_response_hook() {
         .instantiate()
         .await
         .unwrap()
-        .on_response(Default::default(), parts)
+        .on_response(WasmContext::default(), parts)
         .await
+        .unwrap()
         .unwrap();
 }

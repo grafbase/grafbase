@@ -1,27 +1,24 @@
+use engine_error::{ErrorCode, ErrorResponse};
 use futures::future::BoxFuture;
-use runtime::extension::Token;
+use runtime::{authentication::PublicMetadataEndpoint, extension::Token};
 
 use crate::{
-    ErrorResponse, SharedContext,
+    WasmContext,
     extension::AuthenticationExtensionInstance,
     resources::{Headers, Lease},
 };
 
 impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_19_0 {
-    fn authenticate(
-        &mut self,
-        context: SharedContext,
+    fn authenticate<'a>(
+        &'a mut self,
+        context: &'a WasmContext,
         headers: Lease<http::HeaderMap>,
-    ) -> BoxFuture<'_, Result<(Lease<http::HeaderMap>, Token), ErrorResponse>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<(Lease<http::HeaderMap>, Token), ErrorResponse>>> {
         Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
-            let context = self.store.data_mut().push_resource(context)?;
+            let context = self.store.data_mut().push_resource(context.clone())?;
 
             let result = self
                 .inner
@@ -36,42 +33,52 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                 .into_lease()
                 .unwrap();
 
-            self.poisoned = false;
+            let result = match result {
+                Ok(token) => Ok((headers, token.into())),
+                Err(err) => Err(self
+                    .store
+                    .data_mut()
+                    .take_error_response(err, ErrorCode::Unauthenticated)?),
+            };
 
-            let token = result.map_err(|err| ErrorResponse::from_wit(&mut self.store, err))?;
-            Ok((headers, token.into()))
+            Ok(result)
         })
     }
 
-    fn public_metadata(
-        &mut self,
-    ) -> BoxFuture<'_, Result<Vec<runtime::authentication::PublicMetadataEndpoint>, crate::Error>> {
+    fn public_metadata(&mut self) -> BoxFuture<'_, wasmtime::Result<Result<Vec<PublicMetadataEndpoint>, String>>> {
         Box::pin(async move {
             let result = self
                 .inner
                 .grafbase_sdk_authentication()
                 .call_public_metadata(&mut self.store)
-                .await??;
+                .await?;
 
-            let store = self.store.data_mut();
+            let result = match result {
+                Ok(endpoints) => {
+                    let store = self.store.data_mut();
 
-            let endpoints = result
-                .into_iter()
-                .map(|public_metadata_endpoint| {
-                    let headers = store
-                        .take_resource::<Headers>(public_metadata_endpoint.response_headers.rep())?
-                        .into_inner()
-                        .unwrap();
+                    let endpoints = endpoints
+                        .into_iter()
+                        .map(|public_metadata_endpoint| {
+                            let headers = store
+                                .take_resource::<Headers>(public_metadata_endpoint.response_headers.rep())?
+                                .into_inner()
+                                .unwrap();
 
-                    crate::Result::<_>::Ok(runtime::authentication::PublicMetadataEndpoint {
-                        path: public_metadata_endpoint.path,
-                        response_body: public_metadata_endpoint.response_body,
-                        headers,
-                    })
-                })
-                .collect::<Result<_, _>>()?;
+                            Ok(PublicMetadataEndpoint {
+                                path: public_metadata_endpoint.path,
+                                response_body: public_metadata_endpoint.response_body,
+                                headers,
+                            })
+                        })
+                        .collect::<wasmtime::Result<_>>()?;
 
-            Ok(endpoints)
+                    Ok(endpoints)
+                }
+                Err(err) => Err(err.message),
+            };
+
+            Ok(result)
         })
     }
 }

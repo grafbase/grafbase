@@ -5,8 +5,8 @@ use tokio::sync::broadcast;
 use tokio_stream::{StreamExt, wrappers::BroadcastStream};
 
 use crate::{
-    Error,
     extension::{EngineWasmExtensions, ExtensionGuard, api::wit},
+    wasmsafe,
 };
 
 use super::SubscriptionStream;
@@ -63,16 +63,7 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
             }
         };
 
-        instance
-            .resolve_subscription(headers, subgraph.name(), directive)
-            .await
-            .map_err(|err| match err {
-                Error::Internal(err) => {
-                    tracing::error!("Wasm error: {err}");
-                    GraphqlError::new("Internal error", ErrorCode::ExtensionError)
-                }
-                Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
-            })?;
+        wasmsafe!(instance.resolve_subscription(headers, subgraph.name(), directive).await)?;
 
         tokio::spawn(async move {
             let mut registerations_closed = false;
@@ -83,7 +74,7 @@ impl<'ctx> DeduplicatedSubscription<'ctx, '_> {
                         return;
                     }
 
-                    match instance.field_resolver_resolve_next_subscription_item().await {
+                    match wasmsafe!(instance.field_resolver_resolve_next_subscription_item().await) {
                         Ok(Some(items)) if items.is_empty() => {
                             continue;
                         }

@@ -1,23 +1,24 @@
 mod subscription;
 
-use engine_error::{ErrorCode, GraphqlError};
+use engine_error::GraphqlError;
 use engine_schema::ExtensionDirective;
 use futures::{StreamExt as _, stream::BoxStream};
 use runtime::extension::{Anything, ArgumentsId, Field as _, ResolverExtension, Response, SelectionSet as _};
 
 use crate::{
-    Error, SharedContext, cbor,
+    WasmContext, cbor,
     extension::{
         EngineWasmExtensions,
         api::wit::{self, Field, SelectionSet},
     },
+    wasmsafe,
 };
 
 #[allow(clippy::manual_async_fn)]
-impl ResolverExtension<SharedContext> for EngineWasmExtensions {
+impl ResolverExtension<WasmContext> for EngineWasmExtensions {
     async fn prepare<'ctx, F: runtime::extension::Field<'ctx>>(
         &'ctx self,
-        ctx: &'ctx SharedContext,
+        ctx: &'ctx WasmContext,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
@@ -60,21 +61,16 @@ impl ResolverExtension<SharedContext> for EngineWasmExtensions {
             arguments: cbor::to_vec(directive_arguments).unwrap(),
         };
 
-        instance
-            .prepare(ctx.clone(), directive.subgraph().name(), dir, 0, &fields)
-            .await
-            .map_err(|err| match err {
-                Error::Internal(err) => {
-                    tracing::error!("Wasm error: {err}");
-                    GraphqlError::new("Internal error", ErrorCode::ExtensionError)
-                }
-                Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
-            })?
+        wasmsafe!(
+            instance
+                .prepare(ctx, directive.subgraph().name(), dir, 0, &fields)
+                .await
+        )
     }
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
-        ctx: &'ctx SharedContext,
+        ctx: &'ctx WasmContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -104,30 +100,17 @@ impl ResolverExtension<SharedContext> for EngineWasmExtensions {
                 .map(|(id, value)| (*id, value.as_slice()))
                 .collect::<Vec<_>>();
 
-            let result = instance
-                .resolve(ctx.clone(), subgraph_headers, prepared_data, &arguments_refs)
-                .await
-                .map_err(|err| match err {
-                    Error::Internal(err) => {
-                        tracing::error!("Wasm error: {err}");
-                        GraphqlError::new("Internal error", ErrorCode::ExtensionError)
-                    }
-                    Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
-                });
-
-            match result {
-                Ok(response) => response.into(),
-                Err(err) => Response {
-                    data: None,
-                    errors: vec![err],
-                },
-            }
+            wasmsafe!(
+                instance
+                    .resolve(ctx, subgraph_headers, prepared_data, &arguments_refs)
+                    .await
+            )
         }
     }
 
     fn resolve_subscription<'ctx, 'resp, 'f>(
         &'ctx self,
-        ctx: &'ctx SharedContext,
+        ctx: &'ctx WasmContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -158,19 +141,17 @@ impl ResolverExtension<SharedContext> for EngineWasmExtensions {
                 .map(|(id, value)| (*id, value.as_slice()))
                 .collect::<Vec<_>>();
 
-            let result = instance
-                .create_subscription(ctx.clone(), subgraph_headers, prepared_data, &arguments_refs)
-                .await
-                .map_err(|err| match err {
-                    Error::Internal(err) => {
-                        tracing::error!("Wasm error: {err}");
-                        GraphqlError::new("Internal error", ErrorCode::ExtensionError)
-                    }
-                    Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
-                });
+            // Ensure this instance cannot be recycled until we drop the subscription inside the
+            // guest.
+            instance.recyclable = false;
+            let result = wasmsafe!(
+                instance
+                    .create_subscription(ctx, subgraph_headers, prepared_data, &arguments_refs)
+                    .await
+            );
 
             match result {
-                Ok(Ok(key)) => match key {
+                Ok(key) => match key {
                     Some(key) => {
                         subscription::DeduplicatedSubscription {
                             extensions: self.clone(),
@@ -183,18 +164,10 @@ impl ResolverExtension<SharedContext> for EngineWasmExtensions {
                     }
                     None => subscription::UniqueSubscription { instance }.resolve(ctx.clone()).await,
                 },
-                Ok(Err(err)) => {
+                Err(err) => {
                     let response = Response {
                         data: None,
                         errors: vec![err],
-                    };
-                    futures::stream::once(std::future::ready(response)).boxed()
-                }
-                Err(err) => {
-                    tracing::error!("Error creating subscription: {err}");
-                    let response = Response {
-                        data: None,
-                        errors: vec![GraphqlError::internal_extension_error()],
                     };
                     futures::stream::once(std::future::ready(response)).boxed()
                 }

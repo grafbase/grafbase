@@ -18,7 +18,7 @@ use crate::{
 pub(crate) struct PrepareContext<'ctx, R: Runtime> {
     pub engine: &'ctx Arc<Engine<R>>,
     pub request_context: &'ctx Arc<RequestContext<ExtensionContext<R>>>,
-    pub gql_context: GraphqlRequestContext,
+    pub gql_context: GraphqlRequestContext<R>,
     pub executed_operation_builder: ExecutedOperationBuilder<'ctx>,
     // needs to be Send so that futures are Send.
     pub background_futures: crossbeam_queue::SegQueue<BoxFuture<'ctx, ()>>,
@@ -29,9 +29,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         Self {
             engine,
             request_context,
-            gql_context: GraphqlRequestContext {
-                subgraph_default_headers_override: None,
-            },
+            gql_context: Default::default(),
             executed_operation_builder: ExecutedOperation::builder_with_default(),
             background_futures: Default::default(),
         }

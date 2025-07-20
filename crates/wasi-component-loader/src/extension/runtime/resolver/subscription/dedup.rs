@@ -5,8 +5,9 @@ use tokio::sync::broadcast;
 use tokio_stream::{StreamExt, wrappers::BroadcastStream};
 
 use crate::{
-    Error, SharedContext,
+    WasmContext,
     extension::{EngineWasmExtensions, ExtensionGuard, api::wit::SubscriptionItem},
+    wasmsafe,
 };
 
 use super::SubscriptionStream;
@@ -21,7 +22,7 @@ pub struct DeduplicatedSubscription {
     pub extensions: EngineWasmExtensions,
     pub key: Vec<u8>,
     pub instance: ExtensionGuard,
-    pub context: SharedContext,
+    pub context: WasmContext,
 }
 
 impl DeduplicatedSubscription {
@@ -58,50 +59,32 @@ impl DeduplicatedSubscription {
             let mut client_registrations_closed = false;
 
             loop {
-                let next = instance
-                    .resolve_next_subscription_item(context.clone())
-                    .await
-                    .map_err(|err| match err {
-                        Error::Internal(err) => {
-                            tracing::error!("Wasm error: {err}");
-                            GraphqlError::new("Internal error", ErrorCode::ExtensionError)
-                        }
-                        Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
-                    });
+                let next = wasmsafe!(instance.resolve_next_subscription_item(context.clone()).await);
 
                 let items = match next {
-                    Ok(Ok(Some(item))) => match item {
+                    Ok(Some(item)) => match item {
                         SubscriptionItem::Single(item) => {
                             vec![item]
                         }
                         SubscriptionItem::Multiple(items) if items.is_empty() => continue,
                         SubscriptionItem::Multiple(items) => items,
                     },
-                    Ok(Ok(None)) => {
-                        if let Err(err) = instance.drop_subscription(context).await {
+                    Ok(None) => {
+                        if let Err(err) = wasmsafe!(instance.drop_subscription(context).await) {
                             tracing::error!("Error dropping subscription: {err}");
                         }
-                        if !client_registrations_closed {
-                            extensions.subscriptions().remove(&key);
-                        }
-                        return;
-                    }
-                    Ok(Err(err)) => {
-                        if let Err(err) = instance.drop_subscription(context).await {
-                            tracing::error!("Error dropping subscription: {err}");
-                        }
-                        let _ = sender.send(Response::error(err));
+                        instance.recyclable = true;
                         if !client_registrations_closed {
                             extensions.subscriptions().remove(&key);
                         }
                         return;
                     }
                     Err(err) => {
-                        tracing::error!("Error resolving subscription item: {err}");
-                        if let Err(err) = instance.drop_subscription(context).await {
+                        if let Err(err) = wasmsafe!(instance.drop_subscription(context).await) {
                             tracing::error!("Error dropping subscription: {err}");
                         }
-                        let _ = sender.send(Response::error(GraphqlError::internal_extension_error()));
+                        instance.recyclable = true;
+                        let _ = sender.send(Response::error(err));
                         if !client_registrations_closed {
                             extensions.subscriptions().remove(&key);
                         }
@@ -113,9 +96,10 @@ impl DeduplicatedSubscription {
                     if sender.send(item.into()).is_err() {
                         tracing::debug!("all subscribers are gone");
                         if client_registrations_closed {
-                            if let Err(err) = instance.drop_subscription(context.clone()).await {
+                            if let Err(err) = wasmsafe!(instance.drop_subscription(context.clone()).await) {
                                 tracing::error!("Error dropping subscription: {err}");
                             }
+                            instance.recyclable = true;
                             return;
                         } else {
                             extensions.subscriptions().remove(&key);

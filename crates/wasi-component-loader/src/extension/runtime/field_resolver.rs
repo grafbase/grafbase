@@ -1,7 +1,8 @@
 use crate::{
-    Error, cbor,
+    cbor,
     extension::{InputList, api::wit},
     resources::Lease,
+    wasmsafe,
 };
 
 use super::{
@@ -9,7 +10,7 @@ use super::{
     subscription::{DeduplicatedSubscription, UniqueSubscription},
 };
 
-use engine_error::{ErrorCode, GraphqlError};
+use engine_error::GraphqlError;
 use engine_schema::{ExtensionDirective, FieldDefinition};
 use futures::stream::BoxStream;
 use runtime::extension::{Anything, Data, FieldResolverExtension};
@@ -43,16 +44,11 @@ impl FieldResolverExtension for EngineWasmExtensions {
                 arguments: &cbor::to_vec(directive_arguments).unwrap(),
             };
 
-            instance
-                .resolve_field(subgraph_headers, subgraph.name(), directive, inputs)
-                .await
-                .map_err(|err| match err {
-                    Error::Internal(err) => {
-                        tracing::error!("Wasm error: {err}");
-                        GraphqlError::new("Internal error", ErrorCode::ExtensionError)
-                    }
-                    Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
-                })
+            wasmsafe!(
+                instance
+                    .resolve_field(subgraph_headers, subgraph.name(), directive, inputs)
+                    .await
+            )
         }
     }
 
@@ -81,16 +77,12 @@ impl FieldResolverExtension for EngineWasmExtensions {
             arguments,
         };
 
-        let (headers, key) = instance
-            .subscription_key(Lease::Singleton(subgraph_headers), subgraph.name(), directive.clone())
-            .await
-            .map_err(|err| match err {
-                Error::Internal(err) => {
-                    tracing::error!("Wasm error: {err}");
-                    GraphqlError::new("Internal error", ErrorCode::ExtensionError)
-                }
-                Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
-            })?;
+        instance.recyclable = false;
+        let (headers, key) = wasmsafe!(
+            instance
+                .subscription_key(Lease::Singleton(subgraph_headers), subgraph.name(), directive.clone())
+                .await
+        )?;
 
         let headers = headers.into_inner().unwrap();
 

@@ -1,9 +1,0 @@
-interface authentication {
-    use headers.{headers};
-    use error.{error-response};
-    use token.{token};
-
-    authenticate: func(
-        headers: headers,
-    ) -> result<token, error-response>;
-}

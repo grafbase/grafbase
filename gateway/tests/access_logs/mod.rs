@@ -14,7 +14,7 @@ fn with_working_subgraph_rate_limited() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = indoc::formatdoc! {r#"
-        [extensions.access-logs.config]
+        [extensions.access-logs-18.config]
         path = "{path}/access.log"
 
         [gateway.rate_limit]
@@ -121,7 +121,7 @@ fn with_working_subgraph_rate_limited() {
           "on_request": {
             "value": 1
           },
-          "extension_name": "access-logs",
+          "extension_name": "access-logs-18",
           "event_name": "on_request"
         }
       ]
@@ -169,7 +169,7 @@ fn with_working_subgraph_rate_limited() {
           "on_request": {
             "value": 1
           },
-          "extension_name": "access-logs",
+          "extension_name": "access-logs-18",
           "event_name": "on_request"
         }
       ]
@@ -183,7 +183,7 @@ fn with_broken_subgraph() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = indoc::formatdoc! {r#"
-        [extensions.access-logs.config]
+        [extensions.access-logs-18.config]
         path = "{path}/access.log"
     "#};
 
@@ -269,7 +269,7 @@ fn with_broken_subgraph() {
           "on_request": {
             "value": 1
           },
-          "extension_name": "access-logs",
+          "extension_name": "access-logs-18",
           "event_name": "on_request"
         }
       ]
@@ -283,7 +283,7 @@ fn with_broken_subgraph_retried() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = indoc::formatdoc! {r#"
-        [extensions.access-logs.config]
+        [extensions.access-logs-18.config]
         path = "{path}/access.log"
 
         [gateway.retry]
@@ -377,7 +377,7 @@ fn with_broken_subgraph_retried() {
           "on_request": {
             "value": 1
           },
-          "extension_name": "access-logs",
+          "extension_name": "access-logs-18",
           "event_name": "on_request"
         }
       ]
@@ -391,7 +391,7 @@ fn with_subgraph_status_500() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = indoc::formatdoc! {r#"
-        [extensions.access-logs.config]
+        [extensions.access-logs-18.config]
         path = "{path}/access.log"
     "#};
 
@@ -482,7 +482,7 @@ fn with_subgraph_status_500() {
           "on_request": {
             "value": 1
           },
-          "extension_name": "access-logs",
+          "extension_name": "access-logs-18",
           "event_name": "on_request"
         }
       ]
@@ -496,7 +496,7 @@ fn with_subgraph_status_500_retried() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = indoc::formatdoc! {r#"
-        [extensions.access-logs.config]
+        [extensions.access-logs-18.config]
         path = "{path}/access.log"
 
         [gateway.retry]
@@ -600,7 +600,7 @@ fn with_subgraph_status_500_retried() {
           "on_request": {
             "value": 1
           },
-          "extension_name": "access-logs",
+          "extension_name": "access-logs-18",
           "event_name": "on_request"
         }
       ]
@@ -617,19 +617,19 @@ fn with_stdout_capture() {
 
     let wasi_module_path = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../crates/integration-tests/data/extensions/crates/access-logs/build"
+        "/../crates/integration-tests/data/extensions/crates/access-logs-18/build"
     );
 
     let config = formatdoc! {r#"
         [graph]
         introspection = true
 
-        [extensions.access-logs]
+        [extensions.access-logs-18]
         path = "{wasi_module_path}"
         stdout = true
         stderr = true
 
-        [extensions.access-logs.config]
+        [extensions.access-logs-18.config]
         path = "{path}/access.log"
     "#};
 
@@ -734,8 +734,8 @@ fn with_stdout_capture() {
             .collect();
 
         insta::assert_snapshot!(stdout_filtered.join("\n"), @r#"
-        {"fields":{"extension":"access-logs","message":"on-response-hook","guest_fields":{"operations":0,"subgraph_requests":0,"http_requests":1,"custom_events":1,"boolean":false,"optional_field":"foo","random_string":"random_string_value"}}}
-        {"fields":{"extension":"access-logs","message":"on-response-hook","guest_fields":{"operations":1,"subgraph_requests":1,"http_requests":1,"custom_events":1,"boolean":false,"optional_field":"foo","random_string":"random_string_value"}}}
+        {"fields":{"extension":"access-logs-18","message":"on-response-hook","guest_fields":{"operations":"0","subgraph_requests":"0","http_requests":"1","custom_events":"1","boolean":"false","optional_field":"foo","random_string":"random_string_value"}}}
+        {"fields":{"extension":"access-logs-18","message":"on-response-hook","guest_fields":{"operations":"1","subgraph_requests":"1","http_requests":"1","custom_events":"1","boolean":"false","optional_field":"foo","random_string":"random_string_value"}}}
         "#);
     });
 }
@@ -747,14 +747,14 @@ where
 {
     let wasi_module_path = concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../crates/integration-tests/data/extensions/crates/access-logs/build"
+        "/../crates/integration-tests/data/extensions/crates/access-logs-18/build"
     );
 
     let config = &formatdoc! {r#"
         [graph]
         introspection = true
 
-        [extensions.access-logs]
+        [extensions.access-logs-18]
         path = "{wasi_module_path}"
 
         [telemetry.tracing.propagation]

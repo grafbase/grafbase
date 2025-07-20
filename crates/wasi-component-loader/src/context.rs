@@ -1,63 +1,38 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, OnceLock},
-};
+use std::sync::Arc;
 
 use event_queue::EventQueue;
-use extension_catalog::ExtensionId;
 use runtime::extension::ExtensionContext;
 
-/// The internal per-request context storage. Accessible from all hooks throughout a single request
-pub type ContextMap = HashMap<String, String>;
-
-/// The internal per-request context storage, read-only.
 #[derive(Clone)]
-pub struct SharedContext(Arc<SharedContextInner>);
+pub struct WasmContext(Arc<WasmContextInner>);
 
-impl std::ops::Deref for SharedContext {
-    type Target = SharedContextInner;
+impl std::ops::Deref for WasmContext {
+    type Target = WasmContextInner;
     fn deref(&self) -> &Self::Target {
-        self.0.as_ref()
+        &self.0
     }
 }
 
-pub struct SharedContextInner {
-    pub(crate) authorization_states: OnceLock<Vec<(ExtensionId, Vec<u8>)>>,
-    // FIXME: legacy kv for sdk 0.9
-    pub(crate) kv: HashMap<String, String>,
-    pub(crate) event_queue: EventQueue,
-    pub(crate) contract_key: Option<String>,
+pub struct WasmContextInner {
+    pub event_queue: EventQueue,
 }
 
-impl ExtensionContext for SharedContext {
+impl ExtensionContext for WasmContext {
     fn event_queue(&self) -> &EventQueue {
         &self.event_queue
     }
-
-    fn contract_key(&self) -> Option<&str> {
-        self.contract_key.as_deref()
-    }
 }
 
-impl Default for SharedContext {
+impl Default for WasmContext {
     fn default() -> Self {
-        Self(Arc::new(SharedContextInner {
-            kv: Default::default(),
-            authorization_states: Default::default(),
-            event_queue: Default::default(),
-            contract_key: None,
+        WasmContext(Arc::new(WasmContextInner {
+            event_queue: EventQueue::default(),
         }))
     }
 }
 
-impl SharedContext {
-    /// Creates a new shared context.
-    pub fn new(event_queue: EventQueue, contract_key: Option<String>) -> Self {
-        Self(Arc::new(SharedContextInner {
-            event_queue,
-            kv: Default::default(),
-            authorization_states: Default::default(),
-            contract_key,
-        }))
+impl WasmContext {
+    pub fn new(event_queue: EventQueue) -> Self {
+        WasmContext(Arc::new(WasmContextInner { event_queue }))
     }
 }

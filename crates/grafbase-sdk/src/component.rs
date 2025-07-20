@@ -27,7 +27,7 @@ impl Guest for Component {
     ) -> Result<(), String> {
         let config = Configuration::new(configuration);
 
-        state::init(subgraph_schemas, config, can_skip_sending_events, host_log_level).map_err(|e| e.to_string())
+        state::init(subgraph_schemas, config, can_skip_sending_events, host_log_level).map_err(|err| err.message)
     }
 }
 

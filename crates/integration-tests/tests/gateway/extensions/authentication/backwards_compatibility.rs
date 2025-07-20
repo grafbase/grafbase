@@ -7,7 +7,7 @@ use integration_tests::{
 use crate::gateway::extensions::authorization::InsertTokenAsHeader;
 
 #[test]
-fn sdk_090() {
+fn sdk_0_10_0() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_subgraph(EchoSchema.with_sdl(
@@ -20,10 +20,10 @@ fn sdk_090() {
                 "#,
             ))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
-            .with_extension("auth-09")
+            .with_extension("auth-10")
             .with_toml_config(
                 r#"
-                [extensions.auth-09.config]
+                [extensions.auth-10.config]
                 cache_key_prefix = "test"
                 "#,
             )
@@ -35,7 +35,7 @@ fn sdk_090() {
         {
           "errors": [
             {
-              "message": "Not passing through on my watch! SDK-09",
+              "message": "Not passing through on my watch! SDK-10",
               "extensions": {
                 "code": "UNAUTHENTICATED"
               }
@@ -54,7 +54,7 @@ fn sdk_090() {
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
-            "header": "sdk09:valid:default"
+            "header": "sdk10:valid:default"
           }
         }
         "#);
@@ -67,7 +67,7 @@ fn sdk_090() {
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
-            "header": "sdk09:valid:default"
+            "header": "sdk10:valid:default"
           }
         }
         "#);

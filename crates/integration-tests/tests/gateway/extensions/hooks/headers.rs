@@ -6,7 +6,7 @@ use integration_tests::{gateway::Gateway, runtime};
 fn incoming_header() {
     let response = runtime().block_on(async move {
         let config = indoc! {r#"
-            [extensions.hooks]
+            [extensions.hooks-17]
             path = "./data/extensions/crates/hooks/build"
             stdout = true
             stderr = true
@@ -15,14 +15,14 @@ fn incoming_header() {
             rule = "forward"
             name = "x-incoming-header"
 
-            [extensions.hooks.config]
+            [extensions.hooks-17.config]
             incoming_header.key = "X-Incoming-Header"
             incoming_header.value = "kekw"
         "#};
 
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_extension("hooks")
+            .with_extension("hooks-17")
             .with_subgraph(EchoSchema)
             .build()
             .await;
@@ -49,19 +49,19 @@ fn incoming_header() {
 fn outgoing_header() {
     let response = runtime().block_on(async move {
         let config = indoc! {r#"
-            [extensions.hooks]
+            [extensions.hooks-17]
             path = "./data/extensions/crates/hooks/build"
             stdout = true
             stderr = true
 
-            [extensions.hooks.config]
+            [extensions.hooks-17.config]
             outgoing_header.key = "X-Outgoing-Header"
             outgoing_header.value = "kekw"
         "#};
 
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_extension("hooks")
+            .with_extension("hooks-17")
             .with_subgraph(EchoSchema)
             .build()
             .await;

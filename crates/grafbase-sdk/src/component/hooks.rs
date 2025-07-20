@@ -30,8 +30,9 @@ impl wit::HooksGuest for Component {
             let mut headers = GatewayHeaders::from(headers);
 
             state::extension()
-                .map_err(|e| e.message)?
+                .map_err(|err| err.message)?
                 .on_response(status, &mut headers, event_queue.into())
+                .map_err(|err| err.0.message)
         })
     }
 }

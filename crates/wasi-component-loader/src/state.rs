@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use super::cache::Cache;
 use dashmap::DashMap;
+use engine_error::{ErrorCode, ErrorResponse};
 use extension_catalog::ExtensionId;
 use grafbase_telemetry::{metrics::meter_from_global_provider, otel::opentelemetry::metrics::Histogram};
 use sqlx::Postgres;
@@ -13,8 +14,8 @@ use wasmtime_wasi::{
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 use crate::{
-    extension::ExtensionConfig,
-    resources::{self, FileLogger, GrpcClient},
+    extension::{ExtensionConfig, api::wit},
+    resources::{self, FileLogger, GrpcClient, Headers},
 };
 
 /// Represents the state of the WASI environment.
@@ -89,32 +90,41 @@ impl WasiState {
     }
 
     /// Pushes a resource into the shared memory, allowing it to be managed by the resource table.
-    pub fn push_resource<T: Send + 'static>(&mut self, entry: T) -> crate::Result<Resource<T>> {
-        Ok(self.table.push(entry).map_err(anyhow::Error::from)?)
+    pub fn push_resource<T: Send + 'static>(&mut self, entry: T) -> wasmtime::Result<Resource<T>> {
+        self.table.push(entry).map_err(Into::into)
     }
 
     /// Takes ownership of a resource identified by its representation ID from the shared memory.
-    pub fn take_resource<T: 'static>(&mut self, rep: u32) -> crate::Result<T> {
-        let resource = self
-            .table
-            .delete(Resource::<T>::new_own(rep))
-            .map_err(anyhow::Error::from)?;
+    pub fn take_resource<T: 'static>(&mut self, rep: u32) -> wasmtime::Result<T> {
+        let resource = self.table.delete(Resource::<T>::new_own(rep))?;
 
         Ok(resource)
     }
 
-    /// Gets a mutable reference to the instance identified by the given resource.
-    pub fn get_mut<T: 'static>(&mut self, resource: &Resource<T>) -> crate::Result<&mut T> {
-        let entry = self.table.get_mut(resource).map_err(anyhow::Error::from)?;
+    pub fn take_error_response(&mut self, err: wit::ErrorResponse, code: ErrorCode) -> wasmtime::Result<ErrorResponse> {
+        let headers = if let Some(resource) = err.headers {
+            self.take_resource::<Headers>(resource.rep())?
+                .into_inner()
+                .expect("Should be owned")
+        } else {
+            Default::default()
+        };
 
-        Ok(entry)
+        Ok(ErrorResponse::new(
+            http::StatusCode::from_u16(err.status_code).unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR),
+        )
+        .with_errors(err.errors.into_iter().map(|err| err.into_graphql_error(code)))
+        .with_headers(headers))
+    }
+
+    /// Gets a mutable reference to the instance identified by the given resource.
+    pub fn get_mut<T: 'static>(&mut self, resource: &Resource<T>) -> wasmtime::Result<&mut T> {
+        self.table.get_mut(resource).map_err(Into::into)
     }
 
     /// Retrieves a reference to the instance identified by the given resource.
-    pub fn get<T: 'static>(&self, resource: &Resource<T>) -> crate::Result<&T> {
-        let entry = self.table.get(resource).map_err(anyhow::Error::from)?;
-
-        Ok(entry)
+    pub fn get<T: 'static>(&self, resource: &Resource<T>) -> wasmtime::Result<&T> {
+        self.table.get(resource).map_err(Into::into)
     }
 
     /// Returns a reference to the histogram tracking request durations.

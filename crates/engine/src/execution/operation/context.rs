@@ -18,7 +18,7 @@ pub(crate) struct ExecutionContext<'ctx, R: Runtime> {
     pub engine: &'ctx Arc<Engine<R>>,
     pub request_context: &'ctx Arc<RequestContext<ExtensionContext<R>>>,
     pub operation: &'ctx Arc<PreparedOperation>,
-    pub gql_context: &'ctx GraphqlRequestContext,
+    pub gql_context: &'ctx GraphqlRequestContext<R>,
 }
 
 impl<R: Runtime> Clone for ExecutionContext<'_, R> {
