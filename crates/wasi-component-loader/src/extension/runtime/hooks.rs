@@ -21,11 +21,7 @@ impl HooksExtension<WasmContext> for GatewayWasmExtensions {
             ErrorResponse::internal_extension_error()
         })?;
 
-        wasmsafe!(instance.on_request(&context, parts).await).map(|parts| OnRequest {
-            context,
-            parts,
-            contract_key: None,
-        })
+        wasmsafe!(instance.on_request(context, parts).await)
     }
 
     async fn on_response(&self, context: WasmContext, parts: response::Parts) -> Result<response::Parts, String> {

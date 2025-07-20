@@ -29,6 +29,12 @@ struct HooksTemplate<'a> {
     name: &'a str,
 }
 
+#[derive(askama::Template)]
+#[template(path = "extension/src/contracts.rs.template", escape = "none")]
+struct ContractsTemplate<'a> {
+    name: &'a str,
+}
+
 #[derive(serde::Deserialize)]
 struct SdkCargoToml {
     package: SdkCargoTomlPackage,
@@ -73,7 +79,10 @@ pub(super) fn execute(cmd: ExtensionInitCommand) -> anyhow::Result<()> {
     let extension_name = init_cargo_toml(&cmd.path)?;
     init_extension_toml(&cmd.path, cmd.r#type, &extension_name)?;
 
-    if matches!(cmd.r#type, ExtensionType::Resolver | ExtensionType::Authorization) {
+    if matches!(
+        cmd.r#type,
+        ExtensionType::Resolver | ExtensionType::Authorization | ExtensionType::Contracts
+    ) {
         init_definitions_graphql(&cmd.path, &extension_name)?;
     }
 
@@ -110,6 +119,7 @@ fn init_rust_files(path: &Path, extension_type: ExtensionType, extension_name: &
         ExtensionType::Authentication => AuthenticationTemplate { name: &struct_name }.write_into(&mut writer)?,
         ExtensionType::Authorization => AuthorizationTemplate { name: &struct_name }.write_into(&mut writer)?,
         ExtensionType::Hooks => HooksTemplate { name: &struct_name }.write_into(&mut writer)?,
+        ExtensionType::Contracts => ContractsTemplate { name: &struct_name }.write_into(&mut writer)?,
     }
 
     let tests_path = path.join("tests");

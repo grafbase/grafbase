@@ -4,7 +4,7 @@ use crate::{
         event_queue::EventQueue,
         http::{Method, StatusCode},
     },
-    types::{Configuration, Error, ErrorResponse, GatewayHeaders},
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders, OnRequestOutput},
 };
 
 /// The Hooks extension allows you to hook into an incoming request or an outgoing response.
@@ -94,7 +94,7 @@ pub trait HooksExtension: Sized + 'static {
         url: &str,
         method: http::Method,
         headers: &mut GatewayHeaders,
-    ) -> Result<(), ErrorResponse>;
+    ) -> Result<impl IntoOnRequestOutput, ErrorResponse>;
 
     /// Called right before the response is sent back to the client.
     ///
@@ -107,13 +107,35 @@ pub trait HooksExtension: Sized + 'static {
     ) -> Result<(), Error>;
 }
 
+pub trait IntoOnRequestOutput {
+    fn into_on_request_output(self) -> OnRequestOutput;
+}
+
+impl IntoOnRequestOutput for OnRequestOutput {
+    fn into_on_request_output(self) -> OnRequestOutput {
+        self
+    }
+}
+
+impl IntoOnRequestOutput for () {
+    fn into_on_request_output(self) -> OnRequestOutput {
+        OnRequestOutput::default()
+    }
+}
+
 #[doc(hidden)]
 pub fn register<T: HooksExtension>() {
     pub(super) struct Proxy<T: HooksExtension>(T);
 
     impl<T: HooksExtension> AnyExtension for Proxy<T> {
-        fn on_request(&mut self, url: &str, method: Method, headers: &mut GatewayHeaders) -> Result<(), ErrorResponse> {
+        fn on_request(
+            &mut self,
+            url: &str,
+            method: Method,
+            headers: &mut GatewayHeaders,
+        ) -> Result<OnRequestOutput, ErrorResponse> {
             HooksExtension::on_request(&mut self.0, url, method, headers)
+                .map(IntoOnRequestOutput::into_on_request_output)
         }
 
         fn on_response(

@@ -15,7 +15,7 @@ impl GraphqlSubgraph {
         self.0.name.as_str()
     }
 
-    /// Url of the subgraph.
+    /// URL of the subgraph.
     pub fn url(&self) -> &str {
         self.0.url.as_str()
     }
@@ -65,31 +65,34 @@ impl Contract {
         Self(wit::Contract {
             accessible: Vec::with_capacity(capacity),
             accessible_by_default: true,
+            hide_unreachable_types: true,
             subgraphs: Vec::new(),
         })
     }
 
     /// Creates a new contract
     pub fn new() -> Self {
-        Self(wit::Contract {
-            accessible: Vec::new(),
-            accessible_by_default: true,
-            subgraphs: Vec::new(),
-        })
+        Self::with_capacity(0)
     }
 
-    /// Whether the schema elements are accessible by default.
-    pub fn accessible_by_default(&mut self, accessible: bool) {
+    /// Whether the schema elements are accessible by default. Defaults to true.
+    pub fn accessible_by_default(&mut self, accessible: bool) -> &mut Self {
         self.0.accessible_by_default = accessible;
+        self
     }
 
-    /// Set the accessibility of a directive.
-    pub fn accessible(&mut self, directive: ContractDirective<'_>, accessible: bool) {
-        if self.0.accessible.len() < directive.index as usize {
-            // Extend the vector with `false` values until it reaches the required index.
-            self.0.accessible.resize(directive.index as usize + 1, -1);
-        }
-        self.0.accessible[directive.index as usize] = accessible as i8 - 1
+    /// Set the accessibility of a directive with the lowest priority.
+    ///
+    /// Defaults to false with lowest priority if not set.
+    pub fn accessible(&mut self, directive: ContractDirective<'_>, accessible: bool) -> &mut Self {
+        self.accessible_with_priority(directive, accessible as i8 - 1)
+    }
+
+    /// Set the accessibility of a directive with the highest priority.
+    ///
+    /// Defaults to false with lowest priority if not set.
+    pub fn override_accessible(&mut self, directive: ContractDirective<'_>, accessible: bool) -> &mut Self {
+        self.accessible_with_priority(directive, i8::MAX.wrapping_add(!accessible as i8))
     }
 
     /// Set the accessibility of a directive with a priority value. The higher the priority, the
@@ -99,18 +102,28 @@ impl Contract {
     /// but `[-128, -1]` doesn't. The absolute value is used as the priority after shifting the
     /// positive values up by one. So both `-1` and `0` have the same priority, `-2` and `1` also
     /// and so forth up to `-128` and `127`.
-    pub fn accessible_with_priority(&mut self, directive: ContractDirective<'_>, accessible: i8) {
+    ///
+    /// Defaults to false with `-1`, lowest priority, if not set.
+    pub fn accessible_with_priority(&mut self, directive: ContractDirective<'_>, accessible: i8) -> &mut Self {
         if self.0.accessible.len() < directive.index as usize {
             // Extend the vector with `false` values until it reaches the required index.
             self.0.accessible.resize(directive.index as usize + 1, -1);
         }
         self.0.accessible[directive.index as usize] = accessible;
+        self
+    }
+
+    /// Whether to hide types that are not reachable from the root type. Defaults to true.
+    pub fn hide_unreacheable_types(&mut self, hide: bool) -> &mut Self {
+        self.0.hide_unreachable_types = hide;
+        self
     }
 
     /// Add a subgraph update to the subgraph. Unchanged subgraph do not need to be provided.
     /// The number of subgraphs and their name cannot be changed.
-    pub fn subgraph(&mut self, subgraph: GraphqlSubgraph) {
+    pub fn subgraph(&mut self, subgraph: GraphqlSubgraph) -> &mut Self {
         self.0.subgraphs.push(subgraph.0);
+        self
     }
 }
 

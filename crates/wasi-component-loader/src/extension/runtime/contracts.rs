@@ -91,7 +91,7 @@ impl ContractsExtension<WasmContext> for EngineWasmExtensions {
             schema.update_graphql_endpoint(&gql.name, url);
         }
 
-        let schema = schema.finalize();
+        let schema = schema.finalize(contract.hide_unreachable_types);
 
         Some(schema)
     }

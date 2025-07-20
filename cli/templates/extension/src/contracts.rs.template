@@ -1,0 +1,22 @@
+use grafbase_sdk::{
+    ContractsExtension,
+    types::{Configuration, Error, Contract, ContractDirective, GraphqlSubgraph},
+};
+
+#[derive(ContractsExtension)]
+struct {{name}};
+
+impl ContractsExtension for {{name}} {
+    fn new(config: Configuration) -> Result<Self, Error> {
+        Ok(Self)
+    }
+
+    fn construct(
+        &mut self,
+        key: String,
+        directives: Vec<ContractDirective<'_>>,
+        subgraphs: Vec<GraphqlSubgraph>,
+    ) -> Result<Contract, Error> {
+        Ok(Contract::new())
+    }
+}

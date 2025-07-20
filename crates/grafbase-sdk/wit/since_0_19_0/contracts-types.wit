@@ -10,8 +10,9 @@ interface contracts-types {
         // A higher priority directive overrides previous ones.
         accessible: list<s8>,
         accessible-by-default: bool,
+        hide-unreachable-types: bool,
         // Any subgraph changes, identified by their name.
-        subgraphs: list<graphql-subgraph>
+        subgraphs: list<graphql-subgraph>,
     }
 
     record graphql-subgraph {

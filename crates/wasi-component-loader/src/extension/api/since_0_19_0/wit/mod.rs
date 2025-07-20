@@ -1,4 +1,5 @@
 pub mod contract_types;
+pub mod hooks_types;
 pub mod logger;
 
 wasmtime::component::bindgen!({

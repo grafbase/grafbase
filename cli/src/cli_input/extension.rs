@@ -46,6 +46,8 @@ pub(crate) enum ExtensionType {
     Authorization,
     /// An extension for hooks
     Hooks,
+    /// An contracts extension to control what gets exposed in the GraphQL API
+    Contracts,
 }
 
 #[derive(Debug, Parser)]

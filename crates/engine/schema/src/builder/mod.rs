@@ -1,11 +1,11 @@
 mod coerce;
 mod context;
-mod contract;
 mod error;
 mod extension;
 mod graph;
 mod hash;
 mod interner;
+mod mutable;
 mod sdl;
 mod subgraphs;
 

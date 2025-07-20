@@ -205,7 +205,11 @@ fn build_extension_layer<E: GatewayExtensions>(
         config.default.or(gateway_config.authentication.default),
         kv,
     );
-    Ok(layers::ExtensionLayer::new(extensions.clone(), authentication))
+    Ok(layers::ExtensionLayer::new(
+        extensions.clone(),
+        authentication,
+        gateway_config.graph.contract_key.clone(),
+    ))
 }
 
 async fn fallback() -> (http::StatusCode, &'static str) {

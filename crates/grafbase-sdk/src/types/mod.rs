@@ -10,6 +10,7 @@ mod elements;
 mod error;
 mod error_response;
 mod headers;
+mod hooks;
 mod resolver;
 mod response;
 /// GraphQL Schema
@@ -29,6 +30,7 @@ pub use elements::*;
 pub use error::*;
 pub use error_response::*;
 pub use headers::*;
+pub use hooks::*;
 pub use resolver::*;
 pub use response::*;
 pub use schema::*;

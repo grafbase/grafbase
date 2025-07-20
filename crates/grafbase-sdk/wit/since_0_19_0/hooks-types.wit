@@ -1,0 +1,5 @@
+interface hooks-types {
+    record on-request-output {
+        contract-key: option<string>,
+    }
+}
