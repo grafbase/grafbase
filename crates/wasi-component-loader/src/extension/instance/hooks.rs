@@ -1,17 +1,23 @@
+use engine_error::ErrorResponse;
 use futures::future::BoxFuture;
 
-use crate::{ErrorResponse, SharedContext};
+use crate::WasmContext;
 
-pub(crate) trait HooksInstance {
-    fn on_request(
-        &mut self,
-        context: SharedContext,
+#[allow(unused_variables)]
+pub(crate) trait HooksExtensionInstance {
+    fn on_request<'a>(
+        &'a mut self,
+        context: &'a WasmContext,
         parts: http::request::Parts,
-    ) -> BoxFuture<'_, Result<http::request::Parts, ErrorResponse>>;
+    ) -> BoxFuture<'a, wasmtime::Result<Result<http::request::Parts, ErrorResponse>>> {
+        Box::pin(async { unreachable!("Not supported by this SDK") })
+    }
 
     fn on_response(
         &mut self,
-        context: SharedContext,
+        context: WasmContext,
         parts: http::response::Parts,
-    ) -> BoxFuture<'_, anyhow::Result<http::response::Parts>>;
+    ) -> BoxFuture<'_, wasmtime::Result<Result<http::response::Parts, String>>> {
+        Box::pin(async { unreachable!("Not supported by this SDK") })
+    }
 }

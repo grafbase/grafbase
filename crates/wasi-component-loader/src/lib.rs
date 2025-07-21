@@ -10,7 +10,6 @@ mod cache;
 mod cbor;
 mod config;
 mod context;
-mod error;
 pub mod extension;
 mod http_client;
 pub mod resources;
@@ -21,17 +20,9 @@ mod tests;
 
 use tonic13 as tonic;
 
-pub use context::{ContextMap, SharedContext};
+pub use context::WasmContext;
 pub use crossbeam::channel::Sender;
 pub use crossbeam::sync::WaitGroup;
-pub use error::{Error, ErrorResponse};
 pub use extension::api::wit::Error as GuestError;
-
-/// The crate result type
-pub type Result<T> = std::result::Result<T, Error>;
-/// The guest result type
-pub type GuestResult<T> = std::result::Result<T, GuestError>;
-/// The gateway result type
-pub type GatewayResult<T> = std::result::Result<T, ErrorResponse>;
 
 use state::WasiState;

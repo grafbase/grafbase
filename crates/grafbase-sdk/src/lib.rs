@@ -17,10 +17,12 @@ mod wit;
 
 pub use component::SdkError;
 pub use extension::{
-    AuthenticationExtension, AuthorizationExtension, HooksExtension, IntoQueryAuthorization, IntoSubscription,
-    ResolverExtension, Subscription,
+    AuthenticationExtension, AuthorizationExtension, ContractsExtension, HooksExtension, IntoQueryAuthorization,
+    IntoSubscription, ResolverExtension, Subscription,
 };
-pub use grafbase_sdk_derive::{AuthenticationExtension, AuthorizationExtension, HooksExtension, ResolverExtension};
+pub use grafbase_sdk_derive::{
+    AuthenticationExtension, AuthorizationExtension, ContractsExtension, HooksExtension, ResolverExtension,
+};
 
 use component::Component;
 

@@ -1,10 +1,9 @@
-use engine_error::GraphqlError;
+use engine_error::{ErrorCode, GraphqlError};
 use futures::future::BoxFuture;
 use runtime::extension::Data;
 
 use crate::{
-    Error,
-    extension::{FieldResolverExtensionInstance, InputList, api::wit::FieldDefinitionDirective},
+    extension::{FieldResolverExtensionInstance, InputList, SubscriptionItem, api::wit::FieldDefinitionDirective},
     resources::{Headers, Lease},
 };
 
@@ -15,12 +14,8 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_10_0 {
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
         inputs: InputList,
-    ) -> BoxFuture<'a, Result<Vec<Result<Data, GraphqlError>>, Error>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<Vec<Result<Data, GraphqlError>>, GraphqlError>>> {
         Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let inputs = inputs.0.iter().map(Vec::as_slice).collect::<Vec<_>>();
 
@@ -30,9 +25,9 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_10_0 {
                 .call_resolve_field(&mut self.store, headers, subgraph_name, directive, &inputs)
                 .await?;
 
-            self.poisoned = false;
-
-            Ok(result?.into())
+            Ok(result
+                .map(Into::into)
+                .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError)))
         })
     }
 
@@ -41,12 +36,8 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_10_0 {
         headers: Lease<http::HeaderMap>,
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
-    ) -> BoxFuture<'a, Result<(Lease<http::HeaderMap>, Option<Vec<u8>>), Error>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<(Lease<http::HeaderMap>, Option<Vec<u8>>), GraphqlError>>> {
         Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
@@ -63,10 +54,9 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_10_0 {
                 .into_lease()
                 .unwrap();
 
-            self.poisoned = false;
-
-            let key = result?;
-            Ok((headers, key))
+            Ok(result
+                .map(|key| (headers, key))
+                .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError)))
         })
     }
 
@@ -75,12 +65,8 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_10_0 {
         headers: http::HeaderMap,
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
-    ) -> BoxFuture<'a, Result<(), Error>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<(), GraphqlError>>> {
         Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
 
             let result = self
@@ -89,29 +75,23 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_10_0 {
                 .call_resolve_subscription(&mut self.store, headers, subgraph_name, directive)
                 .await?;
 
-            self.poisoned = false;
-
-            result.map_err(Into::into)
+            Ok(result.map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError)))
         })
     }
 
     fn field_resolver_resolve_next_subscription_item(
         &mut self,
-    ) -> BoxFuture<'_, Result<Option<Vec<Result<Data, GraphqlError>>>, Error>> {
+    ) -> BoxFuture<'_, wasmtime::Result<Result<Option<SubscriptionItem>, GraphqlError>>> {
         Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
             let result = self
                 .inner
                 .grafbase_sdk_resolver()
                 .call_resolve_next_subscription_item(&mut self.store)
                 .await?;
 
-            self.poisoned = false;
-
-            Ok(result?.map(Into::into))
+            Ok(result
+                .map(|opt| opt.map(Into::into))
+                .map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError)))
         })
     }
 }

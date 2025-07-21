@@ -3,10 +3,7 @@ pub mod mcp;
 mod retry_budget;
 mod runtime;
 
-use ::runtime::{
-    extension::{ContractsExtension as _, ExtensionContext as _},
-    operation_cache::OperationCache,
-};
+use ::runtime::{authentication::LegacyToken, extension::ContractsExtension as _, operation_cache::OperationCache};
 use bytes::Bytes;
 use cache::CacheKey;
 use error::{ErrorCode, ErrorResponse, GraphqlError};
@@ -34,6 +31,13 @@ pub struct ContractAwareEngine<R: Runtime> {
     by_contract_key: quick_cache::sync::Cache<String, Arc<Engine<R>>>,
 }
 
+#[derive(Clone)]
+pub struct RequestExtensions<C> {
+    pub context: C,
+    pub token: LegacyToken,
+    pub contract_key: Option<String>,
+}
+
 impl<R: Runtime> ContractAwareEngine<R> {
     pub fn new(schema: Arc<Schema>, runtime: R) -> Self {
         let no_contract = Arc::new(Engine::new(schema.clone(), runtime));
@@ -52,8 +56,8 @@ impl<R: Runtime> ContractAwareEngine<R> {
             Ok(unpacked) => unpacked,
             Err(response) => return response,
         };
-        if let Some(key) = parts.extension_context.contract_key() {
-            match self.get_engine_for_contract(&parts.extension_context, key).await {
+        if let Some(key) = parts.extensions.contract_key.as_ref() {
+            match self.get_engine_for_contract(&parts.extensions.context, key).await {
                 Ok(engine) => engine.execute(parts, body).await,
                 Err(err) => crate::http_error_response(parts.ctx.response_format, err),
             }
@@ -79,13 +83,12 @@ impl<R: Runtime> ContractAwareEngine<R> {
         let parts: Parts<R> = Parts {
             ctx,
             headers: parts.headers,
-            extension_context: parts.extensions.remove().expect("Missing extension context"),
-            token: parts.extensions.remove().expect("Missing authentication token"),
+            extensions: parts.extensions.remove().expect("Missing request extensions"),
         };
 
-        if let Some(key) = parts.extension_context.contract_key() {
+        if let Some(key) = parts.extensions.contract_key.as_ref() {
             let engine = self
-                .get_engine_for_contract(&parts.extension_context, key)
+                .get_engine_for_contract(&parts.extensions.context, key)
                 .await
                 .map_err(|err| err.into_message())?;
             engine.create_websocket_session(parts, payload).await
@@ -95,13 +98,13 @@ impl<R: Runtime> ContractAwareEngine<R> {
     }
 
     pub async fn get_schema(&self, parts: &http::request::Parts) -> Result<Arc<Schema>, Cow<'static, str>> {
-        let ctx = parts
+        let extensions = parts
             .extensions
-            .get::<ExtensionContext<R>>()
-            .expect("Missing extension context");
-        if let Some(key) = ctx.contract_key() {
+            .get::<RequestExtensions<ExtensionContext<R>>>()
+            .expect("Missing request extensions");
+        if let Some(key) = extensions.contract_key.as_ref() {
             let engine = self
-                .get_engine_for_contract(ctx, key)
+                .get_engine_for_contract(&extensions.context, key)
                 .await
                 .map_err(|err| err.into_message())?;
             Ok(engine.schema.clone())
@@ -119,12 +122,15 @@ impl<R: Runtime> ContractAwareEngine<R> {
             Ok(engine) => Ok(engine),
             Err(guard) => {
                 let schema: Schema = self.no_contract.schema.as_ref().clone();
-                let schema = self
+                let Some(schema) = self
                     .no_contract
                     .runtime
                     .extensions()
                     .construct(ctx, key.to_owned(), schema)
-                    .await?;
+                    .await
+                else {
+                    return Err(ErrorResponse::internal_extension_error());
+                };
                 let schema = Arc::new(schema);
                 let runtime = self
                     .no_contract
@@ -196,8 +202,7 @@ impl<R: Runtime> Engine<R> {
         Parts {
             ctx,
             headers,
-            extension_context,
-            token,
+            extensions,
         }: Parts<R>,
         body: F,
     ) -> http::Response<Body>
@@ -205,7 +210,7 @@ impl<R: Runtime> Engine<R> {
         F: Future<Output = Result<Bytes, (http::StatusCode, String)>> + Send,
     {
         let context_fut = self
-            .create_graphql_context(&ctx, headers, extension_context, token, None)
+            .create_graphql_context(&ctx, headers, extensions, None)
             .map_err(|response| response);
 
         let request_fut = self
@@ -228,13 +233,12 @@ impl<R: Runtime> Engine<R> {
         Parts {
             ctx,
             headers,
-            extension_context,
-            token,
+            extensions,
         }: Parts<R>,
         payload: InitPayload,
     ) -> Result<WebsocketSession<R>, Cow<'static, str>> {
         let request_context = self
-            .create_graphql_context(&ctx, headers, extension_context, token, Some(payload))
+            .create_graphql_context(&ctx, headers, extensions, Some(payload))
             .await
             .map_err(|response| {
                 response

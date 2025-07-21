@@ -1,43 +1,39 @@
 use engine_error::ErrorResponse;
 use event_queue::EventQueue;
 use http::{request, response};
-use runtime::extension::HooksExtension;
+use runtime::extension::{HooksExtension, OnRequest};
 
-use crate::{SharedContext, extension::GatewayWasmExtensions};
+use crate::{WasmContext, extension::GatewayWasmExtensions, wasmsafe};
 
-impl HooksExtension<SharedContext> for GatewayWasmExtensions {
-    async fn on_request(&self, parts: request::Parts) -> Result<(SharedContext, request::Parts), ErrorResponse> {
-        let context = SharedContext::new(EventQueue::new(self.hooks_event_filter), None);
+impl HooksExtension<WasmContext> for GatewayWasmExtensions {
+    async fn on_request(&self, parts: request::Parts) -> Result<OnRequest<WasmContext>, ErrorResponse> {
+        let context = WasmContext::new(EventQueue::new(self.hooks_event_filter));
         let Some(pool) = self.hooks.as_ref() else {
-            return Ok((context, parts));
+            return Ok(OnRequest {
+                context,
+                parts,
+                contract_key: None,
+            });
         };
 
-        let mut instance = pool.get().await.map_err(|e| ErrorResponse {
-            status: http::StatusCode::INTERNAL_SERVER_ERROR,
-            errors: vec![engine_error::GraphqlError::new(
-                e.to_string(),
-                engine_error::ErrorCode::ExtensionError,
-            )],
-            headers: Default::default(),
+        let mut instance = pool.get().await.map_err(|err| {
+            tracing::error!("Failed to get instance from pool: {err}");
+            ErrorResponse::internal_extension_error()
         })?;
 
-        let parts = instance
-            .on_request(context.clone(), parts)
-            .await
-            .map_err(|e| e.into_graphql_error_response(engine_error::ErrorCode::ExtensionError))?;
-
-        Ok((context, parts))
+        wasmsafe!(instance.on_request(&context, parts).await).map(|parts| OnRequest {
+            context,
+            parts,
+            contract_key: None,
+        })
     }
 
-    async fn on_response(&self, context: &SharedContext, parts: response::Parts) -> Result<response::Parts, String> {
+    async fn on_response(&self, context: WasmContext, parts: response::Parts) -> Result<response::Parts, String> {
         let Some(pool) = self.hooks.as_ref() else {
             return Ok(parts);
         };
         let mut instance = pool.get().await.map_err(|e| e.to_string())?;
 
-        instance
-            .on_response(context.clone(), parts)
-            .await
-            .map_err(|e| e.to_string())
+        wasmsafe!(instance.on_response(context, parts).await)
     }
 }

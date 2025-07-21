@@ -12,7 +12,7 @@ use walker::Walk;
 
 use crate::{
     Runtime,
-    execution::find_matching_denied_header,
+    execution::{GraphqlRequestContext, find_matching_denied_header},
     prepare::{
         CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, Derive, ErrorCode, FieldShapeId,
         GraphqlError, PartitionField, PrepareContext, QueryModifierId, QueryModifierRecord, QueryModifierRule,
@@ -116,7 +116,7 @@ where
             })
             .collect::<Vec<_>>();
 
-        let (mut subgraph_default_headers_override, decisions) = self
+        let (state, mut subgraph_default_headers_override, decisions) = self
             .ctx
             .extensions()
             .authorize_query(
@@ -173,7 +173,10 @@ where
         for name in denied_header_names {
             subgraph_default_headers_override.remove(name);
         }
-        self.ctx.gql_context.subgraph_default_headers_override = Some(subgraph_default_headers_override);
+        self.ctx.gql_context = GraphqlRequestContext {
+            authorization_state: state,
+            subgraph_default_headers_override: Some(subgraph_default_headers_override),
+        };
         for QueryAuthorizationDecisions {
             query_elements_range,
             decisions,

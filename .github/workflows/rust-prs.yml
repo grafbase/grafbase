@@ -286,7 +286,6 @@ jobs:
         shell: bash
         run: |
           find crates/integration-tests/data/extensions -name "*.wasm" -type f
-          ls -la crates/integration-tests/data/extensions/crates/access-logs/
 
       # TODO: Add timing reports in here somehow...
 

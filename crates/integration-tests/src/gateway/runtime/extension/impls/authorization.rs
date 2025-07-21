@@ -9,13 +9,21 @@ use runtime::{
     extension::{AuthorizationDecisions, AuthorizationExtension, QueryAuthorizationDecisions, QueryElement, TokenRef},
 };
 use tokio::sync::RwLock;
+use wasi_component_loader::{WasmContext, extension::EngineWasmExtensions};
 
 use crate::gateway::{
     DispatchRule, EngineTestExtensions, ExtContext, ExtensionsBuilder, TestExtensions, TestManifest,
     runtime::extension::builder::AnyExtension,
 };
 
+#[derive(Default)]
+pub struct State {
+    wasm: <EngineWasmExtensions as AuthorizationExtension<WasmContext>>::State,
+}
+
 impl AuthorizationExtension<ExtContext> for EngineTestExtensions {
+    type State = State;
+
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
         ctx: &'ctx ExtContext,
@@ -25,7 +33,9 @@ impl AuthorizationExtension<ExtContext> for EngineTestExtensions {
         // (directive name, range within query_elements)
         directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
         query_elements: impl ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
-    ) -> impl Future<Output = Result<(http::HeaderMap, Vec<QueryAuthorizationDecisions>), engine::ErrorResponse>> + Send + 'fut
+    ) -> impl Future<Output = Result<(State, http::HeaderMap, Vec<QueryAuthorizationDecisions>), engine::ErrorResponse>>
+    + Send
+    + 'fut
     where
         'ctx: 'fut,
         // (extension id, range within directives, range within query_elements)
@@ -62,6 +72,7 @@ impl AuthorizationExtension<ExtContext> for EngineTestExtensions {
                     directives,
                     query_elements,
                 )
+                .map_ok(|(state, headers, decisions)| (State { wasm: state }, headers, decisions))
                 .boxed()
         } else {
             self.test
@@ -73,6 +84,15 @@ impl AuthorizationExtension<ExtContext> for EngineTestExtensions {
                     directives,
                     query_elements,
                 )
+                .map_ok(|(_, headers, decisions)| {
+                    (
+                        State {
+                            wasm: Default::default(),
+                        },
+                        headers,
+                        decisions,
+                    )
+                })
                 .boxed()
         }
     }
@@ -80,6 +100,7 @@ impl AuthorizationExtension<ExtContext> for EngineTestExtensions {
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
         ctx: &'ctx ExtContext,
+        state: &'ctx State,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
@@ -91,17 +112,26 @@ impl AuthorizationExtension<ExtContext> for EngineTestExtensions {
         match self.dispatch[&extension_id] {
             DispatchRule::Wasm => self
                 .wasm
-                .authorize_response(&ctx.wasm, extension_id, directive_name, directive_site, items)
+                .authorize_response(
+                    &ctx.wasm,
+                    &state.wasm,
+                    extension_id,
+                    directive_name,
+                    directive_site,
+                    items,
+                )
                 .boxed(),
             DispatchRule::Test => self
                 .test
-                .authorize_response(ctx, extension_id, directive_name, directive_site, items)
+                .authorize_response(ctx, &(), extension_id, directive_name, directive_site, items)
                 .boxed(),
         }
     }
 }
 
 impl AuthorizationExtension<ExtContext> for TestExtensions {
+    type State = ();
+
     #[allow(clippy::manual_async_fn)]
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
@@ -112,7 +142,9 @@ impl AuthorizationExtension<ExtContext> for TestExtensions {
         // (directive name, range within query_elements)
         directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
         query_elements: impl ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
-    ) -> impl Future<Output = Result<(http::HeaderMap, Vec<QueryAuthorizationDecisions>), ErrorResponse>> + Send + 'fut
+    ) -> impl Future<Output = Result<(Self::State, http::HeaderMap, Vec<QueryAuthorizationDecisions>), ErrorResponse>>
+    + Send
+    + 'fut
     where
         'ctx: 'fut,
         // (extension id, range within directives, range within query_elements)
@@ -169,7 +201,7 @@ impl AuthorizationExtension<ExtContext> for TestExtensions {
                 .try_collect()
                 .await?;
             let headers = headers.into_inner();
-            Ok((headers, decisions))
+            Ok(((), headers, decisions))
         }
         .boxed()
     }
@@ -177,6 +209,7 @@ impl AuthorizationExtension<ExtContext> for TestExtensions {
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
         ctx: &'ctx ExtContext,
+        _state: &'ctx Self::State,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,

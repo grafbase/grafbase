@@ -1,8 +1,9 @@
+use engine_error::{ErrorCode, GraphqlError};
 use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
 use crate::{
-    Error, ErrorResponse, SharedContext,
+    WasmContext,
     extension::{
         AuthorizationExtensionInstance, QueryAuthorizationResult,
         api::wit::{Headers, QueryElements, ResponseElements, TokenParam},
@@ -13,17 +14,13 @@ use crate::{
 impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
     fn authorize_query<'a>(
         &'a mut self,
-        context: SharedContext,
+        context: &'a WasmContext,
         headers: Lease<http::HeaderMap>,
         token: TokenRef<'a>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, QueryAuthorizationResult> {
         Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
-            let context = self.store.data_mut().push_resource(context)?;
+            let context = self.store.data_mut().push_resource(context.clone())?;
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
@@ -42,26 +39,26 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
                 .into_lease()
                 .unwrap();
 
-            self.poisoned = false;
+            let result = match result {
+                Ok((decisions, state)) => Ok((headers, decisions.into(), state)),
+                Err(err) => Err(self
+                    .store
+                    .data_mut()
+                    .take_error_response(err, ErrorCode::Unauthorized)?),
+            };
 
-            result
-                .map(|(decisions, state)| (headers, decisions.into(), state))
-                .map_err(|err| ErrorResponse::from_wit(&mut self.store, err))
+            Ok(result)
         })
     }
 
     fn authorize_response<'a>(
         &'a mut self,
-        context: SharedContext,
+        context: &'a WasmContext,
         state: &'a [u8],
         elements: ResponseElements<'a>,
-    ) -> BoxFuture<'a, Result<AuthorizationDecisions, Error>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizationDecisions, GraphqlError>>> {
         Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
-            let context = self.store.data_mut().push_resource(context)?;
+            let context = self.store.data_mut().push_resource(context.clone())?;
 
             let result = self
                 .inner
@@ -69,8 +66,9 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
                 .call_authorize_response(&mut self.store, context, state, elements)
                 .await?;
 
-            self.poisoned = false;
-            result.map(Into::into).map_err(Into::into)
+            Ok(result
+                .map(Into::into)
+                .map_err(|err| err.into_graphql_error(ErrorCode::Unauthorized)))
         })
     }
 }

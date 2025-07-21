@@ -2,6 +2,7 @@ use crate::{cbor, state::WasiState};
 use engine_error::{ErrorCode, GraphqlError};
 
 pub use super::grafbase::sdk::error::*;
+use crate::extension::api::since_0_10_0::world as wit010;
 
 impl Host for WasiState {}
 
@@ -14,28 +15,18 @@ impl Error {
     }
 }
 
-impl From<crate::extension::api::since_0_9_0::wit::error::Error> for Error {
-    fn from(
-        crate::extension::api::since_0_10_0::world::Error { extensions, message }: crate::extension::api::since_0_9_0::wit::error::Error,
-    ) -> Self {
+impl From<wit010::Error> for Error {
+    fn from(wit010::Error { extensions, message }: wit010::Error) -> Self {
         Error { extensions, message }
     }
 }
 
-impl From<crate::extension::api::since_0_9_0::wit::error::ErrorResponse> for ErrorResponse {
-    fn from(
-        crate::extension::api::since_0_10_0::world::ErrorResponse { status_code, errors }: crate::extension::api::since_0_9_0::wit::error::ErrorResponse,
-    ) -> Self {
+impl From<wit010::ErrorResponse> for ErrorResponse {
+    fn from(wit010::ErrorResponse { status_code, errors }: wit010::ErrorResponse) -> Self {
         ErrorResponse {
             status_code,
             errors: errors.into_iter().map(Error::from).collect(),
             headers: None,
         }
-    }
-}
-
-impl From<crate::extension::api::since_0_9_0::wit::error::Error> for crate::Error {
-    fn from(value: crate::extension::api::since_0_9_0::wit::error::Error) -> Self {
-        Error::from(value).into()
     }
 }

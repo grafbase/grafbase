@@ -7,6 +7,8 @@ use extension_catalog::ExtensionId;
 use super::{Anything, TokenRef};
 
 pub trait AuthorizationExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
+    type State: Default + Send + Sync + 'static;
+
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
         ctx: &'ctx Context,
@@ -16,7 +18,9 @@ pub trait AuthorizationExtension<Context: Send + Sync + 'static>: Send + Sync + 
         // (directive name, range within query_elements)
         directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
         query_elements: impl ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
-    ) -> impl Future<Output = Result<(http::HeaderMap, Vec<QueryAuthorizationDecisions>), ErrorResponse>> + Send + 'fut
+    ) -> impl Future<Output = Result<(Self::State, http::HeaderMap, Vec<QueryAuthorizationDecisions>), ErrorResponse>>
+           + Send
+           + 'fut
     where
         'ctx: 'fut,
         // (extension id, range within directives, range within query_elements)
@@ -31,6 +35,7 @@ pub trait AuthorizationExtension<Context: Send + Sync + 'static>: Send + Sync + 
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
         ctx: &'ctx Context,
+        state: &'ctx Self::State,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,

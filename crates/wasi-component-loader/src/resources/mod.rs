@@ -10,7 +10,7 @@ use futures::StreamExt;
 use runtime::extension::Token;
 use sqlx::Postgres;
 
-pub use crate::context::SharedContext;
+pub use crate::context::WasmContext;
 pub use headers::*;
 pub use kafka_consumer::*;
 pub use kafka_producer::*;
@@ -31,7 +31,7 @@ pub type PgTransaction = sqlx::Transaction<'static, Postgres>;
 pub type PgRow = sqlx::postgres::PgRow;
 pub type FileLogger = file_logger::FileLogger;
 
-pub struct EventQueueProxy(#[allow(unused)] pub(crate) SharedContext);
+pub struct EventQueueProxy(pub(crate) WasmContext);
 pub type AccessLogSender = ();
 
 pub enum NatsSubscriber {

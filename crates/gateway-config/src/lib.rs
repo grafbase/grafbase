@@ -461,6 +461,7 @@ pub struct GraphConfig {
     pub websocket_path: String,
     // We do want to distinguish None from false for grafbase dev
     pub introspection: Option<bool>,
+    pub contract_key: Option<String>,
 }
 
 impl Default for GraphConfig {
@@ -469,6 +470,7 @@ impl Default for GraphConfig {
             path: "/graphql".to_string(),
             websocket_path: "/ws".to_string(),
             introspection: None,
+            contract_key: None,
         }
     }
 }

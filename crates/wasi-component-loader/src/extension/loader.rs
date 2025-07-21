@@ -15,7 +15,7 @@ pub(crate) struct ExtensionLoader {
 }
 
 impl ExtensionLoader {
-    pub(crate) fn new(schema: Arc<Schema>, config: Arc<ExtensionConfig>) -> crate::Result<Self> {
+    pub(crate) fn new(schema: Arc<Schema>, config: Arc<ExtensionConfig>) -> wasmtime::Result<Self> {
         let mut wasm_config = wasmtime::Config::new();
 
         wasm_config
@@ -59,7 +59,7 @@ impl ExtensionLoader {
         })
     }
 
-    pub async fn instantiate(&self) -> crate::Result<Box<dyn ExtensionInstance>> {
+    pub async fn instantiate(&self) -> wasmtime::Result<Box<dyn ExtensionInstance>> {
         let state = WasiState::new(self.config.clone(), self.cache.clone());
         self.pre.instantiate(state).await
     }

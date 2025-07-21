@@ -1,28 +1,25 @@
+use engine_error::{ErrorResponse, GraphqlError};
 use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
-use crate::{
-    Error, ErrorResponse, SharedContext,
-    extension::api::wit::{QueryElements, ResponseElements},
-    resources::Lease,
-};
+use crate::{WasmContext, extension::api::wit, resources::Lease};
 
 pub(crate) type QueryAuthorizationResult =
-    Result<(Lease<http::HeaderMap>, AuthorizationDecisions, Vec<u8>), ErrorResponse>;
+    wasmtime::Result<Result<(Lease<http::HeaderMap>, AuthorizationDecisions, Vec<u8>), ErrorResponse>>;
 
 pub(crate) trait AuthorizationExtensionInstance {
     fn authorize_query<'a>(
         &'a mut self,
-        context: SharedContext,
+        context: &'a WasmContext,
         headers: Lease<http::HeaderMap>,
         token: TokenRef<'a>,
-        elements: QueryElements<'a>,
+        elements: wit::QueryElements<'a>,
     ) -> BoxFuture<'a, QueryAuthorizationResult>;
 
     fn authorize_response<'a>(
         &'a mut self,
-        context: SharedContext,
+        context: &'a WasmContext,
         state: &'a [u8],
-        elements: ResponseElements<'a>,
-    ) -> BoxFuture<'a, Result<AuthorizationDecisions, Error>>;
+        elements: wit::ResponseElements<'a>,
+    ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizationDecisions, GraphqlError>>>;
 }

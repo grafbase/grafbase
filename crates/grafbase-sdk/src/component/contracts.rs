@@ -16,6 +16,7 @@ impl wit::ContractsGuest for Component {
                 .map_err(|err| err.message)?
                 .construct(key, directives, subgraphs)
                 .map(Into::into)
+                .map_err(|err| err.0.message)
         })
     }
 }

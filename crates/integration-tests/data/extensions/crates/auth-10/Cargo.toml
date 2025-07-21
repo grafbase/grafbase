@@ -1,0 +1,19 @@
+[package]
+name = "auth-09"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
+
+[dependencies]
+grafbase-sdk = "0.10"
+serde.workspace = true
+serde_json.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dev-dependencies]
+grafbase-sdk = { version = "0.10", features = ["test-utils"] }

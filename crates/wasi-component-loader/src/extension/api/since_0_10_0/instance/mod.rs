@@ -1,9 +1,6 @@
 mod authentication;
 mod authorization;
 mod field_resolver;
-mod hooks;
-mod resolver;
-mod selection_set_resolver;
 
 use std::sync::Arc;
 
@@ -11,8 +8,11 @@ use extension_catalog::TypeDiscriminants;
 use wasmtime::Store;
 
 use crate::{
-    Error, WasiState, cbor,
-    extension::{ContractsExtensionInstance, ExtensionConfig, ExtensionInstance},
+    WasiState, cbor,
+    extension::{
+        ContractsExtensionInstance, ExtensionConfig, ExtensionInstance, HooksExtensionInstance,
+        ResolverExtensionInstance, SelectionSetResolverExtensionInstance,
+    },
 };
 
 use anyhow::Context as _;
@@ -37,7 +37,7 @@ impl SdkPre0_10_0 {
         config: &ExtensionConfig<T>,
         component: Component,
         mut linker: Linker<WasiState>,
-    ) -> crate::Result<Self> {
+    ) -> wasmtime::Result<Self> {
         let mut schema_directives = Vec::new();
         if matches!(
             config.r#type,
@@ -76,7 +76,7 @@ impl SdkPre0_10_0 {
         })
     }
 
-    pub(crate) async fn instantiate(&self, state: WasiState) -> crate::Result<Box<dyn ExtensionInstance>> {
+    pub(crate) async fn instantiate(&self, state: WasiState) -> wasmtime::Result<Box<dyn ExtensionInstance>> {
         let mut store = Store::new(self.pre.engine(), state);
 
         let inner = self.pre.instantiate_async(&mut store).await?;
@@ -85,13 +85,10 @@ impl SdkPre0_10_0 {
         inner
             .grafbase_sdk_init()
             .call_init_gateway_extension(&mut store, &self.schema_directives, &self.guest_config)
-            .await??;
+            .await?
+            .map_err(wasmtime::Error::msg)?;
 
-        let instance = ExtensionInstanceSince0_10_0 {
-            store,
-            inner,
-            poisoned: false,
-        };
+        let instance = ExtensionInstanceSince0_10_0 { store, inner };
 
         Ok(Box::new(instance))
     }
@@ -100,21 +97,15 @@ impl SdkPre0_10_0 {
 struct ExtensionInstanceSince0_10_0 {
     store: Store<WasiState>,
     inner: super::wit::Sdk,
-    poisoned: bool,
 }
 
 impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
     fn store(&self) -> &Store<WasiState> {
         &self.store
     }
-
-    fn recycle(&mut self) -> Result<(), Error> {
-        if self.poisoned {
-            return Err(anyhow::anyhow!("this instance is poisoned").into());
-        }
-
-        Ok(())
-    }
 }
 
 impl ContractsExtensionInstance for ExtensionInstanceSince0_10_0 {}
+impl HooksExtensionInstance for ExtensionInstanceSince0_10_0 {}
+impl SelectionSetResolverExtensionInstance for ExtensionInstanceSince0_10_0 {}
+impl ResolverExtensionInstance for ExtensionInstanceSince0_10_0 {}

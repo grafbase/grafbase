@@ -1,8 +1,9 @@
+use engine_error::{ErrorCode, GraphqlError};
 use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
 use crate::{
-    Error, SharedContext,
+    WasmContext,
     extension::{
         AuthorizationExtensionInstance, QueryAuthorizationResult,
         api::wit::{Headers, QueryElements, ResponseElements, TokenParam},
@@ -13,16 +14,12 @@ use crate::{
 impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_14_0 {
     fn authorize_query<'a>(
         &'a mut self,
-        _: SharedContext,
+        _: &'a WasmContext,
         headers: Lease<http::HeaderMap>,
         token: TokenRef<'a>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, QueryAuthorizationResult> {
         Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
@@ -40,32 +37,34 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_14_0 {
                 .into_lease()
                 .unwrap();
 
-            self.poisoned = false;
-            result
-                .map(|(decisions, state)| (headers, decisions.into(), state))
-                .map_err(Into::into)
+            let result = match result {
+                Ok((decisions, state)) => Ok((headers, decisions.into(), state)),
+                Err(err) => Err(self
+                    .store
+                    .data_mut()
+                    .take_error_response(err.into(), ErrorCode::Unauthorized)?),
+            };
+
+            Ok(result)
         })
     }
 
     fn authorize_response<'a>(
         &'a mut self,
-        _: SharedContext,
+        _: &'a WasmContext,
         state: &'a [u8],
         elements: ResponseElements<'a>,
-    ) -> BoxFuture<'a, Result<AuthorizationDecisions, Error>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizationDecisions, GraphqlError>>> {
         Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
             let result = self
                 .inner
                 .grafbase_sdk_authorization()
                 .call_authorize_response(&mut self.store, state, elements)
                 .await?;
 
-            self.poisoned = false;
-            result.map(Into::into).map_err(Into::into)
+            Ok(result
+                .map(Into::into)
+                .map_err(|err| err.into_graphql_error(ErrorCode::Unauthorized)))
         })
     }
 }

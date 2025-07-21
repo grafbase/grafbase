@@ -10,7 +10,6 @@ pub(crate) use context::*;
 pub(crate) use header_rule::*;
 use response_extension::should_include_grafbase_response_extension;
 pub(crate) use response_extension::*;
-use runtime::authentication::LegacyToken;
 pub(crate) use stream::*;
 
 use ::runtime::rate_limiting::RateLimitKey;
@@ -20,7 +19,7 @@ use operation::{BatchRequest, QueryParamsRequest};
 use std::{future::Future, sync::Arc};
 
 use crate::{
-    Body, ContractAwareEngine, Engine, Runtime,
+    Body, ContractAwareEngine, Engine, RequestExtensions, Runtime,
     engine::ExtensionContext,
     graphql_over_http::{ContentType, ResponseFormat},
     mcp::McpRequestContext,
@@ -81,8 +80,7 @@ impl<R: Runtime> ContractAwareEngine<R> {
         let parts = Parts {
             ctx,
             headers: parts.headers,
-            extension_context: parts.extensions.remove().expect("Missing extension context"),
-            token: parts.extensions.remove().expect("Missing authentication token"),
+            extensions: parts.extensions.remove().expect("Missing request extensions"),
         };
 
         Ok((parts, body))
@@ -92,8 +90,7 @@ impl<R: Runtime> ContractAwareEngine<R> {
 pub(crate) struct Parts<R: Runtime> {
     pub ctx: EarlyHttpContext,
     pub headers: http::HeaderMap,
-    pub extension_context: ExtensionContext<R>,
-    pub token: LegacyToken,
+    pub extensions: RequestExtensions<ExtensionContext<R>>,
 }
 
 impl<R: Runtime> Engine<R> {
@@ -101,8 +98,7 @@ impl<R: Runtime> Engine<R> {
         self: &Arc<Self>,
         ctx: &EarlyHttpContext,
         headers: http::HeaderMap,
-        extension_context: ExtensionContext<R>,
-        token: LegacyToken,
+        extensions: RequestExtensions<ExtensionContext<R>>,
         websocket_init_payload: Option<InitPayload>,
     ) -> Result<Arc<RequestContext<ExtensionContext<R>>>, Response> {
         let client = Client::extract_from(&headers);
@@ -125,11 +121,11 @@ impl<R: Runtime> Engine<R> {
             headers,
             response_format: ctx.response_format,
             client,
-            token,
+            token: extensions.token,
             subgraph_default_headers,
             include_grafbase_response_extension: ctx.include_grafbase_response_extension,
             include_mcp_response_extension: ctx.include_mcp_response_extension,
-            extension_context,
+            extension_context: extensions.context,
         };
 
         Ok(Arc::new(request_context))

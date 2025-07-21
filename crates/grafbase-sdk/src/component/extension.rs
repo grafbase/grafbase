@@ -23,8 +23,8 @@ pub(crate) trait AnyExtension {
         key: String,
         directives: Vec<ContractDirective<'_>>,
         subgraphs: Vec<GraphqlSubgraph>,
-    ) -> Result<Contract, String> {
-        Err("Contracts extension not initialized correctly.".to_string())
+    ) -> Result<Contract, Error> {
+        Err(Error::new("Contracts extension not initialized correctly."))
     }
 
     fn prepare(&mut self, field: ResolvedField<'_>) -> Result<Vec<u8>, Error> {
@@ -75,7 +75,7 @@ pub(crate) trait AnyExtension {
         status: http::StatusCode,
         headers: &mut GatewayHeaders,
         event_queue: EventQueue,
-    ) -> Result<(), String> {
-        Err("Hooks extension not initialized correctly.".to_string())
+    ) -> Result<(), Error> {
+        Err(Error::new("Hooks extension not initialized correctly."))
     }
 }

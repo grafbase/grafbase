@@ -1,8 +1,9 @@
+use engine_error::ErrorResponse;
 use futures::future::BoxFuture;
 use runtime::extension::Token;
 
 use crate::{
-    ErrorResponse, SharedContext,
+    WasmContext,
     extension::AuthenticationExtensionInstance,
     resources::{Headers, Lease},
 };
@@ -10,14 +11,10 @@ use crate::{
 impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_14_0 {
     fn authenticate(
         &mut self,
-        _: SharedContext,
+        _: &WasmContext,
         headers: Lease<http::HeaderMap>,
-    ) -> BoxFuture<'_, Result<(Lease<http::HeaderMap>, Token), ErrorResponse>> {
+    ) -> BoxFuture<'_, wasmtime::Result<Result<(Lease<http::HeaderMap>, Token), ErrorResponse>>> {
         Box::pin(async move {
-            // Futures may be canceled, so we pro-actively mark the instance as poisoned until proven
-            // otherwise.
-            self.poisoned = true;
-
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
@@ -34,10 +31,9 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_14_0 {
                 .into_lease()
                 .unwrap();
 
-            self.poisoned = false;
-
-            let token = result?;
-            Ok((headers, token.into()))
+            Ok(result
+                .map(|token| (headers, token.into()))
+                .map_err(|err| err.into_graphql_response(engine_error::ErrorCode::Unauthenticated)))
         })
     }
 }

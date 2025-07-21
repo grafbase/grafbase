@@ -51,7 +51,7 @@ use crate::{
 ///         status: http::StatusCode,
 ///         headers: &mut GatewayHeaders,
 ///         event_queue: EventQueue,
-///     ) -> Result<(), String> {
+///     ) -> Result<(), Error> {
 ///         // Implement your response hook logic here.
 ///         Ok(())
 ///     }
@@ -104,7 +104,7 @@ pub trait HooksExtension: Sized + 'static {
         status: http::StatusCode,
         headers: &mut GatewayHeaders,
         event_queue: EventQueue,
-    ) -> Result<(), String>;
+    ) -> Result<(), Error>;
 }
 
 #[doc(hidden)]
@@ -121,7 +121,7 @@ pub fn register<T: HooksExtension>() {
             status: StatusCode,
             headers: &mut GatewayHeaders,
             event_queue: EventQueue,
-        ) -> Result<(), String> {
+        ) -> Result<(), Error> {
             HooksExtension::on_response(&mut self.0, status, headers, event_queue)
         }
     }

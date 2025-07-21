@@ -1,21 +1,20 @@
+use engine_error::{ErrorCode, ErrorResponse};
 use futures::future::BoxFuture;
 use http::{request, response};
 
 use crate::{
-    ErrorResponse, SharedContext,
-    extension::{HooksInstance, api::wit::HttpMethod},
+    WasmContext,
+    extension::{HooksExtensionInstance, api::wit::HttpMethod},
     resources::{EventQueueProxy, Headers, Lease},
 };
 
-impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
-    fn on_request(
-        &mut self,
-        context: SharedContext,
+impl HooksExtensionInstance for super::ExtensionInstanceSince0_17_0 {
+    fn on_request<'a>(
+        &'a mut self,
+        context: &'a WasmContext,
         mut parts: request::Parts,
-    ) -> BoxFuture<'_, Result<request::Parts, ErrorResponse>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<request::Parts, ErrorResponse>>> {
         Box::pin(async move {
-            self.poisoned = true;
-
             let headers = std::mem::take(&mut parts.headers);
             let url = parts.uri.to_string();
 
@@ -23,7 +22,7 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
-            let context = self.store.data_mut().push_resource(context)?;
+            let context = self.store.data_mut().push_resource(context.clone())?;
 
             let method = match &parts.method {
                 m if m == http::Method::GET => HttpMethod::Get,
@@ -34,9 +33,7 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
                 m if m == http::Method::HEAD => HttpMethod::Head,
                 m if m == http::Method::OPTIONS => HttpMethod::Options,
                 m => {
-                    return Err(ErrorResponse::Internal(anyhow::Error::msg(format!(
-                        "Invalid HTTP method: {m}"
-                    ))));
+                    return Err(wasmtime::Error::msg(format!("Invalid HTTP method: {m}")));
                 }
             };
 
@@ -50,27 +47,27 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
                 .store
                 .data_mut()
                 .take_resource::<Headers>(headers_rep)?
-                .into_lease()
-                .unwrap()
                 .into_inner()
                 .unwrap();
 
-            self.poisoned = false;
+            let output = match result {
+                Ok(()) => Ok(parts),
+                Err(err) => Err(self
+                    .store
+                    .data_mut()
+                    .take_error_response(err, ErrorCode::ExtensionError)?),
+            };
 
-            result.map_err(|err| super::error_response_from_wit(&mut self.store, err))?;
-
-            Ok(parts)
+            Ok(output)
         })
     }
 
     fn on_response(
         &mut self,
-        context: SharedContext,
+        context: WasmContext,
         mut parts: response::Parts,
-    ) -> BoxFuture<'_, anyhow::Result<response::Parts>> {
+    ) -> BoxFuture<'_, wasmtime::Result<Result<response::Parts, String>>> {
         Box::pin(async move {
-            self.poisoned = true;
-
             let headers = std::mem::take(&mut parts.headers);
             let status = parts.status.as_u16();
 
@@ -91,17 +88,10 @@ impl HooksInstance for super::ExtensionInstanceSince0_17_0 {
                 .store
                 .data_mut()
                 .take_resource::<Headers>(headers_rep)?
-                .into_lease()
-                .unwrap()
                 .into_inner()
                 .unwrap();
 
-            self.poisoned = false;
-
-            match result {
-                Ok(()) => Ok(parts),
-                Err(err) => Err(anyhow::Error::msg(err)),
-            }
+            Ok(result.map(|_| parts))
         })
     }
 }

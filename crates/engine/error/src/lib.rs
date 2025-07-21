@@ -27,12 +27,29 @@ impl ErrorResponse {
         self
     }
 
+    pub fn with_errors<I>(mut self, errors: I) -> Self
+    where
+        I: IntoIterator<Item = GraphqlError>,
+    {
+        self.errors.extend(errors);
+        self
+    }
+
+    pub fn with_headers(mut self, headers: http::HeaderMap) -> Self {
+        self.headers = headers;
+        self
+    }
+
     pub fn into_message(self) -> Cow<'static, str> {
         self.errors
             .into_iter()
             .map(|err| err.message)
             .next()
             .unwrap_or_else(|| self.status.canonical_reason().unwrap_or("Internal server error").into())
+    }
+
+    pub fn internal_extension_error() -> Self {
+        Self::new(http::StatusCode::INTERNAL_SERVER_ERROR).with_error(GraphqlError::internal_extension_error())
     }
 }
 

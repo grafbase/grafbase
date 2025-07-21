@@ -2,10 +2,10 @@ use std::collections::VecDeque;
 
 use super::SubscriptionStream;
 use crate::{
-    Error, SharedContext,
+    WasmContext,
     extension::{ExtensionGuard, api::wit::SubscriptionItem},
+    wasmsafe,
 };
-use engine_error::{ErrorCode, GraphqlError};
 use futures::{StreamExt as _, stream};
 use runtime::extension::Response;
 
@@ -17,7 +17,7 @@ pub struct UniqueSubscription {
 }
 
 impl UniqueSubscription {
-    pub async fn resolve(self, context: SharedContext) -> SubscriptionStream<'static> {
+    pub async fn resolve(self, context: WasmContext) -> SubscriptionStream<'static> {
         let UniqueSubscription { instance } = self;
 
         stream::unfold(
@@ -30,20 +30,10 @@ impl UniqueSubscription {
                 }
 
                 loop {
-                    let next =
-                        instance
-                            .resolve_next_subscription_item(context.clone())
-                            .await
-                            .map_err(|err| match err {
-                                Error::Internal(err) => {
-                                    tracing::error!("Wasm error: {err}");
-                                    GraphqlError::new("Internal error", ErrorCode::ExtensionError)
-                                }
-                                Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
-                            });
+                    let next = wasmsafe!(instance.resolve_next_subscription_item(context.clone()).await);
 
                     match next {
-                        Ok(Ok(Some(item))) => match item {
+                        Ok(Some(item)) => match item {
                             SubscriptionItem::Single(resp) => {
                                 return Some((resp.into(), (Some(instance), queue, context)));
                             }
@@ -53,27 +43,19 @@ impl UniqueSubscription {
                                 return queue.pop_front().map(|resp| (resp, (Some(instance), queue, context)));
                             }
                         },
-                        Ok(Ok(None)) => {
-                            if let Err(err) = instance.drop_subscription(context.clone()).await {
+                        Ok(None) => {
+                            if let Err(err) = wasmsafe!(instance.drop_subscription(context.clone()).await) {
                                 tracing::error!("Error dropping subscription: {err}");
                             }
+                            instance.recyclable = true;
                             return None;
                         }
-                        Ok(Err(err)) => {
-                            if let Err(err) = instance.drop_subscription(context.clone()).await {
-                                tracing::error!("Error dropping subscription: {err}");
-                            }
-                            return Some((Response::error(err), (None, queue, context)));
-                        }
                         Err(err) => {
-                            tracing::error!("Error resolving subscription item: {err}");
-                            if let Err(err) = instance.drop_subscription(context.clone()).await {
+                            if let Err(err) = wasmsafe!(instance.drop_subscription(context.clone()).await) {
                                 tracing::error!("Error dropping subscription: {err}");
                             }
-                            return Some((
-                                Response::error(GraphqlError::internal_extension_error()),
-                                (None, queue, context),
-                            ));
+                            instance.recyclable = true;
+                            return Some((Response::error(err), (None, queue, context)));
                         }
                     }
                 }

@@ -20,11 +20,11 @@ fn double_authentication() {
                 "#,
             ))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
-            .with_extension("auth-09")
+            .with_extension("auth-10")
             .with_extension("auth-15")
             .with_toml_config(
                 r#"
-                [extensions.auth-09.config]
+                [extensions.auth-10.config]
                 header_name = "auth09"
 
                 [extensions.auth-15.config]
@@ -39,7 +39,7 @@ fn double_authentication() {
         {
           "errors": [
             {
-              "message": "Not passing through on my watch! SDK-09",
+              "message": "Not passing through on my watch! SDK-10",
               "extensions": {
                 "code": "UNAUTHENTICATED"
               }
@@ -70,7 +70,7 @@ fn double_authentication() {
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
-            "header": "sdk09:valid:default"
+            "header": "sdk10:valid:default"
           }
         }
         "#);
@@ -104,7 +104,7 @@ fn double_authentication_with_deny_default() {
                 "#,
             ))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
-            .with_extension("auth-09")
+            .with_extension("auth-10")
             .with_extension("auth-15")
             .with_toml_config(
                 r#"
@@ -114,7 +114,7 @@ fn double_authentication_with_deny_default() {
                 [extensions.auth-15.config]
                 header_name = "auth15"
 
-                [extensions.auth-09.config]
+                [extensions.auth-10.config]
                 header_name = "auth09"
                 "#,
             )
@@ -126,7 +126,7 @@ fn double_authentication_with_deny_default() {
         {
           "errors": [
             {
-              "message": "Not passing through on my watch! SDK-09",
+              "message": "Not passing through on my watch! SDK-10",
               "extensions": {
                 "code": "UNAUTHENTICATED"
               }
@@ -158,7 +158,7 @@ fn double_authentication_with_deny_default() {
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
-            "header": "sdk09:valid:default"
+            "header": "sdk10:valid:default"
           }
         }
         "#);
@@ -179,14 +179,14 @@ fn double_authentication_with_anonymous_default() {
                 "#,
             ))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
-            .with_extension("auth-09")
+            .with_extension("auth-10")
             .with_extension("auth-15")
             .with_toml_config(
                 r#"
                 [authentication]
                 default = "anonymous"
 
-                [extensions.auth-09.config]
+                [extensions.auth-10.config]
                 header_name = "auth09"
 
                 [extensions.auth-15.config]
@@ -212,7 +212,7 @@ fn double_authentication_with_anonymous_default() {
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
-            "header": "sdk09:valid:default"
+            "header": "sdk10:valid:default"
           }
         }
         "#);

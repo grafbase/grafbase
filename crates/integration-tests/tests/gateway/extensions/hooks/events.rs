@@ -10,7 +10,7 @@ fn receive_events() {
         let engine = Gateway::builder()
             .with_toml_config(
                 r#"
-                [extensions.hooks]
+                [extensions.hooks-17]
                 path = "./data/extensions/crates/hooks/build"
                 stdout = true
                 stderr = true
@@ -19,11 +19,11 @@ fn receive_events() {
                 rule = "forward"
                 name = "x-incoming-header"
 
-                [extensions.hooks.config]
+                [extensions.hooks-17.config]
                 events_header_name = "x-events"
             "#,
             )
-            .with_extension("hooks")
+            .with_extension("hooks-17")
             .with_subgraph(EchoSchema)
             .build()
             .await;
@@ -99,12 +99,12 @@ fn access_logs_with_working_subgraph() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = formatdoc! {r#"
-        [extensions.access-logs]
+        [extensions.access-logs-18]
         path = "./data/extensions/crates/access-logs/build"
         stdout = true
         stderr = true
 
-        [extensions.access-logs.config]
+        [extensions.access-logs-18.config]
         path = "{path}/access.log"
 
         [telemetry.tracing.propagation]
@@ -117,7 +117,7 @@ fn access_logs_with_working_subgraph() {
     let mut response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_extension("access-logs")
+            .with_extension("access-logs-18")
             .with_subgraph(EchoSchema)
             .build()
             .await;
@@ -187,7 +187,7 @@ fn access_logs_with_working_subgraph() {
           "on_request": {
             "value": 1
           },
-          "extension_name": "access-logs",
+          "extension_name": "access-logs-18",
           "event_name": "on_request"
         }
       ]
@@ -201,12 +201,12 @@ fn access_logs_operation_limits() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = formatdoc! {r#"
-        [extensions.access-logs]
+        [extensions.access-logs-18]
         path = "./data/extensions/crates/access-logs/build"
         stdout = true
         stderr = true
 
-        [extensions.access-logs.config]
+        [extensions.access-logs-18.config]
         path = "{path}/access.log"
 
         [complexity_control]
@@ -222,7 +222,7 @@ fn access_logs_operation_limits() {
     let mut response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_extension("access-logs")
+            .with_extension("access-logs-18")
             .with_subgraph(EchoSchema)
             .build()
             .await;
@@ -292,7 +292,7 @@ fn access_logs_operation_limits() {
           "on_request": {
             "value": 1
           },
-          "extension_name": "access-logs",
+          "extension_name": "access-logs-18",
           "event_name": "on_request"
         }
       ]
@@ -306,12 +306,12 @@ fn access_logs_with_broken_query() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = formatdoc! {r#"
-        [extensions.access-logs]
+        [extensions.access-logs-18]
         path = "./data/extensions/crates/access-logs/build"
         stdout = true
         stderr = true
 
-        [extensions.access-logs.config]
+        [extensions.access-logs-18.config]
         path = "{path}/access.log"
 
         [telemetry.tracing.propagation]
@@ -324,7 +324,7 @@ fn access_logs_with_broken_query() {
     let mut response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_extension("access-logs")
+            .with_extension("access-logs-18")
             .with_subgraph(EchoSchema)
             .build()
             .await;
@@ -381,7 +381,7 @@ fn access_logs_with_broken_query() {
           "on_request": {
             "value": 1
           },
-          "extension_name": "access-logs",
+          "extension_name": "access-logs-18",
           "event_name": "on_request"
         }
       ]
@@ -395,12 +395,12 @@ fn access_logs_with_caching() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = formatdoc! {r#"
-        [extensions.access-logs]
+        [extensions.access-logs-18]
         path = "./data/extensions/crates/access-logs/build"
         stdout = true
         stderr = true
 
-        [extensions.access-logs.config]
+        [extensions.access-logs-18.config]
         path = "{path}/access.log"
 
         [entity_caching]
@@ -417,7 +417,7 @@ fn access_logs_with_caching() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_extension("access-logs")
+            .with_extension("access-logs-18")
             .with_subgraph(EchoSchema)
             .build()
             .await;
@@ -497,7 +497,7 @@ fn access_logs_with_caching() {
               "on_request": {
                 "value": 1
               },
-              "extension_name": "access-logs",
+              "extension_name": "access-logs-18",
               "event_name": "on_request"
             }
           ]
@@ -529,7 +529,7 @@ fn access_logs_with_caching() {
               "on_request": {
                 "value": 1
               },
-              "extension_name": "access-logs",
+              "extension_name": "access-logs-18",
               "event_name": "on_request"
             }
           ]

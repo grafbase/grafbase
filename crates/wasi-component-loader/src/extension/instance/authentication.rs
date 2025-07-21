@@ -1,16 +1,18 @@
+use engine_error::ErrorResponse;
 use futures::future::BoxFuture;
 use runtime::{authentication::PublicMetadataEndpoint, extension::Token};
 
-use crate::{Error, ErrorResponse, SharedContext, resources::Lease};
+use crate::{WasmContext, resources::Lease};
 
 pub(crate) trait AuthenticationExtensionInstance {
-    fn authenticate(
-        &mut self,
-        context: SharedContext,
+    #[allow(clippy::type_complexity)]
+    fn authenticate<'a>(
+        &'a mut self,
+        context: &'a WasmContext,
         headers: Lease<http::HeaderMap>,
-    ) -> BoxFuture<'_, Result<(Lease<http::HeaderMap>, Token), ErrorResponse>>;
+    ) -> BoxFuture<'a, wasmtime::Result<Result<(Lease<http::HeaderMap>, Token), ErrorResponse>>>;
 
-    fn public_metadata(&mut self) -> BoxFuture<'_, Result<Vec<PublicMetadataEndpoint>, Error>> {
-        Box::pin(std::future::ready(Ok(vec![])))
+    fn public_metadata(&mut self) -> BoxFuture<'_, wasmtime::Result<Result<Vec<PublicMetadataEndpoint>, String>>> {
+        Box::pin(std::future::ready(Ok(Ok(vec![]))))
     }
 }

@@ -32,7 +32,7 @@ impl EngineWasmExtensions {
         gateway_config: &Config,
         schema: &Arc<Schema>,
         logging_filter: String,
-    ) -> crate::Result<Self> {
+    ) -> wasmtime::Result<Self> {
         let mut extensions = load_extensions_config(extension_catalog, gateway_config, logging_filter, |ty| {
             matches!(
                 ty,
@@ -52,9 +52,9 @@ impl EngineWasmExtensions {
             .iter()
             .any(|ext| matches!(ext.r#type, TypeDiscriminants::Contracts))
         {
-            return Err(crate::Error::Internal(anyhow::anyhow!(
-                "Multiple contracts extensions cannot be used together."
-            )));
+            return Err(wasmtime::Error::msg(
+                "Multiple contracts extensions cannot be used together.",
+            ));
         }
 
         Ok(Self(Arc::new(EngineWasmExtensionsInner {
@@ -99,7 +99,7 @@ impl EngineWasmExtensions {
         &self.0.subscriptions
     }
 
-    pub async fn clone_and_adjust_for_contract(&self, schema: &Arc<Schema>) -> crate::Result<Self> {
+    pub async fn clone_and_adjust_for_contract(&self, schema: &Arc<Schema>) -> wasmtime::Result<Self> {
         let mut pools =
             HashMap::with_capacity_and_hasher(self.0.pools.len(), BuildHasherDefault::<FxHasher32>::default());
         for (id, pool) in self.0.pools.iter() {
@@ -117,7 +117,7 @@ impl EngineWasmExtensions {
 async fn create_pools(
     schema: &Arc<Schema>,
     extensions: Vec<ExtensionConfig>,
-) -> crate::Result<HashMap<ExtensionId, Pool, BuildHasherDefault<FxHasher32>>> {
+) -> wasmtime::Result<HashMap<ExtensionId, Pool, BuildHasherDefault<FxHasher32>>> {
     let parallelism = std::thread::available_parallelism()
         .ok()
         // Each extensions takes quite a lot of CPU.
@@ -135,7 +135,7 @@ async fn create_pools(
         let id = config.id;
         let pool = Pool::new(schema.clone(), Arc::new(config)).await?;
 
-        crate::Result::Ok((id, pool))
+        Ok((id, pool))
     }))
     .buffer_unordered(parallelism)
     .try_collect()

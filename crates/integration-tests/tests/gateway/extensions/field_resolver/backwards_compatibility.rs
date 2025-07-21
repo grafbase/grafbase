@@ -1,14 +1,14 @@
 use integration_tests::{gateway::Gateway, runtime};
 
 #[test]
-fn resolver_090() {
+fn resolver_0_10_0() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_subgraph_sdl(
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-09-1.0.0", import: ["@config", "@resolve"])
+                    @link(url: "resolver-10-1.0.0", import: ["@config", "@resolve"])
                     @config(id: 879)
 
                 type Query {
@@ -21,7 +21,7 @@ fn resolver_090() {
                 }
                 "#,
             )
-            .with_extension("resolver-09")
+            .with_extension("resolver-10")
             .build()
             .await;
 

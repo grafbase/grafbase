@@ -1,51 +1,46 @@
-use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use engine_schema::{DirectiveSiteId, Schema, TypeDefinition, TypeSystemDirective};
 use extension_catalog::ExtensionId;
 use rapidhash::RapidHashMap;
 use runtime::extension::ContractsExtension;
 
 use crate::{
-    Error, SharedContext, cbor,
+    WasmContext, cbor,
     extension::{EngineWasmExtensions, api::wit},
+    wasmsafe,
 };
 
-impl ContractsExtension<SharedContext> for EngineWasmExtensions {
-    async fn construct(&self, context: &SharedContext, key: String, schema: Schema) -> Result<Schema, ErrorResponse> {
-        let Some(mut instance) = self.contracts().await? else {
-            tracing::error!("Missing contracts extensions, cannot handle contract key: {key}");
-            return Err(ErrorResponse::new(http::StatusCode::INTERNAL_SERVER_ERROR)
-                .with_error(GraphqlError::internal_server_error()));
+impl ContractsExtension<WasmContext> for EngineWasmExtensions {
+    async fn construct(&self, context: &WasmContext, key: String, schema: Schema) -> Option<Schema> {
+        let mut instance = match self.contracts().await {
+            Ok(Some(instance)) => instance,
+            Ok(None) => {
+                tracing::error!("No contract extension defined");
+                return None;
+            }
+            Err(err) => {
+                tracing::error!("Failed to get instance for contract extension: {err}");
+                return None;
+            }
         };
 
         let (directives, sites_by_directive) = SiteIngester::ingest(instance.store().data().extension_id(), &schema);
         let n_directives = directives.len();
+        let subgraphs = schema
+            .subgraphs()
+            .filter_map(|sg| sg.as_graphql_endpoint())
+            .map(|gql| wit::GraphqlSubgraphParam {
+                name: gql.subgraph_name(),
+                url: gql.url().as_str(),
+            })
+            .collect();
 
-        let mut contract = instance
-            .construct(
-                context.clone(),
-                &key,
-                directives,
-                schema
-                    .subgraphs()
-                    .filter_map(|sg| sg.as_graphql_endpoint())
-                    .map(|gql| wit::GraphqlSubgraphParam {
-                        name: gql.subgraph_name(),
-                        url: gql.url().as_str(),
-                    })
-                    .collect(),
-            )
-            .await
-            .map_err(|err| match err {
-                Error::Internal(err) => {
-                    tracing::error!("Wasm error: {err}");
-                    GraphqlError::internal_extension_error()
-                }
-                Error::Guest(err) => err.into_graphql_error(ErrorCode::ExtensionError),
-            })?
-            .map_err(|err| {
-                tracing::error!("Could not build contract: {err}");
-                GraphqlError::internal_extension_error()
-            })?;
+        let mut contract = match wasmsafe!(instance.construct(context, &key, directives, subgraphs).await) {
+            Ok(contract) => contract,
+            Err(err) => {
+                tracing::error!("Failed to construct contract for key {key}: {err}");
+                return None;
+            }
+        };
 
         let mut schema = schema.into_mutable();
         if !contract.accessible_by_default {
@@ -86,16 +81,19 @@ impl ContractsExtension<SharedContext> for EngineWasmExtensions {
         }
 
         for gql in contract.subgraphs {
-            let url = gql.url.parse().map_err(|err| {
-                tracing::error!("Invalid URL for subgraph {}: {err}", gql.name);
-                GraphqlError::internal_extension_error()
-            })?;
+            let url = match gql.url.parse() {
+                Ok(url) => url,
+                Err(err) => {
+                    tracing::error!("Invalid URL for subgraph {}: {err}", gql.name);
+                    return None;
+                }
+            };
             schema.update_graphql_endpoint(&gql.name, url);
         }
 
         let schema = schema.finalize();
 
-        Ok(schema)
+        Some(schema)
     }
 }
 

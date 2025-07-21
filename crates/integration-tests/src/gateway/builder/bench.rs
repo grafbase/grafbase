@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use bytes::Bytes;
-use engine::Body;
+use engine::{Body, RequestExtensions};
 use event_queue::SubgraphResponseBuilder;
 use futures::{StreamExt, TryStreamExt};
 use runtime::{
@@ -74,8 +74,11 @@ impl DeterministicEngineBuilder<'_> {
                     http::header::CONTENT_TYPE,
                     http::HeaderValue::from_static("application/json"),
                 )
-                .extension(ExtContext::default())
-                .extension(LegacyToken::Anonymous)
+                .extension(RequestExtensions {
+                    context: ExtContext::default(),
+                    token: LegacyToken::Anonymous,
+                    contract_key: None,
+                })
                 .body(())
                 .unwrap()
                 .into_parts()
