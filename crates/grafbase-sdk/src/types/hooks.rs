@@ -16,7 +16,7 @@ impl OnRequestOutput {
     }
 
     /// Sets the contract key for the request.
-    pub fn contract_key(&mut self, contract_key: String) -> &mut Self {
+    pub fn contract_key(mut self, contract_key: String) -> Self {
         self.0.contract_key = Some(contract_key);
         self
     }
