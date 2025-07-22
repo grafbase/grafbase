@@ -1,4 +1,4 @@
-use crate::{Diagnostics, federated_graph::FederatedGraph};
+use crate::{Diagnostics, diagnostics::CompositeSchemasErrorCode, federated_graph::FederatedGraph};
 
 /// The result of a [`compose()`](crate::compose()) invocation.
 pub struct CompositionResult {
@@ -8,8 +8,11 @@ pub struct CompositionResult {
 
 impl CompositionResult {
     /// Treat all warnings as fatal.
+    #[doc(hidden)]
     pub fn warnings_are_fatal(mut self) -> Self {
-        if !self.diagnostics.is_empty() {
+        if self.diagnostics.iter().any(|diagnostic| {
+            diagnostic.composite_shemas_error_code() != Some(CompositeSchemasErrorCode::LookupReturnsNonNullableType)
+        }) {
             self.federated_graph = None;
         }
         self

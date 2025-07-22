@@ -7,6 +7,7 @@
 - Implemented support for the `@internal` directive from the composite schemas spec (https://github.com/grafbase/grafbase/pull/3185)
 - Implemented support for the `@require` directive from the composite schemas spec (https://github.com/grafbase/grafbase/pull/3189)
 - Implemented validation that the root query type is not `@inaccessible`. (https://github.com/grafbase/grafbase/pull/3281)
+- Implemented composite schemas spec validation to warn against non-nullable lookup fields. (https://github.com/grafbase/grafbase/pull/3295)
 - The `diagnostics` module is now exposed, as well as the `Diagnostic` and `Severity` types, and the  `Diagnostics::iter()` method.
 
 ## Breaking changes
