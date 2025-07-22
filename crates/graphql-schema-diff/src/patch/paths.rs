@@ -44,7 +44,7 @@ where
     pub(super) fn iter_second_level<'b: 'a>(&'b self, parent: &'b str) -> impl Iterator<Item = ChangeView<'a, T>> + 'b {
         self.paths
             .iter()
-            .filter(move |(change, _)| change[0] == parent && !change[1].is_empty() && change[2].is_empty())
+            .filter(move |(change, _)| change[0] == parent && !change[1].is_empty())
             .map(|(_, idx)| ChangeView { paths: self, idx: *idx })
     }
 
@@ -111,6 +111,13 @@ where
 
     pub(crate) fn path(self) -> &'a str {
         &self.paths.diff[self.idx].path
+    }
+
+    pub(crate) fn second_and_third_level(self) -> [&'a str; 2] {
+        let [_first, second, third] = split_path(self.path());
+        debug_assert!(!second.is_empty());
+        debug_assert!(!third.is_empty());
+        [second, third]
     }
 
     /// The second part of the path. E.g. "foo.bar" -> "bar".

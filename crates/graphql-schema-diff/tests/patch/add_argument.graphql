@@ -1,0 +1,17 @@
+interface Food implements Node @nestedInterface {
+  kcal(sources: [String]): Int!
+}
+
+type Query {
+  fruitCreate(dryRun: Boolean, input: FruitCreateInput! = { kcal: 46 }): Fruit
+}
+
+# --- #
+
+interface Food implements Node @nestedInterface {
+  kcal: Int!
+}
+
+type Query {
+  fruitCreate(input: FruitCreateInput! = { kcal: 46 }): Fruit
+}
