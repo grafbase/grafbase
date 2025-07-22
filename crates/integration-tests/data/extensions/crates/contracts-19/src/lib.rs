@@ -32,7 +32,7 @@ impl ContractsExtension for Contracts {
             included_tags,
             excluded_tags,
         } = serde_json::from_str(&key).map_err(|err| format!("Could not read contract key: {err}"))?;
-        let mut contract = Contract::new();
+        let mut contract = Contract::new(&directives);
 
         // Apollo doc (https://www.apollographql.com/docs/graphos/platform/schema-management/delivery/contracts/create#3-create-a-contract):
         //     - If the Included Tags list is empty, the contract schema includes each type and object/interface field

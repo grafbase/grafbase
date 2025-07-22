@@ -98,7 +98,7 @@ fn init() {
             directives: Vec<ContractDirective<'_>>,
             subgraphs: Vec<GraphqlSubgraph>,
         ) -> Result<Contract, Error> {
-            Ok(Contract::new())
+            Ok(Contract::new(&directives))
         }
     }
     "##);
