@@ -60,7 +60,10 @@ fn authentication_returns_401(#[case] method: http::Method, #[case] accept: &'st
 #[test]
 fn missing_accept_header() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         let response = engine
             .raw_execute(
@@ -95,7 +98,10 @@ fn missing_accept_header() {
 #[test]
 fn star_accept_header_should_be_accepted() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         let response = engine
             .raw_execute(
@@ -198,7 +204,10 @@ fn unsupported_accept_header() {
 #[test]
 fn one_valid_acccept_header() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         let response = engine
             .raw_execute(

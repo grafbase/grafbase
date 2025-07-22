@@ -58,7 +58,10 @@ fn success() {
 #[test]
 fn disabled() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         // Query should work
         let response = engine

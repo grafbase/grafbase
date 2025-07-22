@@ -4,7 +4,10 @@ use integration_tests::{gateway::Gateway, runtime};
 #[test]
 fn typename_alias_should_work() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         engine
             .post(

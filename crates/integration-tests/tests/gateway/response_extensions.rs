@@ -8,7 +8,10 @@ use integration_tests::{gateway::Gateway, runtime};
 #[test]
 fn grafbase_extension_on_successful_request() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         let response = engine
             .post("query { serverVersion }")
@@ -185,7 +188,10 @@ fn grafbase_extension_on_subgraph_error() {
 #[test]
 fn grafbase_extension_on_invalid_request() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         let response = engine.post("query x }").header("x-grafbase-telemetry", "yes").await;
 
@@ -335,7 +341,10 @@ fn grafbase_extension_denied() {
 #[test]
 fn grafbase_extension_on_ill_formed_graphql_over_http_request() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         let response = engine
             .raw_execute(

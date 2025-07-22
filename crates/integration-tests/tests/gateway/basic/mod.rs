@@ -27,7 +27,10 @@ use integration_tests::{gateway::Gateway, runtime};
 #[test]
 fn single_field_from_single_server() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         engine.post("query { serverVersion }").await
     });
@@ -44,7 +47,10 @@ fn single_field_from_single_server() {
 #[test]
 fn top_level_typename() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         engine.post("query { __typename }").await
     });
@@ -61,7 +67,10 @@ fn top_level_typename() {
 #[test]
 fn only_typename() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         engine
             .post(
@@ -103,7 +112,10 @@ fn only_typename() {
 #[test]
 fn response_with_lists() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         engine.post("query { allBotPullRequests { title } }").await
     });
