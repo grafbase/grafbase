@@ -15,7 +15,7 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_14_0 {
         headers: Lease<http::HeaderMap>,
     ) -> BoxFuture<'_, wasmtime::Result<Result<(Lease<http::HeaderMap>, Token), ErrorResponse>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
             let result = self
@@ -24,12 +24,7 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_14_0 {
                 .call_authenticate(&mut self.store, headers)
                 .await?;
 
-            let headers = self
-                .store
-                .data_mut()
-                .take_resource::<Headers>(headers_rep)?
-                .into_lease()
-                .unwrap();
+            let headers = self.store.data_mut().take_leased_resource(headers_rep)?;
 
             Ok(result
                 .map(|token| (headers, token.into()))

@@ -2,13 +2,14 @@ use std::time::Duration;
 
 use grafbase_sdk::{
     AuthenticationExtension,
-    host_io::cache::{self, CachedItem},
-    types::{Configuration, Error, ErrorResponse, GatewayHeaders, HttpHeaders, Token},
+    host_io::cache::Cache,
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders, Token},
 };
 
 #[derive(AuthenticationExtension)]
 struct CachingProvider {
     config: ProviderConfig,
+    cache: Cache,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -25,7 +26,10 @@ impl AuthenticationExtension for CachingProvider {
     fn new(config: Configuration) -> Result<Self, Error> {
         let config: ProviderConfig = config.deserialize()?;
 
-        Ok(Self { config })
+        Ok(Self {
+            config,
+            cache: Cache::builder("test", 128).build(),
+        })
     }
 
     fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
@@ -43,16 +47,17 @@ impl AuthenticationExtension for CachingProvider {
 
         let cache_key = format!("auth:{}:{header}", self.config.cache_config);
 
-        let jwks: Jwks = cache::get(&cache_key, || {
-            std::thread::sleep(Duration::from_millis(300));
+        let jwks_bytes = self
+            .cache
+            .get_or_init(&cache_key, || {
+                std::thread::sleep(Duration::from_millis(300));
 
-            let jwks = Jwks { key: value };
-            let item = CachedItem::new(jwks, None);
+                let jwks = Jwks { key: value };
 
-            Ok(item)
-        })
-        .unwrap();
+                serde_json::to_vec(&jwks)
+            })
+            .unwrap();
 
-        Ok(Token::from_bytes(serde_json::to_vec(&jwks).unwrap()))
+        Ok(Token::from_bytes(jwks_bytes))
     }
 }

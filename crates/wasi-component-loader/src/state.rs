@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use super::cache::Cache;
 use dashmap::DashMap;
 use engine_error::{ErrorCode, ErrorResponse};
 use extension_catalog::ExtensionId;
@@ -14,8 +13,9 @@ use wasmtime_wasi::{
 use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 use crate::{
+    cache::LegacyCache,
     extension::{ExtensionConfig, api::wit},
-    resources::{self, FileLogger, GrpcClient, Headers},
+    resources::{Cache, FileLogger, GrpcClient, KafkaProducer, Lease, WasmOwnedOrLease},
 };
 
 /// Represents the state of the WASI environment.
@@ -23,42 +23,74 @@ use crate::{
 /// This structure encapsulates the WASI context, HTTP context, and a resource table
 /// for managing shared resources in memory. It provides methods to create new instances,
 /// manage resources, and access the contexts.
-pub(crate) struct WasiState {
+pub(crate) struct InstanceState {
     /// The WASI context that contains the state for the WASI environment.
-    ctx: WasiCtx,
+    pub wasi_ctx: WasiCtx,
 
     /// The WASI HTTP context that handles HTTP-related operations.
-    http_ctx: WasiHttpCtx,
+    pub wasi_http_ctx: WasiHttpCtx,
 
     /// The resource table that manages shared resources in memory.
-    pub table: ResourceTable,
+    pub resources: ResourceTable,
 
-    /// The histogram for request durations.
-    request_durations: Histogram<u64>,
-
-    /// A client for making HTTP requests from the guest.
-    http_client: reqwest::Client,
-
-    /// A cache to be used for storing data between calls to different instances of the same extension.
-    cache: Arc<Cache>,
-
-    /// A map of PostgreSQL connection pools per named connection.
-    postgres_pools: DashMap<String, sqlx::Pool<Postgres>>,
-
-    /// A map of gRPC clients per named connection.
-    grpc_clients: DashMap<String, resources::GrpcClient>,
-
-    /// A map of Kafka producers per named connection.
-    kafka_producers: DashMap<String, resources::KafkaProducer>,
-
-    /// A map of file loggers per named connection.
-    file_loggers: DashMap<String, resources::FileLogger>,
-
-    /// The name of the extension.
-    config: Arc<ExtensionConfig>,
+    pub shared: Arc<ExtensionState>,
 }
 
-impl WasiState {
+impl std::ops::Deref for InstanceState {
+    type Target = ExtensionState;
+    fn deref(&self) -> &Self::Target {
+        &self.shared
+    }
+}
+
+/// Shared across extension instances and schema contracts.
+pub(crate) struct ExtensionState {
+    /// The histogram for request durations.
+    pub request_durations: Histogram<u64>,
+
+    /// A client for making HTTP requests from the guest.
+    pub http_client: reqwest::Client,
+
+    /// A cache to be used for storing data between calls to different instances of the same extension.
+    pub legacy_cache: LegacyCache, // Up to SDK 0.18
+    pub caches: DashMap<String, Cache>, // Cache by name
+
+    /// A map of PostgreSQL connection pools per named connection.
+    pub postgres_pools: DashMap<String, sqlx::Pool<Postgres>>,
+
+    /// A map of gRPC clients per named connection.
+    pub grpc_clients: DashMap<String, GrpcClient>,
+
+    /// A map of Kafka producers per named connection.
+    pub kafka_producers: DashMap<String, KafkaProducer>,
+
+    /// A map of file loggers per named connection.
+    pub file_loggers: DashMap<String, FileLogger>,
+
+    /// The name of the extension.
+    pub config: ExtensionConfig,
+}
+
+impl ExtensionState {
+    pub fn new(config: ExtensionConfig) -> Self {
+        let meter = meter_from_global_provider();
+        let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").build();
+        let http_client = reqwest::Client::new();
+        Self {
+            request_durations,
+            http_client,
+            legacy_cache: LegacyCache::new(),
+            caches: DashMap::new(),
+            postgres_pools: DashMap::new(),
+            grpc_clients: DashMap::new(),
+            kafka_producers: DashMap::new(),
+            file_loggers: DashMap::new(),
+            config,
+        }
+    }
+}
+
+impl InstanceState {
     /// Creates a new instance of `WasiState` with the given WASI context.
     ///
     /// # Arguments
@@ -69,43 +101,27 @@ impl WasiState {
     ///
     /// A new `WasiState` instance initialized with the provided context and default
     /// HTTP and resource table contexts.
-    pub fn new(config: Arc<ExtensionConfig>, cache: Arc<Cache>) -> Self {
-        let meter = meter_from_global_provider();
-        let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").build();
-        let http_client = reqwest::Client::new();
-
+    pub fn new(shared: Arc<ExtensionState>) -> Self {
         Self {
-            ctx: crate::config::build_context(&config.wasm),
-            http_ctx: WasiHttpCtx::new(),
-            table: ResourceTable::new(),
-            request_durations,
-            http_client,
-            cache,
-            postgres_pools: DashMap::new(),
-            grpc_clients: DashMap::new(),
-            kafka_producers: DashMap::new(),
-            file_loggers: DashMap::new(),
-            config,
+            wasi_ctx: crate::config::build_context(&shared.config.wasm),
+            wasi_http_ctx: WasiHttpCtx::new(),
+            resources: ResourceTable::new(),
+            shared,
         }
     }
 
-    /// Pushes a resource into the shared memory, allowing it to be managed by the resource table.
-    pub fn push_resource<T: Send + 'static>(&mut self, entry: T) -> wasmtime::Result<Resource<T>> {
-        self.table.push(entry).map_err(Into::into)
-    }
-
-    /// Takes ownership of a resource identified by its representation ID from the shared memory.
-    pub fn take_resource<T: 'static>(&mut self, rep: u32) -> wasmtime::Result<T> {
-        let resource = self.table.delete(Resource::<T>::new_own(rep))?;
-
-        Ok(resource)
+    /// Takes ownership of a leased resource that the guest cannot drop and doesn't have ownership
+    /// of. Ideally we don't have any... Prefer sending the resource and returning it from the SDK.
+    /// If not careful with it in the guest, this can lead to resources being dropped on the host
+    /// side but not in the guest.
+    pub fn take_leased_resource<T: 'static>(&mut self, rep: u32) -> wasmtime::Result<Lease<T>> {
+        let resource = self.resources.delete(Resource::<WasmOwnedOrLease<T>>::new_own(rep))?;
+        Ok(resource.into_lease().unwrap())
     }
 
     pub fn take_error_response(&mut self, err: wit::ErrorResponse, code: ErrorCode) -> wasmtime::Result<ErrorResponse> {
         let headers = if let Some(resource) = err.headers {
-            self.take_resource::<Headers>(resource.rep())?
-                .into_inner()
-                .expect("Should be owned")
+            self.resources.delete(resource)?.into_inner().expect("Should be owned")
         } else {
             Default::default()
         };
@@ -117,55 +133,10 @@ impl WasiState {
         .with_headers(headers))
     }
 
-    /// Gets a mutable reference to the instance identified by the given resource.
-    pub fn get_mut<T: 'static>(&mut self, resource: &Resource<T>) -> wasmtime::Result<&mut T> {
-        self.table.get_mut(resource).map_err(Into::into)
-    }
-
-    /// Retrieves a reference to the instance identified by the given resource.
-    pub fn get<T: 'static>(&self, resource: &Resource<T>) -> wasmtime::Result<&T> {
-        self.table.get(resource).map_err(Into::into)
-    }
-
-    /// Returns a reference to the histogram tracking request durations.
-    pub fn request_durations(&self) -> &Histogram<u64> {
-        &self.request_durations
-    }
-
-    /// Returns a reference to the map of gRPC clients.
-    pub(crate) fn grpc_clients(&self) -> &DashMap<String, GrpcClient> {
-        &self.grpc_clients
-    }
-
-    /// Returns a reference to the map of file loggers.
-    pub fn file_loggers(&self) -> &DashMap<String, FileLogger> {
-        &self.file_loggers
-    }
-
-    /// Returns a reference to the HTTP client used for making requests from the guest.
-    pub fn http_client(&self) -> &reqwest::Client {
-        &self.http_client
-    }
-
-    /// Returns a reference to the map of PostgreSQL connection pools.
-    pub fn postgres_pools(&self) -> &DashMap<String, sqlx::Pool<Postgres>> {
-        &self.postgres_pools
-    }
-
-    /// Returns a reference to the map of Kafka producers.
-    pub fn kafka_producers(&self) -> &DashMap<String, resources::KafkaProducer> {
-        &self.kafka_producers
-    }
-
-    /// Returns a reference to the cache.
-    pub fn cache(&self) -> &Cache {
-        &self.cache
-    }
-
     /// Returns whether network operations are enabled for this WASI instance.
     ///
     /// When `false`, any network operations attempted by the guest will fail.
-    pub fn network_enabled(&self) -> bool {
+    pub fn is_network_enabled(&self) -> bool {
         self.config.wasm.networking
     }
 
@@ -178,20 +149,20 @@ impl WasiState {
     }
 }
 
-impl IoView for WasiState {
+impl IoView for InstanceState {
     fn table(&mut self) -> &mut ResourceTable {
-        &mut self.table
+        &mut self.resources
     }
 }
 
-impl WasiView for WasiState {
+impl WasiView for InstanceState {
     fn ctx(&mut self) -> &mut WasiCtx {
-        &mut self.ctx
+        &mut self.wasi_ctx
     }
 }
 
-impl WasiHttpView for WasiState {
+impl WasiHttpView for InstanceState {
     fn ctx(&mut self) -> &mut WasiHttpCtx {
-        &mut self.http_ctx
+        &mut self.wasi_http_ctx
     }
 }

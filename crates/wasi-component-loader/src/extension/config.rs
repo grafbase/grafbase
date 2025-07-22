@@ -16,7 +16,7 @@ pub(crate) struct ExtensionConfig<T = toml::Value> {
     pub logging_filter: String,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub(crate) struct PoolConfig {
     pub max_size: Option<usize>,
 }

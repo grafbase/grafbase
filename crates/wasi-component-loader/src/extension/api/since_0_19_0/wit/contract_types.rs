@@ -1,5 +1,5 @@
-use crate::WasiState;
+use crate::InstanceState;
 
 pub use super::grafbase::sdk::contracts_types::*;
 
-impl Host for WasiState {}
+impl Host for InstanceState {}

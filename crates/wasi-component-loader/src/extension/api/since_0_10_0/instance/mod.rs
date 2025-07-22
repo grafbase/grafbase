@@ -8,7 +8,7 @@ use extension_catalog::TypeDiscriminants;
 use wasmtime::Store;
 
 use crate::{
-    WasiState, cbor,
+    InstanceState, cbor,
     extension::{
         ContractsExtensionInstance, ExtensionConfig, ExtensionInstance, HooksExtensionInstance,
         ResolverExtensionInstance, SelectionSetResolverExtensionInstance,
@@ -23,7 +23,7 @@ use super::wit;
 use wit::grafbase::sdk::directive::SchemaDirective;
 
 pub struct SdkPre0_10_0 {
-    pre: wit::SdkPre<crate::WasiState>,
+    pre: wit::SdkPre<crate::InstanceState>,
     guest_config: Vec<u8>,
     #[allow(unused)]
     schema: Arc<Schema>,
@@ -36,7 +36,7 @@ impl SdkPre0_10_0 {
         schema: Arc<Schema>,
         config: &ExtensionConfig<T>,
         component: Component,
-        mut linker: Linker<WasiState>,
+        mut linker: Linker<InstanceState>,
     ) -> wasmtime::Result<Self> {
         let mut schema_directives = Vec::new();
         if matches!(
@@ -69,14 +69,14 @@ impl SdkPre0_10_0 {
         wit::Sdk::add_to_linker(&mut linker, |state| state)?;
         let instance_pre = linker.instantiate_pre(&component)?;
         Ok(Self {
-            pre: wit::SdkPre::<WasiState>::new(instance_pre)?,
+            pre: wit::SdkPre::<InstanceState>::new(instance_pre)?,
             guest_config: cbor::to_vec(&config.guest_config).context("Could not serialize configuration")?,
             schema,
             schema_directives,
         })
     }
 
-    pub(crate) async fn instantiate(&self, state: WasiState) -> wasmtime::Result<Box<dyn ExtensionInstance>> {
+    pub(crate) async fn instantiate(&self, state: InstanceState) -> wasmtime::Result<Box<dyn ExtensionInstance>> {
         let mut store = Store::new(self.pre.engine(), state);
 
         let inner = self.pre.instantiate_async(&mut store).await?;
@@ -95,12 +95,12 @@ impl SdkPre0_10_0 {
 }
 
 struct ExtensionInstanceSince0_10_0 {
-    store: Store<WasiState>,
+    store: Store<InstanceState>,
     inner: super::wit::Sdk,
 }
 
 impl ExtensionInstance for ExtensionInstanceSince0_10_0 {
-    fn store(&self) -> &Store<WasiState> {
+    fn store(&self) -> &Store<InstanceState> {
         &self.store
     }
 }

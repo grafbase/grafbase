@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use super::{ExtensionConfig, ExtensionInstance};
-use crate::{cache::Cache, extension::api::SdkPre, state::WasiState};
+use super::ExtensionInstance;
+use crate::{ExtensionState, extension::api::SdkPre, state::InstanceState};
 use engine_schema::Schema;
 use wasmtime::{
     CacheConfig, Engine,
@@ -9,19 +9,19 @@ use wasmtime::{
 };
 
 pub(crate) struct ExtensionLoader {
-    pub config: Arc<ExtensionConfig>,
     pre: SdkPre,
-    cache: Arc<Cache>,
+    state: Arc<ExtensionState>,
 }
 
 impl ExtensionLoader {
-    pub(crate) fn new(schema: Arc<Schema>, config: Arc<ExtensionConfig>) -> wasmtime::Result<Self> {
+    pub(crate) fn new(schema: Arc<Schema>, state: Arc<ExtensionState>) -> wasmtime::Result<Self> {
         let mut wasm_config = wasmtime::Config::new();
 
+        let cfg = &state.config.wasm;
         wasm_config
             .wasm_component_model(true)
             .async_support(true)
-            .cache(config.wasm.location.parent().and_then(|parent| {
+            .cache(cfg.location.parent().and_then(|parent| {
                 let dir = parent.join("cache");
                 if std::fs::create_dir(&dir).is_ok() || std::fs::read_dir(&dir).is_ok() {
                     let mut cfg = CacheConfig::new();
@@ -33,34 +33,30 @@ impl ExtensionLoader {
             }));
 
         let engine = Engine::new(&wasm_config)?;
-        let component = Component::from_file(&engine, &config.wasm.location)?;
+        let component = Component::from_file(&engine, &cfg.location)?;
 
         tracing::debug!(
-            location = config.wasm.location.to_str(),
+            location = cfg.location.to_str(),
             "loaded the provided web assembly component successfully",
         );
 
-        let mut linker = Linker::<WasiState>::new(&engine);
+        let mut linker = Linker::<InstanceState>::new(&engine);
 
         // adds the wasi interfaces to our component
         wasmtime_wasi::p2::add_to_linker_async(&mut linker)?;
 
-        if config.wasm.networking {
+        if cfg.networking {
             // adds the wasi http interfaces to our component
             wasmtime_wasi_http::add_only_http_to_linker_async(&mut linker)?;
         }
 
-        let pre = SdkPre::new(schema, &config, component, linker)?;
+        let pre = SdkPre::new(schema, &state.config, component, linker)?;
 
-        Ok(Self {
-            config,
-            pre,
-            cache: Arc::new(Cache::new()),
-        })
+        Ok(Self { pre, state })
     }
 
     pub async fn instantiate(&self) -> wasmtime::Result<Box<dyn ExtensionInstance>> {
-        let state = WasiState::new(self.config.clone(), self.cache.clone());
+        let state = InstanceState::new(self.state.clone());
         self.pre.instantiate(state).await
     }
 }

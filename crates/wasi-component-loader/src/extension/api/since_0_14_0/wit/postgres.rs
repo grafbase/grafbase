@@ -3,6 +3,6 @@ mod pool;
 
 pub use super::grafbase::sdk::postgres::*;
 
-use crate::WasiState;
+use crate::InstanceState;
 
-impl Host for WasiState {}
+impl Host for InstanceState {}

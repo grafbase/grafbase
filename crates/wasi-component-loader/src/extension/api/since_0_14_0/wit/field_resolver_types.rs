@@ -1,11 +1,11 @@
 use engine_error::{ErrorCode, GraphqlError};
 use runtime::extension::Data;
 
-use crate::state::WasiState;
+use crate::state::InstanceState;
 
 pub use super::grafbase::sdk::field_resolver_types::*;
 
-impl Host for WasiState {}
+impl Host for InstanceState {}
 
 impl From<FieldOutput> for Vec<Result<Data, GraphqlError>> {
     fn from(value: FieldOutput) -> Self {

@@ -7,13 +7,13 @@ use tokio_stream::StreamExt as _;
 use wasmtime::component::Resource;
 
 pub use super::grafbase::sdk::http_client::*;
-use crate::{WasiState, extension::api::wit, http_client::send_request};
+use crate::{InstanceState, extension::api::wit, http_client::send_request};
 
-impl Host for WasiState {}
+impl Host for InstanceState {}
 
-impl HostHttpClient for WasiState {
+impl HostHttpClient for InstanceState {
     async fn execute(&mut self, request: HttpRequest) -> wasmtime::Result<Result<HttpResponse, HttpError>> {
-        if !self.network_enabled() {
+        if !self.is_network_enabled() {
             return Ok(Err(HttpError::Connect("Network is disabled".into())));
         }
 
@@ -22,7 +22,7 @@ impl HostHttpClient for WasiState {
             Err(e) => return Ok(Err(e)),
         };
 
-        let response = match send_request(request, self.request_durations().clone()).await {
+        let response = match send_request(request, self.request_durations.clone()).await {
             Ok(resp) => resp,
             Err(e) => return Ok(Err(e.into())),
         };
@@ -34,7 +34,7 @@ impl HostHttpClient for WasiState {
         &mut self,
         requests: Vec<HttpRequest>,
     ) -> wasmtime::Result<Vec<Result<HttpResponse, HttpError>>> {
-        if !self.network_enabled() {
+        if !self.is_network_enabled() {
             return Ok(vec![
                 Err(HttpError::Connect("Network is disabled".into()));
                 requests.len()
@@ -47,7 +47,7 @@ impl HostHttpClient for WasiState {
             .collect::<Vec<_>>()
             .into_iter()
             .map(|request| {
-                let request_durations = self.request_durations().clone();
+                let request_durations = self.request_durations.clone();
                 let fut: BoxFuture<'_, Result<HttpResponse, HttpError>> = match request {
                     Ok(request) => Box::pin(async move {
                         let response = send_request(request, request_durations).await?;
@@ -69,7 +69,7 @@ impl HostHttpClient for WasiState {
 }
 
 fn convert_http_request(
-    state: &mut WasiState,
+    state: &mut InstanceState,
     request: HttpRequest,
 ) -> Result<(reqwest::Client, reqwest::Request), HttpError> {
     let HttpRequest {
@@ -80,7 +80,7 @@ fn convert_http_request(
         timeout_ms,
     } = request;
 
-    let mut req = state.http_client().request(method.into(), url).body(body);
+    let mut req = state.http_client.request(method.into(), url).body(body);
 
     for (key, value) in headers {
         let Ok(key) = HeaderName::from_str(&key) else {

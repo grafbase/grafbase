@@ -3,18 +3,18 @@ mod conversion;
 use super::{
     HostPgConnection, HostPgRow, HostPgTransaction, PgBoundValue, PgConnection, PgRow, PgTransaction, PgValueTree,
 };
-use crate::WasiState;
+use crate::InstanceState;
 use sqlx::{Column, Row};
 use wasmtime::component::Resource;
 
-impl HostPgConnection for WasiState {
+impl HostPgConnection for InstanceState {
     async fn query(
         &mut self,
         self_: Resource<PgConnection>,
         query: String,
         (params, tree): (Vec<PgBoundValue>, PgValueTree),
     ) -> wasmtime::Result<Result<Vec<Resource<PgRow>>, String>> {
-        let connection = self.get_mut(&self_)?;
+        let connection = self.resources.get_mut(&self_)?;
         let mut query = sqlx::query(&query);
 
         for param in params.into_iter() {
@@ -26,7 +26,7 @@ impl HostPgConnection for WasiState {
                 let mut result = Vec::with_capacity(rows.len());
 
                 for row in rows {
-                    result.push(self.push_resource(row)?);
+                    result.push(self.resources.push(row)?);
                 }
 
                 Ok(Ok(result))
@@ -41,7 +41,7 @@ impl HostPgConnection for WasiState {
         query: String,
         (params, tree): (Vec<PgBoundValue>, PgValueTree),
     ) -> wasmtime::Result<Result<u64, String>> {
-        let connection = self.get_mut(&self_)?;
+        let connection = self.resources.get_mut(&self_)?;
         let mut query = sqlx::query(&query);
 
         for param in params.into_iter() {
@@ -55,20 +55,20 @@ impl HostPgConnection for WasiState {
     }
 
     async fn drop(&mut self, rep: Resource<PgConnection>) -> wasmtime::Result<()> {
-        self.table.delete(rep)?;
+        self.resources.delete(rep)?;
 
         Ok(())
     }
 }
 
-impl HostPgTransaction for WasiState {
+impl HostPgTransaction for InstanceState {
     async fn query(
         &mut self,
         self_: Resource<PgTransaction>,
         query: String,
         (params, tree): (Vec<PgBoundValue>, PgValueTree),
     ) -> wasmtime::Result<Result<Vec<Resource<PgRow>>, String>> {
-        let tx = self.get_mut(&self_)?;
+        let tx = self.resources.get_mut(&self_)?;
         let mut query = sqlx::query(&query);
 
         for param in params.into_iter() {
@@ -80,7 +80,7 @@ impl HostPgTransaction for WasiState {
                 let mut result = Vec::with_capacity(rows.len());
 
                 for row in rows {
-                    result.push(self.push_resource(row)?);
+                    result.push(self.resources.push(row)?);
                 }
 
                 Ok(Ok(result))
@@ -95,7 +95,7 @@ impl HostPgTransaction for WasiState {
         query: String,
         (params, tree): (Vec<PgBoundValue>, PgValueTree),
     ) -> wasmtime::Result<Result<u64, String>> {
-        let tx = self.get_mut(&self_)?;
+        let tx = self.resources.get_mut(&self_)?;
         let mut query = sqlx::query(&query);
 
         for param in params.into_iter() {
@@ -109,7 +109,7 @@ impl HostPgTransaction for WasiState {
     }
 
     async fn commit(&mut self, self_: Resource<PgTransaction>) -> wasmtime::Result<Result<(), String>> {
-        let tx: PgTransaction = self.take_resource(self_.rep())?;
+        let tx: PgTransaction = self.resources.delete(self_)?;
 
         match tx.commit().await {
             Ok(_) => Ok(Ok(())),
@@ -118,7 +118,7 @@ impl HostPgTransaction for WasiState {
     }
 
     async fn rollback(&mut self, self_: Resource<PgTransaction>) -> wasmtime::Result<Result<(), String>> {
-        let tx: PgTransaction = self.take_resource(self_.rep())?;
+        let tx: PgTransaction = self.resources.delete(self_)?;
 
         match tx.rollback().await {
             Ok(_) => Ok(Ok(())),
@@ -127,7 +127,7 @@ impl HostPgTransaction for WasiState {
     }
 
     async fn drop(&mut self, rep: Resource<PgTransaction>) -> wasmtime::Result<()> {
-        let tx: PgTransaction = self.take_resource(rep.rep())?;
+        let tx: PgTransaction = self.resources.delete(rep)?;
 
         match tx.rollback().await {
             Ok(_) => Ok(()),
@@ -136,9 +136,9 @@ impl HostPgTransaction for WasiState {
     }
 }
 
-impl HostPgRow for WasiState {
+impl HostPgRow for InstanceState {
     async fn columns(&mut self, self_: Resource<PgRow>) -> wasmtime::Result<Vec<String>> {
-        let row = self.get(&self_)?;
+        let row = self.resources.get(&self_)?;
         Ok(row.columns().iter().map(|c| c.name().to_string()).collect())
     }
 
@@ -147,7 +147,7 @@ impl HostPgRow for WasiState {
         self_: Resource<PgRow>,
         index: u64,
     ) -> wasmtime::Result<Result<Option<Vec<u8>>, String>> {
-        let row = self.get(&self_)?;
+        let row = self.resources.get(&self_)?;
 
         match row.try_get_raw(index as usize) {
             Ok(data) => Ok(Ok(data.as_bytes().ok().map(|b| b.to_vec()))),
@@ -156,12 +156,12 @@ impl HostPgRow for WasiState {
     }
 
     async fn len(&mut self, self_: Resource<PgRow>) -> wasmtime::Result<u64> {
-        let row = self.get(&self_)?;
+        let row = self.resources.get(&self_)?;
         Ok(row.len() as u64)
     }
 
     async fn drop(&mut self, rep: Resource<PgRow>) -> wasmtime::Result<()> {
-        self.table.delete(rep)?;
+        self.resources.delete(rep)?;
         Ok(())
     }
 }

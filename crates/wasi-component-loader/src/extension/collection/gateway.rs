@@ -5,7 +5,10 @@ use enumflags2::BitFlag;
 use extension_catalog::{ExtensionCatalog, HooksType, TypeDiscriminants};
 use gateway_config::Config;
 
-use crate::extension::{Pool, load_extensions_config};
+use crate::{
+    ExtensionState,
+    extension::{Pool, load_extensions_config},
+};
 
 /// Extensions tied to the gateway, rather than the engine. As such they won't reload if the schema
 /// changes.
@@ -53,12 +56,12 @@ impl GatewayWasmExtensions {
                         .as_ref()
                         .or(manifiest.legacy_event_filter.as_ref())
                         .map(convert_event_filter);
-                    inner.hooks = Some(Pool::new(schema.clone(), Arc::new(config)).await?);
+                    inner.hooks = Some(Pool::new(schema.clone(), Arc::new(ExtensionState::new(config))).await?);
                 }
                 extension_catalog::Type::Authentication(_) => {
                     inner
                         .authentication
-                        .push(Pool::new(schema.clone(), Arc::new(config)).await?);
+                        .push(Pool::new(schema.clone(), Arc::new(ExtensionState::new(config))).await?);
                 }
                 _ => continue,
             }

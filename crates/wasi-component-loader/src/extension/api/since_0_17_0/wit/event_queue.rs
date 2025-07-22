@@ -1,19 +1,19 @@
 use wasmtime::component::Resource;
 
-use crate::{WasiState, resources::EventQueueProxy};
+use crate::{InstanceState, resources::EventQueueProxy};
 
 pub use super::grafbase::sdk::event_queue::*;
 
-impl Host for WasiState {}
+impl Host for InstanceState {}
 
-impl HostEventQueue for WasiState {
+impl HostEventQueue for InstanceState {
     async fn pop(&mut self, self_: Resource<EventQueueProxy>) -> wasmtime::Result<Option<Event>> {
-        let this = self.get(&self_)?;
+        let this = self.resources.get(&self_)?;
         Ok(this.0.event_queue.pop().map(Into::into))
     }
 
     async fn drop(&mut self, res: Resource<EventQueueProxy>) -> wasmtime::Result<()> {
-        self.table.delete(res)?;
+        self.resources.delete(res)?;
 
         Ok(())
     }

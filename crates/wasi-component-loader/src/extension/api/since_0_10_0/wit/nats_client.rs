@@ -3,19 +3,19 @@ use std::time::Duration;
 use async_nats::{ServerAddr, jetstream};
 use wasmtime::component::Resource;
 
-use crate::WasiState;
+use crate::InstanceState;
 
 pub use super::grafbase::sdk::nats_client::*;
 
-impl Host for WasiState {}
+impl Host for InstanceState {}
 
-impl HostNatsClient for WasiState {
+impl HostNatsClient for InstanceState {
     async fn connect(
         &mut self,
         servers: Vec<String>,
         auth: Option<NatsAuth>,
     ) -> wasmtime::Result<Result<Resource<NatsClient>, String>> {
-        if !self.network_enabled() {
+        if !self.is_network_enabled() {
             return Ok(Err("Network operations are disabled".to_string()));
         }
 
@@ -41,7 +41,7 @@ impl HostNatsClient for WasiState {
 
         Ok(match async_nats::connect_with_options(addrs, opts).await {
             Ok(client) => {
-                let client = self.push_resource(client)?;
+                let client = self.resources.push(client)?;
 
                 Ok(client)
             }
@@ -55,7 +55,7 @@ impl HostNatsClient for WasiState {
         subject: String,
         message: Vec<u8>,
     ) -> wasmtime::Result<Result<(), String>> {
-        let client = self.get_mut(&self_)?;
+        let client = self.resources.get_mut(&self_)?;
 
         let result = client
             .publish(subject, message.into())
@@ -71,12 +71,12 @@ impl HostNatsClient for WasiState {
         subject: String,
         config: Option<NatsStreamConfig>,
     ) -> wasmtime::Result<Result<Resource<NatsSubscriber>, String>> {
-        let client = self.get_mut(&self_)?;
+        let client = self.resources.get_mut(&self_)?;
 
         let Some(config) = config else {
             let result = match client.subscribe(subject).await {
                 Ok(subscriber) => {
-                    let subscriber = self.push_resource(NatsSubscriber::Subject(subscriber))?;
+                    let subscriber = self.resources.push(NatsSubscriber::Subject(subscriber))?;
                     Ok(Ok(subscriber))
                 }
                 Err(err) => Ok(Err(err.to_string())),
@@ -118,7 +118,7 @@ impl HostNatsClient for WasiState {
 
         match consumer.messages().await {
             Ok(stream) => {
-                let subscriber = self.push_resource(NatsSubscriber::Stream(Box::new(stream)))?;
+                let subscriber = self.resources.push(NatsSubscriber::Stream(Box::new(stream)))?;
                 Ok(Ok(subscriber))
             }
             Err(err) => Ok(Err(err.to_string())),
@@ -132,7 +132,7 @@ impl HostNatsClient for WasiState {
         message: Vec<u8>,
         timeout_ms: Option<u64>,
     ) -> wasmtime::Result<Result<NatsMessage, String>> {
-        let client = self.get_mut(&self_)?;
+        let client = self.resources.get_mut(&self_)?;
         let request = client.request(subject, message.into());
 
         let result = match timeout_ms {
@@ -163,12 +163,12 @@ impl HostNatsClient for WasiState {
         self_: Resource<NatsClient>,
         bucket: String,
     ) -> wasmtime::Result<Result<Resource<NatsKeyValue>, String>> {
-        let client = self.get_mut(&self_)?;
+        let client = self.resources.get_mut(&self_)?;
         let stream = async_nats::jetstream::new(client.clone());
 
         match stream.get_key_value(bucket).await {
             Ok(store) => {
-                let resource = self.push_resource(store)?;
+                let resource = self.resources.push(store)?;
                 Ok(Ok(resource))
             }
             Err(err) => Ok(Err(err.to_string())),
@@ -176,14 +176,14 @@ impl HostNatsClient for WasiState {
     }
 
     async fn drop(&mut self, rep: Resource<NatsClient>) -> wasmtime::Result<()> {
-        self.table.delete(rep)?;
+        self.resources.delete(rep)?;
         Ok(())
     }
 }
 
-impl HostNatsSubscriber for WasiState {
+impl HostNatsSubscriber for InstanceState {
     async fn next(&mut self, self_: Resource<NatsSubscriber>) -> wasmtime::Result<Result<Option<NatsMessage>, String>> {
-        let subscriber = self.get_mut(&self_)?;
+        let subscriber = self.resources.get_mut(&self_)?;
 
         match subscriber.next().await {
             Ok(Some(message)) => Ok(Ok(Some(NatsMessage {
@@ -196,19 +196,19 @@ impl HostNatsSubscriber for WasiState {
     }
 
     async fn drop(&mut self, rep: Resource<NatsSubscriber>) -> wasmtime::Result<()> {
-        self.table.delete(rep)?;
+        self.resources.delete(rep)?;
         Ok(())
     }
 }
 
-impl HostNatsKeyValue for WasiState {
+impl HostNatsKeyValue for InstanceState {
     async fn create(
         &mut self,
         self_: Resource<NatsKeyValue>,
         key: String,
         value: Vec<u8>,
     ) -> wasmtime::Result<Result<u64, String>> {
-        let store = self.get_mut(&self_)?;
+        let store = self.resources.get_mut(&self_)?;
 
         match store.create(&key, value.into()).await {
             Ok(seq) => Ok(Ok(seq)),
@@ -222,7 +222,7 @@ impl HostNatsKeyValue for WasiState {
         key: String,
         value: Vec<u8>,
     ) -> wasmtime::Result<Result<u64, String>> {
-        let store = self.get_mut(&self_)?;
+        let store = self.resources.get_mut(&self_)?;
 
         match store.put(&key, value.into()).await {
             Ok(seq) => Ok(Ok(seq)),
@@ -235,7 +235,7 @@ impl HostNatsKeyValue for WasiState {
         self_: Resource<NatsKeyValue>,
         key: String,
     ) -> wasmtime::Result<Result<Option<Vec<u8>>, String>> {
-        let store = self.get_mut(&self_)?;
+        let store = self.resources.get_mut(&self_)?;
 
         match store.get(&key).await {
             Ok(value) => Ok(Ok(value.map(Into::into))),
@@ -244,7 +244,7 @@ impl HostNatsKeyValue for WasiState {
     }
 
     async fn delete(&mut self, self_: Resource<NatsKeyValue>, key: String) -> wasmtime::Result<Result<(), String>> {
-        let store = self.get_mut(&self_)?;
+        let store = self.resources.get_mut(&self_)?;
 
         match store.delete(&key).await {
             Ok(()) => Ok(Ok(())),
@@ -253,7 +253,7 @@ impl HostNatsKeyValue for WasiState {
     }
 
     async fn drop(&mut self, rep: Resource<NatsKeyValue>) -> wasmtime::Result<()> {
-        self.table.delete(rep)?;
+        self.resources.delete(rep)?;
 
         Ok(())
     }

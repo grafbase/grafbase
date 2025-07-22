@@ -3,7 +3,7 @@ use super::{
     MetadataMap,
 };
 use crate::{
-    WasiState,
+    InstanceState,
     tonic::{
         self,
         metadata::{MetadataKey, MetadataValue},
@@ -13,14 +13,14 @@ use bytes::BufMut as _;
 use dashmap::Entry;
 use wasmtime::component::Resource;
 
-impl HostGrpcClient for WasiState {
+impl HostGrpcClient for InstanceState {
     async fn new(
         &mut self,
         configuration: GrpcClientConfiguration,
     ) -> wasmtime::Result<Result<Resource<GrpcClient>, String>> {
         tracing::debug!("Creating new gRPC client for URI: {}", configuration.uri);
 
-        let client = match self.grpc_clients().entry(configuration.uri.clone()) {
+        let client = match self.grpc_clients.entry(configuration.uri.clone()) {
             Entry::Occupied(entry) => entry.get().clone(),
             Entry::Vacant(entry) => {
                 let endpoint = match tonic::transport::Endpoint::new(configuration.uri) {
@@ -41,7 +41,7 @@ impl HostGrpcClient for WasiState {
             }
         };
 
-        let resource = self.push_resource(client)?;
+        let resource = self.resources.push(client)?;
 
         Ok(Ok(resource))
     }
@@ -55,7 +55,7 @@ impl HostGrpcClient for WasiState {
         metadata: MetadataMap,
         timeout: Option<u64>,
     ) -> wasmtime::Result<Result<GrpcUnaryResponse, GrpcStatus>> {
-        let client = self.get_mut(&self_)?;
+        let client = self.resources.get_mut(&self_)?;
 
         client
             .ready()
@@ -96,7 +96,7 @@ impl HostGrpcClient for WasiState {
         metadata: MetadataMap,
         timeout: Option<u64>,
     ) -> wasmtime::Result<Result<wasmtime::component::Resource<GrpcStreamingResponse>, GrpcStatus>> {
-        let client = self.get_mut(&self_)?;
+        let client = self.resources.get_mut(&self_)?;
 
         client
             .ready()
@@ -120,13 +120,13 @@ impl HostGrpcClient for WasiState {
         tracing::debug!("Sending server streaming request to {path_and_query}");
 
         match client.server_streaming(request, path_and_query, IdentityCodec).await {
-            Ok(stream) => Ok(Ok(self.push_resource(stream.into_parts())?)),
+            Ok(stream) => Ok(Ok(self.resources.push(stream.into_parts())?)),
             Err(err) => Ok(Err(tonic_status_to_grpc_status(err))),
         }
     }
 
     async fn drop(&mut self, rep: Resource<GrpcClient>) -> wasmtime::Result<()> {
-        self.table.delete(rep)?;
+        self.resources.delete(rep)?;
         Ok(())
     }
 }

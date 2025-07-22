@@ -16,7 +16,7 @@ use wasmtime::{
 };
 
 use crate::{
-    WasiState, cbor,
+    InstanceState, cbor,
     extension::{
         ContractsExtensionInstance, ExtensionConfig, ExtensionInstance, HooksExtensionInstance,
         ResolverExtensionInstance,
@@ -27,7 +27,7 @@ use super::wit;
 use wit::schema as ws;
 
 pub struct SdkPre0_15_0 {
-    pre: wit::SdkPre<crate::WasiState>,
+    pre: wit::SdkPre<crate::InstanceState>,
     guest_config: Vec<u8>,
     #[allow(unused)]
     schema: Arc<Schema>,
@@ -40,7 +40,7 @@ impl SdkPre0_15_0 {
         schema: Arc<Schema>,
         config: &ExtensionConfig<T>,
         component: Component,
-        mut linker: Linker<WasiState>,
+        mut linker: Linker<InstanceState>,
     ) -> wasmtime::Result<Self> {
         let subgraph_schemas: Vec<(&str, ws::Schema<'_>)> = match config.r#type {
             TypeDiscriminants::FieldResolver => create_subgraph_schema_directives(&schema, config.id),
@@ -63,14 +63,14 @@ impl SdkPre0_15_0 {
         let instance_pre = linker.instantiate_pre(&component)?;
 
         Ok(Self {
-            pre: wit::SdkPre::<WasiState>::new(instance_pre)?,
+            pre: wit::SdkPre::<InstanceState>::new(instance_pre)?,
             guest_config: cbor::to_vec(&config.guest_config).context("Could not serialize configuration")?,
             schema,
             subgraph_schemas,
         })
     }
 
-    pub(crate) async fn instantiate(&self, state: WasiState) -> wasmtime::Result<Box<dyn ExtensionInstance>> {
+    pub(crate) async fn instantiate(&self, state: InstanceState) -> wasmtime::Result<Box<dyn ExtensionInstance>> {
         let mut store = Store::new(self.pre.engine(), state);
 
         let inner = self.pre.instantiate_async(&mut store).await?;
@@ -88,12 +88,12 @@ impl SdkPre0_15_0 {
 }
 
 struct ExtensionInstanceSince0_15_0 {
-    store: Store<WasiState>,
+    store: Store<InstanceState>,
     inner: super::wit::Sdk,
 }
 
 impl ExtensionInstance for ExtensionInstanceSince0_15_0 {
-    fn store(&self) -> &Store<WasiState> {
+    fn store(&self) -> &Store<InstanceState> {
         &self.store
     }
 }

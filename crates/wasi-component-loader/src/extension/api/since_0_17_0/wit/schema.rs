@@ -5,9 +5,9 @@ pub use crate::extension::api::since_0_10_0::wit::directive::{
     ObjectDirectiveSite, ScalarDirectiveSite, UnionDirectiveSite,
 };
 
-use crate::state::WasiState;
+use crate::state::InstanceState;
 
-impl Host for WasiState {}
+impl Host for InstanceState {}
 
 #[derive(Clone, Debug, ComponentType, Lower)]
 #[component(record)]

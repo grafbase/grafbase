@@ -1,3 +1,4 @@
+mod cache;
 mod file_logger;
 mod headers;
 mod kafka_consumer;
@@ -11,6 +12,7 @@ use runtime::extension::Token;
 use sqlx::Postgres;
 
 pub use crate::context::WasmContext;
+pub use cache::*;
 pub use headers::*;
 pub use kafka_consumer::*;
 pub use kafka_producer::*;

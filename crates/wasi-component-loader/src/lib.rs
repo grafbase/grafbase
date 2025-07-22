@@ -25,4 +25,4 @@ pub use crossbeam::channel::Sender;
 pub use crossbeam::sync::WaitGroup;
 pub use extension::api::wit::Error as GuestError;
 
-use state::WasiState;
+use state::{ExtensionState, InstanceState};

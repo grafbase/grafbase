@@ -13,6 +13,7 @@ impl HooksExtension for SimpleHooks {
         Ok(Self)
     }
 
+    #[allow(refining_impl_trait)]
     fn on_request(&mut self, _: &str, _: Method, _: &mut GatewayHeaders) -> Result<(), ErrorResponse> {
         Ok(())
     }

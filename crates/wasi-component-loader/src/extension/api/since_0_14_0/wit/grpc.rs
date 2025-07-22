@@ -3,6 +3,6 @@ mod streaming_response;
 
 pub use super::grafbase::sdk::grpc::*;
 
-use crate::WasiState;
+use crate::InstanceState;
 
-impl Host for WasiState {}
+impl Host for InstanceState {}

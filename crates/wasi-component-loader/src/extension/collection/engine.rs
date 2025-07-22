@@ -10,7 +10,10 @@ use runtime::extension::Response;
 use std::{collections::HashMap, hash::BuildHasherDefault, sync::Arc};
 use tokio::sync::broadcast;
 
-use crate::extension::{ExtensionConfig, ExtensionGuard, Pool, load_extensions_config};
+use crate::{
+    ExtensionState,
+    extension::{ExtensionConfig, ExtensionGuard, Pool, load_extensions_config},
+};
 
 /// Extensions tied to the life cycle of the engine. Whenever it reloads, they must also be
 /// reloaded.
@@ -61,7 +64,7 @@ impl EngineWasmExtensions {
         Ok(Self(Arc::new(EngineWasmExtensionsInner {
             pools: create_pools(schema, extensions).await?,
             contracts: match contracts {
-                Some(config) => Some(Pool::new(schema.clone(), Arc::new(config)).await?),
+                Some(config) => Some(Pool::new(schema.clone(), Arc::new(ExtensionState::new(config))).await?),
                 None => None,
             },
             subscriptions: Default::default(),
@@ -134,7 +137,7 @@ async fn create_pools(
         std::future::ready(()).await;
 
         let id = config.id;
-        let pool = Pool::new(schema.clone(), Arc::new(config)).await?;
+        let pool = Pool::new(schema.clone(), Arc::new(ExtensionState::new(config))).await?;
 
         Ok((id, pool))
     }))
