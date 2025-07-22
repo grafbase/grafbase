@@ -34,6 +34,7 @@ pub(crate) use grafbase::sdk::event_queue::{
 };
 pub(crate) use grafbase::sdk::grpc::*;
 pub(crate) use grafbase::sdk::headers::HeaderError;
+pub(crate) use grafbase::sdk::hooks_types::OnRequestOutput;
 pub(crate) use grafbase::sdk::http_client::*;
 pub(crate) use grafbase::sdk::kafka_client::*;
 pub(crate) use grafbase::sdk::logger::*;

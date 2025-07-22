@@ -1,19 +1,23 @@
 use engine_error::{ErrorCode, ErrorResponse};
 use futures::future::BoxFuture;
 use http::{request, response};
+use runtime::extension::OnRequest;
 
 use crate::{
     WasmContext,
-    extension::{HooksExtensionInstance, api::wit::HttpMethod},
+    extension::{
+        HooksExtensionInstance,
+        api::wit::{self, HttpMethod},
+    },
     resources::{EventQueueProxy, Headers, Lease},
 };
 
 impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
     fn on_request<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        context: WasmContext,
         mut parts: request::Parts,
-    ) -> BoxFuture<'a, wasmtime::Result<Result<request::Parts, ErrorResponse>>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<OnRequest<WasmContext>, ErrorResponse>>> {
         Box::pin(async move {
             let headers = std::mem::take(&mut parts.headers);
             let url = parts.uri.to_string();
@@ -22,7 +26,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
             let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
-            let context = self.store.data_mut().push_resource(context.clone())?;
+            let ctx = self.store.data_mut().push_resource(context.clone())?;
 
             let method = match &parts.method {
                 m if m == http::Method::GET => HttpMethod::Get,
@@ -40,7 +44,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
-                .call_on_request(&mut self.store, context, &url, method, headers)
+                .call_on_request(&mut self.store, ctx, &url, method, headers)
                 .await?;
 
             parts.headers = self
@@ -51,7 +55,11 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                 .unwrap();
 
             let output = match result {
-                Ok(()) => Ok(parts),
+                Ok(wit::OnRequestOutput { contract_key }) => Ok(OnRequest {
+                    context,
+                    parts,
+                    contract_key,
+                }),
                 Err(err) => Err(self
                     .store
                     .data_mut()

@@ -3,8 +3,8 @@ use crate::{
     host_io::event_queue::EventQueue,
     types::{
         AuthorizationDecisions, Contract, ContractDirective, Error, ErrorResponse, GatewayHeaders, GraphqlSubgraph,
-        PublicMetadataEndpoint, QueryElements, ResolvedField, Response, ResponseElements, SubgraphHeaders, Token,
-        Variables,
+        OnRequestOutput, PublicMetadataEndpoint, QueryElements, ResolvedField, Response, ResponseElements,
+        SubgraphHeaders, Token, Variables,
     },
 };
 
@@ -66,7 +66,7 @@ pub(crate) trait AnyExtension {
         url: &str,
         method: http::Method,
         headers: &mut GatewayHeaders,
-    ) -> Result<(), ErrorResponse> {
+    ) -> Result<OnRequestOutput, ErrorResponse> {
         Err(ErrorResponse::internal_server_error().with_error("Hooks extension not initialized correctly."))
     }
 

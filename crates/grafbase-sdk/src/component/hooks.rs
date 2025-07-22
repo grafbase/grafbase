@@ -7,12 +7,13 @@ impl wit::HooksGuest for Component {
         url: String,
         method: wit::HttpMethod,
         headers: wit::Headers,
-    ) -> Result<(), wit::ErrorResponse> {
+    ) -> Result<wit::OnRequestOutput, wit::ErrorResponse> {
         state::with_context(context, || {
             let mut headers = GatewayHeaders::from(headers);
 
             state::extension()?
                 .on_request(&url, method.into(), &mut headers)
+                .map(Into::into)
                 .map_err(Into::into)
         })
     }

@@ -14,6 +14,7 @@ world sdk {
     import authorization-types;
     import contracts-types;
     import resolver-types;
+    import hooks-types;
     import event-queue;
     import shared-context;
     import logger;

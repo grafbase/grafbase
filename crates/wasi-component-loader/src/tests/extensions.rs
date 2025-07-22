@@ -271,7 +271,7 @@ async fn on_request_hook() {
         .instantiate()
         .await
         .unwrap()
-        .on_request(&WasmContext::default(), parts)
+        .on_request(WasmContext::default(), parts)
         .await
         .unwrap()
         .unwrap();

@@ -244,6 +244,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
         ExtensionType::Hooks => Type::Hooks(extension::HooksType {
             event_filter: extension_toml.hooks.events,
         }),
+        ExtensionType::Contracts => Type::Contracts(Default::default()),
     };
 
     let sdl_path = extension_toml

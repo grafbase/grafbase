@@ -1,5 +1,6 @@
 use engine_error::ErrorResponse;
 use futures::future::BoxFuture;
+use runtime::extension::OnRequest;
 
 use crate::WasmContext;
 
@@ -7,9 +8,9 @@ use crate::WasmContext;
 pub(crate) trait HooksExtensionInstance {
     fn on_request<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        context: WasmContext,
         parts: http::request::Parts,
-    ) -> BoxFuture<'a, wasmtime::Result<Result<http::request::Parts, ErrorResponse>>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<OnRequest<WasmContext>, ErrorResponse>>> {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 

@@ -1,4 +1,4 @@
-use std::{fmt::Display, future::Future, pin::Pin};
+use std::{fmt::Display, future::Future, pin::Pin, sync::Arc};
 
 use axum::body::Body;
 use engine::RequestExtensions;
@@ -13,9 +13,12 @@ use tower::Layer;
 use crate::engine::into_axum_response;
 
 #[derive(Clone)]
-pub struct ExtensionLayer<Ext, A> {
+pub struct ExtensionLayer<Ext, A>(Arc<ExtensionLayerInner<Ext, A>>);
+
+struct ExtensionLayerInner<Ext, A> {
     extensions: Ext,
     auth: A,
+    default_contract_key: Option<String>,
 }
 
 impl<Ext, A> ExtensionLayer<Ext, A>
@@ -23,8 +26,12 @@ where
     Ext: GatewayExtensions,
     A: Authenticate<<Ext as GatewayExtensions>::Context>,
 {
-    pub fn new(extensions: Ext, auth: A) -> Self {
-        Self { extensions, auth }
+    pub fn new(extensions: Ext, auth: A, default_contract_key: Option<String>) -> Self {
+        Self(Arc::new(ExtensionLayerInner {
+            extensions,
+            auth,
+            default_contract_key,
+        }))
     }
 }
 
@@ -36,20 +43,18 @@ where
 {
     type Service = ExtensionService<Service, Ext, A>;
 
-    fn layer(&self, inner: Service) -> Self::Service {
+    fn layer(&self, next: Service) -> Self::Service {
         ExtensionService {
-            inner,
-            extensions: self.extensions.clone(),
-            auth: self.auth.clone(),
+            next,
+            layer: self.0.clone(),
         }
     }
 }
 
 #[derive(Clone)]
 pub struct ExtensionService<Service, Ext, A> {
-    inner: Service,
-    extensions: Ext,
-    auth: A,
+    next: Service,
+    layer: Arc<ExtensionLayerInner<Ext, A>>,
 }
 
 impl<Service, Ext, A, ReqBody> tower::Service<Request<ReqBody>> for ExtensionService<Service, Ext, A>
@@ -66,13 +71,12 @@ where
     type Future = Pin<Box<dyn Future<Output = Result<Response<Body>, Self::Error>> + Send>>;
 
     fn poll_ready(&mut self, cx: &mut std::task::Context<'_>) -> std::task::Poll<Result<(), Self::Error>> {
-        self.inner.poll_ready(cx)
+        self.next.poll_ready(cx)
     }
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        let mut inner = self.inner.clone();
-        let extensions = self.extensions.clone();
-        let auth = self.auth.clone();
+        let mut next = self.next.clone();
+        let layer = self.layer.clone();
 
         Box::pin(async move {
             let (parts, body) = req.into_parts();
@@ -85,7 +89,7 @@ where
                 context,
                 mut parts,
                 contract_key,
-            } = match extensions.on_request(parts).await {
+            } = match layer.extensions.on_request(parts).await {
                 Ok(on_request) => on_request,
                 Err(err) => {
                     let error_response = engine::http_error_response(response_format, err);
@@ -94,7 +98,7 @@ where
             };
 
             let headers = std::mem::take(&mut parts.headers);
-            let response = match auth.authenticate(&context, headers).await {
+            let response = match layer.auth.authenticate(&context, headers).await {
                 Ok((headers, token)) => {
                     parts.headers = headers;
                     parts
@@ -102,10 +106,10 @@ where
                         .insert(RequestExtensions::<<Ext as GatewayExtensions>::Context> {
                             context: context.clone(),
                             token,
-                            contract_key,
+                            contract_key: contract_key.or_else(|| layer.default_contract_key.clone()),
                         });
 
-                    inner.call(Request::from_parts(parts, body)).await?
+                    next.call(Request::from_parts(parts, body)).await?
                 }
                 Err(err) => {
                     let error_response = engine::http_error_response(response_format, err);
@@ -121,7 +125,7 @@ where
 
             context.event_queue().push_http_request(builder);
 
-            let parts = match extensions.on_response(context, parts).await {
+            let parts = match layer.extensions.on_response(context, parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
                     let error_response = engine::http_error_response(

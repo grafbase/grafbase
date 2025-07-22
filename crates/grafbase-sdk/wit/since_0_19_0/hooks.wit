@@ -4,6 +4,7 @@ interface hooks {
     use headers.{headers};
     use shared-context.{shared-context};
     use event-queue.{event-queue};
+    use hooks-types.{on-request-output};
 
     /// Hook function called when processing an incoming request
     ///
@@ -14,7 +15,7 @@ interface hooks {
         url: string,
         method: http-method,
         headers: headers,
-    ) -> result<_, error-response>;
+    ) -> result<on-request-output, error-response>;
 
     /// Hook function called when processing an outgoing response
     ///

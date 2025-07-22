@@ -16,6 +16,7 @@ pub mod world {
     pub use sdk::contracts_types::{Contract, GraphqlSubgraphParam, GraphqlSubgraphResult};
     pub use sdk::error::{Error, ErrorResponse};
     pub use sdk::headers::{HeaderError, Headers};
+    pub use sdk::hooks_types::OnRequestOutput;
     pub use sdk::http_client::{HttpClient, HttpError, HttpMethod, HttpRequest, HttpResponse};
     pub use sdk::nats_client::{NatsAuth, NatsKeyValue, NatsStreamConfig, NatsStreamDeliverPolicy, NatsSubscriber};
     pub use sdk::resolver_types::{ArgumentsId, Data, Field, FieldId, Response, SelectionSet, SubscriptionItem};

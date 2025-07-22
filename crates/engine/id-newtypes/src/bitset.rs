@@ -72,6 +72,60 @@ where
     }
 }
 
+impl<Id> std::ops::Not for BitSet<Id> {
+    type Output = Self;
+
+    fn not(mut self) -> Self::Output {
+        self.inner.toggle_range(..);
+        self
+    }
+}
+
+impl<Id> std::ops::BitOr for BitSet<Id> {
+    type Output = Self;
+
+    fn bitor(mut self, rhs: Self) -> Self::Output {
+        self.inner |= rhs.inner;
+        self
+    }
+}
+
+impl<Id> std::ops::BitAnd for BitSet<Id> {
+    type Output = Self;
+
+    fn bitand(mut self, rhs: Self) -> Self::Output {
+        self.inner &= rhs.inner;
+        self
+    }
+}
+
+impl<Id> std::ops::BitXor for BitSet<Id> {
+    type Output = Self;
+
+    fn bitxor(mut self, rhs: Self) -> Self::Output {
+        self.inner ^= rhs.inner;
+        self
+    }
+}
+
+impl<Id> std::ops::BitAndAssign for BitSet<Id> {
+    fn bitand_assign(&mut self, rhs: Self) {
+        self.inner &= rhs.inner;
+    }
+}
+
+impl<Id> std::ops::BitOrAssign for BitSet<Id> {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.inner |= rhs.inner;
+    }
+}
+
+impl<Id> std::ops::BitXorAssign for BitSet<Id> {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        self.inner ^= rhs.inner;
+    }
+}
+
 impl<Id> std::ops::Index<Id> for BitSet<Id>
 where
     usize: From<Id>,

@@ -62,6 +62,7 @@ pub enum ExtensionType {
     Authorization,
     SelectionSetResolver,
     Hooks,
+    Contracts,
 }
 
 fn deserialize_event_filter<'de, D>(deserializer: D) -> Result<Option<EventFilter>, D::Error>

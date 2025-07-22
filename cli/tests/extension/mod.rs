@@ -1,4 +1,5 @@
 mod authorization;
+mod contracts;
 mod install;
 mod publish;
 mod update;
