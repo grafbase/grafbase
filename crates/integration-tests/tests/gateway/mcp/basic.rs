@@ -33,13 +33,13 @@ fn server_info() {
     insta::assert_json_snapshot!(&server_info, @r#"
     {
       "result": {
-        "protocolVersion": "2024-11-05",
+        "protocolVersion": "2025-03-26",
         "capabilities": {
           "tools": {}
         },
         "serverInfo": {
           "name": "rmcp",
-          "version": "0.2.1"
+          "version": "0.3.0"
         },
         "instructions": null
       }

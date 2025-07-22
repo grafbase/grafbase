@@ -32,7 +32,7 @@ impl McpServer {
     pub(crate) fn new(engine: EngineWatcher<impl engine::Runtime>, execute_mutations: bool) -> anyhow::Result<Self> {
         Ok(Self(Arc::new(McpServerInner {
             info: ServerInfo {
-                protocol_version: ProtocolVersion::V_2024_11_05,
+                protocol_version: ProtocolVersion::LATEST,
                 capabilities: ServerCapabilities::builder().enable_tools().build(),
                 server_info: Implementation::from_build_env(),
                 instructions: None,
