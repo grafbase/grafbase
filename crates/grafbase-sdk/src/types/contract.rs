@@ -52,27 +52,17 @@ impl<'a> std::ops::Deref for ContractDirective<'a> {
 /// Contract that must be applied on the schema.
 pub struct Contract(wit::Contract);
 
-impl Default for Contract {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Contract {
     /// Create a new contact with the appropriate capacity which should match the number of
-    /// directives.
-    pub fn with_capacity(capacity: usize) -> Self {
+    /// contract directives.
+    /// By default, all directives are inaccessible, and the schema is accessible by default.
+    pub fn new(directives: &[ContractDirective<'_>]) -> Self {
         Self(wit::Contract {
-            accessible: Vec::with_capacity(capacity),
+            accessible: vec![-1; directives.len()],
             accessible_by_default: true,
             hide_unreachable_types: true,
             subgraphs: Vec::new(),
         })
-    }
-
-    /// Creates a new contract
-    pub fn new() -> Self {
-        Self::with_capacity(0)
     }
 
     /// Whether the schema elements are accessible by default. Defaults to true.
@@ -105,10 +95,6 @@ impl Contract {
     ///
     /// Defaults to false with `-1`, lowest priority, if not set.
     pub fn accessible_with_priority(&mut self, directive: ContractDirective<'_>, accessible: i8) -> &mut Self {
-        if self.0.accessible.len() < directive.index as usize {
-            // Extend the vector with `false` values until it reaches the required index.
-            self.0.accessible.resize(directive.index as usize + 1, -1);
-        }
         self.0.accessible[directive.index as usize] = accessible;
         self
     }
