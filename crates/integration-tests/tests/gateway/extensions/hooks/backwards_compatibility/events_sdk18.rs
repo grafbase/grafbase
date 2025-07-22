@@ -10,7 +10,7 @@ fn receive_events() {
         let engine = Gateway::builder()
             .with_toml_config(
                 r#"
-                [extensions.hooks-19]
+                [extensions.hooks-17]
                 path = "./data/extensions/crates/hooks/build"
                 stdout = true
                 stderr = true
@@ -19,11 +19,11 @@ fn receive_events() {
                 rule = "forward"
                 name = "x-incoming-header"
 
-                [extensions.hooks-19.config]
+                [extensions.hooks-17.config]
                 events_header_name = "x-events"
             "#,
             )
-            .with_extension("hooks-19")
+            .with_extension("hooks-17")
             .with_subgraph(EchoSchema)
             .build()
             .await;

@@ -3,41 +3,32 @@ pub(crate) use as_header_value::AsHeaderValue;
 
 use crate::wit;
 
-/// Owned, and mutable HTTP headers.
-pub struct OwnedHttpHeaders(wit::Headers);
+/// HTTP headers.
+pub struct HttpHeaders(wit::Headers);
 
-impl From<wit::Headers> for OwnedHttpHeaders {
+impl From<wit::Headers> for HttpHeaders {
     fn from(headers: wit::Headers) -> Self {
         Self(headers)
     }
 }
 
-impl From<OwnedHttpHeaders> for wit::Headers {
-    fn from(headers: OwnedHttpHeaders) -> Self {
+impl From<HttpHeaders> for wit::Headers {
+    fn from(headers: HttpHeaders) -> Self {
         headers.0
     }
 }
 
-/// Shared, and immutable HTTP headers.
-pub struct SharedHttpHeaders<'a>(&'a wit::Headers);
-
-impl<'a> From<&'a wit::Headers> for SharedHttpHeaders<'a> {
-    fn from(headers: &'a wit::Headers) -> Self {
-        Self(headers)
-    }
-}
-
 /// HTTP headers for the gateway request.
-pub struct GatewayHeaders(OwnedHttpHeaders);
+pub struct GatewayHeaders(HttpHeaders);
 
 impl From<wit::Headers> for GatewayHeaders {
     fn from(headers: wit::Headers) -> Self {
-        Self(OwnedHttpHeaders(headers))
+        Self(HttpHeaders(headers))
     }
 }
 
 impl std::ops::Deref for GatewayHeaders {
-    type Target = OwnedHttpHeaders;
+    type Target = HttpHeaders;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -50,9 +41,9 @@ impl std::ops::DerefMut for GatewayHeaders {
 }
 
 /// HTTP headers for the subgraph request.
-pub struct SubgraphHeaders(OwnedHttpHeaders);
+pub struct SubgraphHeaders(HttpHeaders);
 
-impl From<SubgraphHeaders> for OwnedHttpHeaders {
+impl From<SubgraphHeaders> for HttpHeaders {
     fn from(headers: SubgraphHeaders) -> Self {
         headers.0
     }
@@ -60,12 +51,12 @@ impl From<SubgraphHeaders> for OwnedHttpHeaders {
 
 impl From<wit::Headers> for SubgraphHeaders {
     fn from(headers: wit::Headers) -> Self {
-        Self(OwnedHttpHeaders(headers))
+        Self(HttpHeaders(headers))
     }
 }
 
 impl std::ops::Deref for SubgraphHeaders {
-    type Target = OwnedHttpHeaders;
+    type Target = HttpHeaders;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -77,40 +68,43 @@ impl std::ops::DerefMut for SubgraphHeaders {
     }
 }
 
-impl Default for OwnedHttpHeaders {
+impl Default for HttpHeaders {
     fn default() -> Self {
-        OwnedHttpHeaders::new()
+        HttpHeaders::new()
     }
 }
 
-/// Shared methods between the owned and borrowed header types.
-pub trait HttpHeaders {
+// Imitates as much as possible the http::HeaderMap API
+impl HttpHeaders {
+    /// Initialize an empty set of headers.
+    pub fn new() -> HttpHeaders {
+        HttpHeaders(wit::Headers::new())
+    }
+
     /// Get the value associated with the given name. If there are multiple values associated with
     /// the name, then the first one is returned. Use `get_all` to get all values associated with
     /// a given name. Returns None if there are no values associated with the name.
-    fn get(&self, name: impl AsHeaderName) -> Option<http::HeaderValue>;
+    pub fn get(&self, name: impl AsHeaderName) -> Option<http::HeaderValue> {
+        self.0
+            .get(name.as_str())
+            .into_iter()
+            .next()
+            .map(|value| value.try_into().unwrap())
+    }
 
     /// Get all of the values corresponding to a name. If the name is not present,
     /// an empty list is returned. However, if the name is present but empty, this
     /// is represented by a list with one or more empty values present.
-    fn get_all(&self, name: impl AsHeaderName) -> impl Iterator<Item = http::HeaderValue>;
+    pub fn get_all(&self, name: impl AsHeaderName) -> impl Iterator<Item = http::HeaderValue> {
+        self.0
+            .get(name.as_str())
+            .into_iter()
+            .map(|value| value.try_into().unwrap())
+    }
 
     /// Returns true if the map contains a value for the specified name.
-    fn has(&self, name: impl AsHeaderName) -> bool;
-
-    /// An iterator visiting all name-value pairs.
-    ///
-    /// The iteration order is arbitrary, but consistent across platforms for the same crate version.
-    /// Each name will be yielded once per associated value. So, if a name has 3 associated values,
-    /// it will be yielded 3 times.
-    fn iter(&self) -> impl Iterator<Item = (http::HeaderName, http::HeaderValue)>;
-}
-
-// Imitates as much as possible the http::HeaderMap API
-impl OwnedHttpHeaders {
-    /// Initialize an empty set of headers.
-    pub fn new() -> OwnedHttpHeaders {
-        OwnedHttpHeaders(wit::Headers::new())
+    pub fn has(&self, name: impl AsHeaderName) -> bool {
+        self.0.has(name.as_str())
     }
 
     /// Set all of the values for a name. Clears any existing values for that
@@ -141,57 +135,10 @@ impl OwnedHttpHeaders {
             .append(name.as_str(), value.as_bytes())
             .expect("We have a mut ref & validated name and values.");
     }
-}
 
-impl HttpHeaders for OwnedHttpHeaders {
-    fn get(&self, name: impl AsHeaderName) -> Option<http::HeaderValue> {
-        self.0
-            .get(name.as_str())
-            .into_iter()
-            .next()
-            .map(|value| value.try_into().unwrap())
-    }
-
-    fn get_all(&self, name: impl AsHeaderName) -> impl Iterator<Item = http::HeaderValue> {
-        self.0
-            .get(name.as_str())
-            .into_iter()
-            .map(|value| value.try_into().unwrap())
-    }
-
-    fn has(&self, name: impl AsHeaderName) -> bool {
-        self.0.has(name.as_str())
-    }
-
-    fn iter(&self) -> impl Iterator<Item = (http::HeaderName, http::HeaderValue)> {
-        self.0
-            .entries()
-            .into_iter()
-            .map(|(name, value)| (name.try_into().unwrap(), value.try_into().unwrap()))
-    }
-}
-
-impl<'a> HttpHeaders for SharedHttpHeaders<'a> {
-    fn get(&self, name: impl AsHeaderName) -> Option<http::HeaderValue> {
-        self.0
-            .get(name.as_str())
-            .into_iter()
-            .next()
-            .map(|value| value.try_into().unwrap())
-    }
-
-    fn get_all(&self, name: impl AsHeaderName) -> impl Iterator<Item = http::HeaderValue> {
-        self.0
-            .get(name.as_str())
-            .into_iter()
-            .map(|value| value.try_into().unwrap())
-    }
-
-    fn has(&self, name: impl AsHeaderName) -> bool {
-        self.0.has(name.as_str())
-    }
-
-    fn iter(&self) -> impl Iterator<Item = (http::HeaderName, http::HeaderValue)> {
+    /// An iterator visiting all name-value pairs.
+    /// The iteration order is arbitrary, but consistent across platforms for the same crate version. Each name will be yielded once per associated value. So, if a name has 3 associated values, it will be yielded 3 times.
+    pub fn iter(&self) -> impl Iterator<Item = (http::HeaderName, http::HeaderValue)> {
         self.0
             .entries()
             .into_iter()

@@ -83,7 +83,7 @@ impl AuthenticationExtension for CachingProvider {
             return Ok(vec![]);
         };
 
-        let mut response_headers = grafbase_sdk::types::OwnedHttpHeaders::new();
+        let mut response_headers = HttpHeaders::new();
         response_headers.append("x-test", "works");
 
         Ok(vec![

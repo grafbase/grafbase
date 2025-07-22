@@ -12,7 +12,7 @@ wit_bindgen::generate!({
     world: "sdk",
     with: {
         "grafbase:sdk/resolver-types": resolver_types,
-    }
+    },
 });
 
 pub(crate) use exports::grafbase::sdk::authentication::{Guest as AuthenticationGuest, PublicMetadataEndpoint};
