@@ -5,7 +5,7 @@ use integration_tests::{gateway::Gateway, runtime};
 fn authentication_with_public_metadata() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 type Query {
                     header(name: String): String

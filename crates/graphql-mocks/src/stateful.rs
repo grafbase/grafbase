@@ -7,9 +7,8 @@ use std::sync::{
 
 use async_graphql::{Context, EmptySubscription, FieldResult, Object, Schema};
 
-#[derive(Default)]
 pub struct Stateful {
-    state: Arc<AtomicUsize>,
+    schema: Schema<Query, Mutation, EmptySubscription>,
 }
 
 impl crate::Subgraph for Stateful {
@@ -21,12 +20,14 @@ impl crate::Subgraph for Stateful {
     }
 }
 
-impl Stateful {
-    fn schema(&self) -> Schema<Query, Mutation, EmptySubscription> {
-        Schema::build(Query, Mutation, EmptySubscription)
+impl Default for Stateful {
+    fn default() -> Self {
+        let state = Arc::new(AtomicUsize::new(0));
+        let schema = Schema::build(Query, Mutation, EmptySubscription)
             .enable_federation()
-            .data(Arc::clone(&self.state))
-            .finish()
+            .data(state)
+            .finish();
+        Self { schema }
     }
 }
 
@@ -37,7 +38,7 @@ impl super::Schema for Stateful {
         _headers: Vec<(String, String)>,
         request: async_graphql::Request,
     ) -> async_graphql::Response {
-        self.schema().execute(request).await
+        self.schema.execute(request).await
     }
 
     fn execute_stream(
@@ -45,15 +46,11 @@ impl super::Schema for Stateful {
         request: async_graphql::Request,
         session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
-        if let Some(session_data) = session_data {
-            Box::pin(self.schema().execute_stream_with_session_data(request, session_data))
-        } else {
-            Box::pin(self.schema().execute_stream(request))
-        }
+        async_graphql::Executor::execute_stream(&self.schema, request, session_data)
     }
 
     fn sdl(&self) -> String {
-        self.schema()
+        self.schema
             .sdl_with_options(async_graphql::SDLExportOptions::new().federation())
     }
 }

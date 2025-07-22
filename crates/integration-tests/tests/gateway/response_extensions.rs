@@ -8,7 +8,7 @@ use integration_tests::{gateway::Gateway, runtime};
 #[test]
 fn grafbase_extension_on_successful_request() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .post("query { serverVersion }")
@@ -49,7 +49,7 @@ fn grafbase_extension_on_successful_request() {
 fn dot_not_include_query_plan() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
             [telemetry.exporters.response_extension]
@@ -86,7 +86,7 @@ fn dot_not_include_query_plan() {
 fn dot_not_include_trace_id() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
             [telemetry.exporters.response_extension]
@@ -185,7 +185,7 @@ fn grafbase_extension_on_subgraph_error() {
 #[test]
 fn grafbase_extension_on_invalid_request() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine.post("query x }").header("x-grafbase-telemetry", "yes").await;
 
@@ -222,7 +222,7 @@ fn grafbase_extension_on_invalid_request() {
 fn grafbase_extension_secret_value() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
             [[telemetry.exporters.response_extension.access_control]]
@@ -303,7 +303,7 @@ fn grafbase_extension_secret_value() {
 fn grafbase_extension_denied() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
             [[telemetry.exporters.response_extension.access_control]]
@@ -335,7 +335,7 @@ fn grafbase_extension_denied() {
 #[test]
 fn grafbase_extension_on_ill_formed_graphql_over_http_request() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .raw_execute(
@@ -379,11 +379,11 @@ fn grafbase_extension_on_ill_formed_graphql_over_http_request() {
 fn complex_query_plan() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedAccountsSchema)
-            .with_subgraph(FederatedProductsSchema)
-            .with_subgraph(FederatedReviewsSchema)
-            .with_subgraph(FederatedInventorySchema)
-            .with_subgraph(FederatedShippingSchema)
+            .with_subgraph(FederatedAccountsSchema::default())
+            .with_subgraph(FederatedProductsSchema::default())
+            .with_subgraph(FederatedReviewsSchema::default())
+            .with_subgraph(FederatedInventorySchema::default())
+            .with_subgraph(FederatedShippingSchema::default())
             .with_toml_config(
                 r#"
                 [graph]

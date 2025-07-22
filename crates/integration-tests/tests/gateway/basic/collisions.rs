@@ -5,7 +5,7 @@ use serde_json::json;
 #[test]
 fn neighbor_fields() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .post(
@@ -53,7 +53,7 @@ fn neighbor_fields() {
 #[test]
 fn fragment() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .post(
@@ -105,7 +105,7 @@ fn fragment() {
 #[test]
 fn skip_include() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .post(

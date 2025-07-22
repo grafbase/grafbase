@@ -10,7 +10,7 @@ use crate::gateway::extensions::authorization::InsertTokenAsHeader;
 fn double_authentication() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -94,7 +94,7 @@ fn double_authentication() {
 fn double_authentication_with_deny_default() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -169,7 +169,7 @@ fn double_authentication_with_deny_default() {
 fn double_authentication_with_anonymous_default() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 

@@ -20,7 +20,7 @@ fn no_traceparent_no_propagation() {
             [telemetry.tracing.propagation]
             trace_context = false
         ",
-        graphql_mocks::EchoSchema,
+        graphql_mocks::EchoSchema::default(),
         |_service_name, _start, gateway, _clickhouse| async move {
             let request = r#"
                 query {
@@ -52,7 +52,7 @@ fn grafbase_response_extension_has_the_right_trace_id() {
             [telemetry.tracing.propagation]
             trace_context = true
         ",
-        graphql_mocks::EchoSchema,
+        graphql_mocks::EchoSchema::default(),
         |_service_name, _start, gateway, _clickhouse| async move {
             let request = r#"
                 query {
@@ -99,7 +99,7 @@ fn tracecontext_traceparent_propagation() {
             [telemetry.tracing.propagation]
             trace_context = true
         ",
-        graphql_mocks::EchoSchema,
+        graphql_mocks::EchoSchema::default(),
         |service_name, start_time_unix, gateway, clickhouse| async move {
             let request = r#"
                 query {
@@ -171,7 +171,7 @@ fn tracecontext_traceparent_propagation_with_http_protocol() {
             [telemetry.tracing.propagation]
             trace_context = true
         ",
-        graphql_mocks::EchoSchema,
+        graphql_mocks::EchoSchema::default(),
         |service_name, start_time_unix, gateway, clickhouse| async move {
             let request = r#"
                 query {
@@ -244,7 +244,7 @@ fn tracecontext_and_baggage_propagation() {
             trace_context = true
             baggage = true
         ",
-        graphql_mocks::EchoSchema,
+        graphql_mocks::EchoSchema::default(),
         |service_name, start_time_unix, gateway, clickhouse| async move {
             let request = r#"
                 query {
@@ -345,7 +345,7 @@ fn baggage_propagation() {
             [telemetry.tracing.propagation]
             baggage = true
         ",
-        graphql_mocks::EchoSchema,
+        graphql_mocks::EchoSchema::default(),
         |_service_name, _start, gateway, _clickhouse| async move {
             let request = r#"
                 query {
@@ -384,7 +384,7 @@ fn aws_xray_propagation() {
             [telemetry.tracing.propagation]
             trace_context = true
         ",
-        graphql_mocks::EchoSchema,
+        graphql_mocks::EchoSchema::default(),
         |_service_name, _start, gateway, _clickhouse| async move {
             let request = r#"
                 query {

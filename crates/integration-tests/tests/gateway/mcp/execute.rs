@@ -181,7 +181,7 @@ fn execute_mutation_is_accepted_if_configured() {
 #[tokio::test]
 async fn execute_with_header() {
     let engine = Gateway::builder()
-        .with_subgraph(EchoSchema)
+        .with_subgraph(EchoSchema::default())
         .with_toml_config(
             r#"
             [mcp]

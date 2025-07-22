@@ -39,7 +39,7 @@ fn should_not_raise_an_error_on_null_for_required_json() {
 #[test]
 fn supports_custom_scalars() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         engine.post("query { favoriteRepository }").await
     });
@@ -59,7 +59,7 @@ fn supports_custom_scalars() {
 #[test]
 fn supports_unused_builtin_scalars() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(AlmostEmptySchema).build().await;
+        let engine = Gateway::builder().with_subgraph(AlmostEmptySchema::default()).build().await;
 
         engine
             .post("query Blah($id: ID!) { string(input: $id) }")

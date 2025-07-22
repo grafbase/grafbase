@@ -15,7 +15,10 @@ impl graphql_mocks::Subgraph for CacheControlReviewSubgraph {
     }
 
     async fn start(self) -> graphql_mocks::MockGraphQlServer {
-        let mut server = FederatedReviewsSchema.start().await.with_additional_header(self.header);
+        let mut server = FederatedReviewsSchema::default()
+            .start()
+            .await
+            .with_additional_header(self.header);
 
         if let Some(age) = self.age {
             server = server.with_additional_header(age);
@@ -36,7 +39,7 @@ impl graphql_mocks::Subgraph for CacheControlProductSubgraph {
     }
 
     async fn start(self) -> graphql_mocks::MockGraphQlServer {
-        let mut server = FederatedProductsSchema
+        let mut server = FederatedProductsSchema::default()
             .start()
             .await
             .with_additional_header(self.header);
@@ -53,12 +56,12 @@ impl graphql_mocks::Subgraph for CacheControlProductSubgraph {
 fn test_private_cache_control_entity_request() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_subgraph(CacheControlReviewSubgraph {
                 header: CacheControl::new().with_private(),
                 age: None,
             })
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedInventorySchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -90,12 +93,12 @@ fn test_private_cache_control_entity_request() {
 fn test_nostore_cache_control_entity_request() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_subgraph(CacheControlReviewSubgraph {
                 header: CacheControl::new().with_no_store(),
                 age: None,
             })
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedInventorySchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -127,12 +130,12 @@ fn test_nostore_cache_control_entity_request() {
 fn test_max_age_without_age_entity_request() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_subgraph(CacheControlReviewSubgraph {
                 header: CacheControl::new().with_max_age(Duration::from_secs(1)),
                 age: None,
             })
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedInventorySchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -168,12 +171,12 @@ fn test_max_age_without_age_entity_request() {
 fn test_max_age_with_age_entity_request() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_subgraph(CacheControlReviewSubgraph {
                 header: CacheControl::new().with_max_age(Duration::from_secs(2)),
                 age: Some(Age::from_secs(1)),
             })
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedInventorySchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -213,8 +216,8 @@ fn test_private_cache_control_root_request() {
                 header: CacheControl::new().with_private(),
                 age: None,
             })
-            .with_subgraph(FederatedReviewsSchema)
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedReviewsSchema::default())
+            .with_subgraph(FederatedInventorySchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -250,8 +253,8 @@ fn test_nostore_cache_control_root_request() {
                 header: CacheControl::new().with_no_store(),
                 age: None,
             })
-            .with_subgraph(FederatedReviewsSchema)
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedReviewsSchema::default())
+            .with_subgraph(FederatedInventorySchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -287,8 +290,8 @@ fn test_max_age_without_age_root_request() {
                 header: CacheControl::new().with_max_age(Duration::from_secs(1)),
                 age: None,
             })
-            .with_subgraph(FederatedReviewsSchema)
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedReviewsSchema::default())
+            .with_subgraph(FederatedInventorySchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -328,8 +331,8 @@ fn test_max_age_with_age_root_request() {
                 header: CacheControl::new().with_max_age(Duration::from_secs(2)),
                 age: Some(Age::from_secs(1)),
             })
-            .with_subgraph(FederatedReviewsSchema)
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedReviewsSchema::default())
+            .with_subgraph(FederatedInventorySchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]

@@ -13,7 +13,7 @@ fn entity_caching_via_redis() {
 
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_toml_config(format!(
                 r#"
                 [entity_caching]

@@ -615,7 +615,7 @@ fn undefined_variable() {
     let query = "query($var: String) { inputObject(input: { string: $var, int: 10 }) }";
     let response = runtime().block_on({
         async move {
-            let engine = Gateway::builder().with_subgraph(EchoSchema).build().await;
+            let engine = Gateway::builder().with_subgraph(EchoSchema::default()).build().await;
 
             engine.post(query).variables(json!({})).await
         }
@@ -669,7 +669,7 @@ fn do_error_test(query: &str, input: serde_json::Value) -> Vec<String> {
 fn run_query(query: &str, input: &serde_json::Value) -> GraphqlResponse {
     runtime().block_on({
         async move {
-            let engine = Gateway::builder().with_subgraph(EchoSchema).build().await;
+            let engine = Gateway::builder().with_subgraph(EchoSchema::default()).build().await;
 
             engine.post(query).variables(input).await
         }

@@ -4,7 +4,7 @@ use integration_tests::{gateway::Gateway, runtime};
 #[test]
 fn named_fragment_on_object() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         engine
             .post(
@@ -60,7 +60,7 @@ fn named_fragment_on_object() {
 #[test]
 fn named_fragment_cycle() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         engine
             .post(
@@ -113,7 +113,7 @@ fn named_fragment_cycle() {
 #[test]
 fn inline_fragment_on_object() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         engine
             .post(
@@ -156,7 +156,7 @@ fn inline_fragment_on_object() {
 #[test]
 fn inline_fragment_on_object_with_type_condition() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         engine
             .post(
@@ -210,7 +210,7 @@ fn inline_fragment_on_object_with_type_condition() {
 #[test]
 fn inline_fragments_on_polymorphic_types() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         engine
             .post(
@@ -279,7 +279,7 @@ fn inline_fragments_on_polymorphic_types() {
 #[test]
 fn named_fragments_on_polymorphic_types() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         engine
             .post(

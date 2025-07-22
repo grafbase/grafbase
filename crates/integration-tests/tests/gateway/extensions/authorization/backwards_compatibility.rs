@@ -10,7 +10,7 @@ use crate::gateway::extensions::authentication::static_token::StaticToken;
 fn sdk_0100() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(EchoSchema)
+            .with_subgraph(EchoSchema::default())
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"

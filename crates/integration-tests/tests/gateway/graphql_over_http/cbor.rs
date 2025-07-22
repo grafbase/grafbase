@@ -5,7 +5,7 @@ use integration_tests::{gateway::Gateway, runtime};
 fn content_type() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(r#""#)
             .build()
             .await;

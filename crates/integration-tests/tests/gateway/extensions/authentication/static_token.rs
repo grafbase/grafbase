@@ -44,7 +44,7 @@ impl AuthenticationTestExtension for StaticToken {
 fn anonymous_token() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_extension(AuthenticationExt::new(StaticToken::anonymous()))
             .build()
             .await;
@@ -65,7 +65,7 @@ fn anonymous_token() {
 fn bytes_token() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_extension(AuthenticationExt::new(StaticToken::bytes(Vec::new())))
             .build()
             .await;
@@ -86,7 +86,7 @@ fn bytes_token() {
 fn error_response() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,

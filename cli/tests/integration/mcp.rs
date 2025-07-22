@@ -14,7 +14,7 @@ use crate::cargo_bin;
 
 #[tokio::test]
 async fn test_mcp() {
-    let subgraph = graphql_mocks::EchoSchema.start().await;
+    let subgraph = graphql_mocks::EchoSchema::default().start().await;
 
     // Pick a port number in the dynamic range.
     let port = random::<u16>() | 0xc000;

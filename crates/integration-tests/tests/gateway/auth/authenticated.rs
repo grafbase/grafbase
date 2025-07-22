@@ -26,7 +26,7 @@ where
         "#};
 
         let engine = Gateway::builder()
-            .with_subgraph(SecureSchema)
+            .with_subgraph(SecureSchema::default())
             .with_toml_config(config)
             .build()
             .await;

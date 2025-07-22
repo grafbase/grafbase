@@ -5,7 +5,7 @@ use integration_tests::{gateway::Gateway, runtime};
 fn gateway_timeout() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(SlowSchema)
+            .with_subgraph(SlowSchema::default())
             .with_toml_config(
                 r###"
                 [gateway]
@@ -52,8 +52,8 @@ fn subgraph_timeout() {
         "#};
 
         let engine = Gateway::builder()
-            .with_subgraph(SlowSchema)
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(SlowSchema::default())
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(config)
             .build()
             .await;

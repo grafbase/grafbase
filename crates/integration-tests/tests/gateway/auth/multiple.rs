@@ -29,7 +29,7 @@ fn test_provider() {
         "#};
 
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(config)
             .build()
             .await;

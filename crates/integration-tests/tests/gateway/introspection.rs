@@ -18,7 +18,7 @@ pub const CONFIG: &str = indoc! {r#"
 fn can_run_pathfinder_introspection_query() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(CONFIG)
             .build()
             .await;
@@ -94,7 +94,7 @@ fn can_run_pathfinder_introspection_query() {
 fn can_run_2018_introspection_query() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(CONFIG)
             .build()
             .await;
@@ -174,7 +174,7 @@ fn can_run_2018_introspection_query() {
 fn can_run_2021_introspection_query() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(CONFIG)
             .build()
             .await;
@@ -254,7 +254,7 @@ fn can_run_2021_introspection_query() {
 fn echo_subgraph_introspection() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(EchoSchema)
+            .with_subgraph(EchoSchema::default())
             .with_toml_config(CONFIG)
             .build()
             .await;
@@ -316,7 +316,7 @@ fn echo_subgraph_introspection() {
 fn can_run_capability_introspection_query() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(CONFIG)
             .build()
             .await;
@@ -340,7 +340,7 @@ fn introspection_output_matches_source() {
     use reqwest::Client;
     let (response, _upstream_sdl) = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(CONFIG)
             .build()
             .await;
@@ -371,8 +371,8 @@ fn introspection_output_matches_source() {
 fn raw_introspection_output() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
-            .with_subgraph(EchoSchema)
+            .with_subgraph(FakeGithubSchema::default())
+            .with_subgraph(EchoSchema::default())
             .with_toml_config(CONFIG)
             .build()
             .await;
@@ -388,8 +388,8 @@ fn raw_introspection_output() {
 fn can_introsect_when_multiple_subgraphs() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
-            .with_subgraph(EchoSchema)
+            .with_subgraph(FakeGithubSchema::default())
+            .with_subgraph(EchoSchema::default())
             .with_toml_config(CONFIG)
             .build()
             .await;
@@ -503,7 +503,7 @@ fn can_introsect_when_multiple_subgraphs() {
 fn supports_the_type_field() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(CONFIG)
             .build()
             .await;
@@ -586,7 +586,7 @@ fn type_field_returns_null_on_missing_type() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(CONFIG)
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .build()
             .await;
 
@@ -618,7 +618,7 @@ fn supports_recursing_through_types() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(CONFIG)
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .build()
             .await;
 
@@ -793,7 +793,7 @@ fn rejects_bogus_introspection_queries() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(CONFIG)
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .build()
             .await;
 
@@ -837,10 +837,10 @@ fn introspection_on_multiple_federation_subgraphs() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(CONFIG)
-            .with_subgraph(FederatedAccountsSchema)
-            .with_subgraph(FederatedProductsSchema)
-            .with_subgraph(FederatedReviewsSchema)
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedAccountsSchema::default())
+            .with_subgraph(FederatedProductsSchema::default())
+            .with_subgraph(FederatedReviewsSchema::default())
+            .with_subgraph(FederatedInventorySchema::default())
             .build()
             .await;
 
@@ -958,7 +958,7 @@ fn default_values() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(CONFIG)
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .build()
             .await;
 

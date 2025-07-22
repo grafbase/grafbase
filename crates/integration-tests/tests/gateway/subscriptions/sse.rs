@@ -7,7 +7,7 @@ use integration_tests::{gateway::Gateway, runtime};
 fn single_subgraph_subscription() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_websocket_urls()
             .build()
             .await;
@@ -58,7 +58,7 @@ fn single_subgraph_subscription() {
 fn request_error() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_websocket_urls()
             .build()
             .await;
@@ -105,10 +105,10 @@ fn actual_federated_subscription() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_websocket_urls()
-            .with_subgraph(FederatedAccountsSchema)
-            .with_subgraph(FederatedProductsSchema)
-            .with_subgraph(FederatedReviewsSchema)
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedAccountsSchema::default())
+            .with_subgraph(FederatedProductsSchema::default())
+            .with_subgraph(FederatedReviewsSchema::default())
+            .with_subgraph(FederatedInventorySchema::default())
             .build()
             .await;
 

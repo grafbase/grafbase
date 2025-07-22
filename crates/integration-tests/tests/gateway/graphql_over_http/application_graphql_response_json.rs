@@ -8,7 +8,7 @@ use integration_tests::{gateway::Gateway, runtime};
 #[case::post(http::Method::POST)]
 fn ill_formed_graphql_over_http_request(#[case] method: http::Method) {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .raw_execute(
@@ -45,7 +45,7 @@ fn ill_formed_graphql_over_http_request(#[case] method: http::Method) {
 #[case::post(http::Method::POST)]
 fn request_error(#[case] method: http::Method) {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .execute(method, "/graphql", "query { unknown }")
@@ -80,7 +80,7 @@ fn request_error(#[case] method: http::Method) {
 #[case::post(http::Method::POST)]
 fn field_error(#[case] method: http::Method) {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .execute(method, "/graphql", "query { fail }")

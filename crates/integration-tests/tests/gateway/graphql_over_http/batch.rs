@@ -12,7 +12,7 @@ fn success() {
 
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .build()
             .await;
 
@@ -58,7 +58,7 @@ fn success() {
 #[test]
 fn disabled() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         // Query should work
         let response = engine
@@ -108,7 +108,7 @@ fn limit_reached() {
 
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .build()
             .await;
 
@@ -160,7 +160,7 @@ fn just_in_limit() {
 
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .build()
             .await;
 
@@ -213,7 +213,7 @@ fn invalid_request() {
 
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .build()
             .await;
 
@@ -271,7 +271,7 @@ fn request_error() {
 
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .build()
             .await;
 

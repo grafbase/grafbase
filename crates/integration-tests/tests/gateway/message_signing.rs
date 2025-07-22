@@ -406,11 +406,11 @@ struct SignedGithubSchema {
 
 impl graphql_mocks::Subgraph for SignedGithubSchema {
     fn name(&self) -> String {
-        FakeGithubSchema.name()
+        FakeGithubSchema::default().name()
     }
 
     async fn start(self) -> graphql_mocks::MockGraphQlServer {
-        FakeGithubSchema
+        FakeGithubSchema::default()
             .start()
             .await
             .with_message_signing_validation(self.key, self.kid)

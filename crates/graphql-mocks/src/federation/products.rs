@@ -6,7 +6,9 @@ use futures::Stream;
 
 use crate::websockets::ConnectionInitPayload;
 
-pub struct FederatedProductsSchema;
+pub struct FederatedProductsSchema {
+    schema: Schema<Query, EmptyMutation, Subscription>,
+}
 
 impl crate::Subgraph for FederatedProductsSchema {
     fn name(&self) -> String {
@@ -17,8 +19,8 @@ impl crate::Subgraph for FederatedProductsSchema {
     }
 }
 
-impl FederatedProductsSchema {
-    fn schema() -> Schema<Query, EmptyMutation, Subscription> {
+impl Default for FederatedProductsSchema {
+    fn default() -> Self {
         let products = vec![
             Product {
                 upc: "top-1".to_string(),
@@ -51,11 +53,12 @@ impl FederatedProductsSchema {
                 weight_grams: 500,
             },
         ];
-        Schema::build(Query, EmptyMutation, Subscription)
+        let schema = Schema::build(Query, EmptyMutation, Subscription)
             .enable_federation()
             .enable_subscription_in_federation()
             .data(products)
-            .finish()
+            .finish();
+        Self { schema }
     }
 }
 
@@ -66,7 +69,7 @@ impl super::super::Schema for FederatedProductsSchema {
         _headers: Vec<(String, String)>,
         request: async_graphql::Request,
     ) -> async_graphql::Response {
-        Self::schema().execute(request).await
+        self.schema.execute(request).await
     }
 
     fn execute_stream(
@@ -74,15 +77,12 @@ impl super::super::Schema for FederatedProductsSchema {
         request: async_graphql::Request,
         session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
-        if let Some(session_data) = session_data {
-            Box::pin(Self::schema().execute_stream_with_session_data(request, session_data))
-        } else {
-            Box::pin(Self::schema().execute_stream(request))
-        }
+        async_graphql::Executor::execute_stream(&self.schema, request, session_data)
     }
 
     fn sdl(&self) -> String {
-        Self::schema().sdl_with_options(async_graphql::SDLExportOptions::new().federation())
+        self.schema
+            .sdl_with_options(async_graphql::SDLExportOptions::new().federation())
     }
 }
 

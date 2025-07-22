@@ -29,7 +29,7 @@ fn authentication_returns_401(#[case] method: http::Method, #[case] accept: &'st
         "#};
 
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(config)
             .build()
             .await;
@@ -60,7 +60,7 @@ fn authentication_returns_401(#[case] method: http::Method, #[case] accept: &'st
 #[test]
 fn missing_accept_header() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .raw_execute(
@@ -95,7 +95,7 @@ fn missing_accept_header() {
 #[test]
 fn star_accept_header_should_be_accepted() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .raw_execute(
@@ -164,7 +164,7 @@ fn star_accept_header_should_be_accepted() {
 #[test]
 fn unsupported_accept_header() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .raw_execute(
@@ -198,7 +198,7 @@ fn unsupported_accept_header() {
 #[test]
 fn one_valid_acccept_header() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .raw_execute(
@@ -242,7 +242,7 @@ fn one_valid_acccept_header() {
 #[case::gql_json(APPLICATION_GRAPHQL_RESPONSE_JSON)]
 fn missing_content_type(#[case] accept: &'static str) {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .raw_execute(
@@ -278,7 +278,7 @@ fn missing_content_type(#[case] accept: &'static str) {
 #[case::gql_json(APPLICATION_GRAPHQL_RESPONSE_JSON)]
 fn content_type_with_parameters(#[case] accept: &'static str) {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder().with_subgraph(FakeGithubSchema::default()).build().await;
 
         let response = engine
             .raw_execute(
