@@ -151,6 +151,8 @@ fn patch_fields<'a, T>(
 
     let mut changed_field_types = Vec::new();
     let mut removed_fields = Vec::new();
+    let mut removed_arguments = Vec::new();
+    let mut added_arguments = Vec::new();
 
     for change in paths.iter_second_level(parent) {
         match change.kind() {
@@ -168,6 +170,15 @@ fn patch_fields<'a, T>(
                 schema.push('\n');
             }
             ChangeKind::AddInterfaceImplementation | ChangeKind::RemoveInterfaceImplementation => (), // already handled
+            ChangeKind::AddFieldArgument => {
+                added_arguments.push((
+                    change.second_level().expect("no second level in AddFieldArgument"),
+                    change.resolved_str(),
+                ));
+            }
+            ChangeKind::RemoveFieldArgument => {
+                removed_arguments.push(change.second_and_third_level());
+            }
             kind => {
                 debug_assert!(false, "Unhandled change at `{path}`: {kind:?}", path = change.path())
             }
@@ -175,6 +186,8 @@ fn patch_fields<'a, T>(
     }
 
     removed_fields.sort_unstable();
+
+    let mut added_arguments_for_field = Vec::new();
 
     for field in fields {
         if removed_fields.binary_search(&field.name()).is_ok() {
@@ -191,10 +204,24 @@ fn patch_fields<'a, T>(
         schema.push_str(INDENTATION);
         schema.push_str(field.name());
 
-        let mut arguments = field.arguments().peekable();
+        let mut arguments = field
+            .arguments()
+            .filter(|argument| !removed_arguments.contains(&[field.name(), argument.name()]))
+            .peekable();
 
-        if arguments.peek().is_some() {
+        added_arguments_for_field.clear();
+        added_arguments_for_field.extend(
+            added_arguments
+                .iter()
+                .filter(|(field_name, _)| *field_name == field.name()),
+        );
+
+        if arguments.peek().is_some() || !added_arguments_for_field.is_empty() {
             schema.push('(');
+
+            for (_, full_argument) in &added_arguments_for_field {
+                schema.push_str(full_argument);
+            }
 
             while let Some(argument) = arguments.next() {
                 if let Some(description) = argument.description() {
