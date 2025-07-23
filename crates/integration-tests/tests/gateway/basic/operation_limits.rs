@@ -170,7 +170,7 @@ fn test_operation_limits(
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_toml_config(operation_limits_config)
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .build()
             .await;
 

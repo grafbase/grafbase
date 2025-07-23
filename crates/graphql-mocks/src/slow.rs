@@ -4,8 +4,9 @@ use async_graphql::{EmptyMutation, EmptySubscription, Object, Schema};
 
 use crate::MockGraphQlServer;
 
-#[derive(Default)]
-pub struct SlowSchema;
+pub struct SlowSchema {
+    schema: Schema<Query, EmptyMutation, EmptySubscription>,
+}
 
 impl crate::Subgraph for SlowSchema {
     fn name(&self) -> String {
@@ -17,11 +18,13 @@ impl crate::Subgraph for SlowSchema {
     }
 }
 
-impl SlowSchema {
-    fn schema() -> Schema<Query, EmptyMutation, EmptySubscription> {
-        Schema::build(Query, EmptyMutation, EmptySubscription)
-            .enable_federation()
-            .finish()
+impl Default for SlowSchema {
+    fn default() -> Self {
+        Self {
+            schema: Schema::build(Query, EmptyMutation, EmptySubscription)
+                .enable_federation()
+                .finish(),
+        }
     }
 }
 
@@ -47,7 +50,7 @@ impl crate::Schema for SlowSchema {
         _headers: Vec<(String, String)>,
         request: async_graphql::Request,
     ) -> async_graphql::Response {
-        Self::schema().execute(request).await
+        self.schema.execute(request).await
     }
 
     fn execute_stream(
@@ -55,14 +58,11 @@ impl crate::Schema for SlowSchema {
         request: async_graphql::Request,
         session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
-        if let Some(session_data) = session_data {
-            Box::pin(Self::schema().execute_stream_with_session_data(request, session_data))
-        } else {
-            Box::pin(Self::schema().execute_stream(request))
-        }
+        async_graphql::Executor::execute_stream(&self.schema, request, session_data)
     }
 
     fn sdl(&self) -> String {
-        Self::schema().sdl_with_options(async_graphql::SDLExportOptions::new().federation())
+        self.schema
+            .sdl_with_options(async_graphql::SDLExportOptions::new().federation())
     }
 }

@@ -168,10 +168,10 @@ async fn jwt_token(scope: &str) -> String {
 
 async fn engine() -> Gateway {
     Gateway::builder()
-        .with_subgraph(FederatedProductsSchema)
-        .with_subgraph(FederatedReviewsSchema)
-        .with_subgraph(SecureFederatedSchema)
-        .with_subgraph(FederatedInventorySchema)
+        .with_subgraph(FederatedProductsSchema::default())
+        .with_subgraph(FederatedReviewsSchema::default())
+        .with_subgraph(SecureFederatedSchema::default())
+        .with_subgraph(FederatedInventorySchema::default())
         .with_toml_config(format!(
             r#"
                 [entity_caching]

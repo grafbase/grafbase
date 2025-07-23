@@ -14,7 +14,7 @@ use crate::cargo_bin;
 
 #[tokio::test]
 async fn test_mcp() {
-    let subgraph = graphql_mocks::EchoSchema.start().await;
+    let subgraph = graphql_mocks::EchoSchema::default().start().await;
 
     // Pick a port number in the dynamic range.
     let port = random::<u16>() | 0xc000;
@@ -79,19 +79,16 @@ async fn test_mcp() {
 
     // List tools
     let tools = client.list_tools(Default::default()).await.unwrap();
-    insta::assert_json_snapshot!(tools, @r##"
+    insta::assert_json_snapshot!(tools, @r#"
     {
       "tools": [
         {
           "name": "introspect",
           "description": "Provide the complete GraphQL SDL for the requested types. Always use `search` first to identify relevant fields before if information on a specific type was not explicitly requested. Continue using this tool until you have the definition of all nested types you intend to query.",
           "inputSchema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "IntrospectionParameters",
             "type": "object",
-            "required": [
-              "types"
-            ],
             "properties": {
               "types": {
                 "type": "array",
@@ -99,7 +96,10 @@ async fn test_mcp() {
                   "type": "string"
                 }
               }
-            }
+            },
+            "required": [
+              "types"
+            ]
           },
           "annotations": {
             "readOnlyHint": true
@@ -109,12 +109,9 @@ async fn test_mcp() {
           "name": "search",
           "description": "Search for relevant fields to use in a GraphQL query. A list of matching fields with their score is returned with partial GraphQL SDL indicating how to query them. Use `introspect` tool to request additional information on children field types if necessary to refine the selection set.",
           "inputSchema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "SearchParameters",
             "type": "object",
-            "required": [
-              "keywords"
-            ],
             "properties": {
               "keywords": {
                 "type": "array",
@@ -122,7 +119,10 @@ async fn test_mcp() {
                   "type": "string"
                 }
               }
-            }
+            },
+            "required": [
+              "keywords"
+            ]
           },
           "annotations": {
             "readOnlyHint": true
@@ -132,22 +132,22 @@ async fn test_mcp() {
           "name": "execute",
           "description": "Executes a GraphQL request. Additional GraphQL SDL may be provided upon errors.",
           "inputSchema": {
-            "$schema": "http://json-schema.org/draft-07/schema#",
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
             "title": "Request",
             "type": "object",
-            "required": [
-              "query",
-              "variables"
-            ],
             "properties": {
               "query": {
                 "type": "string"
               },
               "variables": {
                 "type": "object",
-                "additionalProperties": true
+                "additionalProperties": true,
+                "default": {}
               }
-            }
+            },
+            "required": [
+              "query"
+            ]
           },
           "annotations": {
             "destructiveHint": true,
@@ -156,7 +156,7 @@ async fn test_mcp() {
         }
       ]
     }
-    "##);
+    "#);
 
     let tool_result = timeout(
         Duration::from_secs(20),

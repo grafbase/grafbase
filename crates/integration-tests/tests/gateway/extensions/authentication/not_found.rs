@@ -10,7 +10,7 @@ use crate::gateway::extensions::{authentication::static_token::StaticToken, auth
 fn deny_default_no_extension_404() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 type Query {
                     header(name: String): String
@@ -43,7 +43,7 @@ fn deny_default_no_extension_404() {
 fn deny_default_with_extensions_404() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 

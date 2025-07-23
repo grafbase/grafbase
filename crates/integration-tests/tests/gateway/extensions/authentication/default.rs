@@ -11,7 +11,7 @@ use crate::gateway::extensions::{authentication::static_token::StaticToken, auth
 fn no_extension() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -39,7 +39,7 @@ fn no_extension() {
 fn extension() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -76,7 +76,7 @@ fn extension() {
 fn no_extension_with_anonymous_default() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -110,7 +110,7 @@ fn no_extension_with_anonymous_default() {
 fn extension_with_anonymous_default() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -148,7 +148,7 @@ fn extension_with_anonymous_default() {
 fn no_extension_with_deny_default() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -190,7 +190,7 @@ fn no_extension_with_deny_default() {
 fn extension_with_deny_default() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -225,7 +225,7 @@ fn extension_with_deny_default() {
 fn graphql_no_extension() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -266,7 +266,7 @@ fn graphql_no_extension() {
 fn graphql_default_override() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -329,7 +329,7 @@ fn graphql_default_override() {
 fn graphql_extension() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -375,7 +375,7 @@ fn graphql_extension() {
 fn graphql_no_extension_with_anonymous_default() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -414,7 +414,7 @@ fn graphql_no_extension_with_anonymous_default() {
 fn graphql_extension_with_anonymous_default() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -453,7 +453,7 @@ fn graphql_extension_with_anonymous_default() {
 fn graphql_no_extension_with_deny_default() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -500,7 +500,7 @@ fn graphql_no_extension_with_deny_default() {
 fn graphql_extension_with_deny_default() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -536,7 +536,7 @@ fn graphql_extension_with_deny_default() {
 fn mcp_no_extension() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -594,7 +594,7 @@ fn mcp_no_extension() {
 fn mcp_extension() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -660,7 +660,7 @@ fn mcp_extension() {
 fn mcp_default_override() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -724,7 +724,7 @@ fn mcp_default_override() {
 fn mcp_no_extension_with_anonymous_default() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -783,7 +783,7 @@ fn mcp_no_extension_with_anonymous_default() {
 fn mcp_extension_with_anonymous_default() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -842,7 +842,7 @@ fn mcp_extension_with_anonymous_default() {
 fn mcp_no_extension_with_deny_default() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 
@@ -912,7 +912,7 @@ fn mcp_no_extension_with_deny_default() {
 fn mcp_extension_with_deny_default() {
     runtime().block_on(async move {
         let gateway = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 

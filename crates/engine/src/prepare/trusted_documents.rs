@@ -310,7 +310,7 @@ async fn handle_trusted_document_query<'ctx, 'r, R: Runtime>(
 /// We don't cache anything here, we only rely on the operation cache. We might want to use an
 /// external cache for this one day, but not another in-memory cache.
 #[tracing::instrument(skip_all)]
-async fn handle_apq<'r, 'f>(
+async fn handle_apq<'r>(
     query: Option<&'r str>,
     ext: &'r PersistedQueryRequestExtension,
 ) -> Result<Cow<'r, str>, GraphqlError> {

@@ -4,7 +4,7 @@ use integration_tests::{gateway::Gateway, runtime};
 #[test]
 fn subgraph_url_override() {
     runtime().block_on(async {
-        let subgraph_server = graphql_mocks::MockGraphQlServer::new(FederatedAccountsSchema).await;
+        let subgraph_server = graphql_mocks::MockGraphQlServer::new(FederatedAccountsSchema::default()).await;
 
         let engine = Gateway::builder()
             .with_federated_sdl(

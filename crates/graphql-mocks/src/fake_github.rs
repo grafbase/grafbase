@@ -6,7 +6,9 @@ use async_graphql::{
 
 use crate::{MockGraphQlServer, Subgraph};
 
-pub struct FakeGithubSchema;
+pub struct FakeGithubSchema {
+    schema: async_graphql::Schema<Query, EmptyMutation, EmptySubscription>,
+}
 
 impl Subgraph for FakeGithubSchema {
     fn name(&self) -> String {
@@ -18,6 +20,14 @@ impl Subgraph for FakeGithubSchema {
     }
 }
 
+impl Default for FakeGithubSchema {
+    fn default() -> Self {
+        Self {
+            schema: async_graphql::Schema::build(Query, EmptyMutation, EmptySubscription).finish(),
+        }
+    }
+}
+
 #[async_trait::async_trait]
 impl super::Schema for FakeGithubSchema {
     async fn execute(
@@ -25,10 +35,7 @@ impl super::Schema for FakeGithubSchema {
         _headers: Vec<(String, String)>,
         request: async_graphql::Request,
     ) -> async_graphql::Response {
-        async_graphql::Schema::build(Query, EmptyMutation, EmptySubscription)
-            .finish()
-            .execute(request)
-            .await
+        self.schema.execute(request).await
     }
 
     fn execute_stream(
@@ -36,19 +43,11 @@ impl super::Schema for FakeGithubSchema {
         request: async_graphql::Request,
         session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
-        let schema = async_graphql::Schema::build(Query, EmptyMutation, EmptySubscription).finish();
-
-        if let Some(data) = session_data {
-            Box::pin(schema.execute_stream_with_session_data(request, data))
-        } else {
-            Box::pin(schema.execute_stream(request))
-        }
+        async_graphql::Executor::execute_stream(&self.schema, request, session_data)
     }
 
     fn sdl(&self) -> String {
-        let schema = async_graphql::Schema::build(Query, EmptyMutation, EmptySubscription).finish();
-
-        schema.sdl_with_options(async_graphql::SDLExportOptions::new())
+        self.schema.sdl_with_options(async_graphql::SDLExportOptions::new())
     }
 }
 

@@ -337,7 +337,6 @@ fn test_argument_complexity() {
     });
 }
 
-#[derive(Default)]
 pub struct ComplexitySchema;
 
 impl Subgraph for ComplexitySchema {

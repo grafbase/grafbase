@@ -34,7 +34,7 @@ impl AuthorizationTestExtension for InsertTokenAsHeader {
 fn can_inject_token_into_headers() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 

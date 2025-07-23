@@ -58,11 +58,7 @@ impl super::Schema for DynamicSchema {
         request: async_graphql::Request,
         session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
-        if let Some(session_data) = session_data {
-            Box::pin(self.schema.execute_stream_with_session_data(request, session_data))
-        } else {
-            Box::pin(self.schema.execute_stream(request))
-        }
+        async_graphql::Executor::execute_stream(&self.schema, request, session_data)
     }
 
     fn sdl(&self) -> String {

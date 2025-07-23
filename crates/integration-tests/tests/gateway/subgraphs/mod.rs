@@ -18,11 +18,11 @@ use integration_tests::{
 
 async fn execute(request: &str) -> GraphqlResponse {
     let engine = Gateway::builder()
-        .with_subgraph(FederatedAccountsSchema)
-        .with_subgraph(FederatedProductsSchema)
-        .with_subgraph(FederatedReviewsSchema)
-        .with_subgraph(FederatedInventorySchema)
-        .with_subgraph(FederatedShippingSchema)
+        .with_subgraph(FederatedAccountsSchema::default())
+        .with_subgraph(FederatedProductsSchema::default())
+        .with_subgraph(FederatedReviewsSchema::default())
+        .with_subgraph(FederatedInventorySchema::default())
+        .with_subgraph(FederatedShippingSchema::default())
         .build()
         .await;
     engine.post(request).await

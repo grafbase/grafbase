@@ -4,7 +4,10 @@ use integration_tests::{gateway::Gateway, runtime};
 #[test]
 fn simple_override() {
     let response = runtime().block_on(async {
-        let engine = Gateway::builder().with_subgraph(FederatedAccountsSchema).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FederatedAccountsSchema::default())
+            .build()
+            .await;
         engine
             .post(
                 r"

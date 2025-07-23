@@ -4,7 +4,10 @@ use integration_tests::{gateway::Gateway, runtime};
 #[test]
 fn skip_include() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         engine
             .post(
@@ -61,7 +64,10 @@ fn skip_include() {
 #[test]
 fn skip_include_propagate_between_spreads() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         engine
             .post(
@@ -99,7 +105,10 @@ fn skip_include_propagate_between_spreads() {
 #[test]
 fn skip_include_multiple_instances_same_field() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         engine
             .post(

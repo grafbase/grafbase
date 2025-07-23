@@ -6,7 +6,7 @@ use integration_tests::{gateway::Gateway, runtime};
 fn custom_websocket_path() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_websocket_urls()
             .with_toml_config(
                 r#"
@@ -60,7 +60,7 @@ fn custom_websocket_path() {
 fn websockets_basic_no_init_payload() {
     let (first, second) = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_websocket_urls()
             .build()
             .await;
@@ -98,7 +98,7 @@ fn websockets_basic_no_init_payload() {
 fn websockets_forward_subgraph_headers() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_websocket_urls()
             .with_toml_config(
                 r#"
@@ -146,7 +146,7 @@ fn websockets_forward_subgraph_headers() {
 fn websocket_connection_init_payload() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_websocket_urls()
             .build()
             .await;
@@ -198,7 +198,7 @@ fn websocket_connection_init_payload() {
 fn websocket_connection_init_payload_forwarding_disabled() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_toml_config(
                 "
                 [websockets]

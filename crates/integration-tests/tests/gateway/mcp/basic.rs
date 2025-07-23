@@ -77,7 +77,7 @@ fn list_tools() {
         stream.list_tools().await
     });
 
-    insta::assert_json_snapshot!(&tools, @r##"
+    insta::assert_json_snapshot!(&tools, @r#"
     {
       "result": {
         "tools": [
@@ -85,12 +85,9 @@ fn list_tools() {
             "name": "introspect",
             "description": "Provide the complete GraphQL SDL for the requested types. Always use `search` first to identify relevant fields before if information on a specific type was not explicitly requested. Continue using this tool until you have the definition of all nested types you intend to query.",
             "inputSchema": {
-              "$schema": "http://json-schema.org/draft-07/schema#",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
               "title": "IntrospectionParameters",
               "type": "object",
-              "required": [
-                "types"
-              ],
               "properties": {
                 "types": {
                   "type": "array",
@@ -98,7 +95,10 @@ fn list_tools() {
                     "type": "string"
                   }
                 }
-              }
+              },
+              "required": [
+                "types"
+              ]
             },
             "annotations": {
               "readOnlyHint": true
@@ -108,12 +108,9 @@ fn list_tools() {
             "name": "search",
             "description": "Search for relevant fields to use in a GraphQL query. A list of matching fields with their score is returned with partial GraphQL SDL indicating how to query them. Use `introspect` tool to request additional information on children field types if necessary to refine the selection set.",
             "inputSchema": {
-              "$schema": "http://json-schema.org/draft-07/schema#",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
               "title": "SearchParameters",
               "type": "object",
-              "required": [
-                "keywords"
-              ],
               "properties": {
                 "keywords": {
                   "type": "array",
@@ -121,7 +118,10 @@ fn list_tools() {
                     "type": "string"
                   }
                 }
-              }
+              },
+              "required": [
+                "keywords"
+              ]
             },
             "annotations": {
               "readOnlyHint": true
@@ -131,22 +131,22 @@ fn list_tools() {
             "name": "execute",
             "description": "Executes a GraphQL request. Additional GraphQL SDL may be provided upon errors.",
             "inputSchema": {
-              "$schema": "http://json-schema.org/draft-07/schema#",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
               "title": "Request",
               "type": "object",
-              "required": [
-                "query",
-                "variables"
-              ],
               "properties": {
                 "query": {
                   "type": "string"
                 },
                 "variables": {
                   "type": "object",
-                  "additionalProperties": true
+                  "additionalProperties": true,
+                  "default": {}
                 }
-              }
+              },
+              "required": [
+                "query"
+              ]
             },
             "annotations": {
               "destructiveHint": true,
@@ -156,5 +156,5 @@ fn list_tools() {
         ]
       }
     }
-    "##);
+    "#);
 }

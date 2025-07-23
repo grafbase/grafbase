@@ -3,7 +3,9 @@ use std::sync::Arc;
 // See https://github.com/async-graphql/examples
 use async_graphql::{ComplexObject, EmptyMutation, EmptySubscription, ID, Object, Schema, SimpleObject};
 
-pub struct FederatedAccountsSchema;
+pub struct FederatedAccountsSchema {
+    schema: Schema<Query, EmptyMutation, EmptySubscription>,
+}
 
 impl crate::Subgraph for FederatedAccountsSchema {
     fn name(&self) -> String {
@@ -14,11 +16,12 @@ impl crate::Subgraph for FederatedAccountsSchema {
     }
 }
 
-impl FederatedAccountsSchema {
-    fn schema() -> Schema<Query, EmptyMutation, EmptySubscription> {
-        Schema::build(Query, EmptyMutation, EmptySubscription)
+impl Default for FederatedAccountsSchema {
+    fn default() -> Self {
+        let schema = Schema::build(Query, EmptyMutation, EmptySubscription)
             .enable_federation()
-            .finish()
+            .finish();
+        Self { schema }
     }
 }
 
@@ -29,7 +32,7 @@ impl super::super::Schema for FederatedAccountsSchema {
         _headers: Vec<(String, String)>,
         request: async_graphql::Request,
     ) -> async_graphql::Response {
-        Self::schema().execute(request).await
+        self.schema.execute(request).await
     }
 
     fn execute_stream(
@@ -37,15 +40,12 @@ impl super::super::Schema for FederatedAccountsSchema {
         request: async_graphql::Request,
         session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
-        if let Some(session_data) = session_data {
-            Box::pin(Self::schema().execute_stream_with_session_data(request, session_data))
-        } else {
-            Box::pin(Self::schema().execute_stream(request))
-        }
+        async_graphql::Executor::execute_stream(&self.schema, request, session_data)
     }
 
     fn sdl(&self) -> String {
-        Self::schema().sdl_with_options(async_graphql::SDLExportOptions::new().federation())
+        self.schema
+            .sdl_with_options(async_graphql::SDLExportOptions::new().federation())
     }
 }
 

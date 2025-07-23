@@ -9,7 +9,7 @@ async fn grafbase_dev_basic() {
             introspection = true
             "#,
         )
-        .with_subgraph(graphql_mocks::EchoSchema)
+        .with_subgraph(graphql_mocks::EchoSchema::default())
         .start()
         .await;
 

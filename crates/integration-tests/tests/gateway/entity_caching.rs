@@ -12,7 +12,7 @@ mod subgraph_cache_control;
 fn root_level_entity_caching() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -74,7 +74,7 @@ fn root_level_entity_caching() {
 fn different_queries_dont_share_cache() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -100,7 +100,7 @@ fn different_queries_dont_share_cache() {
 fn test_cache_expiry() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -195,9 +195,9 @@ fn cache_skipped_if_subgraph_errors() {
 fn entity_request_caching() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
-            .with_subgraph(FederatedReviewsSchema)
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedProductsSchema::default())
+            .with_subgraph(FederatedReviewsSchema::default())
+            .with_subgraph(FederatedInventorySchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -242,9 +242,9 @@ fn entity_request_caching() {
 fn entity_request_cache_partial_hit() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
-            .with_subgraph(FederatedReviewsSchema)
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedProductsSchema::default())
+            .with_subgraph(FederatedReviewsSchema::default())
+            .with_subgraph(FederatedInventorySchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -316,7 +316,7 @@ fn entity_request_cache_partial_hit() {
 fn test_headers_impact_root_field_caching() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]
@@ -360,9 +360,9 @@ fn test_headers_impact_root_field_caching() {
 fn test_headers_impact_entity_field_caching() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
-            .with_subgraph(FederatedReviewsSchema)
-            .with_subgraph(FederatedInventorySchema)
+            .with_subgraph(FederatedProductsSchema::default())
+            .with_subgraph(FederatedReviewsSchema::default())
+            .with_subgraph(FederatedInventorySchema::default())
             .with_toml_config(
                 r#"
                 [entity_caching]

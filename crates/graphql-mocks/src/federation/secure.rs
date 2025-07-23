@@ -3,7 +3,9 @@
 
 use async_graphql::{EmptyMutation, EmptySubscription, Object, SimpleObject, TypeDirective};
 
-pub struct SecureFederatedSchema;
+pub struct SecureFederatedSchema {
+    schema: async_graphql::Schema<Query, EmptyMutation, EmptySubscription>,
+}
 
 impl crate::Subgraph for SecureFederatedSchema {
     fn name(&self) -> String {
@@ -11,12 +13,17 @@ impl crate::Subgraph for SecureFederatedSchema {
     }
 
     async fn start(self) -> crate::MockGraphQlServer {
-        crate::MockGraphQlServer::new(
-            async_graphql::Schema::build(Query, EmptyMutation, EmptySubscription)
+        crate::MockGraphQlServer::new(self.schema).await
+    }
+}
+
+impl Default for SecureFederatedSchema {
+    fn default() -> Self {
+        SecureFederatedSchema {
+            schema: async_graphql::Schema::build(Query, EmptyMutation, EmptySubscription)
                 .enable_federation()
                 .finish(),
-        )
-        .await
+        }
     }
 }
 

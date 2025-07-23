@@ -10,7 +10,7 @@ use crate::gateway::extensions::authorization::InsertTokenAsHeader;
 fn authorization_failure_with_response_header_from_extension() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(EchoSchema.with_sdl(
+            .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
                 extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
 

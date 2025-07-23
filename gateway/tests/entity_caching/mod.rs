@@ -24,7 +24,7 @@ fn entity_caching_via_redis() {
         "#,
     );
 
-    let subgraph_schema = graphql_mocks::EchoSchema;
+    let subgraph_schema = graphql_mocks::EchoSchema::default();
     let subgraph_sdl = subgraph_schema.sdl();
     let subgraph_server = runtime().block_on(async { graphql_mocks::MockGraphQlServer::new(subgraph_schema).await });
 

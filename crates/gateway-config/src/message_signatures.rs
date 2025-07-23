@@ -234,9 +234,9 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r#"
         Err(
-            TomlError {
+            Error {
                 message: "raw and file may not both be provided in a message signing key",
-                raw: Some(
+                input: Some(
                     "key.file = \"super-secret-key\"\nkey.inline = \"hello\"\n",
                 ),
                 keys: [
@@ -260,9 +260,9 @@ mod tests {
 
         insta::assert_debug_snapshot!(result, @r#"
         Err(
-            TomlError {
+            Error {
                 message: "one of raw or file must be provided in the message signing key",
-                raw: Some(
+                input: Some(
                     "key = {}\n",
                 ),
                 keys: [

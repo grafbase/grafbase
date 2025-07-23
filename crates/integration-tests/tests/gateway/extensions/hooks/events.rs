@@ -24,7 +24,7 @@ fn receive_events() {
             "#,
             )
             .with_extension("hooks-19")
-            .with_subgraph(EchoSchema)
+            .with_subgraph(EchoSchema::default())
             .build()
             .await;
 
@@ -118,7 +118,7 @@ fn access_logs_with_working_subgraph() {
         let engine = Gateway::builder()
             .with_toml_config(config)
             .with_extension("access-logs-18")
-            .with_subgraph(EchoSchema)
+            .with_subgraph(EchoSchema::default())
             .build()
             .await;
 
@@ -223,7 +223,7 @@ fn access_logs_operation_limits() {
         let engine = Gateway::builder()
             .with_toml_config(config)
             .with_extension("access-logs-18")
-            .with_subgraph(EchoSchema)
+            .with_subgraph(EchoSchema::default())
             .build()
             .await;
 
@@ -325,7 +325,7 @@ fn access_logs_with_broken_query() {
         let engine = Gateway::builder()
             .with_toml_config(config)
             .with_extension("access-logs-18")
-            .with_subgraph(EchoSchema)
+            .with_subgraph(EchoSchema::default())
             .build()
             .await;
 
@@ -418,7 +418,7 @@ fn access_logs_with_caching() {
         let engine = Gateway::builder()
             .with_toml_config(config)
             .with_extension("access-logs-18")
-            .with_subgraph(EchoSchema)
+            .with_subgraph(EchoSchema::default())
             .build()
             .await;
 

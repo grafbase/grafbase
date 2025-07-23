@@ -5,7 +5,7 @@ use integration_tests::{gateway::Gateway, runtime};
 fn no_header() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [csrf]
@@ -24,7 +24,7 @@ fn no_header() {
 fn with_header() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [csrf]
@@ -54,7 +54,7 @@ fn with_header() {
 fn with_custom_header() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [csrf]
@@ -84,7 +84,7 @@ fn with_custom_header() {
 fn mcp() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [csrf]

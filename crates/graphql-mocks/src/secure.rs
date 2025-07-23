@@ -1,7 +1,8 @@
 use async_graphql::{EmptyMutation, EmptySubscription, Object, SimpleObject, TypeDirective, Union};
 
-#[derive(Default)]
-pub struct SecureSchema;
+pub struct SecureSchema {
+    schema: async_graphql::Schema<Query, EmptyMutation, EmptySubscription>,
+}
 
 impl crate::Subgraph for SecureSchema {
     fn name(&self) -> String {
@@ -9,8 +10,15 @@ impl crate::Subgraph for SecureSchema {
     }
 
     async fn start(self) -> crate::MockGraphQlServer {
-        let schema = async_graphql::Schema::<Query, EmptyMutation, EmptySubscription>::default();
-        crate::MockGraphQlServer::new(schema).await
+        crate::MockGraphQlServer::new(self.schema).await
+    }
+}
+
+impl Default for SecureSchema {
+    fn default() -> Self {
+        SecureSchema {
+            schema: async_graphql::Schema::build(Query, EmptyMutation, EmptySubscription).finish(),
+        }
     }
 }
 

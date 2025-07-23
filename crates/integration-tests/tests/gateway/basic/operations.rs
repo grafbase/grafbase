@@ -4,7 +4,10 @@ use integration_tests::{gateway::Gateway, runtime};
 #[test]
 fn multiple_operations_without_providing_operation_name_in_request() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         engine
             .post(
@@ -43,7 +46,10 @@ fn multiple_operations_without_providing_operation_name_in_request() {
 #[test]
 fn multiple_operations() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         engine
             .post(
@@ -85,7 +91,10 @@ fn multiple_operations() {
 #[test]
 fn only_one_named_operation() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         engine
             .post(
@@ -119,7 +128,10 @@ fn only_one_named_operation() {
 #[test]
 fn unknown_operation_name() {
     let response = runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         engine
             .post(

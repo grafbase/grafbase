@@ -42,7 +42,7 @@ fn supports_zstd_compression() {
 fn does_not_compress_for_stream() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FederatedProductsSchema)
+            .with_subgraph(FederatedProductsSchema::default())
             .with_websocket_urls()
             .build()
             .await;

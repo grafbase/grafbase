@@ -30,7 +30,7 @@ where
 {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_mock_trusted_documents(enforcement_mode, TRUSTED_DOCUMENTS.to_owned())
             .build()
             .await;

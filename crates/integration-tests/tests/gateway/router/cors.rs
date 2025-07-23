@@ -5,7 +5,7 @@ use integration_tests::{gateway::Gateway, runtime};
 fn test_cors_allow_origins() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]
@@ -56,7 +56,7 @@ fn test_cors_allow_origins() {
 fn test_cors_allow_origins_single_value() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]
@@ -107,7 +107,7 @@ fn test_cors_allow_origins_single_value() {
 fn test_cors_allow_methods() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]
@@ -162,7 +162,7 @@ fn test_cors_allow_methods() {
 fn test_cors_allow_headers() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]
@@ -220,7 +220,7 @@ fn test_cors_allow_headers() {
 fn test_cors_credentials() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]
@@ -255,7 +255,7 @@ fn test_cors_credentials() {
 fn test_cors_max_age() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]
@@ -287,7 +287,7 @@ fn test_cors_max_age() {
 fn test_cors_expose_headers() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]
@@ -312,7 +312,7 @@ fn test_cors_expose_headers() {
 fn mcp() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]
@@ -350,7 +350,7 @@ fn mcp() {
 fn test_cors_wildcard_subdomain_pattern() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]
@@ -417,7 +417,7 @@ fn test_cors_wildcard_subdomain_pattern() {
 fn test_cors_mixed_static_and_wildcard_origins() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]
@@ -489,7 +489,7 @@ fn test_cors_mixed_static_and_wildcard_origins() {
 fn test_cors_multiple_wildcard_origins() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]
@@ -561,7 +561,7 @@ fn test_cors_multiple_wildcard_origins() {
 fn test_cors_allow_all_origins() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]
@@ -602,7 +602,7 @@ fn test_cors_allow_all_origins() {
 fn test_cors_allow_all_origins_legacy() {
     runtime().block_on(async move {
         let engine = Gateway::builder()
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .with_toml_config(
                 r#"
                 [cors]

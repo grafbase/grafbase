@@ -9,7 +9,9 @@ use http::{HeaderMap, HeaderName, HeaderValue};
 /// A schema that just echoes stuff back at you.
 ///
 /// Useful for testing inputs & outputs
-pub struct EchoSchema;
+pub struct EchoSchema {
+    schema: async_graphql::Schema<Query, EmptyMutation, EmptySubscription>,
+}
 
 impl crate::Subgraph for EchoSchema {
     fn name(&self) -> String {
@@ -17,6 +19,21 @@ impl crate::Subgraph for EchoSchema {
     }
     async fn start(self) -> crate::MockGraphQlServer {
         crate::MockGraphQlServer::new(self).await
+    }
+}
+
+impl Default for EchoSchema {
+    fn default() -> Self {
+        let schema = async_graphql::Schema::build(
+            Query {
+                headers: Default::default(),
+                response_headers: Default::default(),
+            },
+            EmptyMutation,
+            EmptySubscription,
+        )
+        .finish();
+        Self { schema }
     }
 }
 
@@ -58,35 +75,11 @@ impl super::Schema for EchoSchema {
         request: async_graphql::Request,
         session_data: Option<Arc<async_graphql::Data>>,
     ) -> futures::stream::BoxStream<'static, async_graphql::Response> {
-        let schema = async_graphql::Schema::build(
-            Query {
-                headers: Default::default(),
-                response_headers: Default::default(),
-            },
-            EmptyMutation,
-            EmptySubscription,
-        )
-        .finish();
-
-        if let Some(data) = session_data {
-            Box::pin(schema.execute_stream_with_session_data(request, data))
-        } else {
-            Box::pin(schema.execute_stream(request))
-        }
+        async_graphql::Executor::execute_stream(&self.schema, request, session_data)
     }
 
     fn sdl(&self) -> String {
-        let schema = async_graphql::Schema::build(
-            Query {
-                headers: Default::default(),
-                response_headers: Default::default(),
-            },
-            EmptyMutation,
-            EmptySubscription,
-        )
-        .finish();
-
-        schema.sdl_with_options(async_graphql::SDLExportOptions::new())
+        self.schema.sdl_with_options(async_graphql::SDLExportOptions::new())
     }
 }
 

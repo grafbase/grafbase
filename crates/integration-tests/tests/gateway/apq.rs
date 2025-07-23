@@ -12,7 +12,7 @@ fn when_disabled() {
 
         let engine = Gateway::builder()
             .with_toml_config(config)
-            .with_subgraph(FakeGithubSchema)
+            .with_subgraph(FakeGithubSchema::default())
             .build()
             .await;
 
@@ -57,7 +57,10 @@ fn when_disabled() {
 #[test]
 fn single_field_from_single_server() {
     runtime().block_on(async move {
-        let engine = Gateway::builder().with_subgraph(FakeGithubSchema).build().await;
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
 
         let query = "query { serverVersion }";
         let apq_ext = serde_json::json!({

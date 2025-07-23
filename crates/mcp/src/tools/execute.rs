@@ -23,40 +23,34 @@ pub struct Request {
 }
 
 impl schemars::JsonSchema for Request {
-    fn schema_name() -> std::string::String {
-        "Request".to_owned()
+    fn schema_name() -> schemars::_private::alloc::borrow::Cow<'static, str> {
+        schemars::_private::alloc::borrow::Cow::Borrowed("Request")
     }
-    fn schema_id() -> std::borrow::Cow<'static, str> {
-        std::borrow::Cow::Borrowed(std::concat!(std::module_path!(), "::", "Request"))
+    fn schema_id() -> schemars::_private::alloc::borrow::Cow<'static, str> {
+        schemars::_private::alloc::borrow::Cow::Borrowed(::core::concat!(::core::module_path!(), "::", "Request"))
     }
-    fn json_schema(generator: &mut schemars::r#gen::SchemaGenerator) -> schemars::schema::Schema {
+    fn json_schema(generator: &mut schemars::SchemaGenerator) -> schemars::Schema {
         {
-            let mut schema_object = schemars::schema::SchemaObject {
-                instance_type: Some(schemars::schema::InstanceType::Object.into()),
-                ..Default::default()
-            };
-            let object_validation = schema_object.object();
+            let mut schema = schemars::json_schema!({
+                "type":"object",
+            });
             {
-                schemars::_private::insert_object_property::<String>(
-                    object_validation,
-                    "query",
-                    false,
-                    false,
-                    generator.subschema_for::<String>(),
-                );
+                schemars::_private::insert_object_property(&mut schema, "query", false, {
+                    generator.subschema_for::<String>()
+                });
             }
             {
-                // Note: variables must be required. Cursor 1.0 does not deal well with them being optional, but it can happily send an empty object.
-                schemars::_private::insert_object_property::<serde_json::Map<String, serde_json::Value>>(
-                    object_validation,
-                    "variables",
-                    false,
-                    true,
-                    generator.subschema_for::<serde_json::Map<String, serde_json::Value>>(),
-                );
+                schemars::_private::insert_object_property(&mut schema, "variables", true, {
+                    let mut schema = generator.subschema_for::<serde_json::Map<String, serde_json::Value>>();
+                    schema.insert("default".into(), serde_json::json!({}));
+                    schema
+                });
             }
-            schemars::schema::Schema::Object(schema_object)
+            schema
         }
+    }
+    fn inline_schema() -> bool {
+        false
     }
 }
 
