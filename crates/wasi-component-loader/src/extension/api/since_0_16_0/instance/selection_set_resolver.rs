@@ -36,7 +36,7 @@ impl SelectionSetResolverExtensionInstance for super::ExtensionInstanceSince0_16
         arguments: &'a [(ArgumentsId, &'a [u8])],
     ) -> BoxFuture<'a, wasmtime::Result<Result<Data, GraphqlError>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
             let result = self
                 .inner
                 .grafbase_sdk_selection_set_resolver()

@@ -2,7 +2,7 @@ use std::{fs, io::BufReader, sync::Arc, time::Duration};
 
 pub use super::grafbase::sdk::kafka_client::*;
 
-use crate::{resources::ProducerKind, state::WasiState};
+use crate::{resources::ProducerKind, state::InstanceState};
 use dashmap::Entry;
 use futures::StreamExt;
 use rskafka::{
@@ -16,9 +16,9 @@ use rskafka::{
 };
 use wasmtime::component::Resource;
 
-impl Host for WasiState {}
+impl Host for InstanceState {}
 
-impl HostKafkaProducer for WasiState {
+impl HostKafkaProducer for InstanceState {
     async fn connect(
         &mut self,
         name: String,
@@ -26,11 +26,11 @@ impl HostKafkaProducer for WasiState {
         topic: String,
         config: KafkaProducerConfig,
     ) -> wasmtime::Result<Result<Resource<KafkaProducer>, String>> {
-        if !self.network_enabled() {
+        if !self.is_network_enabled() {
             return Ok(Err("Network operations are disabled".to_string()));
         }
 
-        let producer = match self.kafka_producers().entry(name) {
+        let producer = match self.kafka_producers.entry(name) {
             Entry::Occupied(occupied_entry) => occupied_entry.get().clone(),
             Entry::Vacant(vacant_entry) => {
                 let producer = match create_producer(servers, topic, config).await {
@@ -44,7 +44,7 @@ impl HostKafkaProducer for WasiState {
             }
         };
 
-        Ok(Ok(self.push_resource(producer)?))
+        Ok(Ok(self.resources.push(producer)?))
     }
 
     async fn produce(
@@ -53,7 +53,7 @@ impl HostKafkaProducer for WasiState {
         key: Option<String>,
         value: Vec<u8>,
     ) -> wasmtime::Result<Result<(), String>> {
-        let this = self.get(&self_)?;
+        let this = self.resources.get(&self_)?;
 
         match this.produce(key, value).await {
             Ok(()) => Ok(Ok(())),
@@ -62,20 +62,20 @@ impl HostKafkaProducer for WasiState {
     }
 
     async fn drop(&mut self, rep: Resource<KafkaProducer>) -> wasmtime::Result<()> {
-        self.table.delete(rep)?;
+        self.resources.delete(rep)?;
 
         Ok(())
     }
 }
 
-impl HostKafkaConsumer for WasiState {
+impl HostKafkaConsumer for InstanceState {
     async fn connect(
         &mut self,
         servers: Vec<String>,
         topic: String,
         config: KafkaConsumerConfig,
     ) -> wasmtime::Result<Result<Resource<KafkaConsumer>, String>> {
-        if !self.network_enabled() {
+        if !self.is_network_enabled() {
             return Ok(Err("Network operations are disabled".to_string()));
         }
 
@@ -137,11 +137,11 @@ impl HostKafkaConsumer for WasiState {
 
         let consumer = crate::resources::KafkaConsumer::new(consumers);
 
-        Ok(Ok(self.push_resource(consumer)?))
+        Ok(Ok(self.resources.push(consumer)?))
     }
 
     async fn next(&mut self, self_: Resource<KafkaConsumer>) -> wasmtime::Result<Result<Option<KafkaMessage>, String>> {
-        let this = self.get_mut(&self_)?;
+        let this = self.resources.get_mut(&self_)?;
 
         match this.next().await {
             Some(Ok((record_and_offset, watermark))) => {
@@ -162,7 +162,7 @@ impl HostKafkaConsumer for WasiState {
     }
 
     async fn drop(&mut self, rep: Resource<KafkaConsumer>) -> wasmtime::Result<()> {
-        self.table.delete(rep)?;
+        self.resources.delete(rep)?;
         Ok(())
     }
 }

@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use crate::{
-    WasmContext,
+    ExtensionState, WasmContext,
     extension::{ExtensionConfig, ExtensionLoader, WasmConfig},
 };
 use engine_schema::Schema;
@@ -27,26 +27,23 @@ async fn single_call_caching_auth() {
 
     assert!(config.location.exists());
 
-    let loader = ExtensionLoader::new(
-        Arc::new(Schema::from_sdl_or_panic("").await),
-        Arc::new(ExtensionConfig {
-            id: ExtensionId::from(0usize),
-            r#type: TypeDiscriminants::Authentication,
-            manifest_id: "caching_auth-1.0.0".parse().unwrap(),
-            sdk_version: LATEST_SDK,
-            pool: Default::default(),
-            wasm: config,
-            guest_config: toml::from_str(
-                r#"
+    let loader = load(ExtensionConfig {
+        id: ExtensionId::from(0usize),
+        r#type: TypeDiscriminants::Authentication,
+        manifest_id: "caching_auth-1.0.0".parse().unwrap(),
+        sdk_version: LATEST_SDK,
+        pool: Default::default(),
+        wasm: config,
+        guest_config: toml::from_str(
+            r#"
                 cache_config = "test"
                 "#,
-            )
-            .unwrap(),
-            can_skip_sending_events: false,
-            logging_filter: String::from("info"),
-        }),
-    )
-    .unwrap();
+        )
+        .unwrap(),
+        can_skip_sending_events: false,
+        logging_filter: String::from("info"),
+    })
+    .await;
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
@@ -90,26 +87,23 @@ async fn single_call_caching_auth_invalid() {
     };
 
     assert!(config.location.exists());
-    let loader = ExtensionLoader::new(
-        Arc::new(Schema::empty().await),
-        Arc::new(ExtensionConfig {
-            id: ExtensionId::from(0usize),
-            r#type: TypeDiscriminants::Authentication,
-            manifest_id: "caching_auth-1.0.0".parse().unwrap(),
-            sdk_version: LATEST_SDK,
-            pool: Default::default(),
-            wasm: config,
-            guest_config: toml::from_str(
-                r#"
+    let loader = load(ExtensionConfig {
+        id: ExtensionId::from(0usize),
+        r#type: TypeDiscriminants::Authentication,
+        manifest_id: "caching_auth-1.0.0".parse().unwrap(),
+        sdk_version: LATEST_SDK,
+        pool: Default::default(),
+        wasm: config,
+        guest_config: toml::from_str(
+            r#"
                 cache_config = "test"
                 "#,
-            )
-            .unwrap(),
-            can_skip_sending_events: false,
-            logging_filter: String::from("info"),
-        }),
-    )
-    .unwrap();
+        )
+        .unwrap(),
+        can_skip_sending_events: false,
+        logging_filter: String::from("info"),
+    })
+    .await;
 
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
@@ -147,26 +141,23 @@ async fn multiple_cache_calls() {
     };
 
     assert!(config.location.exists());
-    let loader = ExtensionLoader::new(
-        Arc::new(Schema::from_sdl_or_panic("").await),
-        Arc::new(ExtensionConfig {
-            id: ExtensionId::from(0usize),
-            r#type: TypeDiscriminants::Authentication,
-            manifest_id: "caching_auth-1.0.0".parse().unwrap(),
-            sdk_version: LATEST_SDK,
-            pool: Default::default(),
-            wasm: config,
-            guest_config: toml::from_str(
-                r#"
+    let loader = load(ExtensionConfig {
+        id: ExtensionId::from(0usize),
+        r#type: TypeDiscriminants::Authentication,
+        manifest_id: "caching_auth-1.0.0".parse().unwrap(),
+        sdk_version: LATEST_SDK,
+        pool: Default::default(),
+        wasm: config,
+        guest_config: toml::from_str(
+            r#"
                 cache_config = "test"
                 "#,
-            )
-            .unwrap(),
-            can_skip_sending_events: false,
-            logging_filter: String::from("info"),
-        }),
-    )
-    .unwrap();
+        )
+        .unwrap(),
+        can_skip_sending_events: false,
+        logging_filter: String::from("info"),
+    })
+    .await;
 
     let mut tasks = FuturesOrdered::new();
 
@@ -248,21 +239,18 @@ async fn on_request_hook() {
 
     assert!(config.location.exists());
 
-    let loader = ExtensionLoader::new(
-        Arc::new(Schema::from_sdl_or_panic("").await),
-        Arc::new(ExtensionConfig {
-            id: ExtensionId::from(0usize),
-            r#type: TypeDiscriminants::Hooks,
-            manifest_id: "simple-hooks-1.0.0".parse().unwrap(),
-            sdk_version: LATEST_SDK,
-            pool: Default::default(),
-            wasm: config,
-            guest_config: toml::Value::Table(Default::default()),
-            can_skip_sending_events: false,
-            logging_filter: String::from("info"),
-        }),
-    )
-    .unwrap();
+    let loader = load(ExtensionConfig {
+        id: ExtensionId::from(0usize),
+        r#type: TypeDiscriminants::Hooks,
+        manifest_id: "simple-hooks-1.0.0".parse().unwrap(),
+        sdk_version: LATEST_SDK,
+        pool: Default::default(),
+        wasm: config,
+        guest_config: toml::Value::Table(Default::default()),
+        can_skip_sending_events: false,
+        logging_filter: String::from("info"),
+    })
+    .await;
 
     let request = Request::builder().uri("https://example.com").body(()).unwrap();
     let (parts, _) = request.into_parts();
@@ -289,21 +277,18 @@ async fn on_response_hook() {
 
     assert!(config.location.exists());
 
-    let loader = ExtensionLoader::new(
-        Arc::new(Schema::from_sdl_or_panic("").await),
-        Arc::new(ExtensionConfig {
-            id: ExtensionId::from(0usize),
-            r#type: TypeDiscriminants::Hooks,
-            manifest_id: "simple-hooks-1.0.0".parse().unwrap(),
-            sdk_version: LATEST_SDK,
-            pool: Default::default(),
-            wasm: config,
-            guest_config: toml::Value::Table(Default::default()),
-            can_skip_sending_events: false,
-            logging_filter: String::from("info"),
-        }),
-    )
-    .unwrap();
+    let loader = load(ExtensionConfig {
+        id: ExtensionId::from(0usize),
+        r#type: TypeDiscriminants::Hooks,
+        manifest_id: "simple-hooks-1.0.0".parse().unwrap(),
+        sdk_version: LATEST_SDK,
+        pool: Default::default(),
+        wasm: config,
+        guest_config: toml::Value::Table(Default::default()),
+        can_skip_sending_events: false,
+        logging_filter: String::from("info"),
+    })
+    .await;
 
     let response = Response::builder().status(200).body(()).unwrap();
     let (parts, _) = response.into_parts();
@@ -316,4 +301,12 @@ async fn on_response_hook() {
         .await
         .unwrap()
         .unwrap();
+}
+
+async fn load(config: ExtensionConfig) -> ExtensionLoader {
+    ExtensionLoader::new(
+        Arc::new(Schema::from_sdl_or_panic("").await),
+        Arc::new(ExtensionState::new(config)),
+    )
+    .unwrap()
 }

@@ -23,10 +23,10 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
             let url = parts.uri.to_string();
 
             let headers = Lease::Singleton(headers);
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
-            let ctx = self.store.data_mut().push_resource(context.clone())?;
+            let ctx = self.store.data_mut().resources.push(context.clone())?;
 
             let method = match &parts.method {
                 m if m == http::Method::GET => HttpMethod::Get,
@@ -50,7 +50,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
             parts.headers = self
                 .store
                 .data_mut()
-                .take_resource::<Headers>(headers_rep)?
+                .take_leased_resource(headers_rep)?
                 .into_inner()
                 .unwrap();
 
@@ -80,11 +80,11 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
             let status = parts.status.as_u16();
 
             let headers = Lease::Singleton(headers);
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
-            let queue = self.store.data_mut().push_resource(EventQueueProxy(context.clone()))?;
-            let context = self.store.data_mut().push_resource(context.clone())?;
+            let queue = self.store.data_mut().resources.push(EventQueueProxy(context.clone()))?;
+            let context = self.store.data_mut().resources.push(context.clone())?;
 
             let result = self
                 .inner
@@ -95,7 +95,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
             parts.headers = self
                 .store
                 .data_mut()
-                .take_resource::<Headers>(headers_rep)?
+                .take_leased_resource(headers_rep)?
                 .into_inner()
                 .unwrap();
 

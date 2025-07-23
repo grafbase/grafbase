@@ -1,10 +1,10 @@
 use engine_error::ErrorCode;
 
-use crate::state::WasiState;
+use crate::state::InstanceState;
 
 pub use super::grafbase::sdk::authorization_types::*;
 
-impl Host for WasiState {}
+impl Host for InstanceState {}
 
 impl From<AuthorizationDecisions> for runtime::extension::AuthorizationDecisions {
     fn from(decisions: AuthorizationDecisions) -> Self {

@@ -1,10 +1,10 @@
-use crate::{cbor, state::WasiState};
+use crate::{cbor, state::InstanceState};
 use engine_error::{ErrorCode, GraphqlError};
 
 pub use super::grafbase::sdk::error::*;
 use crate::extension::api::since_0_10_0::world as wit010;
 
-impl Host for WasiState {}
+impl Host for InstanceState {}
 
 impl Error {
     pub(crate) fn into_graphql_error(self, code: ErrorCode) -> GraphqlError {

@@ -20,7 +20,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_15_0 {
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, QueryAuthorizationResult> {
         Box::pin(async move {
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
             let token_param = token.as_bytes().map(TokenParam::Bytes).unwrap_or(TokenParam::Anonymous);
@@ -30,12 +30,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_15_0 {
                 .call_authorize_query(&mut self.store, headers, token_param, elements)
                 .await?;
 
-            let headers = self
-                .store
-                .data_mut()
-                .take_resource::<Headers>(headers_rep)?
-                .into_lease()
-                .unwrap();
+            let headers = self.store.data_mut().take_leased_resource(headers_rep)?;
 
             let result = match result {
                 Ok((decisions, state)) => Ok((headers, decisions.into(), state)),

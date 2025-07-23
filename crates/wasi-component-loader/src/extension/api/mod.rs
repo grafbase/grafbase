@@ -19,7 +19,7 @@ use since_0_19_0::SdkPre0_19_0;
 pub use since_0_19_0::world as wit;
 
 use super::{ExtensionConfig, ExtensionInstance};
-use crate::WasiState;
+use crate::InstanceState;
 use semver::Version;
 use wasmtime::component::{Component, Linker};
 
@@ -38,7 +38,7 @@ impl SdkPre {
         schema: Arc<Schema>,
         config: &ExtensionConfig<T>,
         component: Component,
-        linker: Linker<WasiState>,
+        linker: Linker<InstanceState>,
     ) -> wasmtime::Result<SdkPre> {
         Ok(match &config.sdk_version {
             v if v < &Version::new(0, 10, 0) => {
@@ -66,7 +66,7 @@ impl SdkPre {
         })
     }
 
-    pub(crate) async fn instantiate(&self, state: WasiState) -> wasmtime::Result<Box<dyn ExtensionInstance>> {
+    pub(crate) async fn instantiate(&self, state: InstanceState) -> wasmtime::Result<Box<dyn ExtensionInstance>> {
         match self {
             SdkPre::Since0_10_0(sdk_pre) => sdk_pre.instantiate(state).await,
             SdkPre::Since0_14_0(sdk_pre) => sdk_pre.instantiate(state).await,

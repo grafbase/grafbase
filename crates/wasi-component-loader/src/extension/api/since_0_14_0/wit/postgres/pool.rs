@@ -1,5 +1,5 @@
 use super::{HostPgPool, PgPool, PgPoolOptions};
-use crate::WasiState;
+use crate::InstanceState;
 
 use dashmap::Entry;
 use sqlx::{
@@ -9,14 +9,14 @@ use sqlx::{
 use std::time::Duration;
 use wasmtime::component::Resource;
 
-impl HostPgPool for WasiState {
+impl HostPgPool for InstanceState {
     async fn connect(
         &mut self,
         name: String,
         url: String,
         options: PgPoolOptions,
     ) -> wasmtime::Result<Result<Resource<sqlx::Pool<Postgres>>, String>> {
-        let pool = match self.postgres_pools().entry(name) {
+        let pool = match self.postgres_pools.entry(name) {
             Entry::Occupied(occupied_entry) => occupied_entry.get().clone(),
             Entry::Vacant(vacant_entry) => {
                 let pool = match create_new_pool(url, options).await {
@@ -30,39 +30,39 @@ impl HostPgPool for WasiState {
             }
         };
 
-        Ok(Ok(self.push_resource(pool)?))
+        Ok(Ok(self.resources.push(pool)?))
     }
 
     async fn acquire(
         &mut self,
         self_: Resource<PgPool>,
     ) -> wasmtime::Result<Result<Resource<PoolConnection<Postgres>>, String>> {
-        let pool = self.get_mut(&self_)?;
+        let pool = self.resources.get_mut(&self_)?;
 
         let connection = match pool.acquire().await {
             Ok(connection) => connection,
             Err(err) => return Ok(Err(err.to_string())),
         };
 
-        Ok(Ok(self.push_resource(connection)?))
+        Ok(Ok(self.resources.push(connection)?))
     }
 
     async fn begin_transaction(
         &mut self,
         self_: Resource<PgPool>,
     ) -> wasmtime::Result<Result<Resource<Transaction<'static, Postgres>>, String>> {
-        let pool = self.get_mut(&self_)?;
+        let pool = self.resources.get_mut(&self_)?;
 
         let transaction = match pool.begin().await {
             Ok(tx) => tx,
             Err(err) => return Ok(Err(err.to_string())),
         };
 
-        Ok(Ok(self.push_resource(transaction)?))
+        Ok(Ok(self.resources.push(transaction)?))
     }
 
     async fn drop(&mut self, rep: Resource<PgPool>) -> wasmtime::Result<()> {
-        self.table.delete(rep)?;
+        self.resources.delete(rep)?;
         Ok(())
     }
 }

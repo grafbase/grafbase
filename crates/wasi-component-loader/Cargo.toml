@@ -27,6 +27,7 @@ grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
 http.workspace = true
 http-body-util.workspace = true
+mini-moka.workspace = true
 minicbor-serde = { workspace = true, features = ["alloc"] }
 rapidhash.workspace = true
 reqwest.workspace = true

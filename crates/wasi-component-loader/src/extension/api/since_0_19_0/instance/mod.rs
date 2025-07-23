@@ -18,14 +18,14 @@ use wasmtime::{
 };
 
 use crate::{
-    WasiState, cbor,
+    InstanceState, cbor,
     extension::{ExtensionConfig, ExtensionInstance},
 };
 
 use super::wit;
 
 pub struct SdkPre0_19_0 {
-    pre: wit::SdkPre<crate::WasiState>,
+    pre: wit::SdkPre<crate::InstanceState>,
     guest_config: Vec<u8>,
     #[allow(unused)]
     schema: Arc<Schema>,
@@ -40,7 +40,7 @@ impl SdkPre0_19_0 {
         schema: Arc<Schema>,
         config: &ExtensionConfig<T>,
         component: Component,
-        mut linker: Linker<WasiState>,
+        mut linker: Linker<InstanceState>,
     ) -> wasmtime::Result<Self> {
         let subgraph_schemas: Vec<(&str, WitSchema<'_>)> = match config.r#type {
             TypeDiscriminants::Resolver => {
@@ -65,12 +65,13 @@ impl SdkPre0_19_0 {
             unsafe { std::mem::transmute(subgraph_schemas) };
 
         super::wit::grafbase::sdk::shared_context::add_to_linker_impl(&mut linker)?;
+        super::wit::grafbase::sdk::cache::add_to_linker_impl(&mut linker)?;
         wit::Sdk::add_to_linker(&mut linker, |state| state)?;
 
         let instance_pre = linker.instantiate_pre(&component)?;
 
         Ok(Self {
-            pre: wit::SdkPre::<WasiState>::new(instance_pre)?,
+            pre: wit::SdkPre::<InstanceState>::new(instance_pre)?,
             guest_config: cbor::to_vec(&config.guest_config).context("Could not serialize configuration")?,
             schema,
             subgraph_schemas,
@@ -79,7 +80,7 @@ impl SdkPre0_19_0 {
         })
     }
 
-    pub(crate) async fn instantiate(&self, state: WasiState) -> wasmtime::Result<Box<dyn ExtensionInstance>> {
+    pub(crate) async fn instantiate(&self, state: InstanceState) -> wasmtime::Result<Box<dyn ExtensionInstance>> {
         let mut store = Store::new(self.pre.engine(), state);
 
         let inner = self.pre.instantiate_async(&mut store).await?;
@@ -103,12 +104,12 @@ impl SdkPre0_19_0 {
 }
 
 struct ExtensionInstanceSince0_19_0 {
-    store: Store<WasiState>,
+    store: Store<InstanceState>,
     inner: super::wit::Sdk,
 }
 
 impl ExtensionInstance for ExtensionInstanceSince0_19_0 {
-    fn store(&self) -> &Store<WasiState> {
+    fn store(&self) -> &Store<InstanceState> {
         &self.store
     }
 }

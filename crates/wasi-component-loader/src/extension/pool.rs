@@ -7,25 +7,26 @@ use extension_catalog::ExtensionId;
 use runtime::extension::Response;
 use tracing::{Instrument, info_span};
 
-use crate::{WasiState, extension::ExtensionConfig};
+use crate::{ExtensionState, InstanceState};
 
 use super::{ExtensionInstance, ExtensionLoader};
 
 pub(crate) struct Pool {
     inner: managed::Pool<ExtensionLoader>,
+    state: Arc<ExtensionState>,
 }
 
 impl Pool {
-    pub(super) async fn new(schema: Arc<Schema>, config: Arc<ExtensionConfig>) -> wasmtime::Result<Self> {
-        let loader = ExtensionLoader::new(schema, config.clone())?;
+    pub(super) async fn new(schema: Arc<Schema>, state: Arc<ExtensionState>) -> wasmtime::Result<Self> {
+        let loader = ExtensionLoader::new(schema, state.clone())?;
         let mut builder = managed::Pool::builder(loader);
 
-        if let Some(size) = config.pool.max_size {
+        if let Some(size) = state.config.pool.max_size {
             builder = builder.max_size(size);
         }
 
         let inner = builder.build().expect("only fails if not in a runtime");
-        let pool = Pool { inner };
+        let pool = Pool { inner, state };
 
         // Load immediately an instance to check they can initialize themselves correctly.
         let _ = pool.get().await?;
@@ -45,12 +46,11 @@ impl Pool {
     }
 
     pub(crate) fn id(&self) -> ExtensionId {
-        self.inner.manager().config.id
+        self.state.config.id
     }
 
     pub(crate) async fn clone_and_adjust_for_contract(&self, schema: &Arc<Schema>) -> wasmtime::Result<Self> {
-        let config = self.inner.manager().config.clone();
-        Self::new(schema.clone(), config).await
+        Self::new(schema.clone(), self.state.clone()).await
     }
 }
 
@@ -129,7 +129,7 @@ macro_rules! wasmsafe {
 }
 
 impl ExtensionGuard {
-    pub fn store(&self) -> &wasmtime::Store<WasiState> {
+    pub fn store(&self) -> &wasmtime::Store<InstanceState> {
         self.0.inner.store()
     }
 

@@ -1,3 +1,4 @@
+pub mod cache;
 pub mod contract_types;
 pub mod hooks_types;
 pub mod logger;
@@ -7,7 +8,7 @@ wasmtime::component::bindgen!({
     world: "sdk",
     async: true,
     with: {
-        "grafbase:sdk/cache": crate::extension::api::since_0_10_0::wit::cache,
+        "grafbase:sdk/cache": cache,
         "grafbase:sdk/grpc": crate::extension::api::since_0_14_0::wit::grpc,
         "grafbase:sdk/kafka-client": crate::extension::api::since_0_16_0::wit::kafka_client,
         "grafbase:sdk/http-client": crate::extension::api::since_0_17_0::wit::http_client,

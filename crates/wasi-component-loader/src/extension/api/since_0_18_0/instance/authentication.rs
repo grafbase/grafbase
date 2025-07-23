@@ -15,10 +15,10 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
         headers: Lease<http::HeaderMap>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<(Lease<http::HeaderMap>, Token), ErrorResponse>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
-            let context = self.store.data_mut().push_resource(context.clone())?;
+            let context = self.store.data_mut().resources.push(context.clone())?;
 
             let result = self
                 .inner
@@ -26,12 +26,7 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
                 .call_authenticate(&mut self.store, context, headers)
                 .await?;
 
-            let headers = self
-                .store
-                .data_mut()
-                .take_resource::<Headers>(headers_rep)?
-                .into_lease()
-                .unwrap();
+            let headers = self.store.data_mut().take_leased_resource(headers_rep)?;
 
             let result = match result {
                 Ok(token) => Ok((headers, token.into())),
@@ -61,7 +56,8 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
                         .into_iter()
                         .map(|public_metadata_endpoint| {
                             let headers = store
-                                .take_resource::<Headers>(public_metadata_endpoint.response_headers.rep())?
+                                .resources
+                                .delete(public_metadata_endpoint.response_headers)?
                                 .into_inner()
                                 .unwrap();
 

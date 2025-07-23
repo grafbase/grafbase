@@ -15,7 +15,7 @@ impl ContractsExtensionInstance for super::ExtensionInstanceSince0_19_0 {
         subgraphs: Vec<wit::GraphqlSubgraphParam<'a>>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<wit::Contract, String>>> {
         Box::pin(async move {
-            let context = self.store.data_mut().push_resource(context.clone())?;
+            let context = self.store.data_mut().resources.push(context.clone())?;
 
             let result = self
                 .inner

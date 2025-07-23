@@ -39,7 +39,6 @@ combine = { version = "4", features = ["tokio"] }
 concurrent-queue = { version = "2" }
 cranelift-bitset = { version = "0.120", default-features = false, features = ["enable-serde"] }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
-crossbeam-channel = { version = "0.5" }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest", "http-surf"] }
@@ -171,7 +170,6 @@ combine = { version = "4", features = ["tokio"] }
 concurrent-queue = { version = "2" }
 cranelift-bitset = { version = "0.120", default-features = false, features = ["enable-serde"] }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
-crossbeam-channel = { version = "0.5" }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest", "http-surf"] }

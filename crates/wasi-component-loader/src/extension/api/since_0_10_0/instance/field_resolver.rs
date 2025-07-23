@@ -16,7 +16,7 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_10_0 {
         inputs: InputList,
     ) -> BoxFuture<'a, wasmtime::Result<Result<Vec<Result<Data, GraphqlError>>, GraphqlError>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
             let inputs = inputs.0.iter().map(Vec::as_slice).collect::<Vec<_>>();
 
             let result = self
@@ -38,7 +38,7 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_10_0 {
         directive: FieldDefinitionDirective<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<(Lease<http::HeaderMap>, Option<Vec<u8>>), GraphqlError>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
             let headers_rep = headers.rep();
 
             let result = self
@@ -47,12 +47,7 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_10_0 {
                 .call_subscription_key(&mut self.store, headers, subgraph_name, directive)
                 .await?;
 
-            let headers = self
-                .store
-                .data_mut()
-                .take_resource::<Headers>(headers_rep)?
-                .into_lease()
-                .unwrap();
+            let headers = self.store.data_mut().take_leased_resource(headers_rep)?;
 
             Ok(result
                 .map(|key| (headers, key))
@@ -67,7 +62,7 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_10_0 {
         directive: FieldDefinitionDirective<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<(), GraphqlError>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
 
             let result = self
                 .inner

@@ -6,7 +6,7 @@ mod hooks;
 mod resolver;
 mod selection_set_resolver;
 
-use crate::WasiState;
+use crate::InstanceState;
 
 pub(crate) use authentication::*;
 pub(crate) use authorization::*;
@@ -28,5 +28,5 @@ pub trait ExtensionInstance:
     + Send
     + 'static
 {
-    fn store(&self) -> &Store<WasiState>;
+    fn store(&self) -> &Store<InstanceState>;
 }

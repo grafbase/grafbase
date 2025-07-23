@@ -6,13 +6,13 @@ use tokio_stream::StreamExt as _;
 use wasmtime::component::Resource;
 
 pub use super::grafbase::sdk::http_client::*;
-use crate::{WasiState, http_client::send_request, resources::WasmOwnedOrLease};
+use crate::{InstanceState, http_client::send_request, resources::WasmOwnedOrLease};
 
-impl Host for WasiState {}
+impl Host for InstanceState {}
 
-impl HostHttpClient for WasiState {
+impl HostHttpClient for InstanceState {
     async fn execute(&mut self, request: HttpRequest) -> wasmtime::Result<Result<HttpResponse, HttpError>> {
-        if !self.network_enabled() {
+        if !self.is_network_enabled() {
             return Ok(Err(HttpError::Connect("Network is disabled".into())));
         }
 
@@ -21,13 +21,13 @@ impl HostHttpClient for WasiState {
             Err(e) => return Ok(Err(e)),
         };
 
-        let response = match send_request(request, self.request_durations().clone()).await {
+        let response = match send_request(request, self.request_durations.clone()).await {
             Ok(resp) => resp,
             Err(e) => return Ok(Err(e)),
         };
 
         let (parts, body) = response.into_parts();
-        let headers = self.push_resource(WasmOwnedOrLease::Owned(parts.headers))?;
+        let headers = self.resources.push(WasmOwnedOrLease::Owned(parts.headers))?;
 
         Ok(Ok(HttpResponse {
             status: parts.status.as_u16(),
@@ -41,7 +41,7 @@ impl HostHttpClient for WasiState {
         &mut self,
         requests: Vec<HttpRequest>,
     ) -> wasmtime::Result<Vec<Result<HttpResponse, HttpError>>> {
-        if !self.network_enabled() {
+        if !self.is_network_enabled() {
             let err = HttpError::Connect("Network is disabled".into());
             let mut results = Vec::with_capacity(requests.len());
             for _ in 0..requests.len() {
@@ -56,7 +56,7 @@ impl HostHttpClient for WasiState {
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
             .map(|request| {
-                let request_durations = self.request_durations().clone();
+                let request_durations = self.request_durations.clone();
                 let fut: BoxFuture<'_, Result<http::Response<Bytes>, HttpError>> = match request {
                     Ok(request) => Box::pin(send_request(request, request_durations).map_err(Into::into)),
                     Err(e) => Box::pin(async move { Err(e) }),
@@ -70,7 +70,7 @@ impl HostHttpClient for WasiState {
             .map(move |response| match response {
                 Ok(response) => {
                     let (parts, body) = response.into_parts();
-                    let headers = self.push_resource(WasmOwnedOrLease::Owned(parts.headers))?;
+                    let headers = self.resources.push(WasmOwnedOrLease::Owned(parts.headers))?;
                     Ok(Ok(HttpResponse {
                         status: parts.status.as_u16(),
                         headers,
@@ -89,7 +89,7 @@ impl HostHttpClient for WasiState {
 }
 
 fn convert_http_request(
-    state: &mut WasiState,
+    state: &mut InstanceState,
     request: HttpRequest,
 ) -> wasmtime::Result<Result<(reqwest::Client, reqwest::Request), HttpError>> {
     let HttpRequest {
@@ -101,13 +101,13 @@ fn convert_http_request(
     } = request;
 
     let headers = state
-        .table
+        .resources
         .delete(headers)?
         .into_inner()
         .expect("The guest doesn't receive a shared header, nor should it be able to create one.");
 
     let mut req = state
-        .http_client()
+        .http_client
         .request(method.into(), url)
         .headers(headers)
         .body(body);

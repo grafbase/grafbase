@@ -1,17 +1,17 @@
 use wasmtime::component::Resource;
 
 use crate::{
-    WasiState,
+    InstanceState,
     resources::{EventQueueProxy, Lease, WasmOwnedOrLease},
 };
 
 pub use super::grafbase::sdk::event_queue::*;
 
-impl Host for WasiState {}
+impl Host for InstanceState {}
 
-impl HostEventQueue for WasiState {
+impl HostEventQueue for InstanceState {
     async fn pop(&mut self, self_: Resource<EventQueueProxy>) -> wasmtime::Result<Option<Event>> {
-        let this = self.get(&self_)?;
+        let this = self.resources.get(&self_)?;
 
         match this.0.event_queue.pop() {
             Some(event) => Ok(Some(self.convert_event_0_18_0(event)?)),
@@ -20,13 +20,13 @@ impl HostEventQueue for WasiState {
     }
 
     async fn drop(&mut self, res: Resource<EventQueueProxy>) -> wasmtime::Result<()> {
-        self.table.delete(res)?;
+        self.resources.delete(res)?;
 
         Ok(())
     }
 }
 
-impl WasiState {
+impl InstanceState {
     fn convert_event_0_18_0(&mut self, event: event_queue::Event) -> wasmtime::Result<Event> {
         let event = match event {
             event_queue::Event::Operation(op) => Event::Operation(op.into()),
@@ -50,7 +50,7 @@ impl WasiState {
                 event_queue::RequestExecution::RateLimited => SubgraphRequestExecutionKind::RateLimited,
                 event_queue::RequestExecution::Response(resp) => {
                     let response_headers = WasmOwnedOrLease::Lease(Lease::Shared(resp.headers));
-                    let response_headers = self.push_resource(response_headers)?;
+                    let response_headers = self.resources.push(response_headers)?;
 
                     SubgraphRequestExecutionKind::Response(SubgraphResponse {
                         connection_time_ns: resp.connection_time.as_nanos() as u64,

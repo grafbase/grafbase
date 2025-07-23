@@ -21,7 +21,7 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_17_0 {
         fields: &'a [Field<'a>],
     ) -> BoxFuture<'a, wasmtime::Result<Result<Vec<u8>, GraphqlError>>> {
         Box::pin(async move {
-            let context = self.store.data_mut().push_resource(context.clone())?;
+            let context = self.store.data_mut().resources.push(context.clone())?;
 
             let result = self
                 .inner
@@ -41,8 +41,8 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_17_0 {
         arguments: &'a [(ArgumentsId, &'a [u8])],
     ) -> BoxFuture<'a, wasmtime::Result<Response>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
-            let context = self.store.data_mut().push_resource(context.clone())?;
+            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let context = self.store.data_mut().resources.push(context.clone())?;
 
             let response = self
                 .inner
@@ -62,8 +62,8 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_17_0 {
         arguments: &'a [(ArgumentsId, &'a [u8])],
     ) -> BoxFuture<'a, wasmtime::Result<Result<Option<Vec<u8>>, GraphqlError>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().push_resource(Headers::from(headers))?;
-            let context = self.store.data_mut().push_resource(context.clone())?;
+            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let context = self.store.data_mut().resources.push(context.clone())?;
 
             let result = self
                 .inner
@@ -80,7 +80,7 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_17_0 {
         context: WasmContext,
     ) -> BoxFuture<'a, wasmtime::Result<wasmtime::Result<()>>> {
         Box::pin(async move {
-            let context = self.store.data_mut().push_resource(context)?;
+            let context = self.store.data_mut().resources.push(context)?;
 
             self.inner
                 .grafbase_sdk_resolver()
@@ -96,7 +96,7 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_17_0 {
         context: WasmContext,
     ) -> BoxFuture<'_, wasmtime::Result<Result<Option<SubscriptionItem>, GraphqlError>>> {
         Box::pin(async move {
-            let context = self.store.data_mut().push_resource(context)?;
+            let context = self.store.data_mut().resources.push(context)?;
 
             let result = self
                 .inner
