@@ -37,6 +37,14 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
 
+      - name: Setup Depot
+        uses: depot/setup-action@v1
+
+      - name: Install sccache
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
+        with:
+          tool: sccache
+
       - name: Install musl-tools
         if: ${{ contains(matrix.platform.target, 'linux') }}
         shell: bash
@@ -49,7 +57,7 @@ jobs:
       - name: Build binaries
         shell: bash
         run: |
-          cargo build -p protoc-gen-grafbase-subgraph --release
+          depot cargo build -p protoc-gen-grafbase-subgraph --release
 
       - name: Prepare binary (Unix)
         if: matrix.platform.target != 'x86_64-pc-windows-msvc'

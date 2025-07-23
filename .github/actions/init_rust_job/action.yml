@@ -3,13 +3,8 @@ description: Base steps for CLI jobs
 
 inputs:
   platform:
-    type: choice
     description: Target platform to use when installing nextest
     required: true
-    options:
-      - windows
-      - macos
-      - linux
 
 runs:
   using: 'composite'

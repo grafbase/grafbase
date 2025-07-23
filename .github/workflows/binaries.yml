@@ -108,8 +108,13 @@ jobs:
       - name: Get sources
         uses: actions/checkout@v4
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - name: Setup Depot
+        uses: depot/setup-action@v1
+
+      - name: Install sccache
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
+        with:
+          tool: sccache
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
@@ -121,24 +126,20 @@ jobs:
 
       - name: Individual package build
         shell: bash
-        env:
-          RUSTC_WRAPPER: 'sccache'
         run: |
           set -euo pipefail
           # The actual features used for each dependency depends on what is being built simultaneously.
           # However, each package is published individually, so we're checking that all packages compile
           # with only their defined features.
           # See: https://github.com/rust-lang/cargo/issues/4463
-          cargo check --all-features --package ${{ matrix.package }}
+          depot cargo check --all-features --package ${{ matrix.package }}
 
       - name: Individual package without lambda
         if: ${{ matrix.package == 'grafbase-gateway' }}
         shell: bash
-        env:
-          RUSTC_WRAPPER: 'sccache'
         run: |
           set -euo pipefail
-          cargo check --package ${{ matrix.package }}
+          depot cargo check --package ${{ matrix.package }}
 
   docker-gateway:
     needs: [test]
@@ -213,8 +214,13 @@ jobs:
         with:
           platform: ${{ matrix.archs.platform }}
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - name: Setup Depot
+        uses: depot/setup-action@v1
+
+      - name: Install sccache
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
+        with:
+          tool: sccache
 
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
@@ -225,17 +231,13 @@ jobs:
           sudo apt install musl
 
       - name: Build grafbase release
-        env:
-          RUSTC_WRAPPER: 'sccache'
         run: |
           cd cli
-          cargo build --release -p grafbase --target ${{ matrix.archs.target }} --timings
+          depot cargo build --release -p grafbase --target ${{ matrix.archs.target }} --timings
 
       - name: Build gateway release
-        env:
-          RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo build --release -p grafbase-gateway --target ${{ matrix.archs.target }}
+          depot cargo build --release -p grafbase-gateway --target ${{ matrix.archs.target }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -280,7 +282,7 @@ jobs:
             BUILD_PROFILE=lambda
           fi
           echo "Building lambda with $BUILD_PROFILE profile"
-          cargo build --profile $BUILD_PROFILE -p grafbase-gateway --target ${{ matrix.archs.target }} --features lambda
+          depot cargo build --profile $BUILD_PROFILE -p grafbase-gateway --target ${{ matrix.archs.target }} --features lambda
 
       - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
         name: Upload gateway lambda binary
@@ -301,8 +303,13 @@ jobs:
         with:
           platform: windows
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - name: Setup Depot
+        uses: depot/setup-action@v1
+
+      - name: Install sccache
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
+        with:
+          tool: sccache
 
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
@@ -318,12 +325,9 @@ jobs:
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build grafbase release
-        shell: bash
-        env:
-          RUSTC_WRAPPER: sccache
         run: |
           cd cli
-          cargo build --release -p grafbase --target x86_64-pc-windows-msvc --timings
+          depot cargo build --release -p grafbase --target x86_64-pc-windows-msvc --timings
 
       - uses: actions/upload-artifact@v4
         with:
@@ -361,8 +365,13 @@ jobs:
         with:
           platform: macos
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - name: Setup Depot
+        uses: depot/setup-action@v1
+
+      - name: Install sccache
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
+        with:
+          tool: sccache
 
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
@@ -376,16 +385,12 @@ jobs:
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build grafbase release
-        env:
-          RUSTC_WRAPPER: sccache
         run: |
-          cargo build --release --target=${{ matrix.target }} -p grafbase --timings
+          depot cargo build --release --target=${{ matrix.target }} -p grafbase --timings
 
       - name: Build gateway release
-        env:
-          RUSTC_WRAPPER: sccache
         run: |
-          cargo build --release --target=${{ matrix.target }} -p grafbase-gateway
+          depot cargo build --release --target=${{ matrix.target }} -p grafbase-gateway
 
       - uses: actions/upload-artifact@v4
         with:

@@ -4,6 +4,14 @@ description: Run cargo fmt, clippy, test
 runs:
   using: 'composite'
   steps:
+    - name: Setup Depot
+      uses: depot/setup-action@v1
+
+    - name: Install sccache
+      uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
+      with:
+        tool: sccache
+
     - uses: uncenter/setup-taplo@v1
       with:
         version: '0.9.3'
@@ -22,7 +30,7 @@ runs:
     - name: cargo clippy
       shell: bash
       run: |
-        cargo clippy \
+        depot cargo clippy \
           --workspace \
           --exclude integration-tests \
           --locked \

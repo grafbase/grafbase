@@ -119,8 +119,13 @@ jobs:
       - name: Get sources
         uses: actions/checkout@v4
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - name: Setup Depot
+        uses: depot/setup-action@v1
+
+      - name: Install sccache
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
+        with:
+          tool: sccache
 
       - name: Install Rust
         uses: ./.github/actions/install-rust
@@ -129,17 +134,13 @@ jobs:
 
       - name: cargo doc
         shell: bash
-        env:
-          RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo doc -p grafbase-sdk --no-deps
+          depot cargo doc -p grafbase-sdk --no-deps
 
       - name: cargo doc tests
         shell: bash
-        env:
-          RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo test --doc -p grafbase-sdk
+          depot cargo test --doc -p grafbase-sdk
 
   wasm-extensions:
     if: |
@@ -156,20 +157,21 @@ jobs:
       - name: Install cargo binstall
         uses: cargo-bins/cargo-binstall@63aaa5c1932cebabc34eceda9d92a70215dcead6 # v1.12.3
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - name: Setup Depot
+        uses: depot/setup-action@v1
+
+      - name: Install sccache
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
+        with:
+          tool: sccache
 
       - name: Build the grafbase cli
         shell: bash
-        env:
-          RUSTC_WRAPPER: sccache
-        run: cargo build -p grafbase
+        run: depot cargo build -p grafbase
 
       - name: Build the integration-tests extensions
         shell: bash
         working-directory: crates/integration-tests/data/extensions
-        env:
-          RUSTC_WRAPPER: sccache
         run: |
           ./build.sh
 
@@ -182,9 +184,7 @@ jobs:
       - name: Build the WASI components for tests
         shell: bash
         working-directory: crates/wasi-component-loader/examples
-        env:
-          RUSTC_WRAPPER: sccache
-        run: cargo build --target wasm32-wasip2
+        run: depot cargo build --target wasm32-wasip2
 
       - uses: actions/upload-artifact@v4
         with:
@@ -227,8 +227,13 @@ jobs:
         run: |
           echo ${{ needs.what-changed.outputs.changed-packages }}
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - name: Setup Depot
+        uses: depot/setup-action@v1
+
+      - name: Install sccache
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
+        with:
+          tool: sccache
 
       - name: Install Rust
         uses: ./.github/actions/install-rust
@@ -295,16 +300,14 @@ jobs:
       - name: Build debug binaries
         if: needs.what-changed.outputs.cargo-bin-specs
         shell: bash
-        env:
-          RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo build --target ${{ matrix.platform.target }} ${{ needs.what-changed.outputs.cargo-bin-specs }}
+          depot cargo build --target ${{ matrix.platform.target }} ${{ needs.what-changed.outputs.cargo-bin-specs }}
 
       - name: Clippy
         if: needs.what-changed.outputs.cargo-build-specs
         shell: bash
         run: |
-          cargo clippy \
+          depot cargo clippy \
             --locked \
             --target ${{ matrix.platform.target }} \
             ${{ needs.what-changed.outputs.cargo-build-specs }}
@@ -397,10 +400,8 @@ jobs:
           needs.what-changed.outputs.cargo-test-specs
           && matrix.platform.target != 'x86_64-unknown-linux-musl'
         shell: bash
-        env:
-          RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ needs.what-changed.outputs.cargo-test-specs }}
+          depot cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ needs.what-changed.outputs.cargo-test-specs }}
 
       - name: Run tests (non docker platforms)
         id: tests
@@ -409,17 +410,15 @@ jobs:
           && matrix.platform.target != 'x86_64-unknown-linux-musl'
         shell: bash
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci ${{ needs.what-changed.outputs.cargo-test-specs }}
+          depot cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci ${{ needs.what-changed.outputs.cargo-test-specs }}
 
       - name: Build tests (docker platforms)
         if: |
           needs.what-changed.outputs.cargo-docker-test-specs
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
-        env:
-          RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
+          depot cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
 
       - name: Run tests (docker platforms)
         id: tests_docker
@@ -428,7 +427,7 @@ jobs:
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
+          depot cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
 
   docker-gateway:
     needs: [what-changed]
@@ -553,8 +552,13 @@ jobs:
       - name: Get sources
         uses: actions/checkout@v4
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - name: Setup Depot
+        uses: depot/setup-action@v1
+
+      - name: Install sccache
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
+        with:
+          tool: sccache
 
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
@@ -576,10 +580,8 @@ jobs:
 
       - name: Build CLI and Gateway
         shell: bash
-        env:
-          RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo build --release -p grafbase -p grafbase-gateway
+          depot cargo build --release -p grafbase -p grafbase-gateway
           echo "$(pwd)/target/release" >> $GITHUB_PATH
 
       - name: Login to Docker Hub
@@ -619,18 +621,14 @@ jobs:
 
       - name: Build test matrix
         working-directory: extensions
-        env:
-          RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo build -p test-matrix
+          depot cargo build -p test-matrix
 
       - name: Test all extensions
         working-directory: extensions
         continue-on-error: true
-        env:
-          RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo run -p test-matrix
+          depot cargo run -p test-matrix
 
   after-build-rust:
     # This job is responsible for reacting to build success or failure. It must
