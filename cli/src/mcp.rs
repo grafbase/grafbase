@@ -32,6 +32,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
             .await
             .map_err(|err| anyhow::anyhow!("Introspection: {err}"))?;
         stdout().queue(MoveUp(2))?.queue(Clear(ClearType::CurrentLine))?;
+        tracing::debug!("Introspected GraphQL\n:{schema}");
         schema
     };
 
