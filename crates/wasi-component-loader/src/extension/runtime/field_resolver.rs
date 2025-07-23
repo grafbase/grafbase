@@ -1,7 +1,7 @@
 use crate::{
     cbor,
     extension::{InputList, api::wit},
-    resources::Lease,
+    resources::OwnedOrShared,
     wasmsafe,
 };
 
@@ -80,7 +80,11 @@ impl FieldResolverExtension for EngineWasmExtensions {
         instance.recyclable = false;
         let (headers, key) = wasmsafe!(
             instance
-                .subscription_key(Lease::Singleton(subgraph_headers), subgraph.name(), directive.clone())
+                .subscription_key(
+                    OwnedOrShared::Owned(subgraph_headers),
+                    subgraph.name(),
+                    directive.clone()
+                )
                 .await
         )?;
 

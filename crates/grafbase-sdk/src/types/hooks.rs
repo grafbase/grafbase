@@ -1,12 +1,40 @@
-use crate::wit;
+use crate::{types::Headers, wit};
+
+/// Represents the parts of an HTTP request, including the URL, method, and headers.
+#[non_exhaustive]
+pub struct HttpRequestParts {
+    /// The URL of the HTTP request.
+    pub url: String,
+    /// The HTTP method of the request, such as GET, POST, etc.
+    pub method: http::Method,
+    /// The headers of the HTTP request.
+    pub headers: Headers,
+}
+
+impl From<wit::HttpRequestParts> for HttpRequestParts {
+    fn from(parts: wit::HttpRequestParts) -> Self {
+        Self {
+            url: parts.url,
+            method: parts.method.into(),
+            headers: parts.headers.into(),
+        }
+    }
+}
+
+impl From<HttpRequestParts> for wit::HttpRequestParts {
+    fn from(parts: HttpRequestParts) -> Self {
+        Self {
+            url: parts.url,
+            method: parts.method.into(),
+            headers: parts.headers.into(),
+        }
+    }
+}
 
 /// Output type for the `on_request` hook.
-pub struct OnRequestOutput(wit::OnRequestOutput);
-
-impl Default for OnRequestOutput {
-    fn default() -> Self {
-        Self(wit::OnRequestOutput { contract_key: None })
-    }
+#[derive(Default)]
+pub struct OnRequestOutput {
+    pub(crate) contract_key: Option<String>,
 }
 
 impl OnRequestOutput {
@@ -17,13 +45,7 @@ impl OnRequestOutput {
 
     /// Sets the contract key for the request.
     pub fn contract_key(mut self, contract_key: String) -> Self {
-        self.0.contract_key = Some(contract_key);
+        self.contract_key = Some(contract_key);
         self
-    }
-}
-
-impl From<OnRequestOutput> for wit::OnRequestOutput {
-    fn from(output: OnRequestOutput) -> Self {
-        output.0
     }
 }

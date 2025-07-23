@@ -7,7 +7,7 @@ use crate::{
         SelectionSetResolverExtensionInstance,
         api::wit::{ArgumentsId, Field, FieldId},
     },
-    resources::Headers,
+    resources::LegacyHeaders,
 };
 
 impl SelectionSetResolverExtensionInstance for super::ExtensionInstanceSince0_14_0 {
@@ -35,7 +35,7 @@ impl SelectionSetResolverExtensionInstance for super::ExtensionInstanceSince0_14
         arguments: &'a [(ArgumentsId, &'a [u8])],
     ) -> BoxFuture<'a, wasmtime::Result<Result<Data, GraphqlError>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let result = self
                 .inner
                 .grafbase_sdk_selection_set_resolver()

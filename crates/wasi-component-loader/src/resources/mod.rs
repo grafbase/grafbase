@@ -3,12 +3,12 @@ mod file_logger;
 mod headers;
 mod kafka_consumer;
 mod kafka_producer;
+mod legacy_sdk18;
+mod nats;
 
 use std::sync::Arc;
 
 use crate::tonic;
-use futures::StreamExt;
-use runtime::extension::Token;
 use sqlx::Postgres;
 
 pub use crate::context::WasmContext;
@@ -16,6 +16,8 @@ pub use cache::*;
 pub use headers::*;
 pub use kafka_consumer::*;
 pub use kafka_producer::*;
+pub use legacy_sdk18::*;
+pub use nats::*;
 
 pub type GrpcClient = tonic::client::Grpc<tonic::transport::Channel>;
 pub type GrpcStreamingResponse = (
@@ -36,76 +38,22 @@ pub type FileLogger = file_logger::FileLogger;
 pub struct EventQueueProxy(pub(crate) WasmContext);
 pub type AccessLogSender = ();
 
-pub enum NatsSubscriber {
-    Stream(Box<async_nats::jetstream::consumer::pull::Stream>),
-    Subject(async_nats::Subscriber),
-}
-
-impl NatsSubscriber {
-    pub async fn next(&mut self) -> Result<Option<async_nats::Message>, String> {
-        match self {
-            NatsSubscriber::Stream(stream) => match stream.as_mut().next().await {
-                Some(Ok(message)) => Ok(Some(message.into())),
-                Some(Err(err)) => Err(err.to_string()),
-                None => Ok(None),
-            },
-            NatsSubscriber::Subject(subject) => Ok(subject.next().await),
-        }
-    }
-}
-
-pub struct AuthorizationContext {
-    pub headers: WasmOwnedOrLease<http::HeaderMap>,
-    pub token: Token,
-}
-
-pub enum WasmOwnedOrLease<T> {
-    Owned(T),
-    Lease(Lease<T>),
-}
-
 /// It's not possible to provide a reference to wasmtime, it must be static and there are too many
 /// layers to have good control over what's happening to use a transmute to get a &'static.
 /// So this struct represents a lease that the engine grants on some value T that we expect to have
 /// back. Depending on circumstances it may be one of the three possibilities.
-pub enum Lease<T> {
-    Singleton(T),
+pub enum OwnedOrShared<T> {
+    Owned(T),
     Shared(Arc<T>),
     SharedMut(Arc<tokio::sync::RwLock<T>>),
 }
 
-impl<T> From<T> for Lease<T> {
-    fn from(t: T) -> Self {
-        Lease::Singleton(t)
-    }
-}
-
-impl<T> Lease<T> {
-    pub(crate) fn into_inner(self) -> Option<T> {
-        match self {
-            Lease::Singleton(t) => Some(t),
-            Lease::Shared(t) => Arc::into_inner(t),
-            Lease::SharedMut(t) => Arc::into_inner(t).map(|t| t.into_inner()),
-        }
-    }
-}
-
-impl<T> WasmOwnedOrLease<T> {
+impl<T> OwnedOrShared<T> {
     pub(crate) fn into_inner(self) -> Option<T> {
         match self {
             Self::Owned(v) => Some(v),
-            Self::Lease(lease) => lease.into_inner(),
-        }
-    }
-
-    pub(crate) fn is_owned(&self) -> bool {
-        matches!(self, Self::Owned(_))
-    }
-
-    pub(crate) fn into_lease(self) -> Option<Lease<T>> {
-        match self {
-            Self::Lease(v) => Some(v),
-            _ => None,
+            Self::Shared(t) => Arc::into_inner(t),
+            Self::SharedMut(t) => Arc::into_inner(t).map(|t| t.into_inner()),
         }
     }
 
@@ -115,13 +63,12 @@ impl<T> WasmOwnedOrLease<T> {
     {
         let mut _guard = None;
         let v = match self {
-            Self::Lease(Lease::Shared(v)) => v.as_ref(),
-            Self::Lease(Lease::SharedMut(v)) => {
+            Self::Owned(v) => v,
+            Self::Shared(v) => v.as_ref(),
+            Self::SharedMut(v) => {
                 _guard = Some(v.read().await);
                 _guard.as_deref().unwrap()
             }
-            Self::Lease(Lease::Singleton(v)) => v,
-            Self::Owned(v) => v,
         };
         f(v)
     }
@@ -132,26 +79,25 @@ impl<T> WasmOwnedOrLease<T> {
     {
         let mut _guard = None;
         let v = match self {
-            Self::Lease(Lease::Shared(_)) => None,
-            Self::Lease(Lease::SharedMut(v)) => {
+            Self::Owned(v) => Some(v),
+            Self::Shared(_) => None,
+            Self::SharedMut(v) => {
                 _guard = Some(v.write().await);
                 _guard.as_deref_mut()
             }
-            Self::Lease(Lease::Singleton(v)) => Some(v),
-            Self::Owned(v) => Some(v),
         };
         f(v)
     }
 }
 
-impl<T> From<T> for WasmOwnedOrLease<T> {
+impl<T> From<T> for OwnedOrShared<T> {
     fn from(v: T) -> Self {
         Self::Owned(v)
     }
 }
 
-impl<T> From<Lease<T>> for WasmOwnedOrLease<T> {
-    fn from(v: Lease<T>) -> Self {
-        Self::Lease(v)
+impl<T> From<Arc<T>> for OwnedOrShared<T> {
+    fn from(v: Arc<T>) -> Self {
+        Self::Shared(v)
     }
 }

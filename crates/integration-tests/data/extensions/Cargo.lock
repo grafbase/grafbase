@@ -13,17 +13,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "access-logs-18"
-version = "0.1.0"
-dependencies = [
- "grafbase-sdk 0.18.2",
- "insta",
- "serde",
- "serde_json",
- "tokio",
-]
-
-[[package]]
 name = "addr2line"
 version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -551,15 +540,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "auth-017"
-version = "0.1.0"
-dependencies = [
- "grafbase-sdk 0.17.5",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "auth-09"
 version = "0.1.0"
 dependencies = [
@@ -578,6 +558,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "auth-17"
+version = "0.1.0"
+dependencies = [
+ "grafbase-sdk 0.17.5",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "auth-19"
+version = "0.1.0"
+dependencies = [
+ "grafbase-sdk 0.19.0",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "authenticated"
 version = "0.1.0"
 dependencies = [
@@ -587,10 +585,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "authorization-010"
+name = "authorization-10"
 version = "0.1.0"
 dependencies = [
  "grafbase-sdk 0.13.0",
+ "http",
+ "rkyv 0.8.10",
+ "serde",
+ "serde_json",
+ "serde_with",
+]
+
+[[package]]
+name = "authorization-19"
+version = "0.1.0"
+dependencies = [
+ "grafbase-sdk 0.19.0",
  "http",
  "rkyv 0.8.10",
  "serde",
@@ -1285,15 +1295,6 @@ name = "critical-section"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "790eea4361631c5e7d22598ecd5723ff611904e3344ce8720784c93e3d83d40b"
-
-[[package]]
-name = "crossbeam-channel"
-version = "0.5.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
-dependencies = [
- "crossbeam-utils",
-]
 
 [[package]]
 name = "crossbeam-deque"
@@ -2510,7 +2511,6 @@ dependencies = [
  "concurrent-queue",
  "cranelift-bitset",
  "criterion",
- "crossbeam-channel",
  "crossbeam-utils",
  "curve25519-dalek",
  "cynic",
@@ -3025,6 +3025,17 @@ dependencies = [
  "base64 0.22.1",
  "grafbase-sdk 0.17.5",
  "indoc",
+ "insta",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "hooks-18"
+version = "0.1.0"
+dependencies = [
+ "grafbase-sdk 0.18.2",
  "insta",
  "serde",
  "serde_json",

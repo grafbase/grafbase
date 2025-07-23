@@ -1,5 +1,4 @@
 mod authenticated;
-mod backwards_compatibility;
 mod deny_all;
 mod deny_some;
 mod error_propagation;
@@ -11,6 +10,8 @@ mod multiple;
 mod query;
 mod requires_scopes;
 mod response;
+mod sdk10;
+mod sdk19;
 
 pub use deny_some::DenySites;
 pub use headers::*;

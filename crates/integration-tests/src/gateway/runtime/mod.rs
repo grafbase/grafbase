@@ -41,7 +41,7 @@ impl TestRuntimeBuilder {
         self,
         config: &mut Config,
         schema: &Arc<Schema>,
-    ) -> Result<(TestRuntime, ExtensionCatalog), String> {
+    ) -> anyhow::Result<(TestRuntime, ExtensionCatalog)> {
         let TestRuntimeBuilder {
             trusted_documents,
             fetcher,

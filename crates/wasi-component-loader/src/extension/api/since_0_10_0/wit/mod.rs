@@ -14,7 +14,7 @@ wasmtime::component::bindgen!({
     world: "sdk",
     async: true,
     with: {
-        "grafbase:sdk/headers/headers": crate::resources::Headers,
+        "grafbase:sdk/headers/headers": crate::resources::LegacyHeaders,
         "grafbase:sdk/access-log/access-log": crate::resources::AccessLogSender,
         "grafbase:sdk/nats-client/nats-client": crate::resources::NatsClient,
         "grafbase:sdk/nats-client/nats-subscriber": crate::resources::NatsSubscriber,

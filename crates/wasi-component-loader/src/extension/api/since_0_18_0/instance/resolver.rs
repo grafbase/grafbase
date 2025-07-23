@@ -8,7 +8,7 @@ use crate::{
         ResolverExtensionInstance,
         api::wit::{ArgumentsId, Directive, Field, FieldId, SubscriptionItem},
     },
-    resources::Headers,
+    resources::LegacyHeaders,
 };
 
 impl ResolverExtensionInstance for super::ExtensionInstanceSince0_18_0 {
@@ -41,7 +41,7 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_18_0 {
         arguments: &'a [(ArgumentsId, &'a [u8])],
     ) -> BoxFuture<'a, wasmtime::Result<Response>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let context = self.store.data_mut().resources.push(context.clone())?;
 
             let response = self
@@ -62,7 +62,7 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_18_0 {
         arguments: &'a [(ArgumentsId, &'a [u8])],
     ) -> BoxFuture<'a, wasmtime::Result<Result<Option<Vec<u8>>, GraphqlError>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let context = self.store.data_mut().resources.push(context.clone())?;
 
             let result = self

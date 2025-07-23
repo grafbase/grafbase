@@ -20,7 +20,7 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/postgres": crate::extension::api::since_0_15_0::wit::postgres,
         "grafbase:sdk/token": crate::extension::api::since_0_10_0::wit::token,
         "grafbase:sdk/schema": schema,
-        "grafbase:sdk/headers/headers": crate::resources::Headers,
+        "grafbase:sdk/headers/headers": crate::resources::LegacyHeaders,
         "grafbase:sdk/resolver-types": resolver_types,
         "grafbase:sdk/authorization-types": authorization_types,
         "grafbase:sdk/event-queue/event-queue": crate::resources::EventQueueProxy,

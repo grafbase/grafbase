@@ -17,7 +17,7 @@ use crate::{
 /// Or dynamically provided by the `on_request` hook:
 ///
 /// ```rust
-/// # use grafbase_sdk::{host_io::http::Method, types::{ErrorResponse, GatewayHeaders,OnRequestOutput}};
+/// # use grafbase_sdk::{host_io::http::Method, types::{ErrorResponse, GatewayHeaders, OnRequestOutput}};
 /// # struct MyContract;
 /// # impl MyContract {
 /// #[allow(refining_impl_trait)]

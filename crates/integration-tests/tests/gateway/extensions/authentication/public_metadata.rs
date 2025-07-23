@@ -12,11 +12,11 @@ fn authentication_with_public_metadata() {
                 }
                 "#,
             ))
-            .with_extension("auth-017")
+            .with_extension("auth-17")
             .with_toml_config(
                 r#"
-                [extensions.auth-017.config]
-                header_name = "auth017"
+                [extensions.auth-17.config]
+                header_name = "auth17"
                 oauth.resource = "https://my-domain.example.com"
                 "#,
             )
@@ -28,7 +28,7 @@ fn authentication_with_public_metadata() {
         {
           "errors": [
             {
-              "message": "Not passing through on my watch! SDK-017",
+              "message": "Not passing through on my watch! SDK-17",
               "extensions": {
                 "code": "UNAUTHENTICATED"
               }

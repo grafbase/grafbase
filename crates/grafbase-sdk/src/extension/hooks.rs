@@ -1,10 +1,7 @@
 use crate::{
     component::AnyExtension,
-    host_io::{
-        event_queue::EventQueue,
-        http::{Method, StatusCode},
-    },
-    types::{Configuration, Error, ErrorResponse, GatewayHeaders, OnRequestOutput},
+    host_io::{event_queue::EventQueue, http::StatusCode},
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders, Headers, HttpRequestParts, OnRequestOutput},
 };
 
 /// The Hooks extension allows you to hook into an incoming request or an outgoing response.
@@ -19,7 +16,7 @@ use crate::{
 /// ```rust
 /// use grafbase_sdk::{
 ///     HooksExtension,
-///     types::{GatewayHeaders, Configuration, Error, ErrorResponse},
+///     types::{GatewayHeaders, Headers, Configuration, Error, ErrorResponse},
 ///     host_io::event_queue::EventQueue,
 /// };
 ///
@@ -41,6 +38,7 @@ use crate::{
 ///         Ok(Self { config })
 ///     }
 ///
+///     #[allow(refining_impl_trait)]
 ///     fn on_request(&mut self, url: &str, method: http::Method, headers: &mut GatewayHeaders) -> Result<(), ErrorResponse> {
 ///         // Implement your request hook logic here.
 ///         Ok(())
@@ -49,7 +47,7 @@ use crate::{
 ///     fn on_response(
 ///         &mut self,
 ///         status: http::StatusCode,
-///         headers: &mut GatewayHeaders,
+///         headers: &mut Headers,
 ///         event_queue: EventQueue,
 ///     ) -> Result<(), Error> {
 ///         // Implement your response hook logic here.
@@ -94,7 +92,9 @@ pub trait HooksExtension: Sized + 'static {
         url: &str,
         method: http::Method,
         headers: &mut GatewayHeaders,
-    ) -> Result<impl IntoOnRequestOutput, ErrorResponse>;
+    ) -> Result<impl IntoOnRequestOutput, ErrorResponse> {
+        Ok(())
+    }
 
     /// Called right before the response is sent back to the client.
     ///
@@ -102,9 +102,15 @@ pub trait HooksExtension: Sized + 'static {
     fn on_response(
         &mut self,
         status: http::StatusCode,
-        headers: &mut GatewayHeaders,
+        headers: &mut Headers,
         event_queue: EventQueue,
-    ) -> Result<(), Error>;
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
+    fn on_subgraph_request(&mut self, parts: &mut HttpRequestParts) -> Result<(), Error> {
+        Ok(())
+    }
 }
 
 pub trait IntoOnRequestOutput {
@@ -131,8 +137,8 @@ pub fn register<T: HooksExtension>() {
         fn on_request(
             &mut self,
             url: &str,
-            method: Method,
-            headers: &mut GatewayHeaders,
+            method: http::Method,
+            headers: &mut Headers,
         ) -> Result<OnRequestOutput, ErrorResponse> {
             HooksExtension::on_request(&mut self.0, url, method, headers)
                 .map(IntoOnRequestOutput::into_on_request_output)
@@ -141,10 +147,14 @@ pub fn register<T: HooksExtension>() {
         fn on_response(
             &mut self,
             status: StatusCode,
-            headers: &mut GatewayHeaders,
+            headers: &mut Headers,
             event_queue: EventQueue,
         ) -> Result<(), Error> {
             HooksExtension::on_response(&mut self.0, status, headers, event_queue)
+        }
+
+        fn on_subgraph_request(&mut self, parts: &mut HttpRequestParts) -> Result<(), Error> {
+            HooksExtension::on_subgraph_request(&mut self.0, parts)
         }
     }
 

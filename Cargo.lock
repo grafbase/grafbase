@@ -5433,6 +5433,7 @@ checksum = "0d762194228a2f1c11063e46e32e5acb96e66e906382b9eb5441f2e0504bbd5a"
 name = "integration-tests"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-graphql",
  "async-sse",
  "async-trait",

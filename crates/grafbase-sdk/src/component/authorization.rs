@@ -1,4 +1,4 @@
-use crate::wit;
+use crate::{types::Headers, wit};
 
 use super::{Component, state};
 
@@ -8,11 +8,16 @@ impl wit::AuthorizationGuest for Component {
         headers: wit::Headers,
         token: wit::Token,
         elements: wit::QueryElements,
-    ) -> Result<(wit::AuthorizationDecisions, Vec<u8>), wit::ErrorResponse> {
+    ) -> Result<wit::AuthorizationOutput, wit::ErrorResponse> {
         state::with_context(context, || {
+            let mut headers: Headers = headers.into();
             state::extension()?
-                .authorize_query(&mut headers.into(), token.into(), (&elements).into())
-                .map(|(decisions, state)| (decisions.into(), state))
+                .authorize_query(&mut headers, token.into(), (&elements).into())
+                .map(|(decisions, state)| wit::AuthorizationOutput {
+                    decisions: decisions.into(),
+                    state,
+                    headers: headers.into(),
+                })
                 .map_err(Into::into)
         })
     }

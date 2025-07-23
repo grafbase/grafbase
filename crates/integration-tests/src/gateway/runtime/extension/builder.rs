@@ -138,7 +138,7 @@ impl ExtensionsBuilder {
         self,
         config: &mut gateway_config::Config,
         schema: &Arc<engine::Schema>,
-    ) -> Result<(GatewayTestExtensions, EngineTestExtensions, ExtensionCatalog), String> {
+    ) -> anyhow::Result<(GatewayTestExtensions, EngineTestExtensions, ExtensionCatalog)> {
         let (engine_extensions, gateway_extensions) = if self.has_wasm_extension {
             for ext in self.catalog.iter() {
                 let version = ext.manifest.id.version.to_string().parse().unwrap();
@@ -161,7 +161,7 @@ impl ExtensionsBuilder {
                                 config.path = path;
                             }
                             gateway_config::ExtensionConfig::Version(_) => {
-                                return Err("Extension with the same name already exists".to_owned());
+                                return Err(anyhow::anyhow!("Extension with the same name already exists"));
                             }
                         }
                     }
@@ -169,12 +169,9 @@ impl ExtensionsBuilder {
             }
 
             let engine_extensions =
-                EngineWasmExtensions::new(&self.catalog, config, schema, self.logging_filter.clone())
-                    .await
-                    .map_err(|err| err.to_string())?;
-            let gateway_extensions = GatewayWasmExtensions::new(&self.catalog, config, self.logging_filter.clone())
-                .await
-                .map_err(|err| err.to_string())?;
+                EngineWasmExtensions::new(&self.catalog, config, schema, self.logging_filter.clone()).await?;
+            let gateway_extensions =
+                GatewayWasmExtensions::new(&self.catalog, config, self.logging_filter.clone()).await?;
             (engine_extensions, gateway_extensions)
         } else {
             // If no real wasm extensions was used, we skip the initialization as it would compile

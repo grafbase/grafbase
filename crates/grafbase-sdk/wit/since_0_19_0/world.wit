@@ -6,6 +6,7 @@ world sdk {
     import grpc;
     import headers;
     import http-client;
+    import http-types;
     import kafka-client;
     import nats-client;
     import postgres;
@@ -15,6 +16,7 @@ world sdk {
     import contracts-types;
     import resolver-types;
     import hooks-types;
+    import event-types;
     import event-queue;
     import shared-context;
     import logger;

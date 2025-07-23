@@ -4,81 +4,42 @@ pub(crate) use as_header_value::AsHeaderValue;
 use crate::wit;
 
 /// HTTP headers.
-pub struct HttpHeaders(wit::Headers);
+pub struct Headers(wit::Headers);
 
-impl From<wit::Headers> for HttpHeaders {
+/// HTTP headers for the subgraph request.
+/// Those are the result of the GatewayHeaders passed through the
+/// - on_request hook
+/// - global header rules
+/// - authorize_query from the authorization extensions
+/// - subgraph-specific header rules
+pub type SubgraphHeaders = Headers;
+
+/// HTTP headers for the gateway request.
+pub type GatewayHeaders = Headers;
+
+impl From<wit::Headers> for Headers {
     fn from(headers: wit::Headers) -> Self {
         Self(headers)
     }
 }
 
-impl From<HttpHeaders> for wit::Headers {
-    fn from(headers: HttpHeaders) -> Self {
+impl From<Headers> for wit::Headers {
+    fn from(headers: Headers) -> Self {
         headers.0
     }
 }
 
-/// HTTP headers for the gateway request.
-pub struct GatewayHeaders(HttpHeaders);
-
-impl From<wit::Headers> for GatewayHeaders {
-    fn from(headers: wit::Headers) -> Self {
-        Self(HttpHeaders(headers))
-    }
-}
-
-impl std::ops::Deref for GatewayHeaders {
-    type Target = HttpHeaders;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl std::ops::DerefMut for GatewayHeaders {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-/// HTTP headers for the subgraph request.
-pub struct SubgraphHeaders(HttpHeaders);
-
-impl From<SubgraphHeaders> for HttpHeaders {
-    fn from(headers: SubgraphHeaders) -> Self {
-        headers.0
-    }
-}
-
-impl From<wit::Headers> for SubgraphHeaders {
-    fn from(headers: wit::Headers) -> Self {
-        Self(HttpHeaders(headers))
-    }
-}
-
-impl std::ops::Deref for SubgraphHeaders {
-    type Target = HttpHeaders;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl std::ops::DerefMut for SubgraphHeaders {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl Default for HttpHeaders {
+impl Default for Headers {
     fn default() -> Self {
-        HttpHeaders::new()
+        Headers::new()
     }
 }
 
 // Imitates as much as possible the http::HeaderMap API
-impl HttpHeaders {
+impl Headers {
     /// Initialize an empty set of headers.
-    pub fn new() -> HttpHeaders {
-        HttpHeaders(wit::Headers::new())
+    pub fn new() -> Headers {
+        Headers(wit::Headers::new())
     }
 
     /// Get the value associated with the given name. If there are multiple values associated with
@@ -146,20 +107,8 @@ impl HttpHeaders {
     }
 }
 
-impl From<&GatewayHeaders> for http::HeaderMap {
-    fn from(headers: &GatewayHeaders) -> Self {
-        headers.iter().collect()
-    }
-}
-
-impl From<&SubgraphHeaders> for http::HeaderMap {
-    fn from(headers: &SubgraphHeaders) -> Self {
-        headers.iter().collect()
-    }
-}
-
-impl From<SubgraphHeaders> for http::HeaderMap {
-    fn from(headers: SubgraphHeaders) -> Self {
+impl From<&Headers> for http::HeaderMap {
+    fn from(headers: &Headers) -> Self {
         headers.iter().collect()
     }
 }
