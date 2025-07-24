@@ -5,7 +5,7 @@ use grafbase_sdk::{
         event_queue::{CacheStatus, Event, EventQueue, GraphqlResponseStatus, RequestExecution},
         http::{HeaderValue, Method, StatusCode},
     },
-    types::{Configuration, Error, ErrorResponse, Headers, OnRequestOutput},
+    types::{Configuration, Error, ErrorResponse, Headers, HttpRequestParts, OnRequestOutput},
 };
 use serde_json::json;
 
@@ -15,11 +15,20 @@ struct Hooks {
 }
 
 #[derive(Default, serde::Deserialize)]
-#[serde(default)]
+#[serde(default, deny_unknown_fields)]
 struct TestConfig {
     incoming_header: Option<HeaderTest>,
     outgoing_header: Option<HeaderTest>,
     events_header_name: Option<String>,
+    on_subgraph_request: Option<OnSubgraphRequestConfig>,
+}
+
+#[derive(Default, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
+struct OnSubgraphRequestConfig {
+    url: Option<String>,
+    header_name: Option<String>,
+    header_value: Option<String>,
 }
 
 #[derive(serde::Deserialize)]
@@ -150,6 +159,20 @@ impl HooksExtension for Hooks {
                 name,
                 HeaderValue::from_str(&events_json_string).unwrap_or_else(|_| HeaderValue::from_static("[]")),
             );
+        }
+
+        Ok(())
+    }
+
+    fn on_subgraph_request(&mut self, parts: &mut HttpRequestParts) -> Result<(), Error> {
+        let Some(ref config) = self.config.on_subgraph_request else {
+            return Ok(());
+        };
+        if let Some(ref url) = config.url {
+            parts.url = url.clone();
+        }
+        if let Some((name, value)) = config.header_name.as_ref().zip(config.header_value.as_ref()) {
+            parts.headers.append(name, value);
         }
 
         Ok(())

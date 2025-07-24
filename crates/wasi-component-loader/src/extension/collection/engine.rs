@@ -12,7 +12,7 @@ use tokio::sync::broadcast;
 
 use crate::{
     ExtensionState,
-    extension::{ExtensionConfig, ExtensionGuard, Pool, load_extensions_config},
+    extension::{ExtensionConfig, ExtensionGuard, GatewayWasmExtensions, Pool, load_extensions_config},
 };
 
 /// Extensions tied to the life cycle of the engine. Whenever it reloads, they must also be
@@ -22,15 +22,24 @@ pub struct EngineWasmExtensions(Arc<EngineWasmExtensionsInner>);
 
 pub(crate) type Subscriptions = DashMap<Vec<u8>, broadcast::Sender<Response>>;
 
+impl std::ops::Deref for EngineWasmExtensions {
+    type Target = EngineWasmExtensionsInner;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 #[derive(Default)]
-struct EngineWasmExtensionsInner {
+pub struct EngineWasmExtensionsInner {
     pools: HashMap<ExtensionId, Pool, BuildHasherDefault<FxHasher32>>,
     contracts: Option<Pool>,
     subscriptions: Subscriptions,
+    pub(crate) gateway_extensions: GatewayWasmExtensions,
 }
 
 impl EngineWasmExtensions {
     pub async fn new(
+        gateway_extensions: GatewayWasmExtensions,
         extension_catalog: &ExtensionCatalog,
         gateway_config: &Config,
         schema: &Arc<Schema>,
@@ -68,11 +77,12 @@ impl EngineWasmExtensions {
                 None => None,
             },
             subscriptions: Default::default(),
+            gateway_extensions,
         })))
     }
 
     pub(crate) async fn contracts(&self) -> Result<Option<ExtensionGuard>, GraphqlError> {
-        if let Some(pool) = self.0.contracts.as_ref() {
+        if let Some(pool) = self.contracts.as_ref() {
             pool.get()
                 .await
                 .map_err(|err| {
@@ -100,13 +110,13 @@ impl EngineWasmExtensions {
     }
 
     pub(crate) fn subscriptions(&self) -> &Subscriptions {
-        &self.0.subscriptions
+        &self.subscriptions
     }
 
     pub async fn clone_and_adjust_for_contract(&self, schema: &Arc<Schema>) -> wasmtime::Result<Self> {
         let mut pools =
-            HashMap::with_capacity_and_hasher(self.0.pools.len(), BuildHasherDefault::<FxHasher32>::default());
-        for (id, pool) in self.0.pools.iter() {
+            HashMap::with_capacity_and_hasher(self.pools.len(), BuildHasherDefault::<FxHasher32>::default());
+        for (id, pool) in self.pools.iter() {
             let pool = pool.clone_and_adjust_for_contract(schema).await?;
             pools.insert(*id, pool);
         }
@@ -114,6 +124,7 @@ impl EngineWasmExtensions {
             pools,
             contracts: None,
             subscriptions: Default::default(),
+            gateway_extensions: self.gateway_extensions.clone(),
         })))
     }
 }

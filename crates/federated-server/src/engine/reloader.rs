@@ -7,6 +7,7 @@ use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
 };
+use wasi_component_loader::extension::GatewayWasmExtensions;
 
 use super::{EngineBuildContext, EngineRuntime};
 use crate::{events::UpdateEvent, graph::Graph, router::EngineWatcher};
@@ -32,6 +33,8 @@ pub(crate) struct EngineReloaderConfig<'a> {
 
     /// Optional access token for authenticated operations
     pub access_token: Option<AccessToken>,
+
+    pub gateway_extensions: GatewayWasmExtensions,
 }
 
 /// Handles graph and config updates by constructing a new engine
@@ -54,6 +57,7 @@ impl EngineReloader {
             logging_filter,
             hot_reload_config_path,
             access_token,
+            gateway_extensions,
         }: EngineReloaderConfig<'_>,
     ) -> crate::Result<Self> {
         let mut current_config = initial_config;
@@ -85,6 +89,7 @@ impl EngineReloader {
             access_token: access_token.as_ref(),
             extension_catalog: Some(extension_catalog),
             logging_filter: &logging_filter,
+            gateway_extensions: &gateway_extensions,
         };
 
         let engine = build_engine(initial_context, graph.clone(), vec![]).await?;
@@ -111,6 +116,7 @@ impl EngineReloader {
                     let graph = graph.clone();
                     let engine_sender = engine_sender.clone();
                     let logging_filter = logging_filter.clone();
+                    let gateway_extensions = gateway_extensions.clone();
 
                     async move {
                         let operations_to_warm = extract_operations_to_warm(&current_config, &engine_sender);
@@ -121,6 +127,7 @@ impl EngineReloader {
                             access_token: access_token.as_ref(),
                             extension_catalog: None, // Will be created by gateway::generate if needed
                             logging_filter: &logging_filter,
+                            gateway_extensions: &gateway_extensions,
                         };
 
                         match build_engine(context, graph, operations_to_warm).await {

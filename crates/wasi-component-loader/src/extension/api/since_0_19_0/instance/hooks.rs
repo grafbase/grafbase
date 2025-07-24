@@ -1,7 +1,8 @@
-use engine_error::{ErrorCode, ErrorResponse};
+use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use futures::future::BoxFuture;
 use http::{request, response};
-use runtime::extension::OnRequest;
+use runtime::extension::{OnRequest, ReqwestParts};
+use url::Url;
 
 use crate::{
     WasmContext,
@@ -26,18 +27,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
 
             let ctx = self.store.data_mut().resources.push(context.clone())?;
 
-            let method = match &parts.method {
-                m if m == http::Method::GET => HttpMethod::Get,
-                m if m == http::Method::POST => HttpMethod::Post,
-                m if m == http::Method::PUT => HttpMethod::Put,
-                m if m == http::Method::DELETE => HttpMethod::Delete,
-                m if m == http::Method::PATCH => HttpMethod::Patch,
-                m if m == http::Method::HEAD => HttpMethod::Head,
-                m if m == http::Method::OPTIONS => HttpMethod::Options,
-                m => {
-                    return Err(wasmtime::Error::msg(format!("Invalid HTTP method: {m}")));
-                }
-            };
+            let method: HttpMethod = (&parts.method).try_into()?;
 
             let result = self
                 .inner
@@ -98,6 +88,59 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                     Ok(parts)
                 }
                 Err(err) => Err(err),
+            };
+            Ok(result)
+        })
+    }
+
+    fn on_subgraph_request<'a>(
+        &'a mut self,
+        context: &'a WasmContext,
+        ReqwestParts { url, method, headers }: ReqwestParts,
+    ) -> BoxFuture<'a, wasmtime::Result<Result<ReqwestParts, GraphqlError>>> {
+        Box::pin(async move {
+            let method: HttpMethod = (&method).try_into()?;
+            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let context = self.store.data_mut().resources.push(context.clone())?;
+            let result = self
+                .inner
+                .grafbase_sdk_hooks()
+                .call_on_subgraph_request(
+                    &mut self.store,
+                    context,
+                    HttpRequestPartsParam {
+                        url: url.as_str(),
+                        method,
+                        headers,
+                    },
+                )
+                .await?;
+
+            let result = match result {
+                Ok(parts) => {
+                    let headers = self
+                        .store
+                        .data_mut()
+                        .resources
+                        .delete(parts.headers)?
+                        .into_inner()
+                        .unwrap();
+                    // Must be *after* the headers, to ensure the wasm store is kept clean.
+                    let url = match parts.url.parse::<Url>() {
+                        Ok(url) => url,
+                        Err(err) => {
+                            tracing::error!("Invalid URL ({:?}) returned by extension: {err}", parts.url);
+                            return Ok(Err(GraphqlError::internal_extension_error()));
+                        }
+                    };
+
+                    Ok(ReqwestParts {
+                        url,
+                        method: parts.method.into(),
+                        headers,
+                    })
+                }
+                Err(err) => Err(err.into_graphql_error(ErrorCode::ExtensionError)),
             };
             Ok(result)
         })

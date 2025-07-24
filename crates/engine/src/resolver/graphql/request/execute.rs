@@ -9,6 +9,7 @@ use grafbase_telemetry::{
 };
 use headers::HeaderMapExt;
 use runtime::{
+    extension::{EngineHooksExtension, ReqwestParts},
     fetch::{FetchError, FetchRequest, FetchResult, Fetcher},
     rate_limiting::RateLimitKey,
 };
@@ -35,7 +36,7 @@ pub trait ResponseIngester: Send {
 
 pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
     ctx: &mut SubgraphContext<'ctx, R>,
-    mut headers: http::HeaderMap,
+    headers: http::HeaderMap,
     body: impl Into<Bytes> + Send,
     response_part: ResponsePartBuilder<'ctx>,
     ingester: impl ResponseIngester,
@@ -43,6 +44,22 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
     let endpoint = ctx.endpoint();
 
     let result = async {
+        let ReqwestParts {
+            url,
+            method,
+            mut headers,
+        } = ctx
+            .extensions()
+            .on_subgraph_request(
+                &ctx.request_context.extension_context,
+                ReqwestParts {
+                    url: endpoint.url().clone(),
+                    method: http::Method::POST,
+                    headers,
+                },
+            )
+            .await?;
+
         let body: Bytes = body.into();
 
         headers.typed_insert(headers::ContentType::json());
@@ -58,9 +75,9 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
         let request = FetchRequest {
             websocket_init_payload: None,
             subgraph_name: endpoint.subgraph_name(),
-            url: Cow::Owned(endpoint.url().clone()),
+            url: Cow::Owned(url),
             headers,
-            method: http::Method::POST,
+            method,
             body,
             timeout: endpoint.config.timeout,
         };
@@ -70,13 +87,11 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
         let fetcher = ctx.runtime().fetcher();
 
         let fetch_result = retrying_fetch(ctx, || {
-            let request = request.clone();
-            let endpoint_url = endpoint.url().clone();
+            let mut request = request.clone();
             let subgraph_name = endpoint.subgraph_name().to_string();
 
             async move {
-                let http_span = SubgraphHttpRequestSpan::new(&endpoint_url, &http::Method::POST);
-                let mut request = request.clone();
+                let http_span = SubgraphHttpRequestSpan::new(&request.url, &http::Method::POST);
 
                 grafbase_telemetry::otel::opentelemetry::global::get_text_map_propagator(|propagator| {
                     let context = http_span.context();
@@ -144,8 +159,6 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
             }
         })
         .await;
-
-        let fetch_result = fetch_result;
 
         match fetch_result {
             Ok(http_response) => {

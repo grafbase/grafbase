@@ -8,6 +8,7 @@ pub use self::runtime::*;
 use axum::response::IntoResponse as _;
 use engine::{Body, ContractAwareEngine};
 pub(crate) use reloader::*;
+use wasi_component_loader::extension::GatewayWasmExtensions;
 
 use super::AccessToken;
 use extension_catalog::ExtensionCatalog;
@@ -22,6 +23,7 @@ pub(super) struct EngineBuildContext<'a> {
     pub access_token: Option<&'a AccessToken>,
     pub extension_catalog: Option<&'a ExtensionCatalog>,
     pub logging_filter: &'a str,
+    pub gateway_extensions: &'a GatewayWasmExtensions,
 }
 
 /// Generates a new gateway from the provided graph definition.

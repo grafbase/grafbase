@@ -168,10 +168,16 @@ impl ExtensionsBuilder {
                 }
             }
 
-            let engine_extensions =
-                EngineWasmExtensions::new(&self.catalog, config, schema, self.logging_filter.clone()).await?;
             let gateway_extensions =
                 GatewayWasmExtensions::new(&self.catalog, config, self.logging_filter.clone()).await?;
+            let engine_extensions = EngineWasmExtensions::new(
+                gateway_extensions.clone(),
+                &self.catalog,
+                config,
+                schema,
+                self.logging_filter.clone(),
+            )
+            .await?;
             (engine_extensions, gateway_extensions)
         } else {
             // If no real wasm extensions was used, we skip the initialization as it would compile

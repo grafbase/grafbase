@@ -8,11 +8,6 @@ fn receive_events() {
         let engine = Gateway::builder()
             .with_toml_config(
                 r#"
-                [extensions.hooks-19]
-                path = "./data/extensions/crates/hooks/build"
-                stdout = true
-                stderr = true
-
                 [[headers]]
                 rule = "forward"
                 name = "x-incoming-header"
