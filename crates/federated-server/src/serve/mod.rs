@@ -80,15 +80,21 @@ pub async fn serve(
 
     // We separate the hooks extension, which runs outside of the engine in the axum layers.
     let extension_catalog = create_extension_catalog(&config).await?;
+    //
+    // On-request, on-response hooks extension.
+    let gateway_extensions = GatewayWasmExtensions::new(&extension_catalog, &config, logging_filter.clone())
+        .await
+        .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
     // The engine reloads itself when the graph, or configuration changes.
     let engine_reloader = EngineReloader::spawn(EngineReloaderConfig {
         update_receiver,
         initial_config: config.clone(),
         extension_catalog: &extension_catalog,
-        logging_filter: logging_filter.clone(),
+        logging_filter,
         hot_reload_config_path: config_hot_reload.then_some(config_path).flatten(),
         access_token: grafbase_access_token,
+        gateway_extensions: gateway_extensions.clone(),
     })
     .await?;
 
@@ -97,11 +103,6 @@ pub async fn serve(
         .as_ref()
         .filter(|m| m.enabled)
         .map(|m| format!("http://{listen_address}{}", m.path));
-
-    // On-request, on-response hooks extension.
-    let gateway_extensions = GatewayWasmExtensions::new(&extension_catalog, &config, logging_filter)
-        .await
-        .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
     let router_config = RouterConfig {
         config,

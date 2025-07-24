@@ -1,6 +1,6 @@
-use engine_error::ErrorResponse;
+use engine_error::{ErrorResponse, GraphqlError};
 use futures::future::BoxFuture;
-use runtime::extension::OnRequest;
+use runtime::extension::{OnRequest, ReqwestParts};
 
 use crate::WasmContext;
 
@@ -11,7 +11,11 @@ pub(crate) trait HooksExtensionInstance {
         context: WasmContext,
         parts: http::request::Parts,
     ) -> BoxFuture<'a, wasmtime::Result<Result<OnRequest<WasmContext>, ErrorResponse>>> {
-        Box::pin(async { unreachable!("Not supported by this SDK") })
+        Box::pin(std::future::ready(Ok(Ok(OnRequest {
+            context,
+            parts,
+            contract_key: None,
+        }))))
     }
 
     fn on_response(
@@ -19,6 +23,14 @@ pub(crate) trait HooksExtensionInstance {
         context: WasmContext,
         parts: http::response::Parts,
     ) -> BoxFuture<'_, wasmtime::Result<Result<http::response::Parts, String>>> {
-        Box::pin(async { unreachable!("Not supported by this SDK") })
+        Box::pin(std::future::ready(Ok(Ok(parts))))
+    }
+
+    fn on_subgraph_request<'a>(
+        &'a mut self,
+        context: &'a WasmContext,
+        parts: ReqwestParts,
+    ) -> BoxFuture<'a, wasmtime::Result<Result<ReqwestParts, GraphqlError>>> {
+        Box::pin(std::future::ready(Ok(Ok(parts))))
     }
 }

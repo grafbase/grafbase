@@ -83,6 +83,7 @@ impl EngineRuntime {
         tracing::debug!("Building extensions");
 
         let extensions = EngineWasmExtensions::new(
+            ctx.gateway_extensions.clone(),
             extension_catalog,
             ctx.gateway_config,
             schema,

@@ -6,11 +6,6 @@ use integration_tests::{gateway::Gateway, runtime};
 fn incoming_header() {
     let response = runtime().block_on(async move {
         let config = indoc! {r#"
-            [extensions.hooks-17]
-            path = "./data/extensions/crates/hooks/build"
-            stdout = true
-            stderr = true
-
             [[headers]]
             rule = "forward"
             name = "x-incoming-header"
@@ -49,11 +44,6 @@ fn incoming_header() {
 fn outgoing_header() {
     let response = runtime().block_on(async move {
         let config = indoc! {r#"
-            [extensions.hooks-17]
-            path = "./data/extensions/crates/hooks/build"
-            stdout = true
-            stderr = true
-
             [extensions.hooks-17.config]
             outgoing_header.key = "X-Outgoing-Header"
             outgoing_header.value = "kekw"

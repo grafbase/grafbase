@@ -9,11 +9,6 @@ fn access_logs_with_working_subgraph() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = formatdoc! {r#"
-        [extensions.hooks-18]
-        path = "./data/extensions/crates/access-logs/build"
-        stdout = true
-        stderr = true
-
         [extensions.hooks-18.config]
         path = "{path}/access.log"
 
@@ -111,11 +106,6 @@ fn access_logs_operation_limits() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = formatdoc! {r#"
-        [extensions.hooks-18]
-        path = "./data/extensions/crates/access-logs/build"
-        stdout = true
-        stderr = true
-
         [extensions.hooks-18.config]
         path = "{path}/access.log"
 
@@ -216,11 +206,6 @@ fn access_logs_with_broken_query() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = formatdoc! {r#"
-        [extensions.hooks-18]
-        path = "./data/extensions/crates/access-logs/build"
-        stdout = true
-        stderr = true
-
         [extensions.hooks-18.config]
         path = "{path}/access.log"
 
@@ -305,11 +290,6 @@ fn access_logs_with_caching() {
     let path = tmpdir.path().to_str().unwrap();
 
     let config = formatdoc! {r#"
-        [extensions.hooks-18]
-        path = "./data/extensions/crates/access-logs/build"
-        stdout = true
-        stderr = true
-
         [extensions.hooks-18.config]
         path = "{path}/access.log"
 

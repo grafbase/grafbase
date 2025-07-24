@@ -121,8 +121,6 @@ pub struct SubgraphResponse {
     pub connection_time: Duration,
     pub response_time: Duration,
     pub status: http::StatusCode,
-    /// Having this as an arc allows us to move this to the
-    /// guest from a record as a resource.
     pub headers: http::HeaderMap,
 }
 

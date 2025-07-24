@@ -26,6 +26,7 @@ pub trait EngineExtensions:
     + SelectionSetResolverExtension
     + ResolverExtension<Self::Context>
     + ContractsExtension<Self::Context>
+    + EngineHooksExtension<Self::Context>
     + Send
     + Sync
     + 'static
@@ -34,7 +35,7 @@ pub trait EngineExtensions:
 }
 
 pub trait GatewayExtensions:
-    HooksExtension<Self::Context> + AuthenticationExtension<Self::Context> + Send + Sync + 'static
+    GatewayHooksExtension<Self::Context> + AuthenticationExtension<Self::Context> + Send + Sync + 'static
 {
     type Context: ExtensionContext;
 }
