@@ -59,6 +59,7 @@ where
     E: GatewayExtensions,
 {
     let kv = InMemoryKvStore::runtime();
+    let telemetry = TelemetryLayer::new_from_global_meter_provider(listen_address);
     let common_layers = {
         let cors = match config.cors {
             Some(ref cors_config) => layers::cors_layer(cors_config),
@@ -77,13 +78,8 @@ where
         let compression = CompressionLayer::new().compress_when(DefaultPredicate::new().and(
             NotForContentType::const_new("multipart/mixed").and(NotForContentType::const_new("text/event-stream")),
         ));
-        let telemetry = TelemetryLayer::new_from_global_meter_provider(listen_address);
 
-        tower::ServiceBuilder::new()
-            .layer(cors)
-            .layer(csrf)
-            .layer(compression)
-            .layer(telemetry)
+        tower::ServiceBuilder::new().layer(cors).layer(csrf).layer(compression)
     };
 
     let mut router = server_runtime.base_router().unwrap_or_default().fallback(fallback);
@@ -118,13 +114,18 @@ where
         //
         // Layers
         //
-        .layer(common_layers.clone().layer(build_extension_layer(
-            &config,
-            &extension_catalog,
-            &extensions,
-            &kv,
-            &config.authentication.protected_resources.graphql,
-        )?));
+        .layer(
+            common_layers
+                .clone()
+                .layer(telemetry.clone().with_route(&config.graph.path))
+                .layer(build_extension_layer(
+                    &config,
+                    &extension_catalog,
+                    &extensions,
+                    &kv,
+                    &config.authentication.protected_resources.graphql,
+                )?),
+        );
 
     router = router.merge(graphql);
 
@@ -143,7 +144,7 @@ where
                 )),
             );
         }
-        router = router.merge(public_router.layer(common_layers.clone()));
+        router = router.merge(public_router.layer(telemetry.clone()).layer(common_layers.clone()));
     }
 
     //
@@ -152,13 +153,20 @@ where
     let ct = match &config.mcp {
         Some(mcp_config) if mcp_config.enabled => {
             let (mcp_router, ct) = grafbase_mcp::router(&engine, mcp_config);
-            router = router.merge(mcp_router.layer(common_layers.clone().layer(build_extension_layer(
-                &config,
-                &extension_catalog,
-                &extensions,
-                &kv,
-                &config.authentication.protected_resources.mcp,
-            )?)));
+            router = router.merge(
+                mcp_router.layer(
+                    common_layers
+                        .clone()
+                        .layer(telemetry.clone().with_route(&mcp_config.path))
+                        .layer(build_extension_layer(
+                            &config,
+                            &extension_catalog,
+                            &extensions,
+                            &kv,
+                            &config.authentication.protected_resources.mcp,
+                        )?),
+                ),
+            );
             ct
         }
         _ => None,

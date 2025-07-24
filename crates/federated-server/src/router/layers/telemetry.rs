@@ -3,6 +3,7 @@ use std::{
     future::Future,
     net::SocketAddr,
     pin::Pin,
+    sync::Arc,
     task::{Context, Poll},
     time::Instant,
 };
@@ -23,17 +24,29 @@ use http_body::Body;
 use tracing::Instrument;
 
 #[derive(Clone)]
-pub struct TelemetryLayer {
+pub struct TelemetryLayer(Arc<TelemetryLayerInner>);
+
+pub struct TelemetryLayerInner {
     metrics: RequestMetrics,
     listen_address: Option<SocketAddr>,
+    route: Option<String>,
 }
 
 impl TelemetryLayer {
     pub fn new_from_global_meter_provider(listen_address: Option<SocketAddr>) -> Self {
-        Self {
+        Self(Arc::new(TelemetryLayerInner {
             metrics: RequestMetrics::build(&grafbase_telemetry::metrics::meter_from_global_provider()),
             listen_address,
-        }
+            route: None,
+        }))
+    }
+
+    pub fn with_route(self, route: impl Into<String>) -> Self {
+        Self(Arc::new(TelemetryLayerInner {
+            metrics: self.0.metrics.clone(),
+            listen_address: self.0.listen_address,
+            route: Some(route.into()),
+        }))
     }
 }
 
@@ -46,8 +59,7 @@ where
     fn layer(&self, inner: Service) -> Self::Service {
         TelemetryService {
             inner,
-            metrics: self.metrics.clone(),
-            listen_address: self.listen_address,
+            layer: self.0.clone(),
         }
     }
 }
@@ -62,8 +74,7 @@ where
     Service: Send + Clone,
 {
     inner: Service,
-    metrics: RequestMetrics,
-    listen_address: Option<SocketAddr>,
+    layer: Arc<TelemetryLayerInner>,
 }
 
 impl<Service> TelemetryService<Service>
@@ -116,11 +127,10 @@ where
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
         let mut inner = self.inner.clone();
-        let metrics = self.metrics.clone();
+        let layer = self.layer.clone();
         let http_span = self.make_span(&req);
-        let listen_address = self.listen_address;
 
-        metrics.increment_connected_clients();
+        layer.metrics.increment_connected_clients();
 
         let span = http_span.span.clone();
         let fut = async move {
@@ -130,20 +140,21 @@ where
             let version = req.version();
 
             let method = req.method().clone();
-            let url = req.uri().clone();
+            let url_scheme = req.uri().scheme_str().map(ToString::to_string);
+            let route = layer.route.clone().or_else(|| Some(req.uri().path().to_string()));
 
             let mut result = inner.call(req).await;
 
             match result {
                 Err(ref err) => {
-                    metrics.record_http_duration(
+                    layer.metrics.record_http_duration(
                         RequestMetricsAttributes {
                             status_code: 500,
                             client,
                             cache_status: None,
-                            url_scheme: url.scheme_str().map(ToString::to_string),
-                            route: Some(url.path().to_string()),
-                            listen_address,
+                            url_scheme,
+                            route,
+                            listen_address: layer.listen_address,
                             version: Some(version),
                             method: Some(method.clone()),
                             has_graphql_errors: false,
@@ -156,7 +167,7 @@ where
                 }
                 Ok(ref mut response) => {
                     if let Some(size) = response.body().size_hint().exact() {
-                        metrics.record_response_body_size(size);
+                        layer.metrics.record_response_body_size(size);
                     }
                     http_span.record_response(response);
                     let cache_status = response
@@ -169,9 +180,9 @@ where
                         status_code: response.status().as_u16(),
                         client,
                         cache_status,
-                        url_scheme: url.scheme_str().map(ToString::to_string),
-                        route: Some(url.path().to_string()),
-                        listen_address,
+                        url_scheme,
+                        route,
+                        listen_address: layer.listen_address,
                         version: Some(version),
                         method: Some(method.clone()),
                         has_graphql_errors: false,
@@ -189,19 +200,19 @@ where
                             // have the same meaning.
                             if !telemetry.operations.iter().any(|(ty, _)| ty.is_subscription()) {
                                 attributes.has_graphql_errors = telemetry.errors_count() > 0;
-                                metrics.record_http_duration(attributes, start.elapsed());
+                                layer.metrics.record_http_duration(attributes, start.elapsed());
                             }
                         }
                         TelemetryExtension::Future(channel) => {
-                            let metrics = metrics.clone();
                             let span = http_span.span.clone();
+                            let layer = layer.clone();
                             tokio::spawn(
                                 async move {
                                     let telemetry = channel.await.unwrap_or_default();
                                     http_span.record_graphql_execution_telemetry(&telemetry);
                                     if !telemetry.operations.iter().any(|(ty, _)| ty.is_subscription()) {
                                         attributes.has_graphql_errors = telemetry.errors_count() > 0;
-                                        metrics.record_http_duration(attributes, start.elapsed());
+                                        layer.metrics.record_http_duration(attributes, start.elapsed());
                                     }
                                 }
                                 // Ensures the span will have the proper end time.
@@ -212,7 +223,7 @@ where
                 }
             }
 
-            metrics.decrement_connected_clients();
+            layer.metrics.decrement_connected_clients();
 
             result
         };
