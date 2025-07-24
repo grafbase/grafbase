@@ -22,7 +22,8 @@ fn codegen_tests() {
             .arg(tmp.path())
             .arg("-I")
             .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/codegen"))
-            .arg(path);
+            .arg(path)
+            .stderr(process::Stdio::inherit());
 
         let output = cmd.output().unwrap();
 

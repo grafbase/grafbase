@@ -94,7 +94,7 @@ pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8",
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
 portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
-prost = { version = "0.13", features = ["prost-derive"] }
+prost = { version = "0.13" }
 pulley-interpreter = { version = "35", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
 rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
@@ -225,7 +225,7 @@ pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8",
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
 portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
-prost = { version = "0.13", features = ["prost-derive"] }
+prost = { version = "0.13" }
 pulley-interpreter = { version = "35", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
 rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }

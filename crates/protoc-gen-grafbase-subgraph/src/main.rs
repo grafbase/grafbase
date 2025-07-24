@@ -3,8 +3,8 @@ mod render_graphql_sdl;
 mod schema;
 mod translate_schema;
 
-use prost::Message as _;
-use prost_types::compiler::{CodeGeneratorRequest, CodeGeneratorResponse, code_generator_response::File};
+use protobuf::plugin::{CodeGeneratorRequest, CodeGeneratorResponse, code_generator_response::File};
+use protobuf::{CodedOutputStream, Message};
 use render_graphql_sdl::render_graphql_sdl;
 use std::{
     env,
@@ -14,15 +14,13 @@ use std::{
 use translate_schema::translate_schema;
 
 fn bail(error: String) -> CodeGeneratorResponse {
-    CodeGeneratorResponse {
-        error: Some(error),
-        supported_features: None,
-        file: vec![],
-    }
+    let mut response = CodeGeneratorResponse::new();
+    response.error = Some(error);
+    response
 }
 
 fn generate(raw_request: &[u8]) -> CodeGeneratorResponse {
-    let request = match CodeGeneratorRequest::decode(raw_request) {
+    let request = match CodeGeneratorRequest::parse_from_bytes(raw_request) {
         Ok(request) => request,
         Err(decode_err) => {
             return bail(format!(
@@ -37,16 +35,12 @@ fn generate(raw_request: &[u8]) -> CodeGeneratorResponse {
 
     render_graphql_sdl(&translated_schema, &mut graphql_schema).unwrap();
 
-    CodeGeneratorResponse {
-        error: None,
-        supported_features: None,
-        file: vec![File {
-            name: Some("schema.graphql".to_owned()),
-            insertion_point: None,
-            generated_code_info: None,
-            content: Some(graphql_schema),
-        }],
-    }
+    let mut response = CodeGeneratorResponse::new();
+    let mut file = File::new();
+    file.set_name("schema.graphql".to_owned());
+    file.set_content(graphql_schema);
+    response.file.push(file);
+    response
 }
 
 fn main() -> io::Result<()> {
@@ -60,11 +54,14 @@ fn main() -> io::Result<()> {
 
     let response = generate(&buf);
 
-    buf.clear();
+    let mut output_buf = Vec::new();
+    {
+        let mut output_stream = CodedOutputStream::vec(&mut output_buf);
+        response.write_to(&mut output_stream).expect("error encoding response");
+        output_stream.flush().expect("error flushing response");
+    }
 
-    response.encode(&mut buf).expect("error encoding response");
-
-    io::stdout().write_all(&buf)?;
+    io::stdout().write_all(&output_buf)?;
 
     Ok(())
 }

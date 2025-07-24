@@ -337,7 +337,7 @@ jobs:
           sudo mkdir -p /usr/local/include/google
           sudo chown -R $USER /usr/local/include/google
 
-          curl -L https://github.com/protocolbuffers/protobuf/releases/download/v30.2/protoc-30.2-${protobuf_release_arch}.zip -o protoc.zip
+          curl -L https://github.com/protocolbuffers/protobuf/releases/download/v31.1/protoc-31.1-${protobuf_release_arch}.zip -o protoc.zip
           unzip protoc.zip -d /usr/local
           chmod +x /usr/local/bin/protoc
           rm protoc.zip

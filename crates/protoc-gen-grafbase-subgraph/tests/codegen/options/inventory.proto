@@ -1,0 +1,44 @@
+syntax="proto3";
+
+import "options/grafbase/options.proto";
+
+package test.inventory;
+
+message SearchResponse {
+  option (grafbase.graphql.object_directives) = "@key(fields: \"id\")";
+
+  string id = 1 [(grafbase.graphql.output_field_directives) = "@deprecated(reason: \"Use IDV2\")"];
+}
+
+enum Color {
+  option (grafbase.graphql.enum_directives) = "@deprecated(reason: \"Use ColorV2\")";
+
+  RED = 0 [(grafbase.graphql.enum_value_directives) = "@deprecated @tag(name: \"private\")"];
+  GREEN = 1;
+  BLUE = 2 [(grafbase.graphql.enum_value_directives) = "@deprecated"];
+}
+
+message SearchRequest {
+  option (grafbase.graphql.input_object_directives) = "@oneOf";
+
+  string query = 1 [(grafbase.graphql.input_field_directives) = "@deprecated(reason: \"Use QueryV2\")"];
+  Color colorFilter = 2;
+}
+
+service SearchService {
+  rpc Search(SearchRequest) returns (SearchResponse) {
+      option (grafbase.graphql.is_query) = true;
+  }
+}
+
+service SearchService2 {
+  option (grafbase.graphql.default_to_query_fields) = true;
+
+  rpc Search2(SearchRequest) returns (SearchResponse) {
+    option (grafbase.graphql.directives) = "@lookup";
+  }
+}
+
+service SearchService3 {
+  rpc Search3(SearchRequest) returns (SearchResponse);
+}

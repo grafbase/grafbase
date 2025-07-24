@@ -65,10 +65,23 @@ fn render_message(
     }
 
     if input {
-        writeln!(f, "input {} {{", message.graphql_input_name())?;
+        write!(f, "input {} ", message.graphql_input_name(),)?;
     } else {
-        writeln!(f, "type {} {{", message.graphql_output_name())?;
+        write!(f, "type {} ", message.graphql_output_name(),)?;
     }
+
+    let directives = if input {
+        message.input_object_directives.as_deref()
+    } else {
+        message.object_directives.as_deref()
+    };
+
+    if let Some(directives) = directives {
+        f.write_str(directives)?;
+        f.write_str(" ")?;
+    }
+
+    f.write_str("{\n")?;
 
     for field in message_id.fields(schema) {
         if let Some(description) = field.description.as_deref() {
@@ -83,6 +96,17 @@ fn render_message(
             render_input_field_type(schema, &field.r#type, field.repeated, f)?;
         } else {
             render_output_field_type(schema, &field.r#type, field.repeated, f)?;
+        }
+
+        let field_directives = if input {
+            field.input_field_directives.as_deref()
+        } else {
+            field.output_field_directives.as_deref()
+        };
+
+        if let Some(directives) = field_directives {
+            f.write_str(" ")?;
+            f.write_str(directives)?;
         }
 
         f.write_str("\n")?;
@@ -146,7 +170,14 @@ fn render_enum_definition(schema: &GrpcSchema, enum_id: ProtoEnumId, f: &mut fmt
         render_description(f, description)?;
     }
 
-    writeln!(f, "enum {} {{", enum_type.graphql_name())?;
+    write!(f, "enum {} ", enum_type.graphql_name())?;
+
+    if let Some(directives) = &enum_type.enum_directives {
+        f.write_str(directives)?;
+        f.write_str(" ")?;
+    }
+
+    f.write_str("{\n")?;
 
     for value in &enum_type.values {
         if let Some(description) = value.description.as_deref() {
@@ -155,6 +186,12 @@ fn render_enum_definition(schema: &GrpcSchema, enum_id: ProtoEnumId, f: &mut fmt
 
         f.write_str(INDENT)?;
         f.write_str(value.name.as_str())?;
+
+        if let Some(directives) = &value.enum_value_directives {
+            f.write_str(" ")?;
+            f.write_str(directives)?;
+        }
+
         f.write_str(",\n")?;
     }
 
