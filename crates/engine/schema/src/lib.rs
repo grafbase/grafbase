@@ -36,6 +36,7 @@ mod union;
 #[cfg(test)]
 mod tests;
 
+pub use builder::mutable::MutableSchema;
 pub use config::*;
 pub use directive::*;
 pub use extension::*;
@@ -131,39 +132,32 @@ pub struct Graph {
     pub description_id: Option<StringId>,
     pub root_operation_types_record: RootOperationTypesRecord,
 
+    inaccessible: Inaccessible,
+    interface_has_inaccessible_implementor: BitSet<InterfaceDefinitionId>,
+    union_has_inaccessible_member: BitSet<UnionDefinitionId>,
+
     // All type definitions sorted by their name (actual string)
     type_definitions_ordered_by_name: Vec<TypeDefinitionId>,
     #[indexed_by(ObjectDefinitionId)]
     object_definitions: Vec<ObjectDefinitionRecord>,
-    inaccessible_object_definitions: BitSet<ObjectDefinitionId>,
     #[indexed_by(InterfaceDefinitionId)]
     interface_definitions: Vec<InterfaceDefinitionRecord>,
-    inaccessible_interface_definitions: BitSet<InterfaceDefinitionId>,
-    interface_has_inaccessible_implementor: BitSet<InterfaceDefinitionId>,
     #[indexed_by(FieldDefinitionId)]
     field_definitions: Vec<FieldDefinitionRecord>,
-    inaccessible_field_definitions: BitSet<FieldDefinitionId>,
     #[indexed_by(DeriveDefinitionId)]
     derive_definitions: Vec<DeriveDefinitionRecord>,
     #[indexed_by(EnumDefinitionId)]
     enum_definitions: Vec<EnumDefinitionRecord>,
-    inaccessible_enum_definitions: BitSet<EnumDefinitionId>,
     #[indexed_by(UnionDefinitionId)]
     union_definitions: Vec<UnionDefinitionRecord>,
-    inaccessible_union_definitions: BitSet<UnionDefinitionId>,
-    union_has_inaccessible_member: BitSet<UnionDefinitionId>,
     #[indexed_by(ScalarDefinitionId)]
     scalar_definitions: Vec<ScalarDefinitionRecord>,
-    inaccessible_scalar_definitions: BitSet<ScalarDefinitionId>,
     #[indexed_by(InputObjectDefinitionId)]
     input_object_definitions: Vec<InputObjectDefinitionRecord>,
-    inaccessible_input_object_definitions: BitSet<InputObjectDefinitionId>,
     #[indexed_by(InputValueDefinitionId)]
     input_value_definitions: Vec<InputValueDefinitionRecord>,
-    inaccessible_input_value_definitions: BitSet<InputValueDefinitionId>,
     #[indexed_by(EnumValueId)]
     enum_values: Vec<EnumValueRecord>,
-    inaccessible_enum_values: BitSet<EnumValueId>,
 
     #[indexed_by(ResolverDefinitionId)]
     resolver_definitions: Vec<ResolverDefinitionRecord>,
@@ -191,6 +185,19 @@ pub struct Graph {
 
     #[indexed_by(TemplateId)]
     templates: Vec<TemplateRecord>,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct Inaccessible {
+    pub object_definitions: BitSet<ObjectDefinitionId>,
+    pub interface_definitions: BitSet<InterfaceDefinitionId>,
+    pub field_definitions: BitSet<FieldDefinitionId>,
+    pub enum_definitions: BitSet<EnumDefinitionId>,
+    pub enum_values: BitSet<EnumValueId>,
+    pub union_definitions: BitSet<UnionDefinitionId>,
+    pub scalar_definitions: BitSet<ScalarDefinitionId>,
+    pub input_object_definitions: BitSet<InputObjectDefinitionId>,
+    pub input_value_definitions: BitSet<InputValueDefinitionId>,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]

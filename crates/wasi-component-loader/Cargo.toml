@@ -27,6 +27,8 @@ grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
 http.workspace = true
 http-body-util.workspace = true
+id-newtypes = { path = "../engine/id-newtypes", package = "engine-id-newtypes" }
+itertools.workspace = true
 mini-moka.workspace = true
 minicbor-serde = { workspace = true, features = ["alloc"] }
 rapidhash.workspace = true

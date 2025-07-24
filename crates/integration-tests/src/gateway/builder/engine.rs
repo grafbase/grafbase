@@ -21,29 +21,24 @@ pub(super) async fn build(
             None => {
                 if !subgraphs.is_empty() {
                     let extensions = runtime.extensions.iter_with_url().collect::<Vec<_>>();
-                    let mut subgraphs =
-                        subgraphs
-                            .iter()
-                            .fold(graphql_composition::Subgraphs::default(), |mut subgraphs, subgraph| {
-                                let url = subgraph.url();
+                    let mut acc = graphql_composition::Subgraphs::default();
+                    for subgraph in subgraphs.iter() {
+                        let url = subgraph.url();
 
-                                // Quite ugly to replace directly, but should work most of time considering we append
-                                // the version number
-                                let sdl = extensions.iter().fold(subgraph.sdl(), |sdl, (manifest, url)| {
-                                    sdl.replace(&manifest.id.to_string(), url.as_str()).into()
-                                });
+                        // Quite ugly to replace directly, but should work most of time considering we append
+                        // the version number
+                        let sdl = extensions.iter().fold(subgraph.sdl(), |sdl, (manifest, url)| {
+                            sdl.replace(&manifest.id.to_string(), url.as_str()).into()
+                        });
 
-                                subgraphs
-                                    .ingest_str(&sdl, subgraph.name(), url.as_ref().map(url::Url::as_str))
-                                    .expect("schema to be well formed");
-                                subgraphs
-                            });
+                        acc.ingest_str(&sdl, subgraph.name(), url.as_ref().map(url::Url::as_str))?;
+                    }
 
-                    subgraphs.ingest_loaded_extensions(extensions.into_iter().map(|(manifest, url)| {
+                    acc.ingest_loaded_extensions(extensions.into_iter().map(|(manifest, url)| {
                         graphql_composition::LoadedExtension::new(url.to_string(), manifest.name().to_string())
                     }));
 
-                    graphql_composition::compose(&subgraphs)
+                    graphql_composition::compose(&acc)
                         .warnings_are_fatal()
                         .into_result()
                         .expect("schemas to compose succesfully")

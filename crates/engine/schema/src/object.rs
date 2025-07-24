@@ -29,7 +29,7 @@ impl<'a> ObjectDefinition<'a> {
     }
 
     pub fn is_inaccessible(&self) -> bool {
-        self.schema.graph.inaccessible_object_definitions[self.id]
+        self.schema.graph.inaccessible.object_definitions[self.id]
     }
 
     pub fn has_deprecated(&self) -> Option<DeprecatedDirective<'a>> {

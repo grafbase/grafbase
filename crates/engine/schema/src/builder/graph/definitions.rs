@@ -42,27 +42,30 @@ pub(crate) fn ingest_definitions(ctx: BuildContext<'_>) -> Result<(GraphBuilder<
             mutation_id: None,
             subscription_id: None,
         },
-        object_definitions: Vec::with_capacity(sdl.object_count),
-        inaccessible_object_definitions: BitSet::new(),
-        interface_definitions: Vec::with_capacity(sdl.interface_count),
-        inaccessible_interface_definitions: BitSet::new(),
+        // Inaccessible are initialized at the end.
+        inaccessible: Inaccessible {
+            object_definitions: BitSet::new(),
+            interface_definitions: BitSet::new(),
+            field_definitions: BitSet::new(),
+            enum_definitions: BitSet::new(),
+            enum_values: BitSet::new(),
+            union_definitions: BitSet::new(),
+            scalar_definitions: BitSet::new(),
+            input_object_definitions: BitSet::new(),
+            input_value_definitions: BitSet::new(),
+        },
         interface_has_inaccessible_implementor: BitSet::new(),
-        union_definitions: Vec::with_capacity(sdl.union_count),
-        inaccessible_union_definitions: BitSet::new(),
         union_has_inaccessible_member: BitSet::new(),
+        object_definitions: Vec::with_capacity(sdl.object_count),
+        interface_definitions: Vec::with_capacity(sdl.interface_count),
+        union_definitions: Vec::with_capacity(sdl.union_count),
         scalar_definitions: Vec::with_capacity(sdl.scalar_count),
-        inaccessible_scalar_definitions: BitSet::new(),
         enum_definitions: Vec::with_capacity(sdl.enum_count),
-        inaccessible_enum_definitions: BitSet::new(),
         enum_values: Vec::with_capacity(sdl.enum_count),
-        inaccessible_enum_values: BitSet::new(),
         input_object_definitions: Vec::with_capacity(sdl.input_object_count),
-        inaccessible_input_object_definitions: BitSet::new(),
         // Minimal size
         field_definitions: Vec::with_capacity(sdl.object_count + sdl.interface_count),
-        inaccessible_field_definitions: BitSet::new(),
         input_value_definitions: Vec::with_capacity(sdl.input_object_count),
-        inaccessible_input_value_definitions: BitSet::new(),
         // Initialized in the relevant functions as there is no obvious default.
         resolver_definitions: Vec::new(),
         type_definitions_ordered_by_name: Vec::new(),
@@ -735,29 +738,34 @@ fn add_extra_vecs_for_definitions_with_different_ordering(GraphBuilder { ctx, gr
 
 fn create_inaccessible_bitsets(graph: &mut Graph) {
     graph
-        .inaccessible_object_definitions
+        .inaccessible
+        .object_definitions
         .grow(graph.object_definitions.len());
-    graph.inaccessible_field_definitions.grow(graph.field_definitions.len());
+    graph.inaccessible.field_definitions.grow(graph.field_definitions.len());
 
     graph
-        .inaccessible_scalar_definitions
+        .inaccessible
+        .scalar_definitions
         .grow(graph.scalar_definitions.len());
 
     graph
-        .inaccessible_input_object_definitions
+        .inaccessible
+        .input_object_definitions
         .grow(graph.input_object_definitions.len());
     graph
-        .inaccessible_input_value_definitions
+        .inaccessible
+        .input_value_definitions
         .grow(graph.input_value_definitions.len());
 
-    graph.inaccessible_enum_definitions.grow(graph.enum_definitions.len());
-    graph.inaccessible_enum_values.grow(graph.enum_values.len());
+    graph.inaccessible.enum_definitions.grow(graph.enum_definitions.len());
+    graph.inaccessible.enum_values.grow(graph.enum_values.len());
 
-    graph.inaccessible_union_definitions.grow(graph.union_definitions.len());
+    graph.inaccessible.union_definitions.grow(graph.union_definitions.len());
     graph.union_has_inaccessible_member.grow(graph.union_definitions.len());
 
     graph
-        .inaccessible_interface_definitions
+        .inaccessible
+        .interface_definitions
         .grow(graph.interface_definitions.len());
     graph
         .interface_has_inaccessible_implementor

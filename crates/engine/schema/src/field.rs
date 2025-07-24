@@ -34,7 +34,7 @@ impl<'a> FieldDefinition<'a> {
     }
 
     pub fn is_inaccessible(&self) -> bool {
-        self.schema.graph.inaccessible_field_definitions[self.id]
+        self.schema.graph.inaccessible.field_definitions[self.id]
     }
 
     pub fn cost(&self) -> Option<CostDirective> {

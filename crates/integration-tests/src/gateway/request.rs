@@ -1,3 +1,4 @@
+mod introspection;
 mod mcp;
 mod stream;
 
@@ -12,6 +13,7 @@ use axum::body::Body;
 use bytes::Bytes;
 use futures::future::BoxFuture;
 use http_body_util::BodyExt;
+pub use introspection::*;
 pub use mcp::*;
 use serde::{Deserialize, ser::SerializeMap};
 pub use stream::*;

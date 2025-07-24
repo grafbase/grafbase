@@ -61,49 +61,52 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
             sdl::SdlDefinition::SchemaDirective(_) => unreachable!(), // Handled separately
             sdl::SdlDefinition::Scalar(def) => {
                 self.graph[def.id].directive_ids = directive_ids;
-                self.graph.inaccessible_scalar_definitions.set(def.id, inaccessible);
+                self.graph.inaccessible.scalar_definitions.set(def.id, inaccessible);
             }
             sdl::SdlDefinition::Object(def) => {
                 self.graph[def.id].directive_ids = directive_ids;
-                self.graph.inaccessible_object_definitions.set(def.id, inaccessible);
+                self.graph.inaccessible.object_definitions.set(def.id, inaccessible);
             }
             sdl::SdlDefinition::Interface(def) => {
                 self.graph[def.id].directive_ids = directive_ids;
-                self.graph.inaccessible_interface_definitions.set(def.id, inaccessible);
+                self.graph.inaccessible.interface_definitions.set(def.id, inaccessible);
             }
             sdl::SdlDefinition::Union(def) => {
                 self.graph[def.id].directive_ids = directive_ids;
-                self.graph.inaccessible_union_definitions.set(def.id, inaccessible);
+                self.graph.inaccessible.union_definitions.set(def.id, inaccessible);
             }
             sdl::SdlDefinition::Enum(def) => {
                 self.graph[def.id].directive_ids = directive_ids;
-                self.graph.inaccessible_enum_definitions.set(def.id, inaccessible);
+                self.graph.inaccessible.enum_definitions.set(def.id, inaccessible);
             }
             sdl::SdlDefinition::InputObject(def) => {
                 self.graph[def.id].directive_ids = directive_ids;
                 self.graph
-                    .inaccessible_input_object_definitions
+                    .inaccessible
+                    .input_object_definitions
                     .set(def.id, inaccessible);
             }
             sdl::SdlDefinition::FieldDefinition(def) => {
                 self.graph[def.id].directive_ids = directive_ids;
-                self.graph.inaccessible_field_definitions.set(def.id, inaccessible);
+                self.graph.inaccessible.field_definitions.set(def.id, inaccessible);
             }
             sdl::SdlDefinition::InputFieldDefinition(def) => {
                 self.graph[def.id].directive_ids = directive_ids;
                 self.graph
-                    .inaccessible_input_value_definitions
+                    .inaccessible
+                    .input_value_definitions
                     .set(def.id, inaccessible);
             }
             sdl::SdlDefinition::ArgumentDefinition(def) => {
                 self.graph[def.id].directive_ids = directive_ids;
                 self.graph
-                    .inaccessible_input_value_definitions
+                    .inaccessible
+                    .input_value_definitions
                     .set(def.id, inaccessible);
             }
             sdl::SdlDefinition::EnumValue(def) => {
                 self.graph[def.id].directive_ids = directive_ids;
-                self.graph.inaccessible_enum_values.set(def.id, inaccessible);
+                self.graph.inaccessible.enum_values.set(def.id, inaccessible);
             }
         }
 
@@ -112,11 +115,14 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
 }
 
 pub(in crate::builder) fn finalize_inaccessible(graph: &mut Graph) {
+    graph.union_has_inaccessible_member.set_all(false);
+    graph.interface_has_inaccessible_implementor.set_all(false);
+
     // Must be done after ingesting all @inaccessible for objects.
     for (ix, union) in graph.union_definitions.iter().enumerate() {
         let id = UnionDefinitionId::from(ix);
         for possible_type in &union.possible_type_ids {
-            if graph.inaccessible_object_definitions[*possible_type] {
+            if graph.inaccessible.object_definitions[*possible_type] {
                 graph.union_has_inaccessible_member.set(id, true);
                 break;
             }
@@ -126,7 +132,7 @@ pub(in crate::builder) fn finalize_inaccessible(graph: &mut Graph) {
     for (ix, interface) in graph.interface_definitions.iter().enumerate() {
         let id = ix.into();
         for implementor in &interface.possible_type_ids {
-            if graph.inaccessible_object_definitions[*implementor] {
+            if graph.inaccessible.object_definitions[*implementor] {
                 graph.interface_has_inaccessible_implementor.set(id, true);
                 break;
             }
@@ -137,18 +143,18 @@ pub(in crate::builder) fn finalize_inaccessible(graph: &mut Graph) {
     // Composition should ensure all of this is consistent, but we ensure it.
     fn is_definition_inaccessible(graph: &Graph, definition_id: TypeDefinitionId) -> bool {
         match definition_id {
-            TypeDefinitionId::Scalar(id) => graph.inaccessible_scalar_definitions[id],
-            TypeDefinitionId::Object(id) => graph.inaccessible_object_definitions[id],
-            TypeDefinitionId::Interface(id) => graph.inaccessible_interface_definitions[id],
-            TypeDefinitionId::Union(id) => graph.inaccessible_union_definitions[id],
-            TypeDefinitionId::Enum(id) => graph.inaccessible_enum_definitions[id],
-            TypeDefinitionId::InputObject(id) => graph.inaccessible_input_object_definitions[id],
+            TypeDefinitionId::Scalar(id) => graph.inaccessible.scalar_definitions[id],
+            TypeDefinitionId::Object(id) => graph.inaccessible.object_definitions[id],
+            TypeDefinitionId::Interface(id) => graph.inaccessible.interface_definitions[id],
+            TypeDefinitionId::Union(id) => graph.inaccessible.union_definitions[id],
+            TypeDefinitionId::Enum(id) => graph.inaccessible.enum_definitions[id],
+            TypeDefinitionId::InputObject(id) => graph.inaccessible.input_object_definitions[id],
         }
     }
 
     for (ix, field) in graph.field_definitions.iter().enumerate() {
         if is_definition_inaccessible(graph, field.ty_record.definition_id) {
-            graph.inaccessible_field_definitions.set(ix.into(), true);
+            graph.inaccessible.field_definitions.set(ix.into(), true);
         }
     }
 
@@ -156,7 +162,7 @@ pub(in crate::builder) fn finalize_inaccessible(graph: &mut Graph) {
         if is_definition_inaccessible(graph, input_value.ty_record.definition_id)
             || input_value.is_internal_in_id.is_some()
         {
-            graph.inaccessible_input_value_definitions.set(ix.into(), true);
+            graph.inaccessible.input_value_definitions.set(ix.into(), true);
         }
     }
 }
