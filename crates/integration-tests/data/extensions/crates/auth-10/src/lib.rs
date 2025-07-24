@@ -51,7 +51,7 @@ impl AuthenticationExtension for CachingProvider {
             .to_owned();
 
         let value = headers
-            .get("value")
+            .get("key")
             .map(|value| value.to_str().unwrap().to_owned())
             .unwrap_or_else(|| "default".to_owned());
 

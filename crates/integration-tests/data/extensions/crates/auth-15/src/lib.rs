@@ -45,11 +45,11 @@ impl AuthenticationExtension for CachingProvider {
     fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
         let auth = headers.get(&self.config.header_name).ok_or_else(|| {
             ErrorResponse::new(StatusCode::UNAUTHORIZED)
-                .with_error(Error::new("Not passing through on my watch! SDK-09"))
+                .with_error(Error::new("Not passing through on my watch! SDK-15"))
         })?;
 
         let value = headers
-            .get("value")
+            .get("key")
             .and_then(|v| v.to_str().ok().map(String::from))
             .unwrap_or_else(|| "default".to_string());
 

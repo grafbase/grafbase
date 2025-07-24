@@ -1,4 +1,4 @@
-use crate::{types::HttpHeaders, wit};
+use crate::{types::Headers, wit};
 
 /// An HTTP endpoint exposed publicly on the Gateway. This is typically used to return metadata for authentication purposes, for example with the [OAuth 2.0 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/rfc9728) spec.
 #[non_exhaustive]
@@ -8,7 +8,7 @@ pub struct PublicMetadataEndpoint {
     /// The contents of the response body that the endpoint will return. Example: '{"resource": "https://secure.example.com" }'.
     response_body: Vec<u8>,
     /// The headers sent from with the response by the public endpoint. Example: ["Content-Type: application/json"].
-    response_headers: HttpHeaders,
+    response_headers: Headers,
 }
 
 impl PublicMetadataEndpoint {
@@ -22,13 +22,13 @@ impl PublicMetadataEndpoint {
     }
 
     /// Set the response headers
-    pub fn with_headers(mut self, response_headers: HttpHeaders) -> Self {
+    pub fn with_headers(mut self, response_headers: Headers) -> Self {
         self.response_headers = response_headers;
         self
     }
 
     /// Access the response headers
-    pub fn response_headers_mut(&mut self) -> &mut HttpHeaders {
+    pub fn response_headers_mut(&mut self) -> &mut Headers {
         &mut self.response_headers
     }
 }

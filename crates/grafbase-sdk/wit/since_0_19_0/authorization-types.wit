@@ -10,6 +10,13 @@
 interface authorization-types {
     use error.{error};
     use schema.{directive-site};
+    use headers.{headers};
+
+    record authorization-output {
+        decisions: authorization-decisions,
+        state: list<u8>,
+        headers: headers
+    }
 
     variant authorization-decisions {
         grant-all,

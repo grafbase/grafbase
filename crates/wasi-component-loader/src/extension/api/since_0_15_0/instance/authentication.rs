@@ -5,17 +5,17 @@ use runtime::extension::Token;
 use crate::{
     WasmContext,
     extension::AuthenticationExtensionInstance,
-    resources::{Headers, Lease},
+    resources::{LegacyHeaders, OwnedOrShared},
 };
 
 impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_15_0 {
     fn authenticate(
         &mut self,
         _: &WasmContext,
-        headers: Lease<http::HeaderMap>,
-    ) -> BoxFuture<'_, wasmtime::Result<Result<(Lease<http::HeaderMap>, Token), ErrorResponse>>> {
+        headers: OwnedOrShared<http::HeaderMap>,
+    ) -> BoxFuture<'_, wasmtime::Result<Result<(OwnedOrShared<http::HeaderMap>, Token), ErrorResponse>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
             let result = self

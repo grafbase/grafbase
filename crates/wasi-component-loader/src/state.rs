@@ -14,8 +14,8 @@ use wasmtime_wasi_http::{WasiHttpCtx, WasiHttpView};
 
 use crate::{
     cache::LegacyCache,
-    extension::{ExtensionConfig, api::wit},
-    resources::{Cache, FileLogger, GrpcClient, KafkaProducer, Lease, WasmOwnedOrLease},
+    extension::{ExtensionConfig, api::since_0_17_0::world as wit17, api::wit},
+    resources::{Cache, FileLogger, GrpcClient, KafkaProducer, OwnedOrShared, WasmOwnedOrLease},
 };
 
 /// Represents the state of the WASI environment.
@@ -114,9 +114,27 @@ impl InstanceState {
     /// of. Ideally we don't have any... Prefer sending the resource and returning it from the SDK.
     /// If not careful with it in the guest, this can lead to resources being dropped on the host
     /// side but not in the guest.
-    pub fn take_leased_resource<T: 'static>(&mut self, rep: u32) -> wasmtime::Result<Lease<T>> {
+    pub fn take_leased_resource<T: 'static>(&mut self, rep: u32) -> wasmtime::Result<OwnedOrShared<T>> {
         let resource = self.resources.delete(Resource::<WasmOwnedOrLease<T>>::new_own(rep))?;
         Ok(resource.into_lease().unwrap())
+    }
+
+    pub fn take_error_response_sdk17(
+        &mut self,
+        err: wit17::ErrorResponse,
+        code: ErrorCode,
+    ) -> wasmtime::Result<ErrorResponse> {
+        let headers = if let Some(resource) = err.headers {
+            self.resources.delete(resource)?.into_inner().expect("Should be owned")
+        } else {
+            Default::default()
+        };
+
+        Ok(ErrorResponse::new(
+            http::StatusCode::from_u16(err.status_code).unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR),
+        )
+        .with_errors(err.errors.into_iter().map(|err| err.into_graphql_error(code)))
+        .with_headers(headers))
     }
 
     pub fn take_error_response(&mut self, err: wit::ErrorResponse, code: ErrorCode) -> wasmtime::Result<ErrorResponse> {

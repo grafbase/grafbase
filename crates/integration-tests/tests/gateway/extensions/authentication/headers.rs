@@ -20,11 +20,11 @@ fn authorization_failure_with_response_header_from_extension() {
                 "#,
             ))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
-            .with_extension("auth-017")
+            .with_extension("auth-17")
             .with_toml_config(
                 r#"
-                [extensions.auth-017.config]
-                header_name = "auth017"
+                [extensions.auth-17.config]
+                header_name = "auth17"
                 "#,
             )
             .build()
@@ -36,7 +36,7 @@ fn authorization_failure_with_response_header_from_extension() {
         {
           "errors": [
             {
-              "message": "Not passing through on my watch! SDK-017",
+              "message": "Not passing through on my watch! SDK-17",
               "extensions": {
                 "code": "UNAUTHENTICATED"
               }
@@ -49,7 +49,7 @@ fn authorization_failure_with_response_header_from_extension() {
         {
             "content-type": "application/json",
             "www-authenticate": "Bearer test_author=grafbase",
-            "content-length": "107",
+            "content-length": "106",
             "vary": "accept-encoding",
             "vary": "origin, access-control-request-method, access-control-request-headers",
             "access-control-allow-origin": "*",
@@ -59,12 +59,12 @@ fn authorization_failure_with_response_header_from_extension() {
 
         let response = engine
             .post(r#"query { header(name: "token") }"#)
-            .header("auth017", "valid")
+            .header("auth17", "valid")
             .await;
         insta::assert_json_snapshot!(response, @r#"
         {
           "data": {
-            "header": "sdk017:valid:default"
+            "header": "sdk17:valid:default"
           }
         }
         "#);

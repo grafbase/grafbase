@@ -2,7 +2,7 @@ use engine_error::GraphqlError;
 use futures::future::BoxFuture;
 use runtime::extension::Data;
 
-use crate::{extension::api::wit::FieldDefinitionDirective, resources::Lease};
+use crate::{extension::api::wit::FieldDefinitionDirective, resources::OwnedOrShared};
 
 /// List of inputs to be provided to the extension.
 /// The data itself is fully custom and thus will be serialized with serde to cross the Wasm
@@ -38,10 +38,10 @@ pub(crate) trait FieldResolverExtensionInstance {
     #[allow(clippy::type_complexity)]
     fn subscription_key<'a>(
         &'a mut self,
-        headers: Lease<http::HeaderMap>,
+        headers: OwnedOrShared<http::HeaderMap>,
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
-    ) -> BoxFuture<'a, wasmtime::Result<Result<(Lease<http::HeaderMap>, Option<Vec<u8>>), GraphqlError>>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<(OwnedOrShared<http::HeaderMap>, Option<Vec<u8>>), GraphqlError>>> {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 

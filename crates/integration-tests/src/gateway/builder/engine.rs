@@ -14,7 +14,7 @@ pub(super) async fn build(
     mut config: TestConfig,
     runtime: TestRuntimeBuilder,
     subgraphs: &Subgraphs,
-) -> Result<(Arc<ContractAwareEngine<TestRuntime>>, ExtensionCatalog), String> {
+) -> anyhow::Result<(Arc<ContractAwareEngine<TestRuntime>>, ExtensionCatalog)> {
     let federated_sdl = {
         let mut federated_graph = match federated_sdl {
             Some(sdl) => graphql_composition::FederatedGraph::from_sdl(&sdl).unwrap(),
@@ -92,7 +92,7 @@ pub(super) async fn build(
             .extensions(Some(tmpdir), runtime.extensions.catalog())
             .build()
             .await
-            .map_err(|err| err.to_string())?,
+            .map_err(|err| anyhow::anyhow!(err))?,
     );
 
     let (runtime, extension_catalog) = runtime.finalize_runtime_and_config(&mut config, &schema).await?;

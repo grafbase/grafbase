@@ -1,8 +1,6 @@
-use crate::extension::api::wit::HeaderError;
+use crate::{extension::api::wit::HeaderError, resources::OwnedOrShared};
 
-use super::WasmOwnedOrLease;
-
-pub type Headers = WasmOwnedOrLease<http::HeaderMap>;
+pub type Headers = OwnedOrShared<http::HeaderMap>;
 
 impl Headers {
     pub async fn get(&self, name: &str) -> Vec<Vec<u8>> {

@@ -5,17 +5,17 @@ use runtime::{authentication::PublicMetadataEndpoint, extension::Token};
 use crate::{
     WasmContext,
     extension::AuthenticationExtensionInstance,
-    resources::{Headers, Lease},
+    resources::{LegacyHeaders, OwnedOrShared},
 };
 
 impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
     fn authenticate<'a>(
         &'a mut self,
         context: &'a WasmContext,
-        headers: Lease<http::HeaderMap>,
-    ) -> BoxFuture<'a, wasmtime::Result<Result<(Lease<http::HeaderMap>, Token), ErrorResponse>>> {
+        headers: OwnedOrShared<http::HeaderMap>,
+    ) -> BoxFuture<'a, wasmtime::Result<Result<(OwnedOrShared<http::HeaderMap>, Token), ErrorResponse>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
             let context = self.store.data_mut().resources.push(context.clone())?;
@@ -33,7 +33,7 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
                 Err(err) => Err(self
                     .store
                     .data_mut()
-                    .take_error_response(err, ErrorCode::Unauthenticated)?),
+                    .take_error_response_sdk17(err, ErrorCode::Unauthenticated)?),
             };
 
             Ok(result)

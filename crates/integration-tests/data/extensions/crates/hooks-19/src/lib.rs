@@ -5,7 +5,7 @@ use grafbase_sdk::{
         event_queue::{CacheStatus, Event, EventQueue, GraphqlResponseStatus, RequestExecution},
         http::{HeaderValue, Method, StatusCode},
     },
-    types::{Configuration, Error, ErrorResponse, GatewayHeaders, OnRequestOutput},
+    types::{Configuration, Error, ErrorResponse, Headers, OnRequestOutput},
 };
 use serde_json::json;
 
@@ -36,12 +36,7 @@ impl HooksExtension for Hooks {
     }
 
     #[allow(refining_impl_trait)]
-    fn on_request(
-        &mut self,
-        _: &str,
-        _: Method,
-        headers: &mut GatewayHeaders,
-    ) -> Result<OnRequestOutput, ErrorResponse> {
+    fn on_request(&mut self, _: &str, _: Method, headers: &mut Headers) -> Result<OnRequestOutput, ErrorResponse> {
         if let Some(ref header_test) = self.config.incoming_header {
             headers.append(
                 header_test.key.as_str(),
@@ -57,7 +52,7 @@ impl HooksExtension for Hooks {
         Ok(output)
     }
 
-    fn on_response(&mut self, _: StatusCode, headers: &mut GatewayHeaders, queue: EventQueue) -> Result<(), Error> {
+    fn on_response(&mut self, _: StatusCode, headers: &mut Headers, queue: EventQueue) -> Result<(), Error> {
         if let Some(ref header_test) = self.config.outgoing_header {
             headers.append(
                 header_test.key.as_str(),

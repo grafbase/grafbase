@@ -7,9 +7,9 @@ use crate::{
     WasmContext,
     extension::{
         HooksExtensionInstance,
-        api::wit::{self, HttpMethod},
+        api::wit::{self, HttpMethod, HttpRequestPartsParam},
     },
-    resources::{EventQueueProxy, Headers, Lease},
+    resources::{EventQueueProxy, Headers},
 };
 
 impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
@@ -22,9 +22,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
             let headers = std::mem::take(&mut parts.headers);
             let url = parts.uri.to_string();
 
-            let headers = Lease::Singleton(headers);
             let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
-            let headers_rep = headers.rep();
 
             let ctx = self.store.data_mut().resources.push(context.clone())?;
 
@@ -44,22 +42,26 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
-                .call_on_request(&mut self.store, ctx, &url, method, headers)
+                .call_on_request(
+                    &mut self.store,
+                    ctx,
+                    HttpRequestPartsParam {
+                        url: url.as_str(),
+                        method,
+                        headers,
+                    },
+                )
                 .await?;
 
-            parts.headers = self
-                .store
-                .data_mut()
-                .take_leased_resource(headers_rep)?
-                .into_inner()
-                .unwrap();
-
             let output = match result {
-                Ok(wit::OnRequestOutput { contract_key }) => Ok(OnRequest {
-                    context,
-                    parts,
-                    contract_key,
-                }),
+                Ok(wit::OnRequestOutput { headers, contract_key }) => {
+                    parts.headers = self.store.data_mut().resources.delete(headers)?.into_inner().unwrap();
+                    Ok(OnRequest {
+                        context,
+                        parts,
+                        contract_key,
+                    })
+                }
                 Err(err) => Err(self
                     .store
                     .data_mut()
@@ -79,9 +81,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
             let headers = std::mem::take(&mut parts.headers);
             let status = parts.status.as_u16();
 
-            let headers = Lease::Singleton(headers);
             let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
-            let headers_rep = headers.rep();
 
             let queue = self.store.data_mut().resources.push(EventQueueProxy(context.clone()))?;
             let context = self.store.data_mut().resources.push(context.clone())?;
@@ -92,14 +92,14 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                 .call_on_response(&mut self.store, context, status, headers, queue)
                 .await?;
 
-            parts.headers = self
-                .store
-                .data_mut()
-                .take_leased_resource(headers_rep)?
-                .into_inner()
-                .unwrap();
-
-            Ok(result.map(|_| parts))
+            let result = match result {
+                Ok(headers) => {
+                    parts.headers = self.store.data_mut().resources.delete(headers)?.into_inner().unwrap();
+                    Ok(parts)
+                }
+                Err(err) => Err(err),
+            };
+            Ok(result)
         })
     }
 }

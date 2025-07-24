@@ -2,15 +2,15 @@ use crate::{
     extension::resolver::SubscriptionCallback,
     host_io::event_queue::EventQueue,
     types::{
-        AuthorizationDecisions, Contract, ContractDirective, Error, ErrorResponse, GatewayHeaders, GraphqlSubgraph,
-        OnRequestOutput, PublicMetadataEndpoint, QueryElements, ResolvedField, Response, ResponseElements,
-        SubgraphHeaders, Token, Variables,
+        AuthorizationDecisions, Contract, ContractDirective, Error, ErrorResponse, GraphqlSubgraph, Headers,
+        HttpRequestParts, OnRequestOutput, PublicMetadataEndpoint, QueryElements, ResolvedField, Response,
+        ResponseElements, Token, Variables,
     },
 };
 
 #[expect(unused_variables)]
 pub(crate) trait AnyExtension {
-    fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
+    fn authenticate(&mut self, headers: &Headers) -> Result<Token, ErrorResponse> {
         Err(ErrorResponse::internal_server_error().with_error("Authentication extension not initialized correctly."))
     }
 
@@ -31,14 +31,14 @@ pub(crate) trait AnyExtension {
         Err("Selection set resolver extension not initialized correctly.".into())
     }
 
-    fn resolve(&mut self, prepared: &[u8], headers: SubgraphHeaders, variables: Variables) -> Response {
+    fn resolve(&mut self, prepared: &[u8], headers: Headers, variables: Variables) -> Response {
         Response::error("Resolver extension not initialized correctly.")
     }
 
     fn resolve_subscription<'a>(
         &'a mut self,
         prepared: &'a [u8],
-        headers: SubgraphHeaders,
+        headers: Headers,
         variables: Variables,
     ) -> Result<(Option<Vec<u8>>, SubscriptionCallback<'a>), Error> {
         Err("Resolver extension not initialized correctly.".into())
@@ -46,7 +46,7 @@ pub(crate) trait AnyExtension {
 
     fn authorize_query(
         &mut self,
-        headers: &mut SubgraphHeaders,
+        headers: &mut Headers,
         token: Token,
         elements: QueryElements<'_>,
     ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
@@ -65,7 +65,7 @@ pub(crate) trait AnyExtension {
         &mut self,
         url: &str,
         method: http::Method,
-        headers: &mut GatewayHeaders,
+        headers: &mut Headers,
     ) -> Result<OnRequestOutput, ErrorResponse> {
         Err(ErrorResponse::internal_server_error().with_error("Hooks extension not initialized correctly."))
     }
@@ -73,9 +73,13 @@ pub(crate) trait AnyExtension {
     fn on_response(
         &mut self,
         status: http::StatusCode,
-        headers: &mut GatewayHeaders,
+        headers: &mut Headers,
         event_queue: EventQueue,
     ) -> Result<(), Error> {
+        Err(Error::new("Hooks extension not initialized correctly."))
+    }
+
+    fn on_subgraph_request(&mut self, parts: &mut HttpRequestParts) -> Result<(), Error> {
         Err(Error::new("Hooks extension not initialized correctly."))
     }
 }

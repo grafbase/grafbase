@@ -123,7 +123,7 @@ pub struct SubgraphResponse {
     pub status: http::StatusCode,
     /// Having this as an arc allows us to move this to the
     /// guest from a record as a resource.
-    pub headers: Arc<http::HeaderMap>,
+    pub headers: http::HeaderMap,
 }
 
 impl SubgraphResponse {

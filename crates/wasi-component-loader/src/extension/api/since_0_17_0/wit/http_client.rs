@@ -6,7 +6,7 @@ use tokio_stream::StreamExt as _;
 use wasmtime::component::Resource;
 
 pub use super::grafbase::sdk::http_client::*;
-use crate::{InstanceState, http_client::send_request, resources::WasmOwnedOrLease};
+use crate::{InstanceState, extension::api::wit, http_client::send_request, resources::WasmOwnedOrLease};
 
 impl Host for InstanceState {}
 
@@ -23,7 +23,7 @@ impl HostHttpClient for InstanceState {
 
         let response = match send_request(request, self.request_durations.clone()).await {
             Ok(resp) => resp,
-            Err(e) => return Ok(Err(e)),
+            Err(e) => return Ok(Err(e.into())),
         };
 
         let (parts, body) = response.into_parts();
@@ -180,6 +180,16 @@ impl AsRef<str> for HttpMethod {
             HttpMethod::Options => "OPTIONS",
             HttpMethod::Connect => "CONNECT",
             HttpMethod::Trace => "TRACE",
+        }
+    }
+}
+
+impl From<wit::HttpError> for HttpError {
+    fn from(value: wit::HttpError) -> Self {
+        match value {
+            wit::HttpError::Connect(msg) => HttpError::Connect(msg),
+            wit::HttpError::Request(msg) => HttpError::Request(msg),
+            wit::HttpError::Timeout => HttpError::Timeout,
         }
     }
 }

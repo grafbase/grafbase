@@ -1,7 +1,7 @@
 use wasmtime::component::Resource;
 
 pub use super::grafbase::sdk::headers::*;
-use crate::{extension::api::wit, state::InstanceState};
+use crate::{extension::api::since_0_17_0::world as wit17, state::InstanceState};
 
 impl Host for InstanceState {}
 
@@ -63,12 +63,12 @@ impl HostHeaders for InstanceState {
     }
 }
 
-impl From<wit::HeaderError> for HeaderError {
-    fn from(err: wit::HeaderError) -> Self {
+impl From<wit17::HeaderError> for HeaderError {
+    fn from(err: wit17::HeaderError) -> Self {
         match err {
-            wit::HeaderError::Immutable => HeaderError::Immutable,
-            wit::HeaderError::InvalidSyntax => HeaderError::InvalidSyntax,
-            wit::HeaderError::Forbidden => HeaderError::Forbidden,
+            wit17::HeaderError::Immutable => HeaderError::Immutable,
+            wit17::HeaderError::InvalidSyntax => HeaderError::InvalidSyntax,
+            wit17::HeaderError::Forbidden => HeaderError::Forbidden,
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{WasmContext, extension::GatewayWasmExtensions, resources::Lease, wasmsafe};
+use crate::{WasmContext, extension::GatewayWasmExtensions, wasmsafe};
 use engine_error::ErrorResponse;
 use extension_catalog::ExtensionId;
 use futures::{StreamExt as _, TryStreamExt as _, stream::FuturesUnordered};
@@ -27,7 +27,7 @@ impl AuthenticationExtension<WasmContext> for GatewayWasmExtensions {
                     tracing::error!("Failed to get authentication instance: {err}");
                     ErrorResponse::internal_extension_error()
                 })?;
-                wasmsafe!(instance.authenticate(context, Lease::Shared(headers.clone())).await)
+                wasmsafe!(instance.authenticate(context, headers.clone().into()).await)
             })
             .collect::<FuturesUnordered<_>>()
             .map(|result| match result {

@@ -22,20 +22,22 @@ pub(crate) use exports::grafbase::sdk::hooks::Guest as HooksGuest;
 pub(crate) use exports::grafbase::sdk::resolver::Guest as ResolverGuest;
 
 pub(crate) use grafbase::sdk::authorization_types::{
-    AuthorizationDecisions, AuthorizationDecisionsDenySome, QueryElement, QueryElements, ResponseElement,
-    ResponseElements,
+    AuthorizationDecisions, AuthorizationDecisionsDenySome, AuthorizationOutput, QueryElement, QueryElements,
+    ResponseElement, ResponseElements,
 };
 pub(crate) use grafbase::sdk::cache::*;
 pub(crate) use grafbase::sdk::contracts_types::{Contract, GraphqlSubgraph};
 pub(crate) use grafbase::sdk::error::{Error, ErrorResponse};
-pub(crate) use grafbase::sdk::event_queue::{
-    CacheStatus, Event, EventQueue, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, ExtensionEvent,
-    FieldError, GraphqlResponseStatus, OperationType, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
+pub(crate) use grafbase::sdk::event_queue::EventQueue;
+pub(crate) use grafbase::sdk::event_types::{
+    CacheStatus, Event, ExecutedHttpRequest, ExecutedOperation, ExecutedSubgraphRequest, ExtensionEvent, FieldError,
+    GraphqlResponseStatus, OperationType, RequestError, SubgraphRequestExecutionKind, SubgraphResponse,
 };
 pub(crate) use grafbase::sdk::grpc::*;
 pub(crate) use grafbase::sdk::headers::HeaderError;
-pub(crate) use grafbase::sdk::hooks_types::OnRequestOutput;
-pub(crate) use grafbase::sdk::http_client::*;
+pub(crate) use grafbase::sdk::hooks_types::{HttpRequestParts, OnRequestOutput};
+pub(crate) use grafbase::sdk::http_client::HttpClient;
+pub(crate) use grafbase::sdk::http_types::*;
 pub(crate) use grafbase::sdk::kafka_client::*;
 pub(crate) use grafbase::sdk::logger::*;
 pub use grafbase::sdk::nats_client::*;

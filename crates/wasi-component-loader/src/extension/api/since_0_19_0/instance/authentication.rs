@@ -2,21 +2,16 @@ use engine_error::{ErrorCode, ErrorResponse};
 use futures::future::BoxFuture;
 use runtime::{authentication::PublicMetadataEndpoint, extension::Token};
 
-use crate::{
-    WasmContext,
-    extension::AuthenticationExtensionInstance,
-    resources::{Headers, Lease},
-};
+use crate::{WasmContext, extension::AuthenticationExtensionInstance, resources::Headers};
 
 impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_19_0 {
     fn authenticate<'a>(
         &'a mut self,
         context: &'a WasmContext,
-        headers: Lease<http::HeaderMap>,
-    ) -> BoxFuture<'a, wasmtime::Result<Result<(Lease<http::HeaderMap>, Token), ErrorResponse>>> {
+        headers: Headers,
+    ) -> BoxFuture<'a, wasmtime::Result<Result<(Headers, Token), ErrorResponse>>> {
         Box::pin(async move {
             let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
-            let headers_rep = headers.rep();
 
             let context = self.store.data_mut().resources.push(context.clone())?;
 
@@ -26,10 +21,11 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                 .call_authenticate(&mut self.store, context, headers)
                 .await?;
 
-            let headers = self.store.data_mut().take_leased_resource(headers_rep)?;
-
             let result = match result {
-                Ok(token) => Ok((headers, token.into())),
+                Ok((headers, token)) => {
+                    let headers = self.store.data_mut().resources.delete(headers)?;
+                    Ok((headers, token.into()))
+                }
                 Err(err) => Err(self
                     .store
                     .data_mut()

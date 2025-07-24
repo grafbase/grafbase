@@ -43,7 +43,7 @@
 
 use std::time::Duration;
 
-use crate::{SdkError, types::HttpHeaders, wit};
+use crate::{SdkError, types::Headers, wit};
 
 /// Sends an event queue entry to the system.
 ///
@@ -336,7 +336,7 @@ pub struct SubgraphResponse {
     /// The HTTP status code of the subgraph response.
     pub status_code: http::StatusCode,
     /// The HTTP response headers from the subgraph.
-    pub response_headers: HttpHeaders,
+    pub response_headers: Headers,
 }
 
 impl From<wit::SubgraphResponse> for SubgraphResponse {

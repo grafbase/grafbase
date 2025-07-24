@@ -3,7 +3,7 @@
 use std::{string::FromUtf8Error, time::Duration};
 
 use crate::{
-    types::HttpHeaders,
+    types::Headers,
     wit::{HttpError, HttpMethod},
 };
 pub use http::{HeaderName, HeaderValue, Method, StatusCode};
@@ -248,7 +248,7 @@ impl HttpRequest {
 pub struct HttpRequestBuilder {
     url: Url,
     method: http::Method,
-    headers: HttpHeaders,
+    headers: Headers,
     body: Vec<u8>,
     timeout: Option<Duration>,
 }
@@ -260,7 +260,7 @@ impl HttpRequestBuilder {
     }
 
     /// Mutable access to the HTTP headers of the request.
-    pub fn headers(&mut self) -> &mut HttpHeaders {
+    pub fn headers(&mut self) -> &mut Headers {
         &mut self.headers
     }
 
@@ -391,7 +391,7 @@ impl Default for BatchHttpRequest {
 /// A struct that represents an HTTP response.
 pub struct HttpResponse {
     status_code: http::StatusCode,
-    headers: HttpHeaders,
+    headers: Headers,
     body: Vec<u8>,
 }
 
@@ -412,7 +412,7 @@ impl HttpResponse {
     }
 
     /// Returns the headers of the HTTP response.
-    pub fn headers(&self) -> &HttpHeaders {
+    pub fn headers(&self) -> &Headers {
         &self.headers
     }
 

@@ -6,23 +6,24 @@ use crate::{
     WasmContext,
     extension::{
         AuthorizationExtensionInstance, QueryAuthorizationResult,
-        api::wit::{Headers, QueryElements, ResponseElements, TokenParam},
+        api::{
+            since_0_19_0::wit::exports::grafbase::sdk::authorization::AuthorizationOutput,
+            wit::{Headers, QueryElements, ResponseElements, TokenParam},
+        },
     },
-    resources::Lease,
 };
 
 impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_19_0 {
     fn authorize_query<'a>(
         &'a mut self,
         context: &'a WasmContext,
-        headers: Lease<http::HeaderMap>,
+        headers: Headers,
         token: TokenRef<'a>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, QueryAuthorizationResult> {
         Box::pin(async move {
             let context = self.store.data_mut().resources.push(context.clone())?;
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
-            let headers_rep = headers.rep();
+            let headers = self.store.data_mut().resources.push(headers)?;
 
             let token_param = token.as_bytes().map(TokenParam::Bytes).unwrap_or(TokenParam::Anonymous);
 
@@ -32,10 +33,15 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                 .call_authorize_query(&mut self.store, context, headers, token_param, elements)
                 .await?;
 
-            let headers = self.store.data_mut().take_leased_resource(headers_rep)?;
-
             let result = match result {
-                Ok((decisions, state)) => Ok((headers, decisions.into(), state)),
+                Ok(AuthorizationOutput {
+                    decisions,
+                    state,
+                    headers,
+                }) => {
+                    let headers = self.store.data_mut().resources.delete(headers)?;
+                    Ok((headers, decisions.into(), state))
+                }
                 Err(err) => Err(self
                     .store
                     .data_mut()

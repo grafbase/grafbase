@@ -2,7 +2,7 @@ use wasmtime::component::Resource;
 
 use crate::{
     InstanceState,
-    resources::{EventQueueProxy, Lease, WasmOwnedOrLease},
+    resources::{EventQueueProxy, WasmOwnedOrLease},
 };
 
 pub use super::grafbase::sdk::event_queue::*;
@@ -49,7 +49,7 @@ impl InstanceState {
                 event_queue::RequestExecution::RequestError => SubgraphRequestExecutionKind::RequestError,
                 event_queue::RequestExecution::RateLimited => SubgraphRequestExecutionKind::RateLimited,
                 event_queue::RequestExecution::Response(resp) => {
-                    let response_headers = WasmOwnedOrLease::Lease(Lease::Shared(resp.headers));
+                    let response_headers = WasmOwnedOrLease::Owned(resp.headers);
                     let response_headers = self.resources.push(response_headers)?;
 
                     SubgraphRequestExecutionKind::Response(SubgraphResponse {

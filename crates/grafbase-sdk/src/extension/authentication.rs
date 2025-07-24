@@ -98,7 +98,7 @@ pub trait AuthenticationExtension: Sized + 'static {
     /// Authenticate the user with a [Token] or return an [ErrorResponse]. It is called before any
     /// GraphQL processing and an error will stop any further actions.
     ///
-    /// The [GatewayHeaders] are the headers received by the gateway before any header rules.
+    /// The [HttpHeaders] are the headers received by the gateway before any header rules.
     fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse>;
 
     /// Define endpoints on the gateway that expose authentication related metadata. This can be used to implement [OAuth 2.0 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/rfc9728), for example. This method is only called once, on gateway initialization. The endpoints are available on the gateway for GET requests at a custom path, and they return a static payload with custom headers.

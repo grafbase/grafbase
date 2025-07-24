@@ -1,4 +1,4 @@
-use crate::{WasmContext, cbor, extension::api::wit, resources::Lease, wasmsafe};
+use crate::{WasmContext, cbor, extension::api::wit, resources::OwnedOrShared, wasmsafe};
 
 use super::EngineWasmExtensions;
 
@@ -94,7 +94,7 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
                             instance
                                 .authorize_query(
                                     ctx,
-                                    Lease::SharedMut(headers_ref.clone()),
+                                    OwnedOrShared::SharedMut(headers_ref.clone()),
                                     token,
                                     wit::QueryElements {
                                         directive_names: &directive_names[directive_range],

@@ -4,7 +4,7 @@ use runtime::extension::Data;
 
 use crate::{
     extension::{FieldResolverExtensionInstance, InputList, SubscriptionItem, api::wit::FieldDefinitionDirective},
-    resources::{Headers, Lease},
+    resources::{LegacyHeaders, OwnedOrShared},
 };
 
 impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_14_0 {
@@ -16,7 +16,7 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_14_0 {
         inputs: InputList,
     ) -> BoxFuture<'a, wasmtime::Result<Result<Vec<Result<Data, GraphqlError>>, GraphqlError>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let inputs = inputs.0.iter().map(Vec::as_slice).collect::<Vec<_>>();
 
             let result = self
@@ -33,12 +33,12 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_14_0 {
 
     fn subscription_key<'a>(
         &'a mut self,
-        headers: Lease<http::HeaderMap>,
+        headers: OwnedOrShared<http::HeaderMap>,
         subgraph_name: &'a str,
         directive: FieldDefinitionDirective<'a>,
-    ) -> BoxFuture<'a, wasmtime::Result<Result<(Lease<http::HeaderMap>, Option<Vec<u8>>), GraphqlError>>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<(OwnedOrShared<http::HeaderMap>, Option<Vec<u8>>), GraphqlError>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
             let result = self
@@ -62,7 +62,7 @@ impl FieldResolverExtensionInstance for super::ExtensionInstanceSince0_14_0 {
         directive: FieldDefinitionDirective<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<(), GraphqlError>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
 
             let result = self
                 .inner

@@ -6,21 +6,21 @@ use crate::{
     WasmContext,
     extension::{
         AuthorizationExtensionInstance, QueryAuthorizationResult,
-        api::wit::{Headers, QueryElements, ResponseElements, TokenParam},
+        api::wit::{QueryElements, ResponseElements, TokenParam},
     },
-    resources::Lease,
+    resources::{LegacyHeaders, OwnedOrShared},
 };
 
 impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_15_0 {
     fn authorize_query<'a>(
         &'a mut self,
         _: &'a WasmContext,
-        headers: Lease<http::HeaderMap>,
+        headers: OwnedOrShared<http::HeaderMap>,
         token: TokenRef<'a>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, QueryAuthorizationResult> {
         Box::pin(async move {
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
             let token_param = token.as_bytes().map(TokenParam::Bytes).unwrap_or(TokenParam::Anonymous);
@@ -37,7 +37,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_15_0 {
                 Err(err) => Err(self
                     .store
                     .data_mut()
-                    .take_error_response(err.into(), ErrorCode::Unauthorized)?),
+                    .take_error_response_sdk17(err.into(), ErrorCode::Unauthorized)?),
             };
 
             Ok(result)

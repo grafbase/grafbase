@@ -210,7 +210,7 @@ pub struct SubgraphResponseBuilder {
     pub(super) connection_time: Duration,
     pub(super) response_time: Duration,
     pub(super) status: http::StatusCode,
-    pub(super) headers: Arc<http::HeaderMap>,
+    pub(super) headers: http::HeaderMap,
 }
 
 impl SubgraphResponseBuilder {
@@ -236,7 +236,7 @@ impl SubgraphResponseBuilder {
     ///
     /// * `headers` - The HTTP headers from the response
     pub fn headers(&mut self, headers: http::HeaderMap) {
-        self.headers = Arc::new(headers);
+        self.headers = headers;
     }
 
     /// Sets the HTTP status code for the response.

@@ -5,8 +5,8 @@ use runtime::extension::OnRequest;
 
 use crate::{
     WasmContext,
-    extension::{HooksExtensionInstance, api::wit::HttpMethod},
-    resources::{EventQueueProxy, Headers, Lease},
+    extension::{HooksExtensionInstance, api::since_0_17_0::world::HttpMethod},
+    resources::{EventQueueProxy, LegacyHeaders, OwnedOrShared},
 };
 
 impl HooksExtensionInstance for super::ExtensionInstanceSince0_17_0 {
@@ -19,8 +19,8 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_17_0 {
             let headers = std::mem::take(&mut parts.headers);
             let url = parts.uri.to_string();
 
-            let headers = Lease::Singleton(headers);
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let headers = OwnedOrShared::Owned(headers);
+            let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
             let ctx = self.store.data_mut().resources.push(context.clone())?;
@@ -60,7 +60,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_17_0 {
                 Err(err) => Err(self
                     .store
                     .data_mut()
-                    .take_error_response(err, ErrorCode::ExtensionError)?),
+                    .take_error_response_sdk17(err, ErrorCode::ExtensionError)?),
             };
 
             Ok(output)
@@ -76,8 +76,8 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_17_0 {
             let headers = std::mem::take(&mut parts.headers);
             let status = parts.status.as_u16();
 
-            let headers = Lease::Singleton(headers);
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
+            let headers = OwnedOrShared::Owned(headers);
+            let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
             let queue = self.store.data_mut().resources.push(EventQueueProxy(context.clone()))?;
