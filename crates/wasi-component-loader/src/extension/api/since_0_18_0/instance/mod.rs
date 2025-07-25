@@ -13,7 +13,7 @@ use extension_catalog::TypeDiscriminants;
 use std::sync::Arc;
 use wasmtime::{
     Store,
-    component::{Component, Linker},
+    component::{Component, HasSelf, Linker},
 };
 
 use crate::{
@@ -64,7 +64,7 @@ impl SdkPre0_18_0 {
             unsafe { std::mem::transmute(subgraph_schemas) };
 
         super::wit::grafbase::sdk::shared_context::add_to_linker_impl(&mut linker)?;
-        wit::Sdk::add_to_linker(&mut linker, |state| state)?;
+        wit::Sdk::add_to_linker::<_, HasSelf<_>>(&mut linker, |state| state)?;
 
         let instance_pre = linker.instantiate_pre(&component)?;
 

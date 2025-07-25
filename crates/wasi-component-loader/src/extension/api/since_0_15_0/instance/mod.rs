@@ -12,7 +12,7 @@ use std::sync::Arc;
 use utils::{create_complete_subgraph_schemas, create_subgraph_schema_directives};
 use wasmtime::{
     Store,
-    component::{Component, Linker},
+    component::{Component, HasSelf, Linker},
 };
 
 use crate::{
@@ -59,7 +59,7 @@ impl SdkPre0_15_0 {
         let subgraph_schemas: Vec<(&'static str, ws::Schema<'static>)> =
             unsafe { std::mem::transmute(subgraph_schemas) };
 
-        wit::Sdk::add_to_linker(&mut linker, |state| state)?;
+        wit::Sdk::add_to_linker::<_, HasSelf<_>>(&mut linker, |state| state)?;
         let instance_pre = linker.instantiate_pre(&component)?;
 
         Ok(Self {

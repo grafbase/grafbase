@@ -6,6 +6,8 @@ use crate::InstanceState;
 
 pub use crate::resources::Cache;
 
+impl Host for InstanceState {}
+
 pub fn add_to_linker_impl(linker: &mut wasmtime::component::Linker<InstanceState>) -> wasmtime::Result<()> {
     let mut inst = linker.instance("grafbase:sdk/cache")?;
     inst.resource_async("cache", ResourceType::host::<Cache>(), move |mut store, rep| {
@@ -63,17 +65,19 @@ pub fn add_to_linker_impl(linker: &mut wasmtime::component::Linker<InstanceState
     Ok(())
 }
 
-// For Wasmtime bindgen, does nothing.
-pub trait Host {}
-impl Host for InstanceState {}
-
-pub fn add_to_linker<T, U>(
+// Typical Wasmtime bindgen! macro generated stuff
+// It's really just unnecessary work to implement this when we can just call the function with the
+// real type.
+pub trait Host: Send + ::core::marker::Send {}
+impl<_T: Host + ?Sized + Send> Host for &mut _T {}
+pub fn add_to_linker<T, D>(
     _linker: &mut wasmtime::component::Linker<T>,
-    _get: impl Fn(&mut T) -> &mut U + Send + Sync + Copy + 'static,
+    _host_getter: fn(&mut T) -> D::Data<'_>,
 ) -> wasmtime::Result<()>
 where
-    U: Host + Send,
-    T: Send,
+    D: wasmtime::component::HasData,
+    for<'a> D::Data<'a>: Host,
+    T: 'static + Send,
 {
     Ok(())
 }
