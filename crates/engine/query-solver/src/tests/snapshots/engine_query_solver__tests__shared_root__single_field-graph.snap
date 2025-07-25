@@ -1,20 +1,20 @@
 ---
 source: crates/engine/query-solver/src/tests/shared_root.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.products\" ]\n    2 [ label = \"Product.price\" ]\n    5 [ label = \"Root#price\", shape=parallelogram, color=dodgerblue ]\n    6 [ label = \"products#price\", shape=box, color=dodgerblue ]\n    9 [ label = \"price#price\", shape=box, color=dodgerblue ]\n    0 -> 1 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n    0 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 5 [ label = \"\", style=dashed,arrowhead=none ]\n    5 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    6 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.products\" ]\n    2 [ label = \"Product.price\" ]\n    7 [ label = \"Root#price\", shape=parallelogram, color=dodgerblue ]\n    8 [ label = \"products#price\", shape=box, color=dodgerblue ]\n    9 [ label = \"price#price\", shape=box, color=dodgerblue ]\n    0 -> 1 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n    0 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 7 [ label = \"\", style=dashed,arrowhead=none ]\n    7 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    8 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
 ---
 digraph {
     0 [ root]
     1 [ Query.products]
     2 [ Product.price]
-    5 [ Root#price]
-    6 [ products#price]
+    7 [ Root#price]
+    8 [ products#price]
     9 [ price#price]
     0 -> 1 [ label = "Field" ]
     1 -> 2 [ label = "Field" ]
-    0 -> 5 [ label = "CreateChildResolver" ]
-    0 -> 5 [ label = "HasChildResolver" ]
-    5 -> 6 [ label = "CanProvide" ]
-    6 -> 1 [ label = "Provides" ]
-    6 -> 9 [ label = "CanProvide" ]
+    0 -> 7 [ label = "CreateChildResolver" ]
+    0 -> 7 [ label = "HasChildResolver" ]
+    7 -> 8 [ label = "CanProvide" ]
+    8 -> 1 [ label = "Provides" ]
+    8 -> 9 [ label = "CanProvide" ]
     9 -> 2 [ label = "Provides" ]
 }

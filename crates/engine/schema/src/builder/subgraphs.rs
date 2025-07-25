@@ -45,7 +45,14 @@ impl<'sdl> SubgraphsBuilder<'sdl> {
             None
         };
 
-        for (&graph_enum_name, subgraph) in &sdl.subgraphs {
+        // Ensure we have a deterministic Schema object.
+        let mut keys = sdl.subgraphs.keys().collect::<Vec<_>>();
+        keys.sort_unstable();
+        for &graph_enum_name in keys {
+            let subgraph = sdl
+                .subgraphs
+                .get(&graph_enum_name)
+                .expect("Subgraph should exist in SDL");
             let name = subgraph.name.unwrap_or(graph_enum_name.as_str());
             let subgraph_name_id = interners.strings.get_or_new(name);
             let SubgraphConfig {
