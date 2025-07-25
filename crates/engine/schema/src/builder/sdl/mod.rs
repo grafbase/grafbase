@@ -9,7 +9,7 @@ pub(crate) use cynic_parser::{
     type_system::*,
 };
 use cynic_parser_deser::ConstDeserializer as _;
-use rapidhash::RapidHashMap;
+use rapidhash::fast::RapidHashMap;
 
 pub(crate) use self::wrapping::*;
 pub(crate) use definitions::*;

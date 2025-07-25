@@ -1,6 +1,6 @@
 use engine_schema::{DirectiveSiteId, Schema, TypeDefinition, TypeSystemDirective};
 use extension_catalog::ExtensionId;
-use rapidhash::RapidHashMap;
+use rapidhash::fast::RapidHashMap;
 use runtime::extension::ContractsExtension;
 
 use crate::{

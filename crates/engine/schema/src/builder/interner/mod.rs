@@ -1,7 +1,7 @@
 mod proxy;
 
 pub use proxy::ProxyKeyInterner;
-use rapidhash::RapidBuildHasher;
+use rapidhash::fast::RapidBuildHasher;
 
 use std::{borrow::Borrow, marker::PhantomData};
 

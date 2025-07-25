@@ -1,6 +1,6 @@
 use gateway_config::{SubgraphConfig, SubscriptionProtocol};
 use id_newtypes::IdRange;
-use rapidhash::RapidHashMap;
+use rapidhash::fast::RapidHashMap;
 
 use crate::{
     ForwardHeaderRuleRecord, HeaderRuleId, HeaderRuleRecord, InsertHeaderRuleRecord, NameOrPatternId,

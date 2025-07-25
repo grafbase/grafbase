@@ -180,7 +180,7 @@ ramhorns = { git = "https://github.com/grafbase/ramhorns", branch = "grafbase", 
     "export_derive",
 ] }
 rand = "0.9"
-rapidhash = "1"
+rapidhash = "2"
 redis = { version = "0.30.0", features = [
     "tokio-rustls-comp",
     "connection-manager",
@@ -256,16 +256,16 @@ urlencoding = "2.1"
 uuid = "1.16.0"
 valuable = "0.1"
 walkdir = "2"
-wasmparser = "0.234.0"
+wasmparser = "0.235.0"
 wasmtime = "33"
 wasmtime-wasi = "33"
 wasmtime-wasi-http = "33"
 webbrowser = "1"
 webpki-roots = "1.0.0"
-which = "7.0.3"
+which = "8"
 winnow = "0.7"
 wiremock = "0.6.3"
-wit-bindgen = "0.41.0"
+wit-bindgen = "0.43.0"
 xshell = "0.2"
 zerocopy = "0.8.24"
 zstd = "0.13"
