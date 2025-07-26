@@ -1,6 +1,8 @@
 use wasmtime::component::{ComponentType, Lift, Lower, Resource};
 
-use crate::resources::Headers;
+use crate::{resources::Headers, state::InstanceState};
+
+impl Host for InstanceState {}
 
 // We shouldn't need to generate this one, but somehow wasmtime generates a weird lifetime.
 #[derive(ComponentType, Lift, Lower)]
@@ -14,17 +16,17 @@ pub struct PublicMetadataEndpoint {
     pub response_headers: Resource<Headers>,
 }
 
-// For Wasmtime bindgen, does nothing.
-pub trait Host {}
-impl Host for crate::InstanceState {}
-
-pub fn add_to_linker<T, U>(
+// Typical Wasmtime bindgen! macro generated stuff
+pub trait Host: Send + ::core::marker::Send {}
+impl<_T: Host + ?Sized + Send> Host for &mut _T {}
+pub fn add_to_linker<T, D>(
     _linker: &mut wasmtime::component::Linker<T>,
-    _get: impl Fn(&mut T) -> &mut U + Send + Sync + Copy + 'static,
+    _host_getter: fn(&mut T) -> D::Data<'_>,
 ) -> wasmtime::Result<()>
 where
-    U: Host + Send,
-    T: Send,
+    D: wasmtime::component::HasData,
+    for<'a> D::Data<'a>: Host,
+    T: 'static + Send,
 {
     Ok(())
 }

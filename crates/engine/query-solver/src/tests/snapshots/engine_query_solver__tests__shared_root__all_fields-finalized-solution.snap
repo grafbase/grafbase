@@ -1,27 +1,27 @@
 ---
 source: crates/engine/query-solver/src/tests/shared_root.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#category\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.category\" ]\n    4 [ label = \"Root#price\", color=royalblue,shape=parallelogram ]\n    5 [ label = \"Query.products\" ]\n    6 [ label = \"Product.price\" ]\n    7 [ label = \"Product.id\" ]\n    8 [ label = \"Root#name\", color=royalblue,shape=parallelogram ]\n    9 [ label = \"Query.products\" ]\n    10 [ label = \"Product.name\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    2 -> 3 [ label = \"\" ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 10 [ label = \"\" ]\n    5 -> 6 [ label = \"\" ]\n    5 -> 7 [ label = \"\" ]\n    8 -> 9 [ label = \"\" ]\n    4 -> 5 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#category\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.category\" ]\n    4 [ label = \"Root#name\", color=royalblue,shape=parallelogram ]\n    5 [ label = \"Query.products\" ]\n    6 [ label = \"Product.name\" ]\n    7 [ label = \"Root#price\", color=royalblue,shape=parallelogram ]\n    8 [ label = \"Query.products\" ]\n    9 [ label = \"Product.price\" ]\n    10 [ label = \"Product.id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 10 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    0 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 9 [ label = \"\" ]\n    5 -> 6 [ label = \"\" ]\n    0 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    7 -> 8 [ label = \"\" ]\n    4 -> 5 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
     1 [ label = "Root#category" ]
     2 [ label = "Query.products" ]
     3 [ label = "Product.category" ]
-    4 [ label = "Root#price" ]
+    4 [ label = "Root#name" ]
     5 [ label = "Query.products" ]
-    6 [ label = "Product.price" ]
-    7 [ label = "Product.id" ]
-    8 [ label = "Root#name" ]
-    9 [ label = "Query.products" ]
-    10 [ label = "Product.name" ]
+    6 [ label = "Product.name" ]
+    7 [ label = "Root#price" ]
+    8 [ label = "Query.products" ]
+    9 [ label = "Product.price" ]
+    10 [ label = "Product.id" ]
     0 -> 1 [ label = "QueryPartition" ]
-    0 -> 8 [ label = "QueryPartition" ]
+    8 -> 10 [ label = "Field" ]
     2 -> 3 [ label = "Field" ]
     0 -> 4 [ label = "QueryPartition" ]
-    9 -> 10 [ label = "Field" ]
-    5 -> 6 [ label = "Field" ]
-    5 -> 7 [ label = "Field" ]
     8 -> 9 [ label = "Field" ]
+    5 -> 6 [ label = "Field" ]
+    0 -> 7 [ label = "QueryPartition" ]
+    7 -> 8 [ label = "Field" ]
     4 -> 5 [ label = "Field" ]
     1 -> 2 [ label = "Field" ]
 }

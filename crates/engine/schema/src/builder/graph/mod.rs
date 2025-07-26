@@ -8,7 +8,7 @@ use builder::ValuePathSegment;
 use extension_catalog::ExtensionId;
 use fxhash::FxHashMap;
 use introspection::IntrospectionSubgraph;
-use rapidhash::RapidHashMap;
+use rapidhash::fast::RapidHashMap;
 use selections::SelectionsBuilder;
 
 use crate::*;

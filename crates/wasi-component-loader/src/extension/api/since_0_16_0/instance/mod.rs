@@ -13,7 +13,7 @@ use extension_catalog::TypeDiscriminants;
 use std::sync::Arc;
 use wasmtime::{
     Store,
-    component::{Component, Linker},
+    component::{Component, HasSelf, Linker},
 };
 
 use crate::{
@@ -57,7 +57,7 @@ impl SdkPre0_16_0 {
         let subgraph_schemas: Vec<(&'static str, ws::Schema<'static>)> =
             unsafe { std::mem::transmute(subgraph_schemas) };
 
-        wit::Sdk::add_to_linker(&mut linker, |state| state)?;
+        wit::Sdk::add_to_linker::<_, HasSelf<_>>(&mut linker, |state| state)?;
         let instance_pre = linker.instantiate_pre(&component)?;
 
         Ok(Self {

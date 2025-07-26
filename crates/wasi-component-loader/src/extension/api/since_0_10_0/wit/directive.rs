@@ -115,37 +115,20 @@ pub enum DirectiveSite<'a> {
     Enum(EnumDirectiveSite<'a>),
 }
 
+// Typical Wasmtime bindgen! macro generated stuff
 pub trait Host: Send + ::core::marker::Send {}
-pub trait GetHost<T, D>: Fn(T) -> <Self as GetHost<T, D>>::Host + Send + Sync + Copy + 'static {
-    type Host: Host + Send;
-}
-impl<F, T, D, O> GetHost<T, D> for F
-where
-    F: Fn(T) -> O + Send + Sync + Copy + 'static,
-    O: Host + Send,
-{
-    type Host = O;
-}
-pub fn add_to_linker_get_host<T, G: for<'a> GetHost<&'a mut T, T, Host: Host + Send>>(
+impl<_T: Host + ?Sized + Send> Host for &mut _T {}
+pub fn add_to_linker<T, D>(
     _linker: &mut wasmtime::component::Linker<T>,
-    _host_getter: G,
+    _host_getter: fn(&mut T) -> D::Data<'_>,
 ) -> wasmtime::Result<()>
 where
-    T: Send,
+    D: wasmtime::component::HasData,
+    for<'a> D::Data<'a>: Host,
+    T: 'static + Send,
 {
     Ok(())
 }
-pub fn add_to_linker<T, U>(
-    linker: &mut wasmtime::component::Linker<T>,
-    get: impl Fn(&mut T) -> &mut U + Send + Sync + Copy + 'static,
-) -> wasmtime::Result<()>
-where
-    U: Host + Send,
-    T: Send,
-{
-    add_to_linker_get_host(linker, get)
-}
-impl<_T: Host + ?Sized + Send> Host for &mut _T {}
 
 impl<'a> From<engine_schema::DirectiveSite<'a>> for DirectiveSite<'a> {
     fn from(value: engine_schema::DirectiveSite<'a>) -> Self {

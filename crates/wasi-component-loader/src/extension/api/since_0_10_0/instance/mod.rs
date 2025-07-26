@@ -5,7 +5,7 @@ mod field_resolver;
 use std::sync::Arc;
 
 use extension_catalog::TypeDiscriminants;
-use wasmtime::Store;
+use wasmtime::{Store, component::HasSelf};
 
 use crate::{
     InstanceState, cbor,
@@ -66,7 +66,7 @@ impl SdkPre0_10_0 {
             }
         }
 
-        wit::Sdk::add_to_linker(&mut linker, |state| state)?;
+        wit::Sdk::add_to_linker::<_, HasSelf<_>>(&mut linker, |state| state)?;
         let instance_pre = linker.instantiate_pre(&component)?;
         Ok(Self {
             pre: wit::SdkPre::<InstanceState>::new(instance_pre)?,

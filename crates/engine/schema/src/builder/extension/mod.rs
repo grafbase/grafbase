@@ -3,7 +3,7 @@ mod link_directive;
 
 use self::link_directive::*;
 use extension_catalog::{ExtensionCatalog, ExtensionId, Manifest};
-use rapidhash::RapidHashMap;
+use rapidhash::fast::RapidHashMap;
 use std::{path::Path, str::FromStr as _};
 use strum::IntoEnumIterator as _;
 

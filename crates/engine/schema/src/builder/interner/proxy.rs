@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use rapidhash::RapidBuildHasher;
+use rapidhash::fast::RapidBuildHasher;
 use regex::Regex;
 
 /// An interner made for types that do not implement Ord (and therefore Hash), and which are expensive

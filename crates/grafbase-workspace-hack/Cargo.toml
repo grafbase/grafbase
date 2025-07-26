@@ -37,7 +37,7 @@ clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
 combine = { version = "4", features = ["tokio"] }
 concurrent-queue = { version = "2" }
-cranelift-bitset = { version = "0.120", default-features = false, features = ["enable-serde"] }
+cranelift-bitset = { version = "0.122", default-features = false, features = ["enable-serde"] }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
@@ -95,7 +95,7 @@ pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] 
 portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
 prost = { version = "0.13", features = ["prost-derive"] }
-pulley-interpreter = { version = "33", default-features = false, features = ["disas", "interp", "std"] }
+pulley-interpreter = { version = "35", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
 rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
 rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
@@ -142,7 +142,7 @@ tungstenite = { version = "0.26", default-features = false, features = ["handsha
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-wasmparser = { version = "0.229", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
+wasmparser = { version = "0.235" }
 winnow = { version = "0.7" }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 zstd = { version = "0.13", features = ["experimental"] }
@@ -168,7 +168,7 @@ clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
 combine = { version = "4", features = ["tokio"] }
 concurrent-queue = { version = "2" }
-cranelift-bitset = { version = "0.120", default-features = false, features = ["enable-serde"] }
+cranelift-bitset = { version = "0.122", default-features = false, features = ["enable-serde"] }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
@@ -226,7 +226,7 @@ pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] 
 portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
 prost = { version = "0.13", features = ["prost-derive"] }
-pulley-interpreter = { version = "33", default-features = false, features = ["disas", "interp", "std"] }
+pulley-interpreter = { version = "35", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
 rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
 rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
@@ -274,7 +274,7 @@ tungstenite = { version = "0.26", default-features = false, features = ["handsha
 ulid = { version = "1", features = ["serde"] }
 url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
-wasmparser = { version = "0.229", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
+wasmparser = { version = "0.235" }
 winnow = { version = "0.7" }
 zeroize = { version = "1", features = ["zeroize_derive"] }
 zstd = { version = "0.13", features = ["experimental"] }
