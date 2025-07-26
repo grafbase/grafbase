@@ -1,3 +1,7 @@
+use std::fmt::Binary;
+
+use crate::IdRange;
+
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
 pub struct BitSet<Id> {
     inner: fixedbitset::FixedBitSet,
@@ -16,6 +20,7 @@ impl<Id> Default for BitSet<Id> {
 impl<Id> BitSet<Id>
 where
     usize: From<Id>,
+    Id: Copy,
 {
     pub fn new() -> Self {
         Self::default()
@@ -34,6 +39,12 @@ where
 
     pub fn set(&mut self, id: Id, value: bool) {
         self.inner.set(usize::from(id), value)
+    }
+
+    pub fn set_range(&mut self, id: IdRange<Id>, value: bool) {
+        let start = usize::from(id.start);
+        let end = usize::from(id.end);
+        self.inner.set_range(start..end, value);
     }
 
     pub fn push(&mut self, value: bool) {
@@ -133,6 +144,12 @@ where
     type Output = bool;
     fn index(&self, index: Id) -> &Self::Output {
         &self.inner[usize::from(index)]
+    }
+}
+
+impl<Id> Binary for BitSet<Id> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
     }
 }
 

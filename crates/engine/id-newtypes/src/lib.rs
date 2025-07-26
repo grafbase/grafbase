@@ -1,8 +1,10 @@
 mod bitset;
 mod many;
+mod one;
 mod range;
 pub use bitset::*;
 pub use many::*;
+pub use one::*;
 pub use range::*;
 
 #[macro_export]

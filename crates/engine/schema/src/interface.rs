@@ -18,7 +18,7 @@ impl<'a> InterfaceDefinition<'a> {
     }
 
     pub fn is_inaccessible(&self) -> bool {
-        self.schema.graph.inaccessible_interface_definitions[self.id]
+        self.schema.graph.inaccessible.interface_definitions[self.id]
     }
 
     pub fn has_inaccessible_implementor(&self) -> bool {

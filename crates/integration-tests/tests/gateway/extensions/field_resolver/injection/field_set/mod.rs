@@ -17,7 +17,7 @@ fn run_with_field_set(subgraph: DynamicSchemaBuilder, field_set: &str) -> Result
             .with_subgraph(subgraph.into_subgraph("a"))
             .with_subgraph_sdl(
                 "b",
-                &format!(
+                format!(
                     r#"
                     extend schema
                         @link(url: "echo-1.0.0", import: ["@echo"])

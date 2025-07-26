@@ -93,6 +93,11 @@ impl Gateway {
         self.execute(http::Method::POST, "/graphql", request)
     }
 
+    pub fn introspect(&self) -> IntrospectionRequest {
+        const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
+        IntrospectionRequest::from(self.post(PATHFINDER_INTROSPECTION_QUERY))
+    }
+
     pub async fn mcp_sse(&self, path: &str) -> McpStream {
         McpStream::new(self.router.clone(), path).await
     }

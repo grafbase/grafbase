@@ -6,6 +6,6 @@ impl<'a> EnumDefinition<'a> {
     }
 
     pub fn is_inaccessible(&self) -> bool {
-        self.schema.graph.inaccessible_enum_definitions[self.id]
+        self.schema.graph.inaccessible.enum_definitions[self.id]
     }
 }

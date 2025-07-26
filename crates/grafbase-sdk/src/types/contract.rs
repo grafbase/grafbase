@@ -55,32 +55,22 @@ pub struct Contract(wit::Contract);
 impl Contract {
     /// Create a new contact with the appropriate capacity which should match the number of
     /// contract directives.
-    /// By default, all directives are inaccessible, and the schema is accessible by default.
-    pub fn new(directives: &[ContractDirective<'_>]) -> Self {
+    pub fn new(directives: &[ContractDirective<'_>], accessible_by_default: bool) -> Self {
         Self(wit::Contract {
-            accessible: vec![-1; directives.len()],
-            accessible_by_default: true,
+            accessible: vec![accessible_by_default as i8 - 1; directives.len()],
+            accessible_by_default,
             hide_unreachable_types: true,
             subgraphs: Vec::new(),
         })
     }
 
-    /// Whether the schema elements are accessible by default. Defaults to true.
-    pub fn accessible_by_default(&mut self, accessible: bool) -> &mut Self {
-        self.0.accessible_by_default = accessible;
-        self
-    }
-
     /// Set the accessibility of a directive with the lowest priority.
-    ///
-    /// Defaults to false with lowest priority if not set.
     pub fn accessible(&mut self, directive: ContractDirective<'_>, accessible: bool) -> &mut Self {
-        self.accessible_with_priority(directive, accessible as i8 - 1)
+        let inaccessible_mask = accessible as i8 - 1; // 0xFF if false, 0x00 if true
+        self.accessible_with_priority(directive, (inaccessible_mask & -2) | (!inaccessible_mask & 1))
     }
 
     /// Set the accessibility of a directive with the highest priority.
-    ///
-    /// Defaults to false with lowest priority if not set.
     pub fn override_accessible(&mut self, directive: ContractDirective<'_>, accessible: bool) -> &mut Self {
         self.accessible_with_priority(directive, i8::MAX.wrapping_add(!accessible as i8))
     }
@@ -93,14 +83,15 @@ impl Contract {
     /// positive values up by one. So both `-1` and `0` have the same priority, `-2` and `1` also
     /// and so forth up to `-128` and `127`.
     ///
-    /// Defaults to false with `-1`, lowest priority, if not set.
+    /// The default behavior is encoded as `-1` and `0`, so to override the default accessibility
+    /// of the contract, you must use at least `-2` or `1`.
     pub fn accessible_with_priority(&mut self, directive: ContractDirective<'_>, accessible: i8) -> &mut Self {
         self.0.accessible[directive.index as usize] = accessible;
         self
     }
 
     /// Whether to hide types that are not reachable from the root type. Defaults to true.
-    pub fn hide_unreacheable_types(&mut self, hide: bool) -> &mut Self {
+    pub fn hide_unreachable_types(&mut self, hide: bool) -> &mut Self {
         self.0.hide_unreachable_types = hide;
         self
     }

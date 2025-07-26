@@ -2,9 +2,8 @@ use id_newtypes::BitSet;
 use url::Url;
 
 use crate::{
-    DirectiveSiteId, EntityDefinitionId, EnumDefinitionId, InputObjectDefinitionId, InputValueParentDefinitionId,
-    InterfaceDefinitionId, ObjectDefinitionId, ScalarDefinitionId, Schema, TypeDefinitionId, UnionDefinitionId, UrlId,
-    builder,
+    DirectiveSiteId, EnumDefinitionId, Inaccessible, InputObjectDefinitionId, InterfaceDefinitionId,
+    ObjectDefinitionId, ScalarDefinitionId, Schema, TypeDefinitionId, UnionDefinitionId, UrlId, builder,
 };
 
 pub struct MutableSchema(Schema);
@@ -23,65 +22,86 @@ impl Schema {
 }
 
 impl MutableSchema {
-    pub fn mark_all_as_inaccessible(&mut self) {
-        self.0.graph.inaccessible_object_definitions.set_all(true);
-        self.0.graph.inaccessible_interface_definitions.set_all(true);
-        self.0.graph.inaccessible_field_definitions.set_all(true);
-        self.0.graph.inaccessible_enum_definitions.set_all(true);
-        self.0.graph.inaccessible_enum_values.set_all(true);
-        self.0.graph.inaccessible_input_object_definitions.set_all(true);
-        self.0.graph.inaccessible_input_value_definitions.set_all(true);
-        self.0.graph.inaccessible_scalar_definitions.set_all(true);
-        self.0.graph.inaccessible_union_definitions.set_all(true);
+    pub fn new_inaccessible(&self) -> Inaccessible {
+        Inaccessible {
+            object_definitions: BitSet::with_capacity(self.graph.object_definitions.len()),
+            interface_definitions: BitSet::with_capacity(self.graph.interface_definitions.len()),
+            field_definitions: BitSet::with_capacity(self.graph.field_definitions.len()),
+            enum_definitions: BitSet::with_capacity(self.graph.enum_definitions.len()),
+            enum_values: BitSet::with_capacity(self.graph.enum_values.len()),
+            input_object_definitions: BitSet::with_capacity(self.graph.input_object_definitions.len()),
+            input_value_definitions: BitSet::with_capacity(self.graph.input_value_definitions.len()),
+            scalar_definitions: BitSet::with_capacity(self.graph.scalar_definitions.len()),
+            union_definitions: BitSet::with_capacity(self.graph.union_definitions.len()),
+        }
     }
 
-    pub fn mark_as_accessible(&mut self, site_id: DirectiveSiteId, accessible: bool) {
-        match site_id {
-            DirectiveSiteId::Enum(id) => {
-                self.0.graph.inaccessible_enum_definitions.set(id, !accessible);
+    pub fn update_inaccessible(&mut self, contract: Inaccessible) {
+        let current = &mut self.0.graph.inaccessible;
+        current.object_definitions |= contract.object_definitions;
+        current.interface_definitions |= contract.interface_definitions;
+        current.field_definitions |= contract.field_definitions;
+        current.enum_definitions |= contract.enum_definitions;
+        current.enum_values |= contract.enum_values;
+        current.input_object_definitions |= contract.input_object_definitions;
+        current.input_value_definitions |= contract.input_value_definitions;
+        current.scalar_definitions |= contract.scalar_definitions;
+        current.union_definitions |= contract.union_definitions;
+
+        for ix in 0..self.0.graph.interface_definitions.len() {
+            let id = InterfaceDefinitionId::from(ix);
+            if self.0.graph.inaccessible.interface_definitions[id] {
+                continue;
             }
-            DirectiveSiteId::EnumValue(id) => {
-                self.0.graph.inaccessible_enum_values.set(id, !accessible);
-                if accessible {
-                    let id = self.walk(id).parent_enum_id;
-                    self.0.graph.inaccessible_enum_definitions.set(id, false);
-                }
+
+            if self.0.graph[id]
+                .possible_type_ids
+                .iter()
+                .all(|id| self.0.graph.inaccessible.object_definitions[*id])
+            {
+                self.0.graph.inaccessible.interface_definitions.set(id, true);
             }
-            DirectiveSiteId::Field(id) => {
-                self.0.graph.inaccessible_field_definitions.set(id, !accessible);
-                if accessible {
-                    match self.walk(id).parent_entity_id {
-                        EntityDefinitionId::Interface(id) => {
-                            self.0.graph.inaccessible_interface_definitions.set(id, false);
-                        }
-                        EntityDefinitionId::Object(id) => {
-                            self.0.graph.inaccessible_object_definitions.set(id, false);
-                        }
-                    }
-                }
+        }
+
+        for ix in 0..self.0.graph.union_definitions.len() {
+            let id = UnionDefinitionId::from(ix);
+            if self.0.graph.inaccessible.union_definitions[id] {
+                continue;
             }
-            DirectiveSiteId::InputObject(id) => {
-                self.0.graph.inaccessible_input_object_definitions.set(id, !accessible);
+            if self.0.graph[id]
+                .possible_type_ids
+                .iter()
+                .all(|id| self.0.graph.inaccessible.object_definitions[*id])
+            {
+                self.0.graph.inaccessible.union_definitions.set(id, true);
             }
-            DirectiveSiteId::InputValue(id) => {
-                self.0.graph.inaccessible_input_value_definitions.set(id, !accessible);
-                if accessible {
-                    if let InputValueParentDefinitionId::InputObject(id) = self.walk(id).parent_id {
-                        self.0.graph.inaccessible_input_object_definitions.set(id, false);
-                    }
-                }
+        }
+
+        for ix in 0..self.0.graph.enum_definitions.len() {
+            let id = EnumDefinitionId::from(ix);
+            if self.0.graph.inaccessible.enum_definitions[id] {
+                continue;
             }
-            DirectiveSiteId::Interface(id) => {
-                self.0.graph.inaccessible_interface_definitions.set(id, !accessible);
+            if self.0.graph[id]
+                .value_ids
+                .into_iter()
+                .all(|id| self.0.graph.inaccessible.enum_values[id])
+            {
+                self.0.graph.inaccessible.enum_definitions.set(id, true);
             }
-            DirectiveSiteId::Object(id) => {
-                self.0.graph.inaccessible_object_definitions.set(id, !accessible);
+        }
+
+        for ix in 0..self.graph.input_object_definitions.len() {
+            let id = InputObjectDefinitionId::from(ix);
+            if self.0.graph.inaccessible.input_object_definitions[id] {
+                continue;
             }
-            DirectiveSiteId::Scalar(id) => {
-                self.0.graph.inaccessible_scalar_definitions.set(id, !accessible);
-            }
-            DirectiveSiteId::Union(id) => {
-                self.0.graph.inaccessible_union_definitions.set(id, !accessible);
+            if self.0.graph[id]
+                .input_field_ids
+                .into_iter()
+                .all(|id| self.0.graph.inaccessible.input_value_definitions[id])
+            {
+                self.0.graph.inaccessible.input_object_definitions.set(id, true);
             }
         }
     }
@@ -110,13 +130,10 @@ impl MutableSchema {
     }
 
     pub fn finalize(mut self, hide_unreachable_types: bool) -> Schema {
-        // reset
-        self.0.graph.union_has_inaccessible_member.set_all(false);
-        self.0.graph.interface_has_inaccessible_implementor.set_all(false);
+        mark_builtins_and_introspection_as_accessible(&mut self.0);
         if hide_unreachable_types {
             self::hide_unreachable_types(&mut self.0);
         }
-        mark_builtins_and_introspection_as_accessible(&mut self.0);
         builder::finalize_inaccessible(&mut self.0.graph);
         self.0
     }
@@ -148,18 +165,24 @@ fn hide_unreachable_types(schema: &mut Schema) {
     while let Some(type_id) = stack.pop() {
         match type_id {
             TypeDefinitionId::Object(id) => {
-                if schema.graph.inaccessible_object_definitions[id] {
+                let object = schema.walk(id);
+                if object.is_inaccessible() {
                     continue;
                 }
                 if reached_object_definitions.put(id) {
                     continue;
                 }
-                let object = &schema[id];
 
-                for field in &schema[object.field_ids] {
+                for field in object.fields() {
+                    if field.is_inaccessible() {
+                        continue;
+                    }
                     stack.push(field.ty_record.definition_id);
 
-                    for arg in &schema[field.argument_ids] {
+                    for arg in field.arguments() {
+                        if arg.is_inaccessible() {
+                            continue;
+                        }
                         stack.push(arg.ty_record.definition_id);
                     }
                 }
@@ -170,18 +193,23 @@ fn hide_unreachable_types(schema: &mut Schema) {
                 }
             }
             TypeDefinitionId::Interface(id) => {
-                if schema.graph.inaccessible_interface_definitions[id] {
+                let interface = schema.walk(id);
+                if interface.is_inaccessible() {
                     continue;
                 }
                 if reached_interface_definitions.put(id) {
                     continue;
                 }
-                let interface = &schema[id];
 
-                for field in &schema[interface.field_ids] {
+                for field in interface.fields() {
+                    if field.is_inaccessible() {
+                        continue;
+                    }
                     stack.push(field.ty_record.definition_id);
-
-                    for arg in &schema[field.argument_ids] {
+                    for arg in field.arguments() {
+                        if arg.is_inaccessible() {
+                            continue;
+                        }
                         stack.push(arg.ty_record.definition_id);
                     }
                 }
@@ -192,20 +220,20 @@ fn hide_unreachable_types(schema: &mut Schema) {
                 }
             }
             TypeDefinitionId::Union(id) => {
-                if schema.graph.inaccessible_union_definitions[id] {
+                let union = schema.walk(id);
+                if union.is_inaccessible() {
                     continue;
                 }
                 if reached_union_definitions.put(id) {
                     continue;
                 }
-                let union = &schema[id];
 
                 for object_id in &union.possible_type_ids {
                     stack.push(TypeDefinitionId::Object(*object_id));
                 }
             }
             TypeDefinitionId::Enum(id) => {
-                if schema.graph.inaccessible_enum_definitions[id] {
+                if schema.graph.inaccessible.enum_definitions[id] {
                     continue;
                 }
                 if reached_enum_definitions.put(id) {
@@ -213,7 +241,7 @@ fn hide_unreachable_types(schema: &mut Schema) {
                 }
             }
             TypeDefinitionId::Scalar(id) => {
-                if schema.graph.inaccessible_scalar_definitions[id] {
+                if schema.graph.inaccessible.scalar_definitions[id] {
                     continue;
                 }
                 if reached_scalar_definitions.put(id) {
@@ -221,35 +249,37 @@ fn hide_unreachable_types(schema: &mut Schema) {
                 }
             }
             TypeDefinitionId::InputObject(id) => {
-                if schema.graph.inaccessible_input_object_definitions[id] {
+                let input_object = schema.walk(id);
+                if input_object.is_inaccessible() {
                     continue;
                 }
                 if reached_input_object_definitions.put(id) {
                     continue;
                 }
-                let input_object = &schema[id];
-
-                for field in &schema[input_object.input_field_ids] {
-                    stack.push(field.ty_record.definition_id);
+                for input_field in input_object.input_fields() {
+                    if input_field.is_inaccessible() {
+                        continue;
+                    }
+                    stack.push(input_field.ty_record.definition_id);
                 }
             }
         }
     }
 
     // Mark unreachable types as inaccessible
-    schema.graph.inaccessible_object_definitions |= !reached_object_definitions;
-    schema.graph.inaccessible_union_definitions |= !reached_union_definitions;
-    schema.graph.inaccessible_interface_definitions |= !reached_interface_definitions;
-    schema.graph.inaccessible_scalar_definitions |= !reached_scalar_definitions;
-    schema.graph.inaccessible_enum_definitions |= !reached_enum_definitions;
-    schema.graph.inaccessible_input_object_definitions |= !reached_input_object_definitions;
+    schema.graph.inaccessible.object_definitions |= !reached_object_definitions;
+    schema.graph.inaccessible.union_definitions |= !reached_union_definitions;
+    schema.graph.inaccessible.interface_definitions |= !reached_interface_definitions;
+    schema.graph.inaccessible.scalar_definitions |= !reached_scalar_definitions;
+    schema.graph.inaccessible.enum_definitions |= !reached_enum_definitions;
+    schema.graph.inaccessible.input_object_definitions |= !reached_input_object_definitions;
 }
 
 fn mark_builtins_and_introspection_as_accessible(schema: &mut Schema) {
     for (ix, scalar) in schema.graph.scalar_definitions.iter().enumerate() {
         let id = ScalarDefinitionId::from(ix);
-        if ["Boolean", "String", "Int", "Float"].contains(&schema[scalar.name_id].as_str()) {
-            schema.graph.inaccessible_scalar_definitions.set(id, false);
+        if ["Boolean", "String", "Int", "Float", "ID"].contains(&schema[scalar.name_id].as_str()) {
+            schema.graph.inaccessible.scalar_definitions.set(id, false);
         }
     }
 
@@ -279,7 +309,7 @@ fn mark_builtins_and_introspection_as_accessible(schema: &mut Schema) {
                 if reached_object_definitions.put(id) {
                     continue;
                 }
-                schema.graph.inaccessible_object_definitions.set(id, false);
+                schema.graph.inaccessible.object_definitions.set(id, false);
                 let object = &schema[id];
 
                 stack.extend(object.field_ids.into_iter().map(DirectiveSiteId::from));
@@ -294,7 +324,7 @@ fn mark_builtins_and_introspection_as_accessible(schema: &mut Schema) {
                 if reached_interface_definitions.put(id) {
                     continue;
                 }
-                schema.graph.inaccessible_interface_definitions.set(id, false);
+                schema.graph.inaccessible.interface_definitions.set(id, false);
                 let interface = &schema[id];
 
                 stack.extend(interface.field_ids.into_iter().map(DirectiveSiteId::from));
@@ -309,7 +339,7 @@ fn mark_builtins_and_introspection_as_accessible(schema: &mut Schema) {
                 if reached_union_definitions.put(id) {
                     continue;
                 }
-                schema.graph.inaccessible_union_definitions.set(id, false);
+                schema.graph.inaccessible.union_definitions.set(id, false);
                 let union = &schema[id];
 
                 stack.extend(
@@ -323,30 +353,31 @@ fn mark_builtins_and_introspection_as_accessible(schema: &mut Schema) {
                 if reached_enum_definitions.put(id) {
                     continue;
                 }
-                schema.graph.inaccessible_enum_definitions.set(id, false);
+                schema.graph.inaccessible.enum_definitions.set(id, false);
                 stack.extend(schema[id].value_ids.into_iter().map(DirectiveSiteId::from));
             }
             DirectiveSiteId::Scalar(id) => {
                 if reached_scalar_definitions.put(id) {
                     continue;
                 }
-                schema.graph.inaccessible_scalar_definitions.set(id, false);
+                schema.graph.inaccessible.scalar_definitions.set(id, false);
             }
             DirectiveSiteId::InputObject(id) => {
                 if reached_input_object_definitions.put(id) {
                     continue;
                 }
-                schema.graph.inaccessible_input_object_definitions.set(id, false);
+                schema.graph.inaccessible.input_object_definitions.set(id, false);
                 let input_object = &schema[id];
                 stack.extend(input_object.input_field_ids.into_iter().map(DirectiveSiteId::from));
             }
             DirectiveSiteId::EnumValue(enum_value_id) => {
-                schema.graph.inaccessible_enum_values.set(enum_value_id, false);
+                schema.graph.inaccessible.enum_values.set(enum_value_id, false);
             }
             DirectiveSiteId::Field(field_definition_id) => {
                 schema
                     .graph
-                    .inaccessible_field_definitions
+                    .inaccessible
+                    .field_definitions
                     .set(field_definition_id, false);
                 stack.extend(
                     schema[field_definition_id]
@@ -359,7 +390,8 @@ fn mark_builtins_and_introspection_as_accessible(schema: &mut Schema) {
             DirectiveSiteId::InputValue(input_value_definition_id) => {
                 schema
                     .graph
-                    .inaccessible_input_value_definitions
+                    .inaccessible
+                    .input_value_definitions
                     .set(input_value_definition_id, false);
                 stack.push(schema[input_value_definition_id].ty_record.definition_id.into());
             }

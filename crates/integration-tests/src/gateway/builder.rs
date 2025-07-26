@@ -80,13 +80,13 @@ impl GatewayBuilder {
         self
     }
 
-    pub fn with_subgraph_sdl(mut self, name: &str, sdl: &str) -> Self {
+    pub fn with_subgraph_sdl(mut self, name: &str, sdl: impl Display) -> Self {
         self.virtual_subgraphs.push((name.to_string(), sdl.to_string()));
         self
     }
 
     /// Will bypass the composition of subgraphs and be used at its stead.
-    pub fn with_federated_sdl(mut self, sdl: &str) -> Self {
+    pub fn with_federated_sdl(mut self, sdl: impl Display) -> Self {
         self.federated_sdl = Some(sdl.to_string());
         self
     }

@@ -5,7 +5,7 @@ mod extension;
 mod graph;
 mod hash;
 mod interner;
-mod mutable;
+pub(crate) mod mutable;
 mod sdl;
 mod subgraphs;
 

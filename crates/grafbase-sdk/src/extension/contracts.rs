@@ -60,7 +60,7 @@ use crate::{
 ///         directives: Vec<ContractDirective<'_>>,
 ///         subgraphs: Vec<GraphqlSubgraph>,
 ///     ) -> Result<Contract, Error> {
-///         Ok(Contract::new(&directives))
+///         Ok(Contract::new(&directives, true))
 ///     }
 /// }
 /// ```
