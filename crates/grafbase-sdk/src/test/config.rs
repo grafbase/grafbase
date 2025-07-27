@@ -1,5 +1,6 @@
-use grafbase_sdk_mock::Subgraph;
-use std::path::PathBuf;
+use std::collections::HashMap;
+
+use serde::{Deserialize, Deserializer};
 
 pub(super) const GATEWAY_BINARY_NAME: &str = "grafbase-gateway";
 pub(super) const CLI_BINARY_NAME: &str = "grafbase";
@@ -56,19 +57,80 @@ impl From<&str> for LogLevel {
     }
 }
 
-/// Configuration for test cases.
+#[derive(Debug, serde::Deserialize)]
+pub(super) struct ExtensionToml {
+    pub extension: ExtensionDefinition,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub(super) struct ExtensionDefinition {
+    pub name: String,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub(super) struct GatewayToml {
+    pub extensions: HashMap<String, ExtensionConfig>,
+    #[serde(flatten)]
+    pub rest: toml::Table,
+}
+
 #[derive(Debug)]
-pub(super) struct TestConfig {
-    pub(super) gateway_path: PathBuf,
-    pub(super) cli_path: PathBuf,
-    pub(super) extension_path: Option<PathBuf>,
-    pub(super) toml_config: String,
-    pub(super) enable_stdout: Option<bool>,
-    pub(super) enable_stderr: Option<bool>,
-    pub(super) mock_subgraphs: Vec<Subgraph>,
-    pub(super) enable_networking: Option<bool>,
-    pub(super) enable_environment_variables: Option<bool>,
-    pub(super) max_pool_size: Option<usize>,
-    pub(super) log_level: LogLevel,
-    pub(super) stream_stdout_stderr: Option<bool>,
+pub(super) enum ExtensionConfig {
+    Version(String),
+    Structured(StructuredExtensionConfig),
+}
+
+impl<'de> Deserialize<'de> for ExtensionConfig {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::{Error, MapAccess, Visitor, value::MapAccessDeserializer};
+        struct ExtensionConfigVisitor;
+
+        impl<'de> Visitor<'de> for ExtensionConfigVisitor {
+            type Value = ExtensionConfig;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("a version or a config map")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: Error,
+            {
+                value.parse().map(ExtensionConfig::Version).map_err(Error::custom)
+            }
+
+            fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                StructuredExtensionConfig::deserialize(MapAccessDeserializer::new(&mut map))
+                    .map(ExtensionConfig::Structured)
+            }
+        }
+
+        deserializer.deserialize_any(ExtensionConfigVisitor)
+    }
+}
+
+impl serde::Serialize for ExtensionConfig {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            ExtensionConfig::Version(version) => serializer.serialize_str(version),
+            ExtensionConfig::Structured(config) => config.serialize(serializer),
+        }
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub(super) struct StructuredExtensionConfig {
+    pub version: Option<String>,
+    pub path: Option<String>,
+    #[serde(flatten)]
+    pub rest: toml::Table,
 }

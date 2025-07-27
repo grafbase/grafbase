@@ -25,20 +25,6 @@ impl IntrospectionRequest {
         self
     }
 
-    pub fn header_append<Name, Value>(mut self, name: Name, value: Value) -> Self
-    where
-        Name: TryInto<http::HeaderName, Error: std::fmt::Debug>,
-        Value: TryInto<http::HeaderValue, Error: std::fmt::Debug>,
-    {
-        self.0 = self.0.header_append(name, value);
-        self
-    }
-
-    pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
-        self.0 = self.0.variables(variables);
-        self
-    }
-
     pub fn extensions(mut self, extensions: impl serde::Serialize) -> Self {
         self.0 = self.0.extensions(extensions);
         self

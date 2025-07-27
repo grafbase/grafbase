@@ -26,6 +26,14 @@ impl GraphqlRequest {
         self
     }
 
+    /// Add a set of Headers to the existing ones on this Request.
+    ///
+    /// The headers will be merged in to any already set.
+    pub fn headers(mut self, headers: http::HeaderMap) -> Self {
+        self.builder = self.builder.headers(headers);
+        self
+    }
+
     /// Add the GraphQL variables to the request.
     pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
         self.body.variables = Some(serde_json::to_value(variables).expect("variables to be serializable"));
@@ -318,5 +326,37 @@ impl serde::Serialize for GraphqlCollectedStreamingResponse {
         S: serde::Serializer,
     {
         self.messages.serialize(serializer)
+    }
+}
+
+pub struct IntrospectionRequest(pub(super) GraphqlRequest);
+
+impl IntrospectionRequest {
+    /// Add a header to the request.
+    pub fn header<Name, Value>(mut self, name: Name, value: Value) -> Self
+    where
+        Name: TryInto<http::HeaderName, Error: std::fmt::Debug>,
+        Value: TryInto<http::HeaderValue, Error: std::fmt::Debug>,
+    {
+        self.0 = self.0.header(name, value);
+        self
+    }
+
+    /// Add a set of Headers to the existing ones on this Request.
+    ///
+    /// The headers will be merged in to any already set.
+    pub fn headers(mut self, headers: http::HeaderMap) -> Self {
+        self.0 = self.0.headers(headers);
+        self
+    }
+
+    /// Send the GraphQL request to the gateway
+    pub async fn send(self) -> String {
+        let response = self.0.send().await;
+        serde_json::from_value::<cynic_introspection::IntrospectionQuery>(response.into_data())
+            .expect("valid response")
+            .into_schema()
+            .expect("valid schema")
+            .to_sdl()
     }
 }
