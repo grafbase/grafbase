@@ -38,7 +38,8 @@ fn run_with_field_set(subgraph: DynamicSchemaBuilder, field_set: &str) -> Result
                 "#,
             ))
             .try_build()
-            .await?
+            .await
+            .map_err(|e| e.to_string())?
             .post(r#"query { user { echo } }"#)
             .await;
         Ok(response)

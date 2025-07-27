@@ -41,7 +41,7 @@ pub struct RequestExtensions<C> {
 impl<R: Runtime> ContractAwareEngine<R> {
     pub fn new(schema: Arc<Schema>, runtime: R) -> Self {
         let no_contract = Arc::new(Engine::new(schema.clone(), runtime));
-        let by_contract_key = quick_cache::sync::Cache::new(100);
+        let by_contract_key = quick_cache::sync::Cache::new(schema.config.contract_cache_max_size);
         Self {
             no_contract,
             by_contract_key,

@@ -21,4 +21,5 @@ pub struct PartialConfig {
     pub executable_document_limit_bytes: usize,
     pub trusted_documents: TrustedDocumentsConfig,
     pub websocket_forward_connection_init_payload: bool,
+    pub contract_cache_max_size: usize,
 }
