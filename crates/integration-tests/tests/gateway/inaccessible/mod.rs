@@ -1,3 +1,4 @@
+mod consistency;
 mod object_behind_interface;
 mod object_behind_union;
 
