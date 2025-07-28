@@ -119,14 +119,10 @@ impl GatewayBuilder {
     //-- Runtime customization --
 
     pub async fn build(self) -> Gateway {
-        self.build_inner().await.unwrap()
+        self.try_build().await.unwrap()
     }
 
-    pub async fn try_build(self) -> Result<Gateway, String> {
-        self.build_inner().await.map_err(|err| err.to_string())
-    }
-
-    pub async fn build_inner(self) -> anyhow::Result<Gateway> {
+    pub async fn try_build(self) -> anyhow::Result<Gateway> {
         let Self {
             tmpdir,
             federated_sdl,
@@ -137,7 +133,7 @@ impl GatewayBuilder {
             runtime,
         } = self;
 
-        let gateway_config = toml::from_str(&config.toml).expect("to be able to parse config");
+        let gateway_config = toml::from_str(&config.toml)?;
 
         let subgraphs = Subgraphs::load(
             mock_subgraphs,

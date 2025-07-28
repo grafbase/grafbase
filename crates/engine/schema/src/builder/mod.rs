@@ -192,5 +192,6 @@ fn build_settings(config: &Config) -> PartialConfig {
             .expect("executable document limit should not be negative"),
         trusted_documents: config.trusted_documents.clone().into(),
         websocket_forward_connection_init_payload: config.websockets.forward_connection_init_payload,
+        contract_cache_max_size: config.graph.contracts.cache.max_size,
     }
 }

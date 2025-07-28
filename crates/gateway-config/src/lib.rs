@@ -461,7 +461,7 @@ pub struct GraphConfig {
     pub websocket_path: String,
     // We do want to distinguish None from false for grafbase dev
     pub introspection: Option<bool>,
-    pub contract_key: Option<String>,
+    pub contracts: ContractsConfig,
 }
 
 impl Default for GraphConfig {
@@ -470,8 +470,27 @@ impl Default for GraphConfig {
             path: "/graphql".to_string(),
             websocket_path: "/ws".to_string(),
             introspection: None,
-            contract_key: None,
+            contracts: ContractsConfig::default(),
         }
+    }
+}
+
+#[derive(Default, Clone, Debug, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct ContractsConfig {
+    pub default_key: Option<String>,
+    pub cache: ContractsCacheConfig,
+}
+
+#[derive(Clone, Debug, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct ContractsCacheConfig {
+    pub max_size: usize,
+}
+
+impl Default for ContractsCacheConfig {
+    fn default() -> Self {
+        Self { max_size: 100 }
     }
 }
 

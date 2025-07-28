@@ -216,7 +216,7 @@ fn build_extension_layer<E: GatewayExtensions>(
     Ok(layers::ExtensionLayer::new(
         extensions.clone(),
         authentication,
-        gateway_config.graph.contract_key.clone(),
+        gateway_config.graph.contracts.default_key.clone(),
     ))
 }
 
