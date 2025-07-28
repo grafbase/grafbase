@@ -320,30 +320,6 @@ jobs:
 
       - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
 
-      - name: Install protoc
-        # Will fail if there is nothing to build.
-        continue-on-error: true
-        if: |
-          contains(fromJson(needs.what-changed.outputs.changed-packages), 'protoc-gen-grafbase-subgraph')
-        run: |
-          if [[ "$TARGET_PLATFORM" == "x86_64-unknown-linux-musl" ]]; then
-            protobuf_release_arch="linux-x86_64"
-          elif [[ "$TARGET_PLATFORM" == "aarch64-unknown-linux-musl" ]]; then
-            protobuf_release_arch="linux-aarch_64"
-          elif [[ "$TARGET_PLATFORM" == "aarch64-apple-darwin" ]]; then
-            protobuf_release_arch="osx-aarch_64"
-          fi
-
-          sudo mkdir -p /usr/local/include/google
-          sudo chown -R $USER /usr/local/include/google
-
-          curl -L https://github.com/protocolbuffers/protobuf/releases/download/v31.1/protoc-31.1-${protobuf_release_arch}.zip -o protoc.zip
-          unzip protoc.zip -d /usr/local
-          chmod +x /usr/local/bin/protoc
-          rm protoc.zip
-        env:
-          TARGET_PLATFORM: ${{ matrix.platform.target }}
-
       - name: Build integration-tests docker compose
         # Will fail if there is nothing to build.
         continue-on-error: true

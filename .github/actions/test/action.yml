@@ -80,8 +80,7 @@ runs:
       run: |
         RUST_BACKTRACE=1 cargo nextest run --workspace --no-run --profile ci \
           --exclude grafbase-gateway \
-          --exclude federation-audit-tests \
-          --exclude protoc-gen-grafbase-subgraph
+          --exclude federation-audit-tests
         docker compose -f crates/integration-tests/compose.yaml stop -t 3
 
     - name: Run all non-gateway tests
@@ -92,8 +91,7 @@ runs:
         docker compose -f crates/integration-tests/compose.yaml up -d
         RUST_BACKTRACE=1 cargo nextest run --workspace --profile ci \
           --exclude grafbase-gateway \
-          --exclude federation-audit-tests \
-          --exclude protoc-gen-grafbase-subgraph
+          --exclude federation-audit-tests
         docker compose -f crates/integration-tests/compose.yaml stop -t 3
 
     - name: Build gateway tests
@@ -126,7 +124,6 @@ runs:
           --exclude grafbase-gateway \
           --exclude wasi-component-loader \
           --exclude federation-audit-tests \
-          --exclude protoc-gen-grafbase-subgraph \
           --profile ci
 
     - name: Run tests without integration
@@ -139,5 +136,4 @@ runs:
           --exclude grafbase-gateway \
           --exclude wasi-component-loader \
           --exclude federation-audit-tests \
-          --exclude protoc-gen-grafbase-subgraph \
           --profile ci
