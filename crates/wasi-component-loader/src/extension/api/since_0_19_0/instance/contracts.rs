@@ -11,7 +11,7 @@ impl ContractsExtensionInstance for super::ExtensionInstanceSince0_19_0 {
         &'a mut self,
         context: &'a WasmContext,
         key: &'a str,
-        directives: Vec<wit::Directive<'a>>,
+        directives: &'a [wit::Directive<'a>],
         subgraphs: Vec<wit::GraphqlSubgraphParam<'a>>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<wit::Contract, String>>> {
         Box::pin(async move {
@@ -20,7 +20,7 @@ impl ContractsExtensionInstance for super::ExtensionInstanceSince0_19_0 {
             let result = self
                 .inner
                 .grafbase_sdk_contracts()
-                .call_construct(&mut self.store, context, key, &directives, &subgraphs)
+                .call_construct(&mut self.store, context, key, directives, &subgraphs)
                 .await?;
 
             Ok(result)

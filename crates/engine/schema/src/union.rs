@@ -21,7 +21,7 @@ impl UnionDefinition<'_> {
     }
 
     pub fn is_inaccessible(&self) -> bool {
-        self.schema.graph.inaccessible_union_definitions[self.id]
+        self.schema.graph.inaccessible.union_definitions[self.id]
     }
 
     pub fn has_inaccessible_member(&self) -> bool {

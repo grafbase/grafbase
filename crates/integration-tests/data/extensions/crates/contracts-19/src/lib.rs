@@ -12,7 +12,7 @@ struct Contracts {
 #[serde(default, deny_unknown_fields)]
 struct Config {
     // Apollo defaults to false
-    hide_unreacheable_types: bool,
+    hide_unreachable_types: bool,
 }
 
 impl ContractsExtension for Contracts {
@@ -32,7 +32,7 @@ impl ContractsExtension for Contracts {
             included_tags,
             excluded_tags,
         } = serde_json::from_str(&key).map_err(|err| format!("Could not read contract key: {err}"))?;
-        let mut contract = Contract::new(&directives);
+        let mut contract = Contract::new(&directives, included_tags.is_empty());
 
         // Apollo doc (https://www.apollographql.com/docs/graphos/platform/schema-management/delivery/contracts/create#3-create-a-contract):
         //     - If the Included Tags list is empty, the contract schema includes each type and object/interface field
@@ -44,9 +44,7 @@ impl ContractsExtension for Contracts {
         //       - The contract schema excludes a type or field if it's tagged with both an included tag and an excluded tag.
         //     - If you enable the option to hide unreachable types, the contract schema excludes each unreachable object,
         //       interface, union, input, enum, and scalar unless it's tagged with an included tag.
-        contract
-            .hide_unreacheable_types(self.config.hide_unreacheable_types)
-            .accessible_by_default(!included_tags.is_empty());
+        contract.hide_unreachable_types(self.config.hide_unreachable_types);
 
         for directive in directives {
             let Tag { name } = directive.arguments()?;

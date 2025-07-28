@@ -149,6 +149,8 @@ impl ExtensionsBuilder {
                             gateway_config::StructuredExtensionConfig {
                                 version,
                                 path,
+                                stdout: Some(true),
+                                stderr: Some(true),
                                 ..Default::default()
                             },
                         ));
