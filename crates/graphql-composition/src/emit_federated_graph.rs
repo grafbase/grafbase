@@ -297,34 +297,38 @@ fn attach_selection(
                     subselection,
                 }) => {
                     let selection_field = ctx.insert_string(ctx.subgraphs.walk(*field));
-                    let field_id = ctx.selection_map[&(target, selection_field)];
-                    let field_ty = ctx.out[field_id].r#type.definition;
-                    let field_arguments = ctx.out[field_id].arguments;
-                    let (field_arguments_start, _) = field_arguments;
-                    let field_arguments_start = usize::from(field_arguments_start);
-                    let arguments = arguments
-                        .iter()
-                        .map(|(name, value)| {
-                            // Here we assume the arguments are validated previously.
-                            let arg_name = ctx.insert_string(ctx.subgraphs.walk(*name));
-                            let argument = ctx.out[field_arguments]
-                                .iter()
-                                .position(|arg| arg.name == arg_name)
-                                .map(|idx| federated::InputValueDefinitionId::from(field_arguments_start + idx))
-                                .unwrap();
+                    if &ctx[selection_field] == "__typename" {
+                        federated::Selection::Typename
+                    } else {
+                        let field_id = ctx.selection_map[&(target, selection_field)];
+                        let field_ty = ctx.out[field_id].r#type.definition;
+                        let field_arguments = ctx.out[field_id].arguments;
+                        let (field_arguments_start, _) = field_arguments;
+                        let field_arguments_start = usize::from(field_arguments_start);
+                        let arguments = arguments
+                            .iter()
+                            .map(|(name, value)| {
+                                // Here we assume the arguments are validated previously.
+                                let arg_name = ctx.insert_string(ctx.subgraphs.walk(*name));
+                                let argument = ctx.out[field_arguments]
+                                    .iter()
+                                    .position(|arg| arg.name == arg_name)
+                                    .map(|idx| federated::InputValueDefinitionId::from(field_arguments_start + idx))
+                                    .unwrap();
 
-                            let argument_enum_type = ctx.out[argument].r#type.definition.as_enum();
-                            let value = ctx.insert_value_with_type(value, argument_enum_type);
+                                let argument_enum_type = ctx.out[argument].r#type.definition.as_enum();
+                                let value = ctx.insert_value_with_type(value, argument_enum_type);
 
-                            (argument, value)
+                                (argument, value)
+                            })
+                            .collect();
+
+                        federated::Selection::Field(federated::FieldSelection {
+                            field_id,
+                            arguments,
+                            subselection: attach_selection(subselection, field_ty, ctx),
                         })
-                        .collect();
-
-                    federated::Selection::Field(federated::FieldSelection {
-                        field_id,
-                        arguments,
-                        subselection: attach_selection(subselection, field_ty, ctx),
-                    })
+                    }
                 }
                 subgraphs::Selection::InlineFragment { on, subselection } => {
                     let on = ctx.insert_string(ctx.subgraphs.walk(*on));

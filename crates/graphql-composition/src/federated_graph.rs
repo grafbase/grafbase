@@ -240,6 +240,7 @@ impl SelectionSet {
                         return Some(found);
                     }
                 }
+                Selection::Typename => {}
             }
         }
         None
@@ -248,6 +249,7 @@ impl SelectionSet {
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Selection {
+    Typename,
     Field(FieldSelection),
     InlineFragment { on: Definition, subselection: SelectionSet },
 }

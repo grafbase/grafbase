@@ -703,6 +703,9 @@ fn attach_selection_field(
     target: Definition,
     state: &mut State<'_>,
 ) -> Result<Selection, DomainError> {
+    if ast_field.name() == "__typename" {
+        return Ok(Selection::Typename);
+    }
     let field_id: FieldId = *state.selection_map.get(&(target, ast_field.name())).ok_or_else(|| {
         DomainError(format!(
             "Field '{}.{}' does not exist",
