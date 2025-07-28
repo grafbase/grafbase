@@ -1,0 +1,8 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/unknown_types/test.md
+---
+- ❌ [a]: Object type `User` implements `UnknownInterface`, but `UnknownInterface` is not defined in the subgraph.
+- ❌ [a]: Interface `Node` implementeds `UnknownInterface`, but `UnknownInterface` is not defined in the subgraph.
+- ❌ [a]: Union member `UnknownType` is used but not defined in the subgraph.

@@ -35,9 +35,9 @@ impl Subgraphs {
         self.definition_names.get(&(name, subgraph_id)).copied()
     }
 
-    pub(crate) fn definition_by_name(&mut self, name: &str, subgraph_id: SubgraphId) -> DefinitionId {
+    pub(crate) fn definition_by_name(&mut self, name: &str, subgraph_id: SubgraphId) -> Option<DefinitionId> {
         let interned_name = self.strings.intern(name);
-        self.definition_by_name_id(interned_name, subgraph_id).unwrap()
+        self.definition_by_name_id(interned_name, subgraph_id)
     }
 
     pub(crate) fn iter_definitions_with_name(
