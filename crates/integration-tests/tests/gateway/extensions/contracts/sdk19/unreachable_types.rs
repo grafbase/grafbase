@@ -148,6 +148,10 @@ fn interface_types() {
 
     let contract = super::run(sdl, key);
     insta::assert_snapshot!(contract, @r#"
+    interface Entity {
+      name: String!
+    }
+
     interface HiddenInterface {
       data: String!
     }
@@ -514,6 +518,10 @@ fn complex_unreachable_scenario() {
 
     input UnreachableInput {
       field: String
+    }
+
+    interface UnreachableInterface {
+      id: ID!
     }
 
     scalar UnreachableScalar

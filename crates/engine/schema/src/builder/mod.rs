@@ -155,7 +155,7 @@ impl BuildContext<'_> {
         let extensions = catalog.iter().map(|ext| ext.manifest.id.clone()).collect();
         let hash = hash::compute(sdl, catalog);
 
-        Ok(Schema {
+        let mut schema = Schema {
             subgraphs,
             graph,
             hash,
@@ -165,7 +165,10 @@ impl BuildContext<'_> {
             regexps: regexps.into(),
             urls: urls.into(),
             config: settings,
-        })
+        };
+        mutable::mark_builtins_and_introspection_as_accessible(&mut schema);
+
+        Ok(schema)
     }
 }
 

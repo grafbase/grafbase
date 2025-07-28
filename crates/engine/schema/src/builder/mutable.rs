@@ -47,63 +47,6 @@ impl MutableSchema {
         current.input_value_definitions |= contract.input_value_definitions;
         current.scalar_definitions |= contract.scalar_definitions;
         current.union_definitions |= contract.union_definitions;
-
-        for ix in 0..self.0.graph.interface_definitions.len() {
-            let id = InterfaceDefinitionId::from(ix);
-            if self.0.graph.inaccessible.interface_definitions[id] {
-                continue;
-            }
-
-            if self.0.graph[id]
-                .possible_type_ids
-                .iter()
-                .all(|id| self.0.graph.inaccessible.object_definitions[*id])
-            {
-                self.0.graph.inaccessible.interface_definitions.set(id, true);
-            }
-        }
-
-        for ix in 0..self.0.graph.union_definitions.len() {
-            let id = UnionDefinitionId::from(ix);
-            if self.0.graph.inaccessible.union_definitions[id] {
-                continue;
-            }
-            if self.0.graph[id]
-                .possible_type_ids
-                .iter()
-                .all(|id| self.0.graph.inaccessible.object_definitions[*id])
-            {
-                self.0.graph.inaccessible.union_definitions.set(id, true);
-            }
-        }
-
-        for ix in 0..self.0.graph.enum_definitions.len() {
-            let id = EnumDefinitionId::from(ix);
-            if self.0.graph.inaccessible.enum_definitions[id] {
-                continue;
-            }
-            if self.0.graph[id]
-                .value_ids
-                .into_iter()
-                .all(|id| self.0.graph.inaccessible.enum_values[id])
-            {
-                self.0.graph.inaccessible.enum_definitions.set(id, true);
-            }
-        }
-
-        for ix in 0..self.graph.input_object_definitions.len() {
-            let id = InputObjectDefinitionId::from(ix);
-            if self.0.graph.inaccessible.input_object_definitions[id] {
-                continue;
-            }
-            if self.0.graph[id]
-                .input_field_ids
-                .into_iter()
-                .all(|id| self.0.graph.inaccessible.input_value_definitions[id])
-            {
-                self.0.graph.inaccessible.input_object_definitions.set(id, true);
-            }
-        }
     }
 
     pub fn update_graphql_endpoint(&mut self, name: &str, url: Url) {
@@ -275,7 +218,8 @@ fn hide_unreachable_types(schema: &mut Schema) {
     schema.graph.inaccessible.input_object_definitions |= !reached_input_object_definitions;
 }
 
-fn mark_builtins_and_introspection_as_accessible(schema: &mut Schema) {
+pub(super) fn mark_builtins_and_introspection_as_accessible(schema: &mut Schema) {
+    // Built-in scalars are never accessible
     for (ix, scalar) in schema.graph.scalar_definitions.iter().enumerate() {
         let id = ScalarDefinitionId::from(ix);
         if ["Boolean", "String", "Int", "Float", "ID"].contains(&schema[scalar.name_id].as_str()) {
@@ -283,6 +227,20 @@ fn mark_builtins_and_introspection_as_accessible(schema: &mut Schema) {
         }
     }
 
+    // Root types are never inaccessible
+    schema
+        .graph
+        .inaccessible
+        .object_definitions
+        .set(schema.graph.root_operation_types_record.query_id, false);
+    if let Some(mutation_id) = schema.graph.root_operation_types_record.mutation_id {
+        schema.graph.inaccessible.object_definitions.set(mutation_id, false);
+    }
+    if let Some(subscription_id) = schema.graph.root_operation_types_record.subscription_id {
+        schema.graph.inaccessible.object_definitions.set(subscription_id, false);
+    }
+
+    // Introspection types are never inaccessible
     let mut reached_object_definitions =
         BitSet::<ObjectDefinitionId>::with_capacity(schema.graph.object_definitions.len());
     let mut reached_union_definitions =
