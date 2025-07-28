@@ -6,7 +6,7 @@ pub(crate) fn display_directive_definitions(
     // filter the definitions themselves
     definitions_filter: fn(&DirectiveDefinition<'_>) -> bool,
     // filter the directives on the arguments of the definitions
-    directives_filter: fn(&Directive, &FederatedGraph) -> bool,
+    directives_filter: fn(&Directive) -> bool,
     graph: &FederatedGraph,
     f: &mut fmt::Formatter<'_>,
 ) -> fmt::Result {
@@ -45,7 +45,7 @@ pub(crate) fn display_directive_definitions(
 fn display_directive_definition(
     directive_definition: DirectiveDefinition<'_>,
     arguments: &[DirectiveDefinitionArgument],
-    directives_filter: fn(&Directive, graph: &FederatedGraph) -> bool,
+    directives_filter: fn(&Directive) -> bool,
     graph: &FederatedGraph,
     f: &mut fmt::Formatter<'_>,
 ) -> fmt::Result {

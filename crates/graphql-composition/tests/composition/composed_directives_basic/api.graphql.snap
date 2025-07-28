@@ -1,6 +1,6 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: actual_api_sdl
+expression: API SDL
 input_file: crates/graphql-composition/tests/composition/composed_directives_basic/test.md
 ---
 enum ObserverType {
@@ -9,7 +9,7 @@ enum ObserverType {
   PROFESSIONAL
 }
 
-type Bird @fieldMarks(plumage: "juvenile") @fieldMarks(plumage: "adult") {
+type Bird {
   id: ID!
   location: String!
   name: String!
@@ -32,7 +32,7 @@ type ObserverDetails {
 }
 
 type BirdSighting @deprecated(reason: "we haven't seen any birds in a while :(") {
-  bird: Bird! @pelagic
+  bird: Bird!
   observer: String!
   sightingID: ID!
   weatherConditions: String

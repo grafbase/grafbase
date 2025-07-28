@@ -18,6 +18,7 @@
 ## Fixes
 
 - When an enum is used both in input and output positions, composition enforces that definitions of that enum in all subgraphs must have exactly the same values. In the case where one subgraph had more values than another, composition would do an out of bound access to test equality, and panic. It's order dependent, so it was not encountered in the existing tests. This commit fixes the out of bound errors, preserving the same logic, and improves the composition error message formulation. (https://github.com/grafbase/grafbase/pull/3292)
+- Directives composed with `@composeDirective` no longer appear in the API SDL, only the federated SDL. API SDL matches the introspection output of the running gateway, which can only return `@deprecated` directives' contents as per the October 2021 version of the GraphQL specification. (https://github.com/grafbase/grafbase/pull/3319)
 
 ## 0.8.0 - 2025-05-16
 
