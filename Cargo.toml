@@ -163,7 +163,6 @@ ory-client = "=1.9.0"
 os_type = "2"
 p256 = "0.13"
 p384 = "0.13"
-paste = "1"
 percent-encoding = "2"
 petgraph = "0.8"
 postcard = { version = "1", features = ["use-std"] }
@@ -173,8 +172,6 @@ priority-queue = "2"
 proc-macro2 = "1"
 prost = { version = "0.13.5", default-features = false }
 prost-types = { version = "0.13.5", default-features = false }
-protobuf = { version = "3.7.2" }
-protobuf-support = { version = "3.7.2" }
 quick_cache = "0.6"
 quote = "1"
 ramhorns = { git = "https://github.com/grafbase/ramhorns", branch = "grafbase", default-features = false, features = [
@@ -257,7 +254,6 @@ url = "2.5.4"
 urlencoding = "2.1"
 uuid = "1.16.0"
 valuable = "0.1"
-walkdir = "2"
 wasmparser = "0.235.0"
 wasmtime = "35"
 wasmtime-wasi = "35"
