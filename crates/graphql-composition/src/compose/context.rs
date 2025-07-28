@@ -303,3 +303,10 @@ impl std::ops::Index<subgraphs::StringId> for Context<'_> {
         &self.subgraphs[index]
     }
 }
+impl std::ops::Index<federated::StringId> for Context<'_> {
+    type Output = str;
+
+    fn index(&self, index: federated::StringId) -> &Self::Output {
+        &self.ir.strings[index]
+    }
+}
