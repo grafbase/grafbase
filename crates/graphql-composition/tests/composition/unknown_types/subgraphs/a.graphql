@@ -1,0 +1,19 @@
+type Query {
+  field: UknownType
+  user(input: UnknownInput): User
+}
+
+type User implements Node & UnknownInterface {
+  id: ID!
+  name: String
+}
+
+interface Node implements UnknownInterface {
+  id: ID!
+}
+
+union X = User | UnknownType
+
+input Y {
+  input: UnknownInput
+}

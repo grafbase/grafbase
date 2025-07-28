@@ -169,22 +169,71 @@ fn ingest_definition_bodies(ctx: &mut Context<'_>) {
         match definition {
             ast::TypeDefinition::Union(_) if definition.name() == ENTITY_UNION_NAME => continue,
             ast::TypeDefinition::Union(union) => {
-                let union_id = ctx.subgraphs.definition_by_name(definition.name(), subgraph_id);
+                let Some(union_id) = ctx.subgraphs.definition_by_name(definition.name(), subgraph_id) else {
+                    ctx.subgraphs.push_ingestion_diagnostic(
+                        subgraph_id,
+                        format!(
+                            "Union type `{}` is used but not defined in the subgraph.",
+                            definition.name()
+                        ),
+                    );
+                    continue;
+                };
 
                 for member in union.members() {
-                    let member_id = ctx.subgraphs.definition_by_name(member.name(), subgraph_id);
+                    let Some(member_id) = ctx.subgraphs.definition_by_name(member.name(), subgraph_id) else {
+                        ctx.subgraphs.push_ingestion_diagnostic(
+                            subgraph_id,
+                            format!(
+                                "Union member `{}` is used but not defined in the subgraph.",
+                                member.name()
+                            ),
+                        );
+                        continue;
+                    };
                     ctx.subgraphs.push_union_member(union_id, member_id);
                 }
             }
             ast::TypeDefinition::InputObject(input_object) => {
-                let definition_id = ctx.subgraphs.definition_by_name(definition.name(), subgraph_id);
+                let Some(definition_id) = ctx.subgraphs.definition_by_name(definition.name(), subgraph_id) else {
+                    ctx.subgraphs.push_ingestion_diagnostic(
+                        subgraph_id,
+                        format!(
+                            "Input object type `{}` is used but not defined in the subgraph.",
+                            definition.name()
+                        ),
+                    );
+                    continue;
+                };
                 fields::ingest_input_fields(ctx, definition_id, input_object.fields());
             }
             ast::TypeDefinition::Interface(interface) => {
-                let definition_id = ctx.subgraphs.definition_by_name(interface.name(), subgraph_id);
+                let Some(definition_id) = ctx.subgraphs.definition_by_name(interface.name(), subgraph_id) else {
+                    ctx.subgraphs.push_ingestion_diagnostic(
+                        subgraph_id,
+                        format!(
+                            "Interface type `{}` is used but not defined in the subgraph.",
+                            interface.name()
+                        ),
+                    );
+                    continue;
+                };
 
                 for implemented_interface in interface.implements_interfaces() {
-                    let implemented_interface = ctx.subgraphs.definition_by_name(implemented_interface, subgraph_id);
+                    let Some(implemented_interface) =
+                        ctx.subgraphs.definition_by_name(implemented_interface, subgraph_id)
+                    else {
+                        ctx.subgraphs.push_ingestion_diagnostic(
+                            subgraph_id,
+                            format!(
+                                "Interface `{}` implementeds `{}`, but `{}` is not defined in the subgraph.",
+                                interface.name(),
+                                implemented_interface,
+                                implemented_interface
+                            ),
+                        );
+                        continue;
+                    };
 
                     ctx.subgraphs.push_interface_impl(definition_id, implemented_interface);
                 }
@@ -195,10 +244,32 @@ fn ingest_definition_bodies(ctx: &mut Context<'_>) {
             }
             ast::TypeDefinition::Object(_) if definition.name() == SERVICE_TYPE_NAME => continue,
             ast::TypeDefinition::Object(object_type) => {
-                let definition_id = ctx.subgraphs.definition_by_name(definition.name(), subgraph_id);
+                let Some(definition_id) = ctx.subgraphs.definition_by_name(definition.name(), subgraph_id) else {
+                    ctx.subgraphs.push_ingestion_diagnostic(
+                        subgraph_id,
+                        format!(
+                            "Object type `{}` is used but not defined in the subgraph.",
+                            definition.name()
+                        ),
+                    );
+                    continue;
+                };
 
                 for implemented_interface in object_type.implements_interfaces() {
-                    let implemented_interface = ctx.subgraphs.definition_by_name(implemented_interface, subgraph_id);
+                    let Some(implemented_interface) =
+                        ctx.subgraphs.definition_by_name(implemented_interface, subgraph_id)
+                    else {
+                        ctx.subgraphs.push_ingestion_diagnostic(
+                            subgraph_id,
+                            format!(
+                                "Object type `{}` implements `{}`, but `{}` is not defined in the subgraph.",
+                                object_type.name(),
+                                implemented_interface,
+                                implemented_interface
+                            ),
+                        );
+                        continue;
+                    };
 
                     ctx.subgraphs.push_interface_impl(definition_id, implemented_interface);
                 }
