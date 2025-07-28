@@ -241,10 +241,6 @@ impl Display for BareSelectionSetDisplay<'_> {
                         BareSelectionSetDisplay(subselection, graph).fmt(f)?;
                         f.write_str(" }")?;
                     }
-
-                    if selections.peek().is_some() {
-                        f.write_char(' ')?;
-                    }
                 }
                 Selection::InlineFragment { on, subselection } => {
                     f.write_str("... on ")?;
@@ -253,6 +249,12 @@ impl Display for BareSelectionSetDisplay<'_> {
                     BareSelectionSetDisplay(subselection, graph).fmt(f)?;
                     f.write_str(" }")?;
                 }
+                Selection::Typename => {
+                    f.write_str("__typename")?;
+                }
+            }
+            if selections.peek().is_some() {
+                f.write_char(' ')?;
             }
         }
 

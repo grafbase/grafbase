@@ -79,6 +79,21 @@ fn validate_field_selection(
     directive_path: &dyn Fn() -> String,
     directive_name: &str,
 ) {
+    if &ctx[selection.field] == "__typename" {
+        if !selection.arguments.is_empty() {
+            return ctx.diagnostics.push_fatal(format!(
+                "Error in @{directive_name} on {directive_path}: the __typename field does not accept arguments.",
+                directive_path = directive_path(),
+            ));
+        }
+        if !selection.subselection.is_empty() {
+            return ctx.diagnostics.push_fatal(format!(
+                "Error in @{directive_name} on {directive_path}: the __typename field does not accept subselections.",
+                directive_path = directive_path(),
+            ));
+        }
+        return;
+    }
     // The selected field must exist.
     let Some(field) = on_definition.find_field(selection.field) else {
         return ctx.diagnostics.push_fatal(format!(
