@@ -549,7 +549,7 @@ fn with_mock_subgraph<T, F>(
         subgraphs
             .ingest_str(&subgraph_sdl, "the-subgraph", Some(subgraph_server.url().as_str()))
             .unwrap();
-        let graph = graphql_composition::compose(&subgraphs).into_result().unwrap();
+        let graph = graphql_composition::compose(subgraphs).into_result().unwrap();
         graphql_composition::render_federated_sdl(&graph).unwrap()
     };
 

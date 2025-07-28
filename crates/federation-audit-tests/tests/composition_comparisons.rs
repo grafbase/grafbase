@@ -32,7 +32,7 @@ fn runner_for(suite: String) -> impl FnOnce() -> Result<(), Failed> + Send + 'st
                 .unwrap()
         }
 
-        let graph = graphql_composition::compose(&subgraphs).into_result().unwrap();
+        let graph = graphql_composition::compose(subgraphs).into_result().unwrap();
         let output = graphql_composition::render_federated_sdl(&graph).unwrap();
 
         let output = prettify_sdl(&output);

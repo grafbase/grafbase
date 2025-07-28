@@ -242,7 +242,7 @@ impl SubgraphCache {
             subgraphs.ingest(&parsed_schema, &subgraph.name, subgraph.url.as_deref());
         }
 
-        let result = graphql_composition::compose(&subgraphs);
+        let result = graphql_composition::compose(subgraphs);
 
         {
             let mut warnings = result.diagnostics().iter_warnings().peekable();

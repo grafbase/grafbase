@@ -58,7 +58,7 @@ grafbase-sdk-derive = { version = "0.5.0", path = "derive" }
 grafbase-sdk-mock = { version = "0.2.0", path = "mock", optional = true }
 graphql-composition = { version = "0.9.0", features = [
     "grafbase-extensions",
-], optional = true, path = "../graphql-composition" }
+], optional = true }
 graphql-ws-client = { workspace = true, optional = true }
 hashbrown = { workspace = true, optional = true }
 http = "1"

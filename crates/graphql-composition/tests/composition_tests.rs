@@ -47,7 +47,7 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
             .map(|extension| graphql_composition::LoadedExtension::new(extension.url, extension.name)),
     );
 
-    let result = graphql_composition::compose(&subgraphs);
+    let result = graphql_composition::compose(subgraphs);
 
     let diagnostics = result.diagnostics();
     let mut rendered_diagnostics = String::new();
@@ -62,7 +62,7 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
         writeln!(rendered_diagnostics, "- {emoji} {message}").unwrap();
     }
 
-    let (federated_sdl, api_sdl) = if let Ok(federated_graph) = graphql_composition::compose(&subgraphs).into_result() {
+    let (federated_sdl, api_sdl) = if let Ok(federated_graph) = result.into_result() {
         (
             graphql_composition::render_federated_sdl(&federated_graph).expect("rendering federated SDL"),
             graphql_composition::render_api_sdl(&federated_graph),
