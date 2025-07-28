@@ -18,7 +18,7 @@ mod state;
 #[cfg(test)]
 mod tests;
 
-use tonic13 as tonic;
+use tonic;
 
 pub use context::WasmContext;
 pub use crossbeam::channel::Sender;

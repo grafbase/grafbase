@@ -2,7 +2,7 @@ use gateway_config::{LayeredOtlExporterConfig, OtlpExporterProtocolConfig};
 use opentelemetry_otlp::Protocol;
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::metrics::{
-    Aggregation, Instrument, InstrumentKind, PeriodicReader, SdkMeterProvider, Stream, Temporality, View,
+    Aggregation, Instrument, InstrumentKind, PeriodicReader, SdkMeterProvider, Stream, Temporality,
 };
 
 use crate::config::TelemetryConfig;
@@ -10,30 +10,33 @@ use crate::error::TracingError;
 
 pub struct DeltaTemporality;
 
-pub struct AggForLatencyHistogram;
 
-impl View for AggForLatencyHistogram {
-    fn match_inst(&self, inst: &Instrument) -> Option<Stream> {
-        inst.kind.as_ref().map(|kind| {
-            let stream = Stream::new()
-                .name(inst.name.clone())
-                .description(inst.description.clone())
-                .unit(inst.unit.clone());
+fn agg_for_latency_histogram(inst: &Instrument) -> Option<Stream> {
+    let kind = inst.kind();
+    let mut stream = Stream::builder()
+        .with_name(inst.name().to_string())
+        .with_unit(inst.unit().to_string());
 
-            match kind {
-                InstrumentKind::Counter
-                | InstrumentKind::UpDownCounter
-                | InstrumentKind::ObservableCounter
-                | InstrumentKind::ObservableUpDownCounter => stream.aggregation(Aggregation::Sum),
-                InstrumentKind::Gauge | InstrumentKind::ObservableGauge => stream.aggregation(Aggregation::LastValue),
-                InstrumentKind::Histogram => stream.aggregation(Aggregation::Base2ExponentialHistogram {
-                    max_size: 160,
-                    max_scale: 20,
-                    record_min_max: false,
-                }),
-            }
-        })
+    match kind {
+        InstrumentKind::Counter
+        | InstrumentKind::UpDownCounter
+        | InstrumentKind::ObservableCounter
+        | InstrumentKind::ObservableUpDownCounter => {
+            stream = stream.with_aggregation(Aggregation::Sum);
+        },
+        InstrumentKind::Gauge | InstrumentKind::ObservableGauge => {
+            stream = stream.with_aggregation(Aggregation::LastValue);
+        },
+        InstrumentKind::Histogram => {
+            stream = stream.with_aggregation(Aggregation::Base2ExponentialHistogram {
+                max_size: 160,
+                max_scale: 20,
+                record_min_max: false,
+            });
+        },
     }
+    
+    Some(stream.build().expect("Failed to build stream"))
 }
 
 pub(super) fn build_meter_provider(
@@ -42,7 +45,7 @@ pub(super) fn build_meter_provider(
 ) -> Result<SdkMeterProvider, TracingError> {
     let mut provider = SdkMeterProvider::builder()
         .with_resource(resource)
-        .with_view(AggForLatencyHistogram);
+        .with_view(agg_for_latency_histogram);
 
     if let Some(config) = config.metrics_stdout_config() {
         let reader = PeriodicReader::builder(

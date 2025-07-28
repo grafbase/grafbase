@@ -152,12 +152,12 @@ notify = "8"
 notify-debouncer-full = "0.5"
 num-traits = "0.2.19"
 openidconnect = "4.0.0"
-opentelemetry = "0.29"
-opentelemetry-appender-tracing = "0.29"
-opentelemetry-aws = "0.17"
-opentelemetry-otlp = "0.29"
-opentelemetry-stdout = "0.29"
-opentelemetry_sdk = "0.29"
+opentelemetry = "0.30"
+opentelemetry-appender-tracing = "0.30"
+opentelemetry-aws = "0.18"
+opentelemetry-otlp = "0.30"
+opentelemetry-stdout = "0.30"
+opentelemetry_sdk = "0.30"
 ordered-float = "5"
 ory-client = "=1.9.0"
 os_type = "2"
@@ -237,15 +237,18 @@ tokio-stream = "0.1"
 tokio-tungstenite = { version = "0.26.2", default-features = false }
 tokio-util = "0.7"
 toml = "0.9"
-tonic = "0.12.3"
-tonic13 = { version = "0.13.0", default-features = false, package = "tonic" }
+tonic = { version = "0.13.0", default-features = false, features = [
+  "channel",
+  "tls-native-roots",
+  "tls-aws-lc"
+] }
 tower = "0.5.2"
 tower-http = "0.6.2"
 tower-service = "0.3.3"
 tracing = { version = "0.1.41", features = ["valuable"] }
 tracing-futures = "0.2.5"
 tracing-mock = "0.1"
-tracing-opentelemetry = "0.30"
+tracing-opentelemetry = "0.31"
 tracing-subscriber = { version = "0.3.19", default-features = false, features = ["valuable"] }
 tungstenite = { version = "0.26.2", default-features = false }
 ulid = "1.2.1"
