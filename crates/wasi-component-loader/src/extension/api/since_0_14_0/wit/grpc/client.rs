@@ -2,15 +2,10 @@ use super::{
     GrpcClient, GrpcClientConfiguration, GrpcStatus, GrpcStreamingResponse, GrpcUnaryResponse, HostGrpcClient,
     MetadataMap,
 };
-use crate::{
-    InstanceState,
-    tonic::{
-        self,
-        metadata::{MetadataKey, MetadataValue},
-    },
-};
+use crate::InstanceState;
 use bytes::BufMut as _;
 use dashmap::Entry;
+use tonic::metadata::{MetadataKey, MetadataValue};
 use wasmtime::component::Resource;
 
 impl HostGrpcClient for InstanceState {

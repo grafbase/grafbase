@@ -18,8 +18,6 @@ mod state;
 #[cfg(test)]
 mod tests;
 
-use tonic;
-
 pub use context::WasmContext;
 pub use crossbeam::channel::Sender;
 pub use crossbeam::sync::WaitGroup;
