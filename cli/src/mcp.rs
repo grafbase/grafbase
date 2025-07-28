@@ -60,7 +60,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
         subgraphs
             .ingest_str(&schema, "api", Some(args.url.as_str()))
             .map_err(|err| anyhow::anyhow!("Invalid schema: {err}"))?;
-        let federated_graph = graphql_composition::compose(&subgraphs)
+        let federated_graph = graphql_composition::compose(subgraphs)
             .into_result()
             .map_err(|diagnostics| {
                 anyhow::anyhow!(

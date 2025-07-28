@@ -38,7 +38,7 @@ pub(super) async fn build(
                         graphql_composition::LoadedExtension::new(url.to_string(), manifest.name().to_string())
                     }));
 
-                    graphql_composition::compose(&acc)
+                    graphql_composition::compose(acc)
                         .warnings_are_fatal()
                         .into_result()
                         .expect("schemas to compose succesfully")

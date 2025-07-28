@@ -154,10 +154,6 @@ impl Subgraphs {
     }
 
     pub(crate) fn push_directive(&mut self, directive: ExtraDirectiveRecord) {
-        if let Some(last) = self.directives.extra_directives.last() {
-            assert!(last.directive_site_id <= directive.directive_site_id);
-        }
-
         self.directives.extra_directives.push(directive);
     }
 

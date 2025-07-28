@@ -75,15 +75,30 @@ impl Subgraphs {
             .map(|(_, implementer)| *implementer)
     }
 
-    pub(crate) fn push_definition(
+    pub(crate) fn push_or_update_definition(
         &mut self,
         subgraph_id: SubgraphId,
         name: &str,
         kind: DefinitionKind,
         description: Option<StringId>,
-        directives: DirectiveSiteId,
-    ) -> DefinitionId {
+    ) -> (DefinitionId, DirectiveSiteId) {
         let name = self.strings.intern(name);
+        if let Some(id) = self.definition_by_name_id(name, subgraph_id) {
+            if self[id].kind != kind {
+                self.ingestion_diagnostics.push_fatal(format!(
+                    "Cannot change definition kind for `{existing_name}` in `{subgraph_name}` from {existing_kind:?} to {new_kind:?}",
+                    existing_name = self.walk(id).name().as_str(),
+                    subgraph_name = self.walk(id).subgraph().name().as_str(),
+                    existing_kind = self[id].kind,
+                    new_kind = kind
+                ));
+            } else {
+                let def = &mut self.definitions.definitions[usize::from(id)];
+                def.description = def.description.or(description);
+                return (id, def.directives);
+            }
+        }
+        let directives = self.new_directive_site();
         let definition = Definition {
             subgraph_id,
             name,
@@ -93,7 +108,7 @@ impl Subgraphs {
         };
         let id = DefinitionId::from(self.definitions.definitions.push_return_idx(definition));
         self.definition_names.insert((name, subgraph_id), id);
-        id
+        (id, directives)
     }
 
     pub(crate) fn push_interface_impl(&mut self, implementer: DefinitionId, implemented_interface: DefinitionId) {
