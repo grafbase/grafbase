@@ -10,7 +10,6 @@ use crate::error::TracingError;
 
 pub struct DeltaTemporality;
 
-
 fn agg_for_latency_histogram(inst: &Instrument) -> Option<Stream> {
     let kind = inst.kind();
     let mut stream = Stream::builder()
@@ -23,19 +22,19 @@ fn agg_for_latency_histogram(inst: &Instrument) -> Option<Stream> {
         | InstrumentKind::ObservableCounter
         | InstrumentKind::ObservableUpDownCounter => {
             stream = stream.with_aggregation(Aggregation::Sum);
-        },
+        }
         InstrumentKind::Gauge | InstrumentKind::ObservableGauge => {
             stream = stream.with_aggregation(Aggregation::LastValue);
-        },
+        }
         InstrumentKind::Histogram => {
             stream = stream.with_aggregation(Aggregation::Base2ExponentialHistogram {
                 max_size: 160,
                 max_scale: 20,
                 record_min_max: false,
             });
-        },
+        }
     }
-    
+
     Some(stream.build().expect("Failed to build stream"))
 }
 
