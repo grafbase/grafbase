@@ -69,6 +69,7 @@ pub(super) struct ExtensionDefinition {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(super) struct GatewayToml {
+    #[serde(default)]
     pub extensions: HashMap<String, ExtensionConfig>,
     #[serde(flatten)]
     pub rest: toml::Table,
