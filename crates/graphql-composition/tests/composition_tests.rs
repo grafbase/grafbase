@@ -71,13 +71,19 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
         (String::new(), String::new())
     };
 
-    let test_description = Some(test_description.as_str().trim())
-        .filter(|desc| !desc.is_empty())
-        .unwrap_or("Federated SDL");
+    let test_description = Some(test_description.as_str().trim()).filter(|desc| !desc.is_empty());
 
-    insta::assert_snapshot!("diagnostics", rendered_diagnostics, test_description);
-    insta::assert_snapshot!("federated.graphql", federated_sdl, test_description);
-    insta::assert_snapshot!("api.graphql", api_sdl, test_description);
+    insta::assert_snapshot!(
+        "diagnostics",
+        rendered_diagnostics,
+        test_description.unwrap_or("Diagnostics")
+    );
+    insta::assert_snapshot!(
+        "federated.graphql",
+        federated_sdl,
+        test_description.unwrap_or("Federated SDL")
+    );
+    insta::assert_snapshot!("api.graphql", api_sdl, test_description.unwrap_or("API SDL"));
 
     check_federated_sdl(&federated_sdl, test_path)
 }

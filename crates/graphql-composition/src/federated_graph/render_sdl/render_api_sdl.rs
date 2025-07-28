@@ -236,7 +236,7 @@ impl fmt::Display for Renderer<'_> {
     }
 }
 
-fn public_directives_filter(directive: &Directive, graph: &FederatedGraph) -> bool {
+fn public_directives_filter(directive: &Directive) -> bool {
     match directive {
         Directive::Inaccessible
         | Directive::OneOf
@@ -256,10 +256,10 @@ fn public_directives_filter(directive: &Directive, graph: &FederatedGraph) -> bo
         | Directive::CompositeRequire { .. }
         | Directive::CompositeIs { .. }
         | Directive::ExtensionDirective { .. }
-        | Directive::CompositeInternal { .. } => false,
+        | Directive::CompositeInternal { .. }
+        | Directive::Other { .. } => false,
 
-        Directive::Other { name, .. } if graph[*name] == "tag" => false,
-        Directive::Deprecated { .. } | Directive::Other { .. } => true,
+        Directive::Deprecated { .. } => true,
     }
 }
 
@@ -270,7 +270,7 @@ fn write_public_directives<'a, 'b: 'a>(
 ) -> fmt::Result {
     for directive in directives
         .iter()
-        .filter(|directive| public_directives_filter(directive, graph))
+        .filter(|directive| public_directives_filter(directive))
     {
         f.write_str(" ")?;
         write_directive(f, directive, graph)?;

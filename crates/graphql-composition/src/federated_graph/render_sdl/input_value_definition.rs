@@ -8,7 +8,7 @@ use std::fmt;
 pub(crate) fn display_input_value_definition(
     input_value_definition: &InputValueDefinition,
     graph: &FederatedGraph,
-    directives_filter: fn(&Directive, graph: &FederatedGraph) -> bool,
+    directives_filter: fn(&Directive) -> bool,
     f: &mut fmt::Formatter<'_>,
 ) -> fmt::Result {
     write_description(f, input_value_definition.description, INDENT, graph)?;
@@ -24,7 +24,7 @@ pub(crate) fn display_input_value_definition(
     let mut filtered_directives = input_value_definition
         .directives
         .iter()
-        .filter(|directive| directives_filter(directive, graph))
+        .filter(|directive| directives_filter(directive))
         .peekable();
 
     if filtered_directives.peek().is_some() {

@@ -489,7 +489,7 @@ impl std::fmt::Display for ListSizeRender<'_> {
     }
 }
 
-fn directives_filter(_: &Directive, _: &FederatedGraph) -> bool {
+fn directives_filter(_: &Directive) -> bool {
     true
 }
 
