@@ -1,5 +1,5 @@
 use super::*;
-use crate::schema::{GrpcSchema, ProtoMethod, ProtoMethodId, View};
+use crate::schema::{GraphQLOperationType, GrpcSchema, ProtoMethod, ProtoMethodId, View};
 use std::fmt;
 
 pub(super) fn render_services(schema: &GrpcSchema, f: &mut fmt::Formatter<'_>) -> Result<TypesToRender, fmt::Error> {
@@ -9,15 +9,29 @@ pub(super) fn render_services(schema: &GrpcSchema, f: &mut fmt::Formatter<'_>) -
         return Ok(types_to_render);
     }
 
+    let mut query_methods = schema
+        .iter_methods()
+        .filter(|method| method.graphql_operation_type(schema) == GraphQLOperationType::Query)
+        .peekable();
+
     let mut mutation_methods = schema
         .iter_methods()
-        .filter(|method| !method.server_streaming)
+        .filter(|method| method.graphql_operation_type(schema) == GraphQLOperationType::Mutation)
         .peekable();
 
     let mut subscription_methods = schema
         .iter_methods()
-        .filter(|method| method.server_streaming)
+        .filter(|method| method.graphql_operation_type(schema) == GraphQLOperationType::Subscription)
         .peekable();
+
+    if query_methods.peek().is_some() {
+        f.write_str("type Query {\n")?;
+        for method in query_methods {
+            render_method_field(schema, &mut types_to_render, method, f)?;
+        }
+
+        f.write_str("}\n\n")?;
+    }
 
     if mutation_methods.peek().is_some() {
         f.write_str("type Mutation {\n")?;
@@ -61,11 +75,17 @@ fn render_method_field(
 
     render_output_field_type(schema, &method.output_type, false, f)?;
 
-    writeln!(
+    write!(
         f,
         " @grpcMethod(service: \"{}\", method: \"{}\")",
         service.name, method.name
     )?;
+
+    if let Some(directives) = method.directives.as_deref() {
+        write!(f, " {directives}")?;
+    }
+
+    f.write_str("\n")?;
 
     collect_message_id_and_enum_ids_recursively(
         schema,

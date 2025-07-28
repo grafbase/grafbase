@@ -1,10 +1,12 @@
-use crate::schema::{self, *};
+mod options;
 
-use prost_types::{
-    DescriptorProto, EnumDescriptorProto, ServiceDescriptorProto, SourceCodeInfo,
-    compiler::CodeGeneratorRequest,
-    field_descriptor_proto::{self, Label},
+use self::options::*;
+use crate::schema::{self, *};
+use protobuf::descriptor::{
+    DescriptorProto, EnumDescriptorProto, FileDescriptorSet, ServiceDescriptorProto, SourceCodeInfo,
+    field_descriptor_proto::Label, field_descriptor_proto::Type as FieldType,
 };
+use protobuf::plugin::CodeGeneratorRequest;
 use std::{collections::HashMap, str::FromStr as _};
 
 /// Instantiates a new translated schema from protobuf definitions.
@@ -14,12 +16,16 @@ pub(super) fn translate_schema(code_generator_request: CodeGeneratorRequest) -> 
     let mut enums_by_fully_qualified_name = HashMap::new();
     let mut location: Vec<i32> = Vec::with_capacity(4);
 
-    for proto_file in code_generator_request.proto_file {
-        let source_code_info = proto_file.source_code_info.unwrap_or_default();
+    // Create descriptor set for accessing extensions
+    let mut file_descriptor_set = FileDescriptorSet::new();
+    file_descriptor_set.file = code_generator_request.proto_file.clone();
 
-        let parent = if let Some(package_name) = proto_file.package.as_ref().filter(|name| !name.is_empty()) {
+    for proto_file in code_generator_request.proto_file {
+        let source_code_info = proto_file.source_code_info.clone().unwrap_or_default();
+
+        let parent = if proto_file.has_package() && !proto_file.package().is_empty() {
             let package_id = schema.push_packages(ProtoPackage {
-                name: package_name.clone(),
+                name: proto_file.package().to_string(),
             });
             Parent::Package(package_id)
         } else {
@@ -103,18 +109,24 @@ fn translate_service(
     messages_by_fully_qualified_name: &HashMap<String, ProtoMessageId>,
     enums_by_fully_qualified_name: &HashMap<String, ProtoEnumId>,
 ) {
-    let service_id = schema.push_services(ProtoService {
+    let mut proto_service = ProtoService {
         parent,
         name: if service.name().contains(".") {
-            service.name.clone().unwrap_or_default()
+            service.name().to_string()
         } else {
             match parent {
-                Parent::Message(_) | Parent::Root => service.name.clone().unwrap_or_default(),
+                Parent::Message(_) | Parent::Root => service.name().to_string(),
                 Parent::Package(proto_package_id) => format!("{}.{}", schema[proto_package_id].name, service.name()),
             }
         },
         description: location_to_description(location, source_code_info),
-    });
+        default_to_query_fields: false,
+        default_to_mutation_fields: false,
+    };
+
+    extract_service_graphql_options_from_options(service, &mut proto_service);
+
+    let service_id = schema.push_services(proto_service);
 
     for (idx, method) in service.method.iter().enumerate() {
         location.push(2); // method field on service
@@ -137,15 +149,22 @@ fn translate_service(
             enums_by_fully_qualified_name,
         );
 
-        schema.push_methods(ProtoMethod {
+        let mut proto_method = ProtoMethod {
             service_id,
-            name: method.name.clone().unwrap_or_default(),
+            name: method.name().to_string(),
             output_type,
             input_type,
             description,
             server_streaming: method.server_streaming(),
             client_streaming: method.client_streaming(),
-        });
+            is_query: None,
+            is_mutation: None,
+            directives: None,
+        };
+
+        extract_method_graphql_options_from_options(method, &mut proto_method);
+
+        schema.push_methods(proto_method);
     }
 }
 
@@ -170,19 +189,29 @@ fn translate_enum(
         location.pop();
         location.pop();
 
-        values.push(ProtoEnumValue {
-            name: value.name.clone().unwrap_or_default(),
+        let mut proto_enum_value = ProtoEnumValue {
+            name: value.name().to_string(),
             number: value.number(),
             description,
-        });
+            enum_value_directives: None,
+        };
+
+        extract_enum_value_graphql_directives_from_options(value, &mut proto_enum_value);
+
+        values.push(proto_enum_value);
     }
 
-    let enum_id = schema.push_enums(ProtoEnum {
+    let mut proto_enum = ProtoEnum {
         parent,
         name: name.clone(),
         description: location_to_description(location, source_code_info),
         values,
-    });
+        enum_directives: None,
+    };
+
+    extract_enum_graphql_directives_from_options(r#enum, &mut proto_enum);
+
+    let enum_id = schema.push_enums(proto_enum);
 
     enums_by_name.insert(name, enum_id);
 }
@@ -198,16 +227,18 @@ fn translate_message(
 ) {
     let name = parent.child_name(schema, message.name());
 
-    let message_id = schema.push_messages(ProtoMessage {
+    let mut translated_message = ProtoMessage {
         parent,
         name: name.clone(),
-        is_map_entry: message
-            .options
-            .as_ref()
-            .map(|opts| opts.map_entry())
-            .unwrap_or_default(),
+        is_map_entry: message.options.is_some() && message.options.as_ref().is_some_and(|opts| opts.map_entry()),
         description: location_to_description(location, source_code_info),
-    });
+        input_object_directives: None,
+        object_directives: None,
+    };
+
+    extract_message_graphql_directives_from_options(message, &mut translated_message);
+
+    let message_id = schema.push_messages(translated_message);
 
     messages_by_name.insert(name, message_id);
 
@@ -270,42 +301,48 @@ fn translate_fields(
             .try_into()
             .expect("Broken invariant: field number must be nonnegative");
 
-        let r#type = match field.r#type() {
-            field_descriptor_proto::Type::Double => FieldType::Scalar(ScalarType::Double),
-            field_descriptor_proto::Type::Float => FieldType::Scalar(ScalarType::Float),
-            field_descriptor_proto::Type::Int64 => FieldType::Scalar(ScalarType::Int64),
-            field_descriptor_proto::Type::Uint64 => FieldType::Scalar(ScalarType::UInt64),
-            field_descriptor_proto::Type::Int32 => FieldType::Scalar(ScalarType::Int32),
-            field_descriptor_proto::Type::Fixed64 => FieldType::Scalar(ScalarType::Fixed64),
-            field_descriptor_proto::Type::Fixed32 => FieldType::Scalar(ScalarType::Fixed32),
-            field_descriptor_proto::Type::Bool => FieldType::Scalar(ScalarType::Bool),
-            field_descriptor_proto::Type::String => FieldType::Scalar(ScalarType::String),
-            field_descriptor_proto::Type::Bytes => FieldType::Scalar(ScalarType::Bytes),
-            field_descriptor_proto::Type::Uint32 => FieldType::Scalar(ScalarType::UInt32),
-            field_descriptor_proto::Type::Sfixed32 => FieldType::Scalar(ScalarType::Sfixed32),
-            field_descriptor_proto::Type::Sfixed64 => FieldType::Scalar(ScalarType::Sfixed64),
-            field_descriptor_proto::Type::Sint32 => FieldType::Scalar(ScalarType::Sint32),
-            field_descriptor_proto::Type::Sint64 => FieldType::Scalar(ScalarType::Sint64),
+        let r#type = match field.type_.unwrap_or_default().enum_value_or_default() {
+            FieldType::TYPE_DOUBLE => crate::schema::FieldType::Scalar(ScalarType::Double),
+            FieldType::TYPE_FLOAT => crate::schema::FieldType::Scalar(ScalarType::Float),
+            FieldType::TYPE_INT64 => crate::schema::FieldType::Scalar(ScalarType::Int64),
+            FieldType::TYPE_UINT64 => crate::schema::FieldType::Scalar(ScalarType::UInt64),
+            FieldType::TYPE_INT32 => crate::schema::FieldType::Scalar(ScalarType::Int32),
+            FieldType::TYPE_FIXED64 => crate::schema::FieldType::Scalar(ScalarType::Fixed64),
+            FieldType::TYPE_FIXED32 => crate::schema::FieldType::Scalar(ScalarType::Fixed32),
+            FieldType::TYPE_BOOL => crate::schema::FieldType::Scalar(ScalarType::Bool),
+            FieldType::TYPE_STRING => crate::schema::FieldType::Scalar(ScalarType::String),
+            FieldType::TYPE_BYTES => crate::schema::FieldType::Scalar(ScalarType::Bytes),
+            FieldType::TYPE_UINT32 => crate::schema::FieldType::Scalar(ScalarType::UInt32),
+            FieldType::TYPE_SFIXED32 => crate::schema::FieldType::Scalar(ScalarType::Sfixed32),
+            FieldType::TYPE_SFIXED64 => crate::schema::FieldType::Scalar(ScalarType::Sfixed64),
+            FieldType::TYPE_SINT32 => crate::schema::FieldType::Scalar(ScalarType::Sint32),
+            FieldType::TYPE_SINT64 => crate::schema::FieldType::Scalar(ScalarType::Sint64),
 
             // ...
-            field_descriptor_proto::Type::Group => continue,
-            field_descriptor_proto::Type::Enum | field_descriptor_proto::Type::Message => translate_type(
+            FieldType::TYPE_GROUP => continue,
+            FieldType::TYPE_ENUM | FieldType::TYPE_MESSAGE => translate_type(
                 field.type_name(),
                 messages_by_fully_qualified_name,
                 enums_by_fully_qualified_name,
             ),
         };
 
-        let repeated = field.label() == Label::Repeated;
+        let repeated = field.label.unwrap_or_default().enum_value_or_default() == Label::LABEL_REPEATED;
 
-        schema.push_fields(ProtoField {
+        let mut proto_field = ProtoField {
             message_id,
             name: field.name().to_owned(),
             r#type,
             number,
             repeated,
             description,
-        });
+            input_field_directives: None,
+            output_field_directives: None,
+        };
+
+        extract_field_graphql_directives_from_options(field, &mut proto_field);
+
+        schema.push_fields(proto_field);
     }
 
     // Now do the same for all submessages
@@ -327,20 +364,163 @@ fn translate_type(
     field_type: &str,
     messages_by_name: &HashMap<String, ProtoMessageId>,
     enums_by_name: &HashMap<String, ProtoEnumId>,
-) -> FieldType {
+) -> crate::schema::FieldType {
     if let Ok(scalar_type) = ScalarType::from_str(field_type) {
-        return FieldType::Scalar(scalar_type);
+        return crate::schema::FieldType::Scalar(scalar_type);
     }
 
     if let Some(message_id) = messages_by_name.get(field_type) {
-        return FieldType::Message(*message_id);
+        return crate::schema::FieldType::Message(*message_id);
     }
 
     if let Some(enum_id) = enums_by_name.get(field_type) {
-        return FieldType::Enum(*enum_id);
+        return crate::schema::FieldType::Enum(*enum_id);
     }
 
     unreachable!("Encountered unexpected unknown field type: {field_type}");
+}
+
+fn extract_message_graphql_directives_from_options(message: &DescriptorProto, translated_message: &mut ProtoMessage) {
+    let [graphql_output_object_directives, graphql_input_object_directives] =
+        [OBJECT_DIRECTIVES, INPUT_OBJECT_DIRECTIVES].map(|field_number| {
+            message
+                .options
+                .special_fields
+                .unknown_fields()
+                .get(field_number)
+                .and_then(|unknown_value_ref| match unknown_value_ref {
+                    protobuf::UnknownValueRef::LengthDelimited(items) => {
+                        Some(str::from_utf8(items).unwrap().to_owned())
+                    }
+                    _ => None,
+                })
+        });
+
+    translated_message.object_directives = graphql_output_object_directives;
+    translated_message.input_object_directives = graphql_input_object_directives;
+}
+
+fn extract_field_graphql_directives_from_options(
+    field: &protobuf::descriptor::FieldDescriptorProto,
+    proto_field: &mut ProtoField,
+) {
+    let [graphql_output_field_directives, graphql_input_field_directives] =
+        [OUTPUT_FIELD_DIRECTIVES, INPUT_FIELD_DIRECTIVES].map(|field_number| {
+            field
+                .options
+                .special_fields
+                .unknown_fields()
+                .get(field_number)
+                .and_then(|unknown_value_ref| match unknown_value_ref {
+                    protobuf::UnknownValueRef::LengthDelimited(items) => {
+                        Some(str::from_utf8(items).unwrap().to_owned())
+                    }
+                    _ => None,
+                })
+        });
+
+    proto_field.output_field_directives = graphql_output_field_directives;
+    proto_field.input_field_directives = graphql_input_field_directives;
+}
+
+fn extract_enum_graphql_directives_from_options(
+    enum_desc: &protobuf::descriptor::EnumDescriptorProto,
+    proto_enum: &mut ProtoEnum,
+) {
+    let graphql_enum_directives = enum_desc
+        .options
+        .special_fields
+        .unknown_fields()
+        .get(ENUM_DIRECTIVES)
+        .and_then(|unknown_value_ref| match unknown_value_ref {
+            protobuf::UnknownValueRef::LengthDelimited(items) => Some(str::from_utf8(items).unwrap().to_owned()),
+            _ => None,
+        });
+
+    proto_enum.enum_directives = graphql_enum_directives;
+}
+
+fn extract_enum_value_graphql_directives_from_options(
+    enum_value: &protobuf::descriptor::EnumValueDescriptorProto,
+    proto_enum_value: &mut ProtoEnumValue,
+) {
+    let graphql_enum_value_directives = enum_value
+        .options
+        .special_fields
+        .unknown_fields()
+        .get(ENUM_VALUE_DIRECTIVES)
+        .and_then(|unknown_value_ref| match unknown_value_ref {
+            protobuf::UnknownValueRef::LengthDelimited(items) => Some(str::from_utf8(items).unwrap().to_owned()),
+            _ => None,
+        });
+
+    proto_enum_value.enum_value_directives = graphql_enum_value_directives;
+}
+
+fn extract_service_graphql_options_from_options(service: &ServiceDescriptorProto, proto_service: &mut ProtoService) {
+    let graphql_default_to_query_fields = service
+        .options
+        .special_fields
+        .unknown_fields()
+        .get(DEFAULT_TO_QUERY_FIELDS)
+        .and_then(|unknown_value_ref| match unknown_value_ref {
+            protobuf::UnknownValueRef::Varint(value) => Some(value != 0),
+            _ => None,
+        })
+        .unwrap_or(false);
+
+    let graphql_default_to_mutation_fields = service
+        .options
+        .special_fields
+        .unknown_fields()
+        .get(DEFAULT_TO_MUTATION_FIELDS)
+        .and_then(|unknown_value_ref| match unknown_value_ref {
+            protobuf::UnknownValueRef::Varint(value) => Some(value != 0),
+            _ => None,
+        })
+        .unwrap_or(false);
+
+    proto_service.default_to_query_fields = graphql_default_to_query_fields;
+    proto_service.default_to_mutation_fields = graphql_default_to_mutation_fields;
+}
+
+fn extract_method_graphql_options_from_options(
+    method: &protobuf::descriptor::MethodDescriptorProto,
+    proto_method: &mut ProtoMethod,
+) {
+    let is_query = method
+        .options
+        .special_fields
+        .unknown_fields()
+        .get(IS_QUERY)
+        .and_then(|unknown_value_ref| match unknown_value_ref {
+            protobuf::UnknownValueRef::Varint(value) => Some(value != 0),
+            _ => None,
+        });
+
+    let is_mutation = method
+        .options
+        .special_fields
+        .unknown_fields()
+        .get(IS_MUTATION)
+        .and_then(|unknown_value_ref| match unknown_value_ref {
+            protobuf::UnknownValueRef::Varint(value) => Some(value != 0),
+            _ => None,
+        });
+
+    let directives = method
+        .options
+        .special_fields
+        .unknown_fields()
+        .get(DIRECTIVES)
+        .and_then(|unknown_value_ref| match unknown_value_ref {
+            protobuf::UnknownValueRef::LengthDelimited(items) => Some(str::from_utf8(items).unwrap().to_owned()),
+            _ => None,
+        });
+
+    proto_method.directives = directives;
+    proto_method.is_query = is_query;
+    proto_method.is_mutation = is_mutation;
 }
 
 fn location_to_description(path: &[i32], source_code_info: &SourceCodeInfo) -> Option<String> {

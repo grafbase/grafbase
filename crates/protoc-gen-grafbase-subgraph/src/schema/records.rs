@@ -19,6 +19,8 @@ pub(crate) struct ProtoMessage {
     /// Is this an auto-generated message type corresponding to a map? See https://docs.rs/prost-types/0.13.5/prost_types/struct.MessageOptions.html#structfield.map_entry
     pub(crate) is_map_entry: bool,
     pub(crate) description: Option<String>,
+    pub(crate) input_object_directives: Option<String>,
+    pub(crate) object_directives: Option<String>,
 }
 
 impl ProtoMessage {
@@ -42,6 +44,8 @@ pub(crate) struct ProtoField {
     pub(crate) number: u16,
     pub(crate) repeated: bool,
     pub(crate) description: Option<String>,
+    pub(crate) input_field_directives: Option<String>,
+    pub(crate) output_field_directives: Option<String>,
 }
 
 impl PartialOrd for ProtoField {
@@ -55,6 +59,8 @@ pub(crate) struct ProtoService {
     pub(crate) parent: Parent,
     pub(crate) name: String,
     pub(crate) description: Option<String>,
+    pub(crate) default_to_query_fields: bool,
+    pub(crate) default_to_mutation_fields: bool,
 }
 
 impl ProtoService {
@@ -78,6 +84,9 @@ pub(crate) struct ProtoMethod {
     pub(crate) description: Option<String>,
     pub(crate) server_streaming: bool,
     pub(crate) client_streaming: bool,
+    pub(crate) is_query: Option<bool>,
+    pub(crate) is_mutation: Option<bool>,
+    pub(crate) directives: Option<String>,
 }
 
 impl PartialOrd for ProtoMethod {
@@ -192,6 +201,7 @@ pub(crate) struct ProtoEnum {
     pub(crate) name: String,
     pub(crate) values: Vec<ProtoEnumValue>,
     pub(crate) description: Option<String>,
+    pub(crate) enum_directives: Option<String>,
 }
 
 impl ProtoEnum {
@@ -205,4 +215,44 @@ pub(crate) struct ProtoEnumValue {
     pub(crate) name: String,
     pub(crate) description: Option<String>,
     pub(crate) number: i32,
+    pub(crate) enum_value_directives: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub(crate) enum GraphQLOperationType {
+    Query,
+    Mutation,
+    Subscription,
+}
+
+impl ProtoMethod {
+    pub(crate) fn graphql_operation_type(&self, schema: &super::GrpcSchema) -> GraphQLOperationType {
+        // Priority 1: Server streaming always becomes subscription
+        if self.server_streaming {
+            return GraphQLOperationType::Subscription;
+        }
+
+        // Priority 2: Method-level override for query
+        if let Some(is_query) = self.is_query {
+            if is_query {
+                return GraphQLOperationType::Query;
+            }
+        }
+
+        // Priority 2: Method-level override for mutation
+        if let Some(is_mutation) = self.is_mutation {
+            if is_mutation {
+                return GraphQLOperationType::Mutation;
+            }
+        }
+
+        // Priority 3: Service-level default
+        let service = &schema[self.service_id];
+        if service.default_to_query_fields {
+            return GraphQLOperationType::Query;
+        }
+
+        // Priority 4: Default to mutation
+        GraphQLOperationType::Mutation
+    }
 }

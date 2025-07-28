@@ -11,8 +11,8 @@ repository.workspace = true
 grafbase-workspace-hack.workspace = true
 indexmap.workspace = true
 paste.workspace = true
-prost = { workspace = true, features = ["std"] }
-prost-types = { workspace = true, features = ["std"] }
+protobuf.workspace = true
+protobuf-support.workspace = true
 
 [dev-dependencies]
 insta.workspace = true
