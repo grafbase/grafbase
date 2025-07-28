@@ -1,17 +1,20 @@
 use std::{
-    fmt::Write,
+    collections::hash_map::Entry,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     path::{Path, PathBuf},
+    str::FromStr,
     time::Duration,
 };
 
 use crate::test::{
     GraphqlRequest, LogLevel,
-    config::{CLI_BINARY_NAME, GATEWAY_BINARY_NAME, TestConfig},
-    request::Body,
+    config::{
+        CLI_BINARY_NAME, ExtensionConfig, ExtensionToml, GATEWAY_BINARY_NAME, GatewayToml, StructuredExtensionConfig,
+    },
+    request::{Body, IntrospectionRequest},
 };
 
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 use grafbase_sdk_mock::{MockGraphQlServer, Subgraph};
 use graphql_composition::{LoadedExtension, Subgraphs};
 use itertools::Itertools;
@@ -22,23 +25,14 @@ use url::Url;
 /// A test runner that can start a gateway and execute GraphQL queries against it.
 pub struct TestGateway {
     http_client: reqwest::Client,
-    config: TestConfig,
-    gateway_handle: Option<duct::Handle>,
-    gateway_listen_address: SocketAddr,
-    gateway_endpoint: Url,
-    test_specific_temp_dir: TempDir,
-    _mock_subgraphs: Vec<MockGraphQlServer>,
+    handle: duct::Handle,
+    url: Url,
     federated_sdl: String,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct ExtensionToml {
-    extension: ExtensionDefinition,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct ExtensionDefinition {
-    name: String,
+    // Kept to drop them at the right time.
+    #[allow(unused)]
+    tmp_dir: TempDir,
+    #[allow(unused)]
+    mock_subgraphs: Vec<MockGraphQlServer>,
 }
 
 impl TestGateway {
@@ -49,7 +43,7 @@ impl TestGateway {
 
     /// Full url of the GraphQL endpoint on the gateway.
     pub fn url(&self) -> &Url {
-        &self.gateway_endpoint
+        &self.url
     }
 
     /// Creates a new GraphQL query builder with the given query.
@@ -62,7 +56,7 @@ impl TestGateway {
     ///
     /// A [`QueryBuilder`] that can be used to customize and execute the query
     pub fn query(&self, query: impl Into<Body>) -> GraphqlRequest {
-        let builder = self.http_client.post(self.gateway_endpoint.clone());
+        let builder = self.http_client.post(self.url.clone());
         GraphqlRequest {
             builder,
             body: query.into(),
@@ -73,6 +67,29 @@ impl TestGateway {
     pub fn federated_sdl(&self) -> &str {
         &self.federated_sdl
     }
+
+    /// Execute a GraphQL introspection query to retrieve the API schema as a string.
+    /// Beware that introspection must be explicitly enabled with in the TOML config:
+    /// ```toml
+    /// [graph]
+    /// introspection = true
+    /// ```
+    pub fn introspect(&self) -> IntrospectionRequest {
+        let operation = cynic_introspection::IntrospectionQuery::with_capabilities(
+            cynic_introspection::SpecificationVersion::October2021.capabilities(),
+        );
+        IntrospectionRequest(self.query(Body {
+            query: Some(operation.query),
+            variables: None,
+        }))
+    }
+
+    /// Checks if the gateway is healthy by sending a request to the `/health` endpoint.
+    pub async fn health(&self) -> anyhow::Result<()> {
+        let url = self.url.join("/health")?;
+        let _ = self.http_client.get(url).send().await?.error_for_status()?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -80,15 +97,9 @@ impl TestGateway {
 pub struct TestGatewayBuilder {
     gateway_path: Option<PathBuf>,
     cli_path: Option<PathBuf>,
-    extension_path: Option<PathBuf>,
     toml_config: Option<String>,
     subgraphs: Vec<Subgraph>,
-    enable_stdout: Option<bool>,
-    enable_stderr: Option<bool>,
-    enable_networking: Option<bool>,
-    enable_environment_variables: Option<bool>,
     stream_stdout_stderr: Option<bool>,
-    max_pool_size: Option<usize>,
     log_level: Option<LogLevel>,
 }
 
@@ -116,54 +127,16 @@ impl TestGatewayBuilder {
         self
     }
 
-    /// Specifies a path to a pre-built extension. If not defined, the extension will be built.
-    pub fn with_extension_path(mut self, extension_path: impl Into<PathBuf>) -> Self {
-        self.extension_path = Some(extension_path.into().canonicalize().unwrap());
-        self
-    }
-
-    /// Enables stdout output from the gateway and CLI. Useful for debugging errors in the gateway
-    /// and in the extension.
-    pub fn enable_stdout(mut self) -> Self {
-        self.enable_stdout = Some(true);
-        self
-    }
-
-    /// Enables stderr output from the gateway and CLI. Useful for debugging errors in the gateway
-    /// and in the extension.
-    pub fn enable_stderr(mut self) -> Self {
-        self.enable_stderr = Some(true);
-        self
-    }
-
-    /// Enables networking for the extension.
-    pub fn enable_networking(mut self) -> Self {
-        self.enable_networking = Some(true);
-        self
-    }
-
-    /// Enables environment variables for the extension.
-    pub fn enable_environment_variables(mut self) -> Self {
-        self.enable_environment_variables = Some(true);
-        self
-    }
-
-    /// Sets the maximum pool size for the extension.
-    pub fn max_pool_size(mut self, size: usize) -> Self {
-        self.max_pool_size = Some(size);
+    /// Sets the TOML configuration for the gateway. The extension and subgraphs will be
+    /// automatically added to the configuration.
+    pub fn toml_config(mut self, cfg: impl ToString) -> Self {
+        self.toml_config = Some(cfg.to_string());
         self
     }
 
     /// Sets the log level for the gateway process output.
     pub fn log_level(mut self, level: impl Into<LogLevel>) -> Self {
         self.log_level = Some(level.into());
-        self
-    }
-
-    /// Sets the TOML configuration for the gateway. The extension and subgraphs will be
-    /// automatically added to the configuration.
-    pub fn toml_config(mut self, cfg: impl ToString) -> Self {
-        self.toml_config = Some(cfg.to_string());
         self
     }
 
@@ -177,181 +150,176 @@ impl TestGatewayBuilder {
 
     /// Build the [`TestGateway`]
     pub async fn build(self) -> anyhow::Result<TestGateway> {
-        let Self {
-            gateway_path,
-            cli_path,
-            extension_path,
-            enable_stdout,
-            enable_stderr,
-            subgraphs: mock_subgraphs,
-            enable_networking,
-            enable_environment_variables,
-            max_pool_size,
-            log_level,
-            toml_config,
-            stream_stdout_stderr,
-        } = self;
+        println!("Building the gateway:");
 
-        let gateway_path = match gateway_path {
+        let gateway_path = match self.gateway_path {
             Some(path) => path,
             None => which::which(GATEWAY_BINARY_NAME).context("Could not fild grafbase-gateway binary in the PATH. Either install it or specify the gateway path in the test configuration.")?,
         };
 
-        let cli_path = match cli_path {
+        let cli_path = match self.cli_path {
             Some(path) => path,
             None => which::which(CLI_BINARY_NAME).context("Could not fild grafbase binary in the PATH. Either install it or specify the gateway path in the test configuration.")?,
         };
 
-        let log_level = log_level.unwrap_or_default();
+        let log_level = self.log_level.unwrap_or_default();
 
-        TestGateway::setup(TestConfig {
-            gateway_path,
-            cli_path,
-            toml_config: toml_config.unwrap_or_default(),
-            extension_path,
-            enable_stdout,
-            enable_stderr,
-            mock_subgraphs,
-            enable_networking,
-            enable_environment_variables,
-            max_pool_size,
-            log_level,
-            stream_stdout_stderr,
-        })
-        .await
-    }
-}
+        let extension_path = std::env::current_dir()?;
+        let extension_name =
+            toml::from_str::<ExtensionToml>(&std::fs::read_to_string(extension_path.join("extension.toml"))?)?
+                .extension
+                .name;
 
-#[allow(clippy::panic)]
-impl TestGateway {
-    async fn setup(mut config: TestConfig) -> anyhow::Result<Self> {
-        let test_specific_temp_dir = tempfile::Builder::new().prefix("sdk-tests").tempdir()?;
-        let gateway_listen_address = listen_address()?;
-        let gateway_endpoint = Url::parse(&format!("http://{gateway_listen_address}/graphql"))?;
+        // Ensure current extension is built and up to date.
+        {
+            println!("* Building current extension.");
+            let lock_path = extension_path.join(".build.lock");
+            let mut lock_file = fslock::LockFile::open(&lock_path)?;
+            lock_file.lock()?;
 
-        let extension_toml_path = std::env::current_dir()?.join("extension.toml");
-        let extension_toml = std::fs::read_to_string(&extension_toml_path)?;
-        let extension_toml: ExtensionToml = toml::from_str(&extension_toml)?;
-        let extension_name = extension_toml.extension.name;
-
-        let mut mock_subgraphs = Vec::new();
-        let mut subgraphs = Subgraphs::default();
-
-        let extension_path = match config.extension_path {
-            Some(ref path) => path.to_path_buf(),
-            None => std::env::current_dir()?.join("build"),
-        };
-
-        let extension_url = url::Url::from_file_path(&extension_path).unwrap();
-        subgraphs.ingest_loaded_extensions(std::iter::once(LoadedExtension::new(
-            extension_url.to_string(),
-            extension_name.clone(),
-        )));
-
-        let re = Regex::new(r#"@link\(\s*url\s*:\s*"(<self>)""#).unwrap();
-        let rep = format!(r#"@link(url: "{extension_url}""#);
-        for subgraph in config.mock_subgraphs.drain(..) {
-            match subgraph {
-                Subgraph::Graphql(subgraph) => {
-                    let mock_graph = subgraph.start().await;
-                    let sdl = re.replace_all(mock_graph.schema(), &rep);
-                    subgraphs.ingest_str(sdl.as_ref(), mock_graph.name(), Some(mock_graph.url().as_str()))?;
-                    mock_subgraphs.push(mock_graph);
-                }
-                Subgraph::Virtual(subgraph) => {
-                    let sdl = re.replace_all(subgraph.schema(), &rep);
-                    subgraphs.ingest_str(sdl.as_ref(), subgraph.name(), None)?;
+            let output = {
+                let cmd = duct::cmd(&cli_path, &["extension", "build", "--debug"]).dir(&extension_path);
+                if self.stream_stdout_stderr.unwrap_or(false) {
+                    cmd
+                } else {
+                    cmd.stdout_capture().stderr_capture()
                 }
             }
-        }
+            .unchecked()
+            .stderr_to_stdout()
+            .run()?;
 
-        let federated_graph = match graphql_composition::compose(&subgraphs)
-            .warnings_are_fatal()
-            .into_result()
-        {
-            Ok(graph) => graph,
-            Err(diagnostics) => {
-                return Err(anyhow::anyhow!(
-                    "Failed to compose subgraphs:\n{}\n",
-                    diagnostics
-                        .iter_messages()
-                        .format_with("\n", |msg, f| f(&format_args!("- {msg}")))
+            if !output.status.success() {
+                return Err(anyhow!(
+                    "Failed to build extension: {}\n{}\n{}",
+                    output.status,
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
                 ));
             }
-        };
-        let federated_sdl = graphql_composition::render_federated_sdl(&federated_graph)?;
 
-        let mut this = Self {
-            http_client: reqwest::Client::new(),
-            config,
-            gateway_handle: None,
-            gateway_listen_address,
-            gateway_endpoint,
-            test_specific_temp_dir,
-            _mock_subgraphs: mock_subgraphs,
-            federated_sdl,
-        };
+            lock_file.unlock()?;
+            anyhow::Ok(())
+        }?;
 
-        if this.config.extension_path.is_none() {
-            this.build_extension(&extension_path)?;
+        println!("* Preparing the grafbase.toml & schema.graphql files.");
+        // Update grafbase TOML with current extension path.
+        let mut toml_config: GatewayToml = toml::from_str(&self.toml_config.unwrap_or_default())?;
+        match toml_config.extensions.entry(extension_name.clone()) {
+            Entry::Occupied(mut entry) => match entry.get_mut() {
+                ExtensionConfig::Version(_) => {
+                    return Err(anyhow!(
+                        "Current extension {extension_name} cannot be specified with a version"
+                    ));
+                }
+                ExtensionConfig::Structured(config) => {
+                    config
+                        .path
+                        .get_or_insert_with(|| extension_path.join("build").to_string_lossy().into_owned());
+                }
+            },
+            Entry::Vacant(entry) => {
+                entry.insert(ExtensionConfig::Structured(StructuredExtensionConfig {
+                    path: Some(extension_path.join("build").to_string_lossy().into_owned()),
+                    version: None,
+                    rest: Default::default(),
+                }));
+            }
         }
 
-        this.start_servers(&extension_name, &extension_path)
-            .await
-            .map_err(|err| anyhow::anyhow!("Failed to start servers: {err}"))?;
+        // Composition
+        let (federated_sdl, mock_subgraphs) = {
+            let extensions = toml_config
+                .extensions
+                .iter()
+                .map(|(name, config)| match config {
+                    ExtensionConfig::Version(version) => Ok(LoadedExtension::new(
+                        format!("https://extensions.grafbase.com/{extension_name}/{version}"),
+                        name.clone(),
+                    )),
+                    ExtensionConfig::Structured(StructuredExtensionConfig {
+                        path: None, version, ..
+                    }) => Ok(LoadedExtension::new(
+                        format!(
+                            "https://extensions.grafbase.com/{extension_name}/{}",
+                            version
+                                .as_ref()
+                                .ok_or_else(|| anyhow!("Missing path or version for extension '{name}'"))?
+                        ),
+                        name.clone(),
+                    )),
+                    ExtensionConfig::Structured(StructuredExtensionConfig { path: Some(path), .. }) => {
+                        let mut path = PathBuf::from_str(path.as_str())
+                            .context(format!("Invalid path for extension {name}: {path}"))?;
+                        if path.is_relative() {
+                            path = extension_path.join(path);
+                        }
+                        anyhow::Ok(LoadedExtension::new(
+                            Url::from_file_path(&path)
+                                .map_err(|_| anyhow!("Invalid path for extension {name}: {}", path.display()))?
+                                .to_string(),
+                            name.to_owned(),
+                        ))
+                    }
+                })
+                .collect::<anyhow::Result<Vec<_>>>()?;
 
-        Ok(this)
-    }
+            compose(self.subgraphs, &extension_path, extensions).await
+        }?;
 
-    async fn start_servers(&mut self, extension_name: &str, extension_path: &Path) -> anyhow::Result<()> {
-        let extension_path = extension_path.display();
-        let config_path = self.test_specific_temp_dir.path().join("grafbase.toml");
-        let schema_path = self.test_specific_temp_dir.path().join("federated-schema.graphql");
+        // Build test dir
+        let tmp_dir = tempfile::Builder::new().prefix("sdk-tests").tempdir()?;
+        let config_path = tmp_dir.path().join("grafbase.toml");
+        let schema_path = tmp_dir.path().join("schema.graphql");
 
-        let config = {
-            let max_pool_size = self.config.max_pool_size.unwrap_or(100);
-            let mut config = indoc::formatdoc! {r#"
-                [extensions.{extension_name}]
-                path = "{extension_path}"
-                max_pool_size = {max_pool_size}
-            "#};
-            if let Some(enabled) = self.config.enable_stderr {
-                writeln!(config, "stderr = {enabled}").unwrap();
+        std::fs::write(&config_path, toml::to_string(&toml_config)?).context("Failed to write grafbase.toml")?;
+        std::fs::write(&schema_path, &federated_sdl).context("Failed to write schema.graphql")?;
+
+        // Install other extensions if necessary.
+        if toml_config.extensions.len() > 1 {
+            println!("* Installing other extensions.");
+            let output = {
+                let cmd = duct::cmd(&cli_path, &["extension", "install"]).dir(tmp_dir.path());
+                if self.stream_stdout_stderr.unwrap_or(false) {
+                    cmd
+                } else {
+                    cmd.stdout_capture().stderr_capture()
+                }
             }
-            if let Some(enabled) = self.config.enable_stdout {
-                writeln!(config, "stdout = {enabled}").unwrap();
-            }
-            if let Some(enabled) = self.config.enable_networking {
-                writeln!(config, "networking = {enabled}").unwrap();
-            }
-            if let Some(enabled) = self.config.enable_environment_variables {
-                writeln!(config, "environment_variables = {enabled}").unwrap();
-            }
-            config.push_str("\n\n");
-            config.push_str(&self.config.toml_config);
-            config
-        };
-        println!("{config}");
+            .unchecked()
+            .stderr_to_stdout()
+            .run()?;
 
-        std::fs::write(&config_path, config.as_bytes())
-            .map_err(|err| anyhow::anyhow!("Failed to write config at {:?}: {err}", config_path))?;
-        std::fs::write(&schema_path, self.federated_sdl.as_bytes())
-            .map_err(|err| anyhow::anyhow!("Failed to write schema at {:?}: {err}", schema_path))?;
+            if !output.status.success() {
+                return Err(anyhow!(
+                    "Failed to install extensions: {}\n{}\n{}",
+                    output.status,
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
+                ));
+            }
+        }
 
-        let args = &[
-            "--listen-address",
-            &self.gateway_listen_address.to_string(),
-            "--config",
-            &config_path.to_string_lossy(),
-            "--schema",
-            &schema_path.to_string_lossy(),
-            "--log",
-            self.config.log_level.as_ref(),
-        ];
+        println!("* Starting the gateway.");
+        let listen_address = new_listen_address()?;
+        let url = Url::parse(&format!("http://{listen_address}/graphql")).unwrap();
 
-        let gateway_handle = {
-            let cmd = duct::cmd(&self.config.gateway_path, args);
-            if self.config.stream_stdout_stderr.unwrap_or(false) {
+        let handle = {
+            let cmd = duct::cmd(
+                &gateway_path,
+                &[
+                    "--listen-address",
+                    &listen_address.to_string(),
+                    "--config",
+                    &config_path.to_string_lossy(),
+                    "--schema",
+                    &schema_path.to_string_lossy(),
+                    "--log",
+                    log_level.as_ref(),
+                ],
+            )
+            .dir(tmp_dir.path());
+            if self.stream_stdout_stderr.unwrap_or(false) {
                 cmd
             } else {
                 cmd.stdout_capture().stderr_capture()
@@ -360,78 +328,46 @@ impl TestGateway {
         .unchecked()
         .stderr_to_stdout()
         .start()
-        .map_err(|err| anyhow::anyhow!("Failed to start the gateway: {err}"))?;
+        .map_err(|err| anyhow!("Failed to start the gateway: {err}"))?;
+
+        let gateway = TestGateway {
+            http_client: reqwest::Client::new(),
+            handle,
+            url,
+            tmp_dir,
+            mock_subgraphs,
+            federated_sdl,
+        };
 
         let mut i = 0;
-        while !self.check_gateway_health().await? {
+        while gateway.health().await.is_err() {
             // printing every second only
             if i % 10 == 0 {
-                match gateway_handle.try_wait() {
-                    Ok(Some(output)) => panic!(
-                        "Gateway process exited unexpectedly: {}\n{}\n{}",
-                        output.status,
-                        String::from_utf8_lossy(&output.stdout),
-                        String::from_utf8_lossy(&output.stderr)
-                    ),
+                match gateway.handle.try_wait() {
+                    Ok(Some(output)) => {
+                        return Err(anyhow!(
+                            "Gateway process exited unexpectedly: {}\n{}\n{}",
+                            output.status,
+                            String::from_utf8_lossy(&output.stdout),
+                            String::from_utf8_lossy(&output.stderr)
+                        ));
+                    }
                     Ok(None) => (),
-                    Err(err) => panic!("Error waiting for gateway process: {err}"),
+                    Err(err) => return Err(anyhow!("Error waiting for gateway process: {err}")),
                 }
                 println!("Waiting for gateway to be ready...");
             }
             i += 1;
-            std::thread::sleep(Duration::from_millis(100));
+            tokio::time::sleep(Duration::from_millis(100)).await;
         }
 
-        self.gateway_handle = Some(gateway_handle);
-
-        Ok(())
+        Ok(gateway)
     }
+}
 
-    async fn check_gateway_health(&self) -> anyhow::Result<bool> {
-        let url = self.gateway_endpoint.join("/health")?;
-
-        let Ok(result) = self.http_client.get(url).send().await else {
-            return Ok(false);
-        };
-
-        let result = result.error_for_status().is_ok();
-
-        Ok(result)
-    }
-
-    fn build_extension(&mut self, extension_path: &Path) -> anyhow::Result<()> {
-        let extension_path = extension_path.to_string_lossy();
-
-        // Only one test can build the extension at a time. The others must
-        // wait.
-        let mut lock_file = fslock::LockFile::open(".build.lock")?;
-        lock_file.lock()?;
-
-        let args = &["extension", "build", "--debug", "--output-dir", &*extension_path];
-        let output = {
-            let cmd = duct::cmd(&self.config.cli_path, args);
-            if self.config.stream_stdout_stderr.unwrap_or(false) {
-                cmd
-            } else {
-                cmd.stdout_capture().stderr_capture()
-            }
-        }
-        .unchecked()
-        .stderr_to_stdout()
-        .run()?;
-        if !output.status.success() {
-            panic!(
-                "Failed to build extension: {}\n{}\n{}",
-                output.status,
-                String::from_utf8_lossy(&output.stdout),
-                String::from_utf8_lossy(&output.stderr)
-            );
-        }
-
-        lock_file.unlock()?;
-
-        Ok(())
-    }
+pub(crate) fn new_listen_address() -> anyhow::Result<SocketAddr> {
+    let port = free_port()?;
+    Ok(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), port)))
 }
 
 pub(crate) fn free_port() -> anyhow::Result<u16> {
@@ -458,18 +394,57 @@ pub(crate) fn free_port() -> anyhow::Result<u16> {
     Ok(port)
 }
 
-pub(crate) fn listen_address() -> anyhow::Result<SocketAddr> {
-    let port = free_port()?;
-    Ok(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), port)))
+async fn compose(
+    subgraphs: impl IntoIterator<Item = Subgraph>,
+    extension_path: &Path,
+    extensions: impl IntoIterator<Item = LoadedExtension>,
+) -> anyhow::Result<(String, Vec<MockGraphQlServer>)> {
+    let mut mock_subgraphs = Vec::new();
+    let mut composition_subgraphs = Subgraphs::default();
+
+    composition_subgraphs.ingest_loaded_extensions(extensions);
+
+    let extension_url = url::Url::from_file_path(extension_path.join("build")).unwrap();
+    let re = Regex::new(r#"@link\(\s*url\s*:\s*"(<self>)""#).unwrap();
+    let rep = format!(r#"@link(url: "{extension_url}""#);
+
+    for subgraph in subgraphs {
+        match subgraph {
+            Subgraph::Graphql(subgraph) => {
+                let mock_graph = subgraph.start().await;
+                let sdl = re.replace_all(mock_graph.schema(), &rep);
+                composition_subgraphs.ingest_str(sdl.as_ref(), mock_graph.name(), Some(mock_graph.url().as_str()))?;
+                mock_subgraphs.push(mock_graph);
+            }
+            Subgraph::Virtual(subgraph) => {
+                let sdl = re.replace_all(subgraph.schema(), &rep);
+                composition_subgraphs.ingest_str(sdl.as_ref(), subgraph.name(), None)?;
+            }
+        }
+    }
+
+    let federated_graph = match graphql_composition::compose(&composition_subgraphs)
+        .warnings_are_fatal()
+        .into_result()
+    {
+        Ok(graph) => graph,
+        Err(diagnostics) => {
+            return Err(anyhow!(
+                "Failed to compose subgraphs:\n{}\n",
+                diagnostics
+                    .iter_messages()
+                    .format_with("\n", |msg, f| f(&format_args!("- {msg}")))
+            ));
+        }
+    };
+    let federated_sdl = graphql_composition::render_federated_sdl(&federated_graph)?;
+
+    Ok((federated_sdl, mock_subgraphs))
 }
 
 impl Drop for TestGateway {
     fn drop(&mut self) {
-        let Some(handle) = self.gateway_handle.take() else {
-            return;
-        };
-
-        if let Err(err) = handle.kill() {
+        if let Err(err) = self.handle.kill() {
             eprintln!("Failed to kill grafbase-gateway: {err}")
         }
     }

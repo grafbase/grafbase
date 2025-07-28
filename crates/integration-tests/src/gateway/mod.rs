@@ -94,8 +94,9 @@ impl Gateway {
     }
 
     pub fn introspect(&self) -> IntrospectionRequest {
-        const PATHFINDER_INTROSPECTION_QUERY: &str = include_str!("../../data/introspection.graphql");
-        IntrospectionRequest::from(self.post(PATHFINDER_INTROSPECTION_QUERY))
+        IntrospectionRequest::from(self.post(cynic_introspection::IntrospectionQuery::with_capabilities(
+            cynic_introspection::SpecificationVersion::October2021.capabilities(),
+        )))
     }
 
     pub async fn mcp_sse(&self, path: &str) -> McpStream {
