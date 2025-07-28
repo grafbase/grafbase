@@ -1,6 +1,6 @@
 use std::{future::Future, ops::Range};
 
-use engine_schema::DirectiveSite;
+use engine_schema::{DirectiveSite, Subgraph};
 use error::{ErrorResponse, GraphqlError};
 use extension_catalog::ExtensionId;
 
@@ -49,6 +49,7 @@ pub trait AuthorizationExtension<Context: Send + Sync + 'static>: Send + Sync + 
 pub struct QueryElement<'a, A> {
     pub site: DirectiveSite<'a>,
     pub arguments: A,
+    pub subgraph: Option<Subgraph<'a>>,
 }
 
 #[derive(Debug)]

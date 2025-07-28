@@ -1,6 +1,6 @@
 [extension]
-name = "authenticated"
+name = "authz-19"
+type = "authorization"
 version = "1.0.0"
-kind = "authorization"
 description = ""
 

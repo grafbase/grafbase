@@ -13,6 +13,18 @@ where
     }
 }
 
+impl Resolver for &str {
+    fn resolve(&mut self, _: ResolverContext<'_>) -> Option<serde_json::Value> {
+        Some(serde_json::Value::String(self.to_string()))
+    }
+}
+
+impl Resolver for String {
+    fn resolve(&mut self, _: ResolverContext<'_>) -> Option<serde_json::Value> {
+        Some(serde_json::Value::String(self.clone()))
+    }
+}
+
 impl Resolver for serde_json::Value {
     fn resolve(&mut self, _context: ResolverContext<'_>) -> Option<serde_json::Value> {
         Some(self.clone())

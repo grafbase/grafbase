@@ -25,7 +25,7 @@ store-failure-output = true
 [test-groups]
 # Extension build are huge consumers of CPU as they build complete Rust projects.
 # We could be more fine-grained, but in grand scheme of things, it doesn't matter.
-grafbase-extension-tests = { max-threads = 1 }
+grafbase-extension-tests = { max-threads = 2 }
 
 [[profile.default.overrides]]
 filter = 'package(grafbase) & binary(integration_tests) & (test(extension::) | test(dev::))'

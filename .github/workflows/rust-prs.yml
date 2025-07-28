@@ -143,7 +143,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('Cargo.lock') }}
 
       - name: Install Rust
         uses: ./.github/actions/install-rust
@@ -190,7 +190,9 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            crates/integration-tests/data/extensions/target
+            crates/integration-tests/data/extensions/*/target
+          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('Cargo.lock', 'crates/integration-tests/data/extensions/Cargo.lock') }}
 
       - name: Build the grafbase cli
         shell: bash
@@ -272,7 +274,7 @@ jobs:
             ~/.cargo/git/db/
             .grafbase/wasm-cache
             target/
-          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('Cargo.lock') }}
 
       - name: Install Rust
         uses: ./.github/actions/install-rust
@@ -577,6 +579,12 @@ jobs:
       - name: Get sources
         uses: actions/checkout@v4
 
+      - name: Checkout Extensions
+        uses: actions/checkout@v4
+        with:
+          repository: 'grafbase/extensions'
+          path: extensions
+
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
@@ -588,7 +596,8 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+            extensions/target
+          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('Cargo.lock', 'extensions/Cargo.lock') }}
 
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
@@ -624,12 +633,6 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Checkout Extensions
-        uses: actions/checkout@v4
-        with:
-          repository: 'grafbase/extensions'
-          path: extensions
 
       - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
 

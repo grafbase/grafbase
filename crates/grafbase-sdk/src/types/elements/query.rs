@@ -122,6 +122,18 @@ impl<'a> QueryElement<'a> {
         (&self.element.site).into()
     }
 
+    /// Subgraph name from which this element is requested from. Only present if the authorization extension
+    /// was declared with the `subgraph` grouping:
+    /// ```toml
+    /// # extension.toml
+    /// [api]
+    /// type = "authorization"
+    /// grouping = ["subgraph"]
+    /// ```
+    pub fn subgraph_name(&self) -> Option<&'a str> {
+        self.element.subgraph_name.as_deref()
+    }
+
     /// Arguments of the directive with any query data injected. Any argument that depends on
     /// response data will not be present here and be provided separately.
     pub fn directive_arguments<T>(&self) -> Result<T, SdkError>

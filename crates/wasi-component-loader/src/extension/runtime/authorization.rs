@@ -49,6 +49,7 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
                     id: element.site.id().as_guid(),
                     site: element.site.into(),
                     arguments,
+                    subgraph_name: element.subgraph.map(|s| s.name()),
                 });
             }
             out

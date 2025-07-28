@@ -1,7 +1,7 @@
 use id_newtypes::IdRange;
 use schema::{
     AuthorizedDirectiveId, DirectiveSiteId, EntityDefinitionId, ExtensionDirectiveId, FieldDefinitionId,
-    RequiresScopesDirectiveId, TypeDefinitionId,
+    RequiresScopesDirectiveId, SubgraphId, TypeDefinitionId,
 };
 
 use super::PartitionFieldArgumentId;
@@ -35,8 +35,8 @@ pub(crate) enum QueryModifierRule {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub(crate) enum QueryModifierTarget {
-    FieldWithArguments(FieldDefinitionId, IdRange<PartitionFieldArgumentId>),
-    Site(DirectiveSiteId),
+    FieldWithArguments(FieldDefinitionId, IdRange<PartitionFieldArgumentId>, Option<SubgraphId>),
+    Site(DirectiveSiteId, Option<SubgraphId>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]

@@ -8,8 +8,8 @@ impl Host for InstanceState {}
 #[component(record)]
 pub struct QueryElement<'a> {
     pub id: u32,
-    pub site: DirectiveSite<'a>,
-    pub arguments: Vec<u8>,
+    pub site: &'a DirectiveSite<'a>,
+    pub arguments: &'a [u8],
 }
 
 #[derive(Debug, ComponentType, Lower)]
@@ -17,7 +17,7 @@ pub struct QueryElement<'a> {
 pub struct QueryElements<'a> {
     #[component(name = "directive-names")]
     pub directive_names: &'a [(&'a str, u32, u32)],
-    pub elements: &'a [QueryElement<'a>],
+    pub elements: Vec<QueryElement<'a>>,
 }
 
 #[derive(Debug, ComponentType, Lower)]

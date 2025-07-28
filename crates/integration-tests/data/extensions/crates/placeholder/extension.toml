@@ -1,6 +1,6 @@
 [extension]
 name = "placeholder"
 version = "1.0.0"
-kind = "authentication"
 description = ""
+type = "authentication"
 

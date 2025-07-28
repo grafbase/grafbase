@@ -68,7 +68,7 @@ ulid.workspace = true
 url.workspace = true
 uuid.workspace = true
 valuable.workspace = true
-wasmtime.workspace = true
+wasmtime = { workspace = true, features = ["winch"] }
 wasmtime-wasi.workspace = true
 wasmtime-wasi-http.workspace = true
 webpki-roots.workspace = true

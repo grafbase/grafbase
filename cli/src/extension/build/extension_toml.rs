@@ -1,47 +1,40 @@
 use extension::{EventFilter, EventType};
 use semver::Version;
-use serde::Deserializer;
 use serde_valid::Validate;
+use url::Url;
 
 #[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ExtensionToml {
-    pub extension: ExtensionTomlExtension,
+    pub extension: Definition,
     #[serde(default)]
-    pub directives: ExtensionTomlDirectives,
+    pub permissions: Permissions,
+
+    // == type specific ==
     #[serde(default)]
-    pub permissions: ExtensionTomlPermissions,
+    pub resolver: Option<ResolverType>,
+    #[allow(unused)]
     #[serde(default)]
-    pub hooks: ExtensionTomlHooks,
+    pub authentication: Option<AuthenticationType>,
+    #[serde(default)]
+    pub authorization: Option<AuthorizationType>,
+    #[serde(default)]
+    pub hooks: Option<HooksType>,
+    #[allow(unused)]
+    #[serde(default)]
+    pub cntracts: Option<ContractsType>,
+
+    // == LEGACY ==
+    #[serde(default, rename = "directives")]
+    pub legacy_directives: LegacyDirectives,
 }
 
-#[derive(Default, serde::Deserialize)]
-pub struct ExtensionTomlHooks {
-    #[serde(default, deserialize_with = "deserialize_event_filter")]
-    pub events: Option<EventFilter>,
-}
-
-#[derive(Default, serde::Deserialize)]
-pub struct ExtensionTomlDirectives {
-    pub definitions: Option<String>,
-    pub field_resolvers: Option<Vec<String>>,
-    pub resolvers: Option<Vec<String>>,
-    pub authorization: Option<Vec<String>>,
-}
-
-#[derive(Default, serde::Deserialize)]
-pub struct ExtensionTomlPermissions {
-    #[serde(default)]
-    pub network: bool,
-    #[serde(default)]
-    pub stdout: bool,
-    #[serde(default)]
-    pub stderr: bool,
-    #[serde(default)]
-    pub environment_variables: bool,
-}
+//
+// === extension definition ===
+//
 
 #[derive(serde::Deserialize, Validate)]
-pub struct ExtensionTomlExtension {
+pub struct Definition {
     #[validate(pattern = "^[a-z0-9-]+$")]
     pub name: String,
     pub version: Version,
@@ -49,12 +42,12 @@ pub struct ExtensionTomlExtension {
     #[serde(alias = "kind")]
     pub r#type: ExtensionType,
     pub description: String,
-    pub homepage_url: Option<url::Url>,
-    pub repository_url: Option<url::Url>,
+    pub homepage_url: Option<Url>,
+    pub repository_url: Option<Url>,
     pub license: Option<String>,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ExtensionType {
     Resolver,
@@ -65,58 +58,124 @@ pub enum ExtensionType {
     Contracts,
 }
 
-fn deserialize_event_filter<'de, D>(deserializer: D) -> Result<Option<EventFilter>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    struct EventFilterVisitor;
+//
+// === extension permissions ===
+//
 
-    impl<'de> serde::de::Visitor<'de> for EventFilterVisitor {
-        type Value = Option<EventFilter>;
+#[derive(Default, serde::Deserialize)]
+pub struct Permissions {
+    #[serde(default)]
+    pub network: bool,
+    #[serde(default)]
+    pub stdout: bool,
+    #[serde(default)]
+    pub stderr: bool,
+    #[serde(default)]
+    pub environment_variables: bool,
+}
 
-        fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            formatter.write_str("expecting string \"*\", or an array of values")
-        }
+//
+// === extension types ===
+//
 
-        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
-        {
-            if value == "*" {
-                Ok(Some(EventFilter::All))
-            } else {
-                value
-                    .parse()
-                    .map_err(|err| E::custom(err))
-                    .map(|value| Some(EventFilter::Types(vec![value])))
-            }
-        }
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ResolverType {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub directives: Option<Vec<String>>,
+}
 
-        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
-        where
-            A: serde::de::SeqAccess<'de>,
-        {
-            let mut array = Vec::new();
-            while let Some(value) = seq.next_element::<EventType>()? {
-                array.push(value);
-            }
-            Ok(Some(EventFilter::Types(array)))
-        }
+#[derive(Default, serde::Serialize, serde::Deserialize)]
+pub struct AuthenticationType {}
 
-        fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            deserializer.deserialize_any(self)
-        }
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct AuthorizationType {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub directives: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group_by: Option<Vec<extension::AuthorizationGroupBy>>,
+}
 
-        fn visit_none<E>(self) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error,
-        {
-            Ok(None)
+#[derive(Default, serde::Serialize, serde::Deserialize)]
+pub struct ContractsType {}
+
+#[derive(Default, serde::Serialize, serde::Deserialize)]
+pub struct HooksType {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub events: Option<EventFilterWrapper>,
+}
+
+#[derive(Clone)]
+pub struct EventFilterWrapper(pub EventFilter);
+
+impl From<EventFilterWrapper> for EventFilter {
+    fn from(wrapper: EventFilterWrapper) -> Self {
+        wrapper.0
+    }
+}
+
+impl serde::Serialize for EventFilterWrapper {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match &self.0 {
+            EventFilter::All => serializer.serialize_str("*"),
+            EventFilter::Types(types) => types.serialize(serializer),
         }
     }
+}
+impl<'de> serde::Deserialize<'de> for EventFilterWrapper {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct EventFilterVisitor;
 
-    deserializer.deserialize_any(EventFilterVisitor)
+        impl<'de> serde::de::Visitor<'de> for EventFilterVisitor {
+            type Value = EventFilter;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("expecting string \"*\", or an array of values")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if value == "*" {
+                    Ok(EventFilter::All)
+                } else {
+                    value
+                        .parse()
+                        .map_err(|err| E::custom(err))
+                        .map(|value| EventFilter::Types(vec![value]))
+                }
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                let mut array = Vec::new();
+                while let Some(value) = seq.next_element::<EventType>()? {
+                    array.push(value);
+                }
+                Ok(EventFilter::Types(array))
+            }
+        }
+
+        deserializer.deserialize_any(EventFilterVisitor).map(Self)
+    }
+}
+
+//
+// === legacy ===
+//
+
+#[derive(Default, serde::Deserialize)]
+pub struct LegacyDirectives {
+    pub definitions: Option<String>,
+    pub field_resolvers: Option<Vec<String>>,
+    pub resolvers: Option<Vec<String>>,
+    pub authorization: Option<Vec<String>>,
 }

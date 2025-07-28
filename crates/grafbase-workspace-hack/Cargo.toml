@@ -27,7 +27,7 @@ ascii = { version = "1", features = ["serde"] }
 axum = { version = "0.8", features = ["macros", "ws"] }
 axum-core = { version = "0.5", default-features = false, features = ["tracing"] }
 base16ct = { version = "0.2", default-features = false, features = ["alloc"] }
-bitflags = { version = "2", default-features = false, features = ["std"] }
+bitflags = { version = "2", default-features = false, features = ["serde", "std"] }
 bumpalo = { version = "3", features = ["allocator-api2"] }
 byteorder = { version = "1" }
 bytes = { version = "1", features = ["serde"] }
@@ -159,7 +159,7 @@ ascii = { version = "1", features = ["serde"] }
 axum = { version = "0.8", features = ["macros", "ws"] }
 axum-core = { version = "0.5", default-features = false, features = ["tracing"] }
 base16ct = { version = "0.2", default-features = false, features = ["alloc"] }
-bitflags = { version = "2", default-features = false, features = ["std"] }
+bitflags = { version = "2", default-features = false, features = ["serde", "std"] }
 bumpalo = { version = "3", features = ["allocator-api2"] }
 byteorder = { version = "1" }
 bytes = { version = "1", features = ["serde"] }

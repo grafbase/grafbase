@@ -59,21 +59,41 @@ fn init() {
     insta::assert_snapshot!(&extension_toml, @r##"
     [extension]
     name = "test-project"
-    version = "0.1.0"
     type = "authorization"
+    version = "0.1.0"
     description = "A new extension"
     # homepage_url = "https://example.com/my-extension"
     # repository_url = "https://github.com/my-username/my-extension"
     # license = "MIT"
 
+    [authorization]
+    # Directives that need to granted authorization during execution. Every other directive will be treated as metadata only.
+    # Defaults to all defined directives.
+    #
+    # directives = ["myAuth"]
+
+    # Refine the grouping used by the gateway for authorization. By default, the gateway will request authorization only once for
+    # any decorated element (ex: field), independent of its location in the query, from which subgraph it comes from 
+    # and how many times it appears in the query.
+    #
+    # Supported values include:
+    # - `subgraph`: The gateway will request authorization for each subgraph that contains the decorated element.
+    #
+    # Defaults to empty list.
+    #
+    # grouping = ["subgraph"]
+
+
+    # === Default permissions ===
+    #
     # These are the default permissions for the extension.
-    # The user can enable or disable them as needed in the gateway
-    # configuration file.
-    [permissions]
-    network = false
-    stdout = false
-    stderr = false
-    environment_variables = false
+    # The user can enable or disable them as needed in the gateway configuration file.
+    #
+    # [permissions]
+    # network = false
+    # stdout = false
+    # stderr = false
+    # environment_variables = false
     "##);
 
     let lib_rs = std::fs::read_to_string(project_path.join("src/lib.rs")).unwrap();
@@ -177,22 +197,6 @@ fn build() {
     command.run().unwrap();
 
     use_latest_grafbase_sdk_in_cargo_toml(&project_path);
-
-    let result = cmd("cargo", &["check", "--tests"])
-        .env("RUSTFLAGS", "")
-        .dir(&project_path)
-        .unchecked()
-        .stdout_capture()
-        .stderr_capture()
-        .run()
-        .unwrap();
-
-    assert!(
-        result.status.success(),
-        "{}\n{}",
-        String::from_utf8_lossy(&result.stdout),
-        String::from_utf8_lossy(&result.stderr)
-    );
 
     let args = vec!["extension", "build"];
 

@@ -260,7 +260,7 @@ type ListSizeDirective @meta(module: "directive/complexity_control") @indexed(id
 
 scalar ExtensionId @id @prelude
 scalar ExtensionDirectiveArgumentId @id
-scalar ExtensionDirectiveType @copy @prelude
+scalar ExtensionDirectiveType @copy
 
 type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "u32") {
   subgraph: Subgraph!

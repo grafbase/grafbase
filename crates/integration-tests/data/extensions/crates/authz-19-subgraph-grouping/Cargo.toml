@@ -1,0 +1,25 @@
+[package]
+name = "authz-19-subgraph-grouping"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+
+[dependencies]
+grafbase-sdk.workspace = true
+log = "0.4"
+serde = { version = "1", features = ["derive"] }
+
+[dev-dependencies]
+grafbase-sdk = { workspace = true, features = ["test-utils"] }
+insta = { version = "1", features = ["json"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }

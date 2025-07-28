@@ -7,11 +7,11 @@ use std::{
 };
 
 use anyhow::Context;
-use extension::{ExtensionPermission, FieldResolverType, Manifest, ResolverType, Type};
+use extension::{ExtensionPermission, FieldResolverType, Manifest, Type};
 use extension_toml::{ExtensionToml, ExtensionType};
 use semver::Version;
 
-use crate::{cli_input::ExtensionBuildCommand, output::report};
+use crate::{cli_input::ExtensionBuildCommand, output::report, watercolor};
 
 use super::EXTENSION_WASM_MODULE_FILE_NAME;
 
@@ -219,7 +219,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
     let extension_toml_path = std::fs::read_to_string(source_dir.join("extension.toml"))
         .context("could not find extension.toml file from the extension project")?;
 
-    let extension_toml: ExtensionToml = toml::from_str(&extension_toml_path)
+    let toml: ExtensionToml = toml::from_str(&extension_toml_path)
         .map_err(|e| anyhow::anyhow!("extension.toml contains invalid data\n{e}"))?;
 
     let wasm_bytes =
@@ -227,30 +227,86 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
 
     let versions = parse_versions(&wasm_bytes)?;
 
-    let extension_type = match extension_toml.extension.r#type {
+    let extension_type = match toml.extension.r#type {
+        // == Legacy types ==
         ExtensionType::Resolver if versions.sdk_version < Version::new(0, 17, 0) => {
             Type::FieldResolver(FieldResolverType {
-                resolver_directives: extension_toml.directives.field_resolvers,
+                resolver_directives: toml.legacy_directives.field_resolvers,
             })
         }
-        ExtensionType::Resolver => Type::Resolver(ResolverType {
-            directives: extension_toml.directives.resolvers,
-        }),
-        ExtensionType::Authentication => Type::Authentication(Default::default()),
-        ExtensionType::Authorization => Type::Authorization(extension::AuthorizationType {
-            directives: extension_toml.directives.authorization,
-        }),
         ExtensionType::SelectionSetResolver => Type::SelectionSetResolver(Default::default()),
-        ExtensionType::Hooks => Type::Hooks(extension::HooksType {
-            event_filter: extension_toml.hooks.events,
+        // == Current types ==
+        ExtensionType::Resolver => {
+            #[derive(serde::Serialize)]
+            struct NewFormat {
+                resolver: extension_toml::ResolverType,
+            }
+
+            Type::Resolver(if let Some(res) = toml.resolver {
+                extension::ResolverType {
+                    directives: res.directives,
+                }
+            } else if let Some(directives) = toml.legacy_directives.resolvers.clone() {
+                let new_toml = toml::to_string_pretty(&NewFormat {
+                    resolver: extension_toml::ResolverType {
+                        directives: Some(directives.clone()),
+                    },
+                })
+                .unwrap();
+                watercolor::output!("⚠️ Warning: 'extension.type = \"resolver\"' is deprecated, instead use:\n{new_toml}", @BrightYellow);
+                extension::ResolverType {
+                    directives: Some(directives),
+                }
+            } else {
+                Default::default()
+            })
+        }
+        ExtensionType::Authentication => Type::Authentication(Default::default()),
+        ExtensionType::Authorization => {
+            #[derive(serde::Serialize)]
+            struct NewFormat {
+                authorization: extension_toml::AuthorizationType,
+            }
+
+            Type::Authorization(if let Some(res) = toml.authorization {
+                extension::AuthorizationType {
+                    directives: res.directives,
+                    group_by: res.group_by,
+                }
+            } else if let Some(directives) = toml.legacy_directives.authorization.clone() {
+                let new_toml = toml::to_string_pretty(&NewFormat {
+                    authorization: extension_toml::AuthorizationType {
+                        directives: Some(directives.clone()),
+                        group_by: None,
+                    },
+                })
+                .unwrap();
+                watercolor::output!("⚠️ Warning: 'extension.type = \"resolver\"' is deprecated, instead use:\n{new_toml}", @BrightYellow);
+                extension::AuthorizationType {
+                    directives: Some(directives),
+                    group_by: None,
+                }
+            } else {
+                Default::default()
+            })
+        }
+        ExtensionType::Hooks => Type::Hooks(if let Some(hooks) = toml.hooks {
+            extension::HooksType {
+                event_filter: hooks.events.map(Into::into),
+            }
+        } else {
+            Default::default()
         }),
         ExtensionType::Contracts => Type::Contracts(Default::default()),
     };
 
-    let sdl_path = extension_toml
-        .directives
+    let sdl_path = toml
+        .legacy_directives
         .definitions
-        .map(|path| source_dir.join(&path))
+        .map(|path| {
+                watercolor::output!("⚠️ Warning: Specifying 'directives.definitions' is deprecated. GraphQL directives will always be expected to be in 'definitions.graphql' in the future.", @BrightYellow);
+    source_dir.join(&path)
+        })
         .or_else(|| {
             let path = source_dir.join("definitions.graphql");
             path.exists().then_some(path)
@@ -274,36 +330,36 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
 
     let mut permissions = Vec::new();
 
-    if extension_toml.permissions.network {
+    if toml.permissions.network {
         permissions.push(ExtensionPermission::Network);
     }
 
-    if extension_toml.permissions.stdout {
+    if toml.permissions.stdout {
         permissions.push(ExtensionPermission::Stdout);
     }
 
-    if extension_toml.permissions.stderr {
+    if toml.permissions.stderr {
         permissions.push(ExtensionPermission::Stderr);
     }
 
-    if extension_toml.permissions.environment_variables {
+    if toml.permissions.environment_variables {
         permissions.push(ExtensionPermission::EnvironmentVariables);
     }
 
     let manifest = Manifest {
         id: extension::Id {
-            name: extension_toml.extension.name,
-            version: extension_toml.extension.version,
+            name: toml.extension.name,
+            version: toml.extension.version,
         },
         r#type: extension_type,
         sdk_version: versions.sdk_version,
         minimum_gateway_version: versions.minimum_gateway_version,
         sdl,
-        description: extension_toml.extension.description,
+        description: toml.extension.description,
         readme: try_get_readme(source_dir),
-        homepage_url: extension_toml.extension.homepage_url,
-        repository_url: extension_toml.extension.repository_url,
-        license: extension_toml.extension.license,
+        homepage_url: toml.extension.homepage_url,
+        repository_url: toml.extension.repository_url,
+        license: toml.extension.license,
         permissions,
         legacy_event_filter: None,
     };

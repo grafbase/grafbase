@@ -13,7 +13,7 @@ fn can_load_authenticated_extension() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authenticated-1.0.0", import: ["@authenticated"])
+                extend schema @link(url: "authenticated-19-1.0.0", import: ["@authenticated"])
 
                 type Query {
                     private: String @authenticated
@@ -25,7 +25,7 @@ fn can_load_authenticated_extension() {
                 .with_resolver("Query", "public", serde_json::Value::String("Hi!".to_owned()))
                 .into_subgraph("x"),
             )
-            .with_extension("authenticated")
+            .with_extension("authenticated-19")
             .build()
             .await;
 
@@ -77,7 +77,7 @@ fn can_access_token() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authenticated-1.0.0", import: ["@authenticated"])
+                extend schema @link(url: "authenticated-19-1.0.0", import: ["@authenticated"])
 
                 type Query {
                     private: String @authenticated
@@ -90,7 +90,7 @@ fn can_access_token() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthenticationExt::new(StaticToken::bytes(Vec::new())))
-            .with_extension("authenticated")
+            .with_extension("authenticated-19")
             .build()
             .await;
 

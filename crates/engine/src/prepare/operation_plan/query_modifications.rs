@@ -142,22 +142,26 @@ where
                     .map(move |(directive_id, target)| {
                         let directive = directive_id.walk(operation_ctx);
                         match &target {
-                            QueryModifierTarget::FieldWithArguments(definition, argument_ids) => QueryElement {
-                                site: DirectiveSiteId::from(*definition).walk(operation_ctx),
-                                arguments: QueryOrStaticExtensionDirectiveArugmentsView::Query(
-                                    create_extension_directive_query_view(
-                                        schema,
-                                        directive,
-                                        argument_ids.walk(operation_ctx),
-                                        variables,
+                            QueryModifierTarget::FieldWithArguments(definition, argument_ids, subgraph_id) => {
+                                QueryElement {
+                                    site: DirectiveSiteId::from(*definition).walk(operation_ctx),
+                                    arguments: QueryOrStaticExtensionDirectiveArugmentsView::Query(
+                                        create_extension_directive_query_view(
+                                            schema,
+                                            directive,
+                                            argument_ids.walk(operation_ctx),
+                                            variables,
+                                        ),
                                     ),
-                                ),
-                            },
-                            QueryModifierTarget::Site(id) => QueryElement {
+                                    subgraph: subgraph_id.walk(operation_ctx),
+                                }
+                            }
+                            QueryModifierTarget::Site(id, subgraph_id) => QueryElement {
                                 site: id.walk(operation_ctx),
                                 arguments: QueryOrStaticExtensionDirectiveArugmentsView::Static(
                                     directive.static_arguments(),
                                 ),
+                                subgraph: subgraph_id.walk(operation_ctx),
                             },
                         }
                     }),

@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
-    ExtensionDirectiveId, ExtensionDirectiveRecord, SubgraphId,
+    AuthorizationGrouping, ExtensionDirectiveId, ExtensionDirectiveRecord, ExtensionDirectiveType, SubgraphId,
     builder::{Error, GraphBuilder, sdl},
 };
 
@@ -65,7 +65,7 @@ impl<'a> GraphBuilder<'a> {
             ));
         };
 
-        let directive_type = extension.manifest.get_directive_type(name);
+        let directive_type = get_directive_type(extension.manifest, name);
 
         let location = current_definition.location();
         if definition.locations().all(|loc| loc != location) {
@@ -128,4 +128,60 @@ impl<'a> GraphBuilder<'a> {
         let id = (self.graph.extension_directives.len() - 1).into();
         Ok(id)
     }
+}
+
+pub fn get_directive_type(manifest: &extension_catalog::Manifest, name: &str) -> ExtensionDirectiveType {
+    use extension_catalog::{AuthorizationType, FieldResolverType, ResolverType, Type};
+    match &manifest.r#type {
+        Type::FieldResolver(FieldResolverType { resolver_directives }) => {
+            if let Some(directives) = resolver_directives {
+                directives
+                    .iter()
+                    .any(|dir| dir == name)
+                    .then_some(ExtensionDirectiveType::FieldResolver)
+            } else {
+                Some(ExtensionDirectiveType::FieldResolver)
+            }
+        }
+        Type::Authorization(AuthorizationType {
+            directives,
+            group_by: grouping,
+        }) => {
+            let grouping = grouping
+                .as_ref()
+                .map(|grouping| {
+                    let mut flag = AuthorizationGrouping::empty();
+                    for g in grouping {
+                        match g {
+                            extension_catalog::AuthorizationGroupBy::Subgraph => {
+                                flag |= AuthorizationGrouping::Subgraph;
+                            }
+                        }
+                    }
+                    flag
+                })
+                .unwrap_or_default();
+            if let Some(directives) = directives {
+                directives
+                    .iter()
+                    .any(|dir| dir == name)
+                    .then_some(ExtensionDirectiveType::Authorization { grouping })
+            } else {
+                Some(ExtensionDirectiveType::Authorization { grouping })
+            }
+        }
+        Type::SelectionSetResolver(_) => Some(ExtensionDirectiveType::SelectionSetResolver),
+        Type::Resolver(ResolverType { directives }) => {
+            if let Some(directives) = directives {
+                directives
+                    .iter()
+                    .any(|dir| dir == name)
+                    .then_some(ExtensionDirectiveType::Resolver)
+            } else {
+                Some(ExtensionDirectiveType::Resolver)
+            }
+        }
+        Type::Authentication(_) | Type::Hooks(_) | Type::Contracts(_) => Default::default(),
+    }
+    .unwrap_or_default()
 }

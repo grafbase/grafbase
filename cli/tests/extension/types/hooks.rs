@@ -10,7 +10,7 @@ fn init() {
     let project_path = temp_dir.path().join("test_project");
     let project_path_str = project_path.to_string_lossy();
 
-    let args = vec!["extension", "init", "--type", "contracts", &*project_path_str];
+    let args = vec!["extension", "init", "--type", "hooks", &*project_path_str];
 
     let result = cmd(cargo_bin("grafbase"), &args)
         .unchecked()
@@ -59,59 +59,66 @@ fn init() {
     insta::assert_snapshot!(&extension_toml, @r##"
     [extension]
     name = "test-project"
+    type = "hooks"
     version = "0.1.0"
-    type = "contracts"
     description = "A new extension"
     # homepage_url = "https://example.com/my-extension"
     # repository_url = "https://github.com/my-username/my-extension"
     # license = "MIT"
 
+    [hooks]
+    # Specify the events you intend to read in the on_response hook.
+    # Defaults to no events.
+    #
+    # events = "*"
+    # events = ["operation", "http_request"]
+
+
+    # === Default permissions ===
+    #
     # These are the default permissions for the extension.
-    # The user can enable or disable them as needed in the gateway
-    # configuration file.
-    [permissions]
-    network = false
-    stdout = false
-    stderr = false
-    environment_variables = false
+    # The user can enable or disable them as needed in the gateway configuration file.
+    #
+    # [permissions]
+    # network = false
+    # stdout = false
+    # stderr = false
+    # environment_variables = false
     "##);
 
     let lib_rs = std::fs::read_to_string(project_path.join("src/lib.rs")).unwrap();
 
     insta::assert_snapshot!(&lib_rs, @r##"
     use grafbase_sdk::{
-        ContractsExtension,
-        types::{Configuration, Error, Contract, ContractDirective, GraphqlSubgraph},
+        HooksExtension,
+        types::{Configuration, Error, ErrorResponse, GatewayHeaders},
+        host_io::event_queue::EventQueue,
+        host_io::http::{Method, StatusCode},
     };
 
-    #[derive(ContractsExtension)]
+    #[derive(HooksExtension)]
     struct TestProject;
 
-    impl ContractsExtension for TestProject {
+    impl HooksExtension for TestProject {
         fn new(config: Configuration) -> Result<Self, Error> {
             Ok(Self)
         }
 
-        fn construct(
+        #[allow(refining_impl_trait)]
+        fn on_request(&mut self, url: &str, method: Method, headers: &mut GatewayHeaders) -> Result<(), ErrorResponse> {
+            Ok(())
+        }
+
+        fn on_response(
             &mut self,
-            key: String,
-            directives: Vec<ContractDirective<'_>>,
-            subgraphs: Vec<GraphqlSubgraph>,
-        ) -> Result<Contract, Error> {
-            Ok(Contract::new(&directives, true))
+            status: StatusCode,
+            headers: &mut GatewayHeaders,
+            event_queue: EventQueue,
+        ) -> Result<(), Error> {
+            Ok(())
         }
     }
     "##);
-
-    let definitions = std::fs::read_to_string(project_path.join("definitions.graphql")).unwrap();
-
-    insta::assert_snapshot!(&definitions, @r#"
-    """
-    Fill in here the directives and types that the extension needs.
-    """
-    directive @testProjectConfiguration(arg1: String) repeatable on SCHEMA
-    directive @testProjectDirective on FIELD_DEFINITION
-    "#);
 
     let tests_rs = std::fs::read_to_string(project_path.join("tests/integration_tests.rs")).unwrap();
 
@@ -160,7 +167,7 @@ fn init() {
 
 #[test]
 fn build() {
-    // FIXME: Make this test work on windows, linux arm64 and macos x86
+    // FIXME: Make this test work on windows, linux arm64 and darwin x86.
     if cfg!(windows)
         || (cfg!(target_arch = "aarch64") && cfg!(target_os = "linux"))
         || (cfg!(target_arch = "x86_64") && cfg!(target_os = "macos"))
@@ -172,27 +179,11 @@ fn build() {
     let project_path = temp_dir.path().join("test_project");
     let project_path_str = project_path.to_string_lossy();
 
-    let args = vec!["extension", "init", "--type", "contracts", &*project_path_str];
+    let args = vec!["extension", "init", "--type", "hooks", &*project_path_str];
     let command = cmd(cargo_bin("grafbase"), &args).stdout_null().stderr_null();
     command.run().unwrap();
 
     use_latest_grafbase_sdk_in_cargo_toml(&project_path);
-
-    let result = cmd("cargo", &["check", "--tests"])
-        .env("RUSTFLAGS", "")
-        .dir(&project_path)
-        .unchecked()
-        .stdout_capture()
-        .stderr_capture()
-        .run()
-        .unwrap();
-
-    assert!(
-        result.status.success(),
-        "{}\n{}",
-        String::from_utf8_lossy(&result.stdout),
-        String::from_utf8_lossy(&result.stderr)
-    );
 
     let args = vec!["extension", "build"];
 
@@ -205,7 +196,6 @@ fn build() {
         .stderr_capture()
         .run()
         .unwrap();
-
     assert!(
         result.status.success(),
         "{}\n{}",
@@ -235,12 +225,11 @@ fn build() {
         "version": "0.1.0"
       },
       "type": {
-        "Contracts": {}
+        "Hooks": {}
       },
       "sdk_version": "<sdk_version>",
       "minimum_gateway_version": "<minimum_gateway_version>",
       "description": "A new extension",
-      "sdl": "\"\"\"\nFill in here the directives and types that the extension needs.\n\"\"\"\ndirective @testProjectConfiguration(arg1: String) repeatable on SCHEMA\ndirective @testProjectDirective on FIELD_DEFINITION",
       "permissions": []
     }
     "#

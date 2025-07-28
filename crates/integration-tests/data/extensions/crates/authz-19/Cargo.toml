@@ -1,5 +1,5 @@
 [package]
-name = "authorization-19"
+name = "authz-19"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
