@@ -1,6 +1,5 @@
 use crate::{federated_graph::OverrideLabel, subgraphs};
 
-mod compose_directive;
 mod composite_schemas;
 mod extension_names;
 mod selection;
@@ -15,7 +14,6 @@ pub(crate) fn validate(ctx: &mut ValidateContext<'_>) {
     subgraph_names::validate_subgraph_names(ctx);
     validate_root_nonempty(ctx);
     validate_fields(ctx);
-    compose_directive::validate_compose_directive(ctx);
     selection::validate_keys(ctx);
 }
 
