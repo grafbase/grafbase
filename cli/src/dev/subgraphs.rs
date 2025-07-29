@@ -11,6 +11,7 @@ use crate::{
         },
     },
     common::environment::PlatformData,
+    dev::data_json::{SchemasData, SchemasErrors, Severity},
     errors::BackendError,
 };
 use chrono::{DateTime, Utc};
@@ -253,28 +254,28 @@ impl SubgraphCache {
             Ok(graph) => {
                 let federated_schema = graphql_composition::render_federated_sdl(&graph)?;
                 (
-                    Schemas::Data {
+                    Schemas::Data(SchemasData {
                         api_schema: Some(graphql_composition::render_api_sdl(&graph)),
                         federated_schema: Some(federated_schema.clone()),
                         subgraphs: all_subgraphs,
-                    },
+                    }),
                     Ok(federated_schema),
                 )
             }
             Err(diagnostics) => (
-                Schemas::Errors {
+                Schemas::Errors(SchemasErrors {
                     errors: diagnostics
                         .iter_warnings()
                         .map(|warning| Error {
                             message: warning.to_owned(),
-                            severity: "warning",
+                            severity: Severity::Warning,
                         })
                         .chain(diagnostics.iter_errors().map(|err| Error {
                             message: err.to_owned(),
-                            severity: "error",
+                            severity: Severity::Error,
                         }))
                         .collect(),
-                },
+                }),
                 Err(diagnostics),
             ),
         };

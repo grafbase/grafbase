@@ -18,26 +18,30 @@ pub(super) struct DataJson<'a> {
 }
 
 #[derive(Serialize)]
-#[serde(rename_all = "camelCase", untagged)]
+#[serde(untagged)]
 pub(crate) enum Schemas {
-    Data {
-        api_schema: Option<String>,
-        federated_schema: Option<String>,
-        #[serde(serialize_with = "serialize_cached_subgraph")]
-        subgraphs: Vec<Arc<CachedSubgraph>>,
-    },
-    Errors {
-        errors: Vec<Error>,
-    },
+    Data(SchemasData),
+    Errors(SchemasErrors),
+}
+
+#[derive(Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SchemasData {
+    pub api_schema: Option<String>,
+    pub federated_schema: Option<String>,
+    #[serde(serialize_with = "serialize_cached_subgraph")]
+    pub subgraphs: Vec<Arc<CachedSubgraph>>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SchemasErrors {
+    pub errors: Vec<Error>,
 }
 
 impl Default for Schemas {
     fn default() -> Self {
-        Schemas::Data {
-            api_schema: None,
-            federated_schema: None,
-            subgraphs: Vec::new(),
-        }
+        Schemas::Data(Default::default())
     }
 }
 
@@ -45,7 +49,14 @@ impl Default for Schemas {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct Error {
     pub(super) message: String,
-    pub(super) severity: &'static str,
+    pub(super) severity: Severity,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum Severity {
+    Error,
+    Warning,
 }
 
 fn serialize_cached_subgraph<S>(subgraphs: &[Arc<CachedSubgraph>], serializer: S) -> Result<S::Ok, S::Error>
@@ -56,7 +67,7 @@ where
     #[serde(rename_all = "camelCase")]
     struct Subgraph<'a> {
         name: &'a str,
-        sdl: &'a str,
+        schema: &'a str,
         #[serde(skip_serializing_if = "Option::is_none")]
         owners: Option<Vec<Owner<'a>>>,
     }
@@ -70,7 +81,7 @@ where
     serializer.collect_seq(subgraphs.iter().map(|subgraph| {
         Subgraph {
             name: &subgraph.name,
-            sdl: &subgraph.sdl,
+            schema: &subgraph.sdl,
             owners: subgraph
                 .owners
                 .as_ref()
@@ -110,11 +121,11 @@ mod tests {
             owners: None,
         });
 
-        let schemas = Schemas::Data {
+        let schemas = Schemas::Data(SchemasData {
             api_schema: Some("type Query { hello: String }".to_string()),
             federated_schema: Some("type Query { hello: String user: User }".to_string()),
             subgraphs: vec![subgraph1, subgraph2],
-        };
+        });
 
         let data_json = DataJson {
             updated_at,
@@ -129,12 +140,12 @@ mod tests {
           "GRAPHQL_API_URL": "http://localhost:4000/graphql",
           "MCP_SERVER_URL": "http://localhost:4001/mcp",
           "SCHEMAS": {
-            "api_schema": "type Query { hello: String }",
-            "federated_schema": "type Query { hello: String user: User }",
+            "apiSchema": "type Query { hello: String }",
+            "federatedSchema": "type Query { hello: String user: User }",
             "subgraphs": [
               {
                 "name": "users",
-                "sdl": "type User { id: ID! name: String! }",
+                "schema": "type User { id: ID! name: String! }",
                 "owners": [
                   {
                     "name": "backend-team"
@@ -146,7 +157,7 @@ mod tests {
               },
               {
                 "name": "products",
-                "sdl": "type Product { id: ID! price: Float! }"
+                "schema": "type Product { id: ID! price: Float! }"
               }
             ]
           }
@@ -160,18 +171,18 @@ mod tests {
             .unwrap()
             .with_timezone(&Utc);
 
-        let schemas = Schemas::Errors {
+        let schemas = Schemas::Errors(SchemasErrors {
             errors: vec![
                 Error {
                     message: "Failed to parse schema".to_string(),
-                    severity: "error",
+                    severity: Severity::Error,
                 },
                 Error {
                     message: "Deprecated field usage".to_string(),
-                    severity: "warning",
+                    severity: Severity::Warning,
                 },
             ],
-        };
+        });
 
         let data_json = DataJson {
             updated_at,
@@ -189,11 +200,11 @@ mod tests {
             "errors": [
               {
                 "message": "Failed to parse schema",
-                "severity": "error"
+                "severity": "ERROR"
               },
               {
                 "message": "Deprecated field usage",
-                "severity": "warning"
+                "severity": "WARNING"
               }
             ]
           }
@@ -222,8 +233,8 @@ mod tests {
           "GRAPHQL_API_URL": "http://localhost:4000/graphql",
           "MCP_SERVER_URL": null,
           "SCHEMAS": {
-            "api_schema": null,
-            "federated_schema": null,
+            "apiSchema": null,
+            "federatedSchema": null,
             "subgraphs": []
           }
         }

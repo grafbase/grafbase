@@ -75,15 +75,11 @@ async fn start(args: DevCommand, logging_filter: String) -> anyhow::Result<()> {
     let introspection_forced = config.graph.introspection == Some(false);
     config.graph.introspection = Some(true);
 
-    let port = args
-        .port
-        .or(config
-            .network
-            .listen_address
-            .map(|listen_address| listen_address.port()))
-        .unwrap_or(DEFAULT_PORT);
-
-    let listen_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
+    let listen_address = args
+        .listen_address
+        .or(args.port.map(|port| SocketAddr::from((Ipv4Addr::LOCALHOST, port))))
+        .or(config.network.listen_address)
+        .unwrap_or(SocketAddr::from((Ipv4Addr::LOCALHOST, DEFAULT_PORT)));
 
     let mcp_url = config
         .mcp
