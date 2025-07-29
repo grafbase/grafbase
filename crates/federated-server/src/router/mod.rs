@@ -82,7 +82,11 @@ where
         tower::ServiceBuilder::new().layer(cors).layer(csrf).layer(compression)
     };
 
-    let mut router = server_runtime.base_router().unwrap_or_default().fallback(fallback);
+    let mut router = server_runtime
+        .base_router()
+        .unwrap_or_default()
+        .fallback(fallback)
+        .layer(common_layers.clone().layer(telemetry.clone()));
 
     // Protected routes that need authentication
     let graphql = axum::Router::new()

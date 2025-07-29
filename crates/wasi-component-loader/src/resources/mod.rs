@@ -8,7 +8,6 @@ mod nats;
 
 use std::sync::Arc;
 
-use crate::tonic;
 use sqlx::Postgres;
 
 pub use crate::context::WasmContext;

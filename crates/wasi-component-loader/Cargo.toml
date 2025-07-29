@@ -55,11 +55,7 @@ time.workspace = true
 tokio = { workspace = true, features = ["time", "rt"] }
 tokio-stream.workspace = true
 toml.workspace = true
-tonic13 = { workspace = true, features = [
-    "channel",
-    "tls-native-roots",
-    "tls-aws-lc",
-] }
+tonic.workspace = true
 tracing.workspace = true
 tracing-subscriber = { workspace = true, default-features = false }
 ulid.workspace = true
