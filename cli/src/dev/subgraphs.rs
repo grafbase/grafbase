@@ -1,6 +1,6 @@
 use super::{
     FullGraphRef,
-    data_json::{DataJsonError, DataJsonSchemas},
+    data_json::{self, Error, Schemas},
     extensions::detect_extensions,
 };
 use crate::{
@@ -44,7 +44,7 @@ pub(crate) struct CachedSubgraph {
     pub(crate) owners: Option<Vec<SubgraphOwner>>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub(crate) struct SubgraphOwner {
     pub(crate) name: String,
 }
@@ -62,7 +62,7 @@ pub(crate) struct SubgraphCache {
     /// All local subgraphs defined by path in configuration.
     local_from_file: Mutex<Box<[Arc<CachedSubgraph>]>>,
     /// For the app. Regenerated on every call to `compose()`.
-    data_json_schemas: Mutex<(DateTime<Utc>, super::data_json::DataJsonSchemas)>,
+    data_json_schemas: Mutex<(DateTime<Utc>, data_json::Schemas)>,
 
     /// The handler for composition warnings.
     composition_warnings_sender: mpsc::Sender<Vec<String>>,
@@ -122,15 +122,7 @@ impl SubgraphCache {
             current_dir,
             remote_urls,
             remote,
-            data_json_schemas: Mutex::new((
-                Utc::now(),
-                super::data_json::DataJsonSchemas {
-                    api_schema: None,
-                    federated_schema: None,
-                    subgraphs: vec![],
-                    errors: vec![],
-                },
-            )),
+            data_json_schemas: Mutex::new((Utc::now(), data_json::Schemas::default())),
             composition_warnings_sender,
             local_from_introspection: Default::default(),
             local_from_file: Default::default(),
@@ -261,27 +253,23 @@ impl SubgraphCache {
             Ok(graph) => {
                 let federated_schema = graphql_composition::render_federated_sdl(&graph)?;
                 (
-                    DataJsonSchemas {
+                    Schemas::Data {
                         api_schema: Some(graphql_composition::render_api_sdl(&graph)),
                         federated_schema: Some(federated_schema.clone()),
                         subgraphs: all_subgraphs,
-                        errors: vec![],
                     },
                     Ok(federated_schema),
                 )
             }
             Err(diagnostics) => (
-                DataJsonSchemas {
-                    api_schema: None,
-                    federated_schema: None,
-                    subgraphs: all_subgraphs,
+                Schemas::Errors {
                     errors: diagnostics
                         .iter_warnings()
-                        .map(|warning| DataJsonError {
+                        .map(|warning| Error {
                             message: warning.to_owned(),
                             severity: "warning",
                         })
-                        .chain(diagnostics.iter_errors().map(|err| DataJsonError {
+                        .chain(diagnostics.iter_errors().map(|err| Error {
                             message: err.to_owned(),
                             severity: "error",
                         }))
@@ -329,7 +317,7 @@ impl SubgraphCache {
         Ok(())
     }
 
-    pub(crate) async fn with_data_json_schemas<O>(&self, f: impl FnOnce(DateTime<Utc>, &DataJsonSchemas) -> O) -> O {
+    pub(crate) async fn with_data_json_schemas<O>(&self, f: impl FnOnce(DateTime<Utc>, &Schemas) -> O) -> O {
         let data_json_schemas = self.data_json_schemas.lock().await;
         let (updated_at, schemas) = &*data_json_schemas;
         f(*updated_at, schemas)
