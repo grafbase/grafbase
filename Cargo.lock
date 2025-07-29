@@ -3884,7 +3884,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.99.8"
+version = "0.100.0"
 dependencies = [
  "anyhow",
  "askama",
