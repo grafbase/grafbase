@@ -1,7 +1,7 @@
 use super::FullGraphRef;
 use clap::Parser;
 use gateway_config::Config;
-use std::path::PathBuf;
+use std::{net::SocketAddr, path::PathBuf};
 
 /// Start a local development server
 #[derive(Debug, Parser)]
@@ -14,6 +14,9 @@ pub struct DevCommand {
     /// The port to listen on for requests
     #[arg(short('p'), long("port"))]
     pub(crate) port: Option<u16>,
+    /// Listen address for the server, overrides the port
+    #[arg(long)]
+    pub listen_address: Option<SocketAddr>,
 }
 
 impl DevCommand {
