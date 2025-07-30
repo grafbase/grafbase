@@ -1,6 +1,7 @@
-# Unfortunately async-graphql doesn't allow us to add schema directive as far as I know. We expect an absolute path to day or an URL.
+# Unfortunately async-graphql doesn't allow us to add schema directive as far as I know, so we have to create the schema file manually.
 extend schema
-  @link(url: "file:///var/lib/grafbase/extensions/authorization/build", import: ["@jwtScope", "@accessControl"])
+  @link(url: "./extensions/authorization/build", import: ["@jwtScope", "@accessControl"])
+  @link(url: "./extensions/policy/build", import: ["@policy"])
 
 type User @jwtScope(scopes: "user") {
   id: Int!
@@ -14,5 +15,10 @@ type Account @jwtScope(scopes: "account") @accessControl(fields: "id") {
 
 type Query {
   user(id: Int!): User @accessControl(arguments: "id")
+  users: [User!]! @policy(policies: [["read"]])
   accounts: [Account]!
+}
+
+type Mutation {
+  updateUser(id: Int!, name: String!): User @accessControl(arguments: "id") @policy(policies: [["write"]])
 }

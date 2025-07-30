@@ -5,7 +5,10 @@ use std::collections::HashSet;
 
 use grafbase_sdk::{
     AuthorizationExtension, IntoQueryAuthorization,
-    host_io::{self, http::HttpRequest},
+    host_io::{
+        self,
+        http::{HttpRequest, Url},
+    },
     types::{
         AuthorizationDecisions, Configuration, DirectiveSite, Error, ErrorResponse, QueryElements, SubgraphHeaders,
         Token,
@@ -18,7 +21,7 @@ use state::*;
 
 #[derive(AuthorizationExtension)]
 struct MyAuthorization {
-    config: Config,
+    authorized_users_url: Url,
 }
 
 #[derive(serde::Deserialize)]
@@ -28,9 +31,12 @@ struct Config {
 
 impl AuthorizationExtension for MyAuthorization {
     fn new(config: Configuration) -> Result<Self, Error> {
-        Ok(Self {
-            config: config.deserialize()?,
-        })
+        let Config { mut auth_service_url } = config.deserialize()?;
+        auth_service_url.push_str("/authorized-users");
+        let authorized_users_url = auth_service_url
+            .parse()
+            .map_err(|err| format!("Invalid authorized_users URL: {err}"))?;
+        Ok(Self { authorized_users_url })
     }
 
     fn authorize_query(
@@ -80,7 +86,10 @@ impl AuthorizationExtension for MyAuthorization {
                                     authorized_ids: if let Some(ids) = authorized_user_ids.as_ref() {
                                         ids
                                     } else {
-                                        authorized_user_ids = Some(self.get_authorized_ids(current_user_id)?);
+                                        authorized_user_ids = Some(
+                                            self.get_authorized_ids(current_user_id)
+                                                .map_err(|err| ErrorResponse::unauthorized().with_error(err))?,
+                                        );
                                         authorized_user_ids.as_ref().unwrap()
                                     }
                                     .clone(),
@@ -91,7 +100,7 @@ impl AuthorizationExtension for MyAuthorization {
                             },
                             DirectiveSite::FieldDefinition(field) => {
                                 match (field.parent_type_name(), field.name()) {
-                                    ("Query", "user") => {
+                                    ("Query", "user") | ("Mutation", "updateUser") => {
                                         let AccessControlArguments { arguments, .. } = element.directive_arguments()?;
                                         let arguments = arguments.unwrap();
                                         let ids = if let Some(ids) = authorized_user_ids.as_ref() {
@@ -179,25 +188,32 @@ impl AuthorizationExtension for MyAuthorization {
 }
 
 impl MyAuthorization {
-    fn get_authorized_ids(&self, current_user_id: u32) -> Result<Vec<u32>, ErrorResponse> {
-        host_io::http::execute(
-            &HttpRequest::post(
-                format!("{}/authorized-users", self.config.auth_service_url)
-                    .parse()
-                    .unwrap(),
-            )
-            .json(&serde_json::json!({"current_user_id": current_user_id})),
+    fn get_authorized_ids(&self, current_user_id: u32) -> Result<Vec<u32>, Error> {
+        #[derive(serde::Serialize)]
+        struct Request {
+            current_user_id: u32,
+        }
+
+        #[derive(serde::Deserialize)]
+        struct Response {
+            authorized_users: Vec<u32>,
+        }
+
+        let response = host_io::http::execute(
+            HttpRequest::post(self.authorized_users_url.clone()).json(&Request { current_user_id }),
         )
-        .map(|response| {
-            let AuthorizationResponse { authorized_users } = response.json().unwrap();
-            authorized_users
-        })
-        .map_err(|e| ErrorResponse::unauthorized().with_error(Error::new(e.to_string())))
+        .map_err(|err| {
+            log::error!("Failed to fetch policies: {err}");
+            "Unauthorized"
+        })?;
+
+        let Response { authorized_users } = response.json().map_err(|err| {
+            log::error!("Failed to parse policy response: {err}");
+            "Unauthorized"
+        })?;
+
+        Ok(authorized_users)
     }
-}
-#[derive(serde::Deserialize)]
-struct AuthorizationResponse {
-    authorized_users: Vec<u32>,
 }
 
 fn unsupported() -> ErrorResponse {

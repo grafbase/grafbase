@@ -16,3 +16,17 @@ The structure of the repository is as follows:
 - `extension/*`: the authentication & authorization extension
 
 The `test.hurl` files contains a list of HTTP requests and responses presenting all the functionality.
+
+To run it:
+
+```sh
+docker compose up --force-recreate --build -d
+hurl --test test.hurl
+```
+
+Or with `grafbase dev` (version >= 0.101):
+
+```sh
+AUTH_SERVICE_URL='http://localhost:4001' grafbase dev
+hurl --test test.hurl
+```
