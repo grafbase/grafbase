@@ -7,6 +7,6 @@ cd "$script_dir"
 
 for dir in crates/*; do
     pushd "$dir"
-    ../../../../../../target/debug/grafbase extension build --debug
+    ../../../../../../target/debug/grafbase extension build --debug --scratch-dir ../../target
     popd
 done
