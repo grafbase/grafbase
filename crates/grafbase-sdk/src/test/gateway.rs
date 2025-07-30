@@ -423,7 +423,7 @@ async fn compose(
         }
     }
 
-    let federated_graph = match graphql_composition::compose(&composition_subgraphs)
+    let federated_graph = match graphql_composition::compose(composition_subgraphs)
         .warnings_are_fatal()
         .into_result()
     {

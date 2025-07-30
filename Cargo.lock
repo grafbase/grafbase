@@ -3346,7 +3346,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.9.0",
+ "graphql-composition 0.10.0",
  "http 1.3.1",
  "http-body 1.0.1",
  "http-body-util",
@@ -3387,7 +3387,7 @@ version = "0.0.0"
 dependencies = [
  "cynic-parser",
  "grafbase-workspace-hack",
- "graphql-composition 0.9.0",
+ "graphql-composition 0.10.0",
  "integration-tests",
  "libtest-mimic",
  "reqwest 0.12.22",
@@ -3923,7 +3923,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.9.0",
+ "graphql-composition 0.10.0",
  "graphql-lint",
  "graphql-mocks",
  "graphql-schema-validation",
@@ -3997,7 +3997,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.9.0",
+ "graphql-composition 0.10.0",
  "graphql-mocks",
  "handlebars 6.3.2",
  "http 1.3.1",
@@ -4089,7 +4089,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.19.0"
+version = "0.19.1"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -4104,7 +4104,7 @@ dependencies = [
  "fxhash",
  "grafbase-sdk-derive",
  "grafbase-sdk-mock",
- "graphql-composition 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graphql-composition 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "graphql-ws-client",
  "hashbrown 0.15.4",
  "http 1.3.1",
@@ -4139,7 +4139,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk-derive"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4366,7 +4366,7 @@ dependencies = [
 
 [[package]]
 name = "graphql-composition"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "bitflags 2.9.1",
@@ -4389,9 +4389,9 @@ dependencies = [
 
 [[package]]
 name = "graphql-composition"
-version = "0.9.0"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7420268c37c1beb02ee6d476283cefe0fe4fa1efe6cd050fbdb7dc7361f4d2bd"
+checksum = "628239fc5052b42ee1306fe83e0c95235a08f737029495f730dfa4b01927cabb"
 dependencies = [
  "bitflags 2.9.1",
  "cynic-parser",
@@ -5435,7 +5435,7 @@ dependencies = [
  "gateway-config",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
- "graphql-composition 0.9.0",
+ "graphql-composition 0.10.0",
  "graphql-mocks",
  "graphql-ws-client",
  "headers",
