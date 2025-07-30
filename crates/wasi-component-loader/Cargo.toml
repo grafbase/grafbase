@@ -5,6 +5,12 @@ license.workspace = true
 homepage.workspace = true
 keywords.workspace = true
 repository.workspace = true
+build = "build.rs"
+
+[build-dependencies]
+anyhow.workspace = true
+base64.workspace = true
+blake3.workspace = true
 
 [dependencies]
 anyhow.workspace = true

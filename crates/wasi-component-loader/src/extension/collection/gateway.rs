@@ -7,7 +7,7 @@ use gateway_config::Config;
 
 use crate::{
     ExtensionState,
-    extension::{Pool, load_extensions_config},
+    extension::{Pool, engine::build_engine, load_extensions_config},
 };
 
 /// Extensions tied to the gateway, rather than the engine. As such they won't reload if the schema
@@ -22,11 +22,23 @@ impl std::ops::Deref for GatewayWasmExtensions {
     }
 }
 
-#[derive(Default)]
 pub struct GatewayWasmExtensionsInner {
+    pub(crate) engine: wasmtime::Engine,
     pub(crate) hooks: Option<Pool>,
     pub(crate) hooks_event_filter: Option<event_queue::EventFilter>,
     pub(crate) authentication: Vec<Pool>,
+}
+
+impl Default for GatewayWasmExtensionsInner {
+    fn default() -> Self {
+        let engine = build_engine(Default::default()).unwrap();
+        Self {
+            engine,
+            hooks: None,
+            hooks_event_filter: None,
+            authentication: Vec::new(),
+        }
+    }
 }
 
 impl GatewayWasmExtensions {
@@ -35,11 +47,18 @@ impl GatewayWasmExtensions {
         gateway_config: &Config,
         logging_filter: String,
     ) -> wasmtime::Result<Self> {
+        let engine = build_engine(gateway_config.wasm.clone().unwrap_or_default())?;
+
         let extension_configs = load_extensions_config(extension_catalog, gateway_config, logging_filter, |ty| {
             matches!(ty, TypeDiscriminants::Hooks | TypeDiscriminants::Authentication)
         });
 
-        let mut inner = GatewayWasmExtensionsInner::default();
+        let mut inner = GatewayWasmExtensionsInner {
+            engine,
+            hooks: None,
+            hooks_event_filter: None,
+            authentication: Vec::new(),
+        };
 
         // dummy schema as we use a common extension loader struct for all extensions.
         let schema = Arc::new(Schema::empty().await);
@@ -56,12 +75,12 @@ impl GatewayWasmExtensions {
                         .as_ref()
                         .or(manifiest.legacy_event_filter.as_ref())
                         .map(convert_event_filter);
-                    inner.hooks = Some(Pool::new(schema.clone(), Arc::new(ExtensionState::new(config))).await?);
+                    inner.hooks = Some(Pool::new(&inner.engine, &schema, Arc::new(ExtensionState::new(config))).await?);
                 }
                 extension_catalog::Type::Authentication(_) => {
                     inner
                         .authentication
-                        .push(Pool::new(schema.clone(), Arc::new(ExtensionState::new(config))).await?);
+                        .push(Pool::new(&inner.engine, &schema, Arc::new(ExtensionState::new(config))).await?);
                 }
                 _ => continue,
             }

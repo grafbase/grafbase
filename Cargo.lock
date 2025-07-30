@@ -11142,6 +11142,7 @@ dependencies = [
  "anyhow",
  "async-nats",
  "base64 0.22.1",
+ "blake3",
  "bytes",
  "crossbeam",
  "dashmap 6.1.0",

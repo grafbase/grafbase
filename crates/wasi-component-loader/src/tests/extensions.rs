@@ -2,7 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use crate::{
     ExtensionState, WasmContext,
-    extension::{ExtensionConfig, ExtensionLoader, WasmConfig},
+    extension::{ExtensionConfig, ExtensionLoader, WasmConfig, build_engine},
 };
 use engine_schema::Schema;
 use extension_catalog::{ExtensionId, TypeDiscriminants};
@@ -304,7 +304,9 @@ async fn on_response_hook() {
 }
 
 async fn load(config: ExtensionConfig) -> ExtensionLoader {
+    let engine = build_engine(Default::default()).unwrap();
     ExtensionLoader::new(
+        &engine,
         Arc::new(Schema::from_sdl_or_panic("").await),
         Arc::new(ExtensionState::new(config)),
     )

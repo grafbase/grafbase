@@ -1,12 +1,12 @@
 mod bench;
-mod engine;
-mod router;
 
-use std::{any::TypeId, collections::HashSet, fmt::Display, sync::Arc};
+use std::{any::TypeId, collections::HashSet, fmt::Display, path::PathBuf, str::FromStr as _, sync::Arc};
 
 use crate::{TestTrustedDocument, mock_trusted_documents::MockTrustedDocumentsClient};
 pub use bench::*;
+use federated_server::router::RouterConfig;
 use futures::{FutureExt, future::BoxFuture};
+use gateway_config::Config;
 use graphql_mocks::MockGraphQlServer;
 use runtime::{
     fetch::dynamic::DynamicFetcher,
@@ -129,11 +129,9 @@ impl GatewayBuilder {
             mock_subgraphs,
             docker_subgraphs,
             virtual_subgraphs,
-            config,
+            mut config,
             runtime,
         } = self;
-
-        let gateway_config = toml::from_str(&config.toml)?;
 
         let subgraphs = Subgraphs::load(
             mock_subgraphs,
@@ -145,9 +143,109 @@ impl GatewayBuilder {
         )
         .await;
 
-        let (engine, extension_catalog) =
-            self::engine::build(tmpdir.path(), federated_sdl, config, runtime, &subgraphs).await?;
-        let router = self::router::build(engine.clone(), gateway_config, extension_catalog).await;
+        let federated_sdl = {
+            let mut federated_graph = match federated_sdl {
+                Some(sdl) => graphql_composition::FederatedGraph::from_sdl(&sdl).unwrap(),
+                None => {
+                    if !subgraphs.is_empty() {
+                        let extensions = runtime.extensions.iter_with_url().collect::<Vec<_>>();
+                        let mut acc = graphql_composition::Subgraphs::default();
+                        for subgraph in subgraphs.iter() {
+                            let url = subgraph.url();
+
+                            // Quite ugly to replace directly, but should work most of time considering we append
+                            // the version number
+                            let sdl = extensions.iter().fold(subgraph.sdl(), |sdl, (manifest, url)| {
+                                sdl.replace(&manifest.id.to_string(), url.as_str()).into()
+                            });
+
+                            acc.ingest_str(&sdl, subgraph.name(), url.as_ref().map(url::Url::as_str))?;
+                        }
+
+                        acc.ingest_loaded_extensions(extensions.into_iter().map(|(manifest, url)| {
+                            graphql_composition::LoadedExtension::new(url.to_string(), manifest.name().to_string())
+                        }));
+
+                        graphql_composition::compose(acc)
+                            .warnings_are_fatal()
+                            .into_result()
+                            .expect("schemas to compose succesfully")
+                    } else {
+                        graphql_composition::FederatedGraph::default()
+                    }
+                }
+            };
+
+            for extension in &mut federated_graph.extensions {
+                if url::Url::from_str(&federated_graph.strings[usize::from(extension.url)]).is_ok() {
+                    continue;
+                }
+                let url = runtime
+                    .extensions
+                    .get_url(&federated_graph.strings[usize::from(extension.url)]);
+                extension.url = federated_graph.strings.len().into();
+                federated_graph.strings.push(url.to_string());
+            }
+
+            // Ensure SDL/JSON serialization work as a expected
+            let sdl = graphql_composition::render_federated_sdl(&federated_graph).expect("render_federated_sdl()");
+            println!("=== SDL ===\n{sdl}\n");
+            sdl
+        };
+
+        let mut config = {
+            if config.add_websocket_url {
+                for subgraph in subgraphs.iter() {
+                    let name = subgraph.name();
+                    if let Some(websocket_url) = subgraph.websocket_url() {
+                        config.toml.push_str(&indoc::formatdoc! {r#"
+                    [subgraphs.{name}]
+                    websocket_url = "{websocket_url}"
+                "#});
+                    }
+                }
+            }
+
+            let config_path = tmpdir.path().join("grafbase.toml");
+            std::fs::write(tmpdir.path().join("grafbase.toml"), &config.toml).unwrap();
+            let mut config = Config::load(config_path).map_err(|err| anyhow::anyhow!(err))?.unwrap();
+            if config.wasm.is_none() {
+                let crate_path = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+                let project_root = crate_path.parent().unwrap().parent().unwrap();
+                let cache_path = project_root.join(".grafbase").join("wasm-cache");
+
+                config.wasm = Some(gateway_config::WasmConfig {
+                    cache_path: Some(cache_path),
+                });
+            }
+            config
+        };
+
+        let schema = Arc::new(
+            ::engine::Schema::builder(&federated_sdl)
+                .config(&config)
+                .extensions(Some(tmpdir.path()), runtime.extensions.catalog())
+                .build()
+                .await
+                .map_err(|err| anyhow::anyhow!(err))?,
+        );
+
+        let (runtime, extension_catalog) = runtime.finalize_runtime_and_config(&mut config, &schema).await?;
+
+        let engine = Arc::new(::engine::ContractAwareEngine::new(schema, runtime));
+
+        let (_, engine_watcher) = tokio::sync::watch::channel(engine.clone());
+
+        let router_config = RouterConfig {
+            config,
+            engine: engine_watcher,
+            server_runtime: (),
+            extension_catalog,
+            extensions: engine.no_contract.runtime.gateway_extensions.clone(),
+            listen_address: None,
+        };
+
+        let (router, _) = federated_server::router::create(router_config).await.unwrap();
 
         Ok(Gateway {
             tmpdir: Arc::new(tmpdir),
