@@ -40,6 +40,19 @@ jobs:
           # Seems like if it's not zero you dont get branches
           fetch-depth: 0
 
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}
+
       - name: Install rust
         uses: ./.github/actions/install-rust
 
@@ -122,6 +135,16 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
+      - name: Cache cargo registry and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Install Rust
         uses: ./.github/actions/install-rust
         with:
@@ -158,6 +181,16 @@ jobs:
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build the grafbase cli
         shell: bash
@@ -229,6 +262,17 @@ jobs:
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            .grafbase/wasm-cache
+            target/
+          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install Rust
         uses: ./.github/actions/install-rust
@@ -384,6 +428,8 @@ jobs:
           needs.what-changed.outputs.cargo-test-specs
           && matrix.platform.target != 'x86_64-unknown-linux-musl'
         shell: bash
+        env:
+          RUSTC_WRAPPER: 'sccache'
         run: |
           cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci ${{ needs.what-changed.outputs.cargo-test-specs }}
 
@@ -403,6 +449,8 @@ jobs:
           needs.what-changed.outputs.cargo-docker-test-specs
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
+        env:
+          RUSTC_WRAPPER: 'sccache'
         run: |
           cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
 
@@ -531,6 +579,16 @@ jobs:
 
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets

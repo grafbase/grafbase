@@ -9,6 +9,7 @@ use gateway_config::Config;
 use runtime::extension::Response;
 use std::{collections::HashMap, hash::BuildHasherDefault, sync::Arc};
 use tokio::sync::broadcast;
+use wasmtime::Engine;
 
 use crate::{
     ExtensionState,
@@ -17,7 +18,7 @@ use crate::{
 
 /// Extensions tied to the life cycle of the engine. Whenever it reloads, they must also be
 /// reloaded.
-#[derive(Clone, Default)]
+#[derive(Default, Clone)]
 pub struct EngineWasmExtensions(Arc<EngineWasmExtensionsInner>);
 
 pub(crate) type Subscriptions = DashMap<Vec<u8>, broadcast::Sender<Response>>;
@@ -71,9 +72,16 @@ impl EngineWasmExtensions {
         }
 
         Ok(Self(Arc::new(EngineWasmExtensionsInner {
-            pools: create_pools(schema, extensions).await?,
+            pools: create_pools(&gateway_extensions.engine, schema, extensions).await?,
             contracts: match contracts {
-                Some(config) => Some(Pool::new(schema.clone(), Arc::new(ExtensionState::new(config))).await?),
+                Some(config) => Some(
+                    Pool::new(
+                        &gateway_extensions.engine,
+                        schema,
+                        Arc::new(ExtensionState::new(config)),
+                    )
+                    .await?,
+                ),
                 None => None,
             },
             subscriptions: Default::default(),
@@ -130,6 +138,7 @@ impl EngineWasmExtensions {
 }
 
 async fn create_pools(
+    engine: &Engine,
     schema: &Arc<Schema>,
     extensions: Vec<ExtensionConfig>,
 ) -> wasmtime::Result<HashMap<ExtensionId, Pool, BuildHasherDefault<FxHasher32>>> {
@@ -148,7 +157,7 @@ async fn create_pools(
         std::future::ready(()).await;
 
         let id = config.id;
-        let pool = Pool::new(schema.clone(), Arc::new(ExtensionState::new(config))).await?;
+        let pool = Pool::new(engine, schema, Arc::new(ExtensionState::new(config))).await?;
 
         Ok((id, pool))
     }))

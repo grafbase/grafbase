@@ -406,7 +406,14 @@ impl<'a> GatewayBuilder<'a> {
         ];
 
         if let Some(config) = self.toml_config.0 {
-            fs::write(&config_path, config.as_ref()).unwrap();
+            let crate_path = PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").unwrap());
+            let project_root = crate_path.parent().unwrap().parent().unwrap();
+            let cache_path = project_root.join(".grafbase").join("wasm-cache");
+
+            let mut config = config.into_owned();
+            config.push_str(&format!("\n[wasm]\ncache_path = \"{}\"\n", cache_path.display()));
+
+            fs::write(&config_path, &config).unwrap();
             args.push("--config".to_string());
             args.push(config_path.to_str().unwrap().to_string());
         }

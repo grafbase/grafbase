@@ -146,11 +146,8 @@ fn invalid_cache_size() {
             .await;
 
         insta::assert_snapshot!(gateway.unwrap_err(), @r#"
-        TOML parse error at line 7, column 34
-          |
-        7 |                 cache.max_size = -1
-          |                                  ^^
-        invalid value: integer `-1`, expected usize
+        Failed to parse configuration: invalid value: integer `-1`, expected usize
+        in `graph.contracts.cache.max_size`
         "#);
     });
 }

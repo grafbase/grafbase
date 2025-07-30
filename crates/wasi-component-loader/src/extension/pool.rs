@@ -6,6 +6,7 @@ use engine_schema::Schema;
 use extension_catalog::ExtensionId;
 use runtime::extension::Response;
 use tracing::{Instrument, info_span};
+use wasmtime::Engine;
 
 use crate::{ExtensionState, InstanceState};
 
@@ -13,12 +14,17 @@ use super::{ExtensionInstance, ExtensionLoader};
 
 pub(crate) struct Pool {
     inner: managed::Pool<ExtensionLoader>,
+    engine: Engine,
     state: Arc<ExtensionState>,
 }
 
 impl Pool {
-    pub(super) async fn new(schema: Arc<Schema>, state: Arc<ExtensionState>) -> wasmtime::Result<Self> {
-        let loader = ExtensionLoader::new(schema, state.clone())?;
+    pub(super) async fn new(
+        engine: &Engine,
+        schema: &Arc<Schema>,
+        state: Arc<ExtensionState>,
+    ) -> wasmtime::Result<Self> {
+        let loader = ExtensionLoader::new(engine, schema.clone(), state.clone())?;
         let mut builder = managed::Pool::builder(loader);
 
         if let Some(size) = state.config.pool.max_size {
@@ -26,7 +32,11 @@ impl Pool {
         }
 
         let inner = builder.build().expect("only fails if not in a runtime");
-        let pool = Pool { inner, state };
+        let pool = Pool {
+            engine: engine.clone(),
+            inner,
+            state,
+        };
 
         // Load immediately an instance to check they can initialize themselves correctly.
         let _ = pool.get().await?;
@@ -50,7 +60,7 @@ impl Pool {
     }
 
     pub(crate) async fn clone_and_adjust_for_contract(&self, schema: &Arc<Schema>) -> wasmtime::Result<Self> {
-        Self::new(schema.clone(), self.state.clone()).await
+        Self::new(&self.engine, schema, self.state.clone()).await
     }
 }
 

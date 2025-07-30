@@ -24,3 +24,8 @@ pub use crossbeam::sync::WaitGroup;
 pub use extension::api::wit::Error as GuestError;
 
 use state::{ExtensionState, InstanceState};
+
+mod built_info {
+    // The file has been placed there by the build script.
+    include!(concat!(env!("OUT_DIR"), "/built.rs"));
+}

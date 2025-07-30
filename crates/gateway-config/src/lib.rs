@@ -20,6 +20,7 @@ mod size_ext;
 mod subscription_protocol;
 pub mod telemetry;
 mod trusted_documents;
+mod wasm;
 mod websockets_config;
 
 use std::{
@@ -50,6 +51,7 @@ pub use rate_limit::*;
 use size::Size;
 pub use telemetry::*;
 use url::Url;
+pub use wasm::*;
 
 const DEFAULT_GATEWAY_TIMEOUT: Duration = Duration::from_secs(30);
 const DEFAULT_SUBGRAPH_TIMEOUT: Duration = Duration::from_secs(30);
@@ -218,6 +220,7 @@ pub struct Config {
     pub websockets: WebsocketsConfig,
     /// Model Control Protocol configuration
     pub mcp: Option<ModelControlProtocolConfig>,
+    pub wasm: Option<WasmConfig>,
 }
 
 impl Config {
@@ -255,6 +258,14 @@ impl Config {
             }
         }
 
+        if let Some(wasm) = &mut self.wasm {
+            if let Some(dir) = &mut wasm.cache_path {
+                if dir.is_relative() {
+                    *dir = parent.join(&dir);
+                }
+            }
+        }
+
         Some(self)
     }
 }
@@ -286,6 +297,7 @@ impl Default for Config {
             websockets: Default::default(),
             extensions: Default::default(),
             mcp: Default::default(),
+            wasm: Default::default(),
         }
     }
 }

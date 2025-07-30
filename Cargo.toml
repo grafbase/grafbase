@@ -311,10 +311,17 @@ debug = true
 # normal optimizations during the compilation stage)
 lto = "thin"
 
-# Boost snapshot diffing performance
+# Set the settings for build scripts and proc-macros.
+[profile.dev.build-override]
+opt-level = 2
+
+[profile.dev.package."*"]
+opt-level = 2
+
 [profile.dev.package]
-insta.opt-level = 2
-similar.opt-level = 2
+# Ensure wasmtime re-uses the same cache, which it doesn't for debug builds.
+# https://github.com/bytecodealliance/wasmtime/blob/main/crates/cache/src/lib.rs#L234
+wasmtime-internal-cache.debug-assertions = false
 
 [profile.lambda]
 inherits = "release"
