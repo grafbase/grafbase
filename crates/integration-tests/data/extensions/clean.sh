@@ -8,6 +8,6 @@ cd "$script_dir"
 cargo clean
 for dir in crates/*; do
     pushd "$dir"
-    rm -rf build cache
+    rm -rf build cache target
     popd
 done

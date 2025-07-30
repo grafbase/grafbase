@@ -14,9 +14,19 @@ runs:
   steps:
     - name: Extract the Rust version to use from the `rust-toolchain.toml` file
       shell: bash
+      env:
+        COMPONENTS: ${{ inputs.components }}
       run: |
         rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2 | cut -d " " -f 2)
         echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
+        echo "COMPONENTS=$(echo "$COMPONENTS" | sed 's/[, ]//g')"
+
+    - name: Cache cargo registry and build
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.rustup
+        key: rustup-v1-${{ runner.os }}-${{ inputs.target }}-${{ env.COMPONENTS }}-${{ hashFiles('rust-toolchain.toml') }}
 
     - name: Install Rust
       uses: dtolnay/rust-toolchain@master

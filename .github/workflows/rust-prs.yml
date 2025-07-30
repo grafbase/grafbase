@@ -43,16 +43,6 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
-      - name: Cache cargo registry and build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}
-
       - name: Install rust
         uses: ./.github/actions/install-rust
 
@@ -135,20 +125,14 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
-      - name: Cache cargo registry and build
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('Cargo.lock') }}
-
       - name: Install Rust
         uses: ./.github/actions/install-rust
         with:
           components: rust-docs
+
+      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+        with:
+          prefix-key: cargo-v1
 
       - name: cargo doc
         shell: bash
@@ -182,17 +166,13 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
-      - name: Cache cargo registry and build
-        uses: actions/cache@v4
+      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-            crates/integration-tests/data/extensions/target
-            crates/integration-tests/data/extensions/*/target
-          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('Cargo.lock', 'crates/integration-tests/data/extensions/Cargo.lock') }}
+          prefix-key: cargo-v1
+          workspaces: |
+            . -> target
+            crates/integration-tests/data/extensions -> target
+            crates/wasi-component-loader/examples -> target
 
       - name: Build the grafbase cli
         shell: bash
@@ -265,16 +245,11 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
-      - name: Cache cargo registry and build
-        uses: actions/cache@v4
+      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
+          prefix-key: cargo-v1
+          cache-directories: |
             .grafbase/wasm-cache
-            target/
-          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('Cargo.lock') }}
 
       - name: Install Rust
         uses: ./.github/actions/install-rust
@@ -295,23 +270,6 @@ jobs:
         uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
         with:
           tool: nextest
-
-      # https://github.com/actions/setup-node/issues/899
-      - name: Enable Corepack before setting up Node
-        shell: bash
-        run: corepack enable
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4
-        id: pnpm-install
-        with:
-          version: 8
-          run_install: false
 
       - name: Download pre-built example component
         if: needs.wasm-extensions.result != 'skipped'
@@ -588,16 +546,19 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
-      - name: Cache cargo registry and build
-        uses: actions/cache@v4
+      - name: Install Rust
+        uses: ./.github/actions/install-rust
         with:
-          path: |
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-            extensions/target
-          key: ${{ github.workflow }}-${{ github.job }}-${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('Cargo.lock', 'extensions/Cargo.lock') }}
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+        with:
+          prefix-key: cargo-v1
+          workspaces: |
+            . -> target
+            extensions -> target
+          cache-directories: |
+            extensions/extensions/*/.grafbase/wasm-cache
 
       - name: Fetch CLI assets
         uses: ./.github/actions/fetch-assets
@@ -606,11 +567,6 @@ jobs:
         shell: bash
         run: |
           echo ${{ needs.what-changed.outputs.changed-packages }}
-
-      - name: Install Rust
-        uses: ./.github/actions/install-rust
-        with:
-          components: clippy, rustfmt
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
