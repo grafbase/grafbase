@@ -71,44 +71,6 @@ impl Manifest {
     pub fn environment_variables_enabled(&self) -> bool {
         self.permissions.contains(&ExtensionPermission::EnvironmentVariables)
     }
-
-    pub fn get_directive_type(&self, name: &str) -> DirectiveType {
-        match &self.r#type {
-            Type::FieldResolver(FieldResolverType { resolver_directives }) => {
-                if let Some(directives) = resolver_directives {
-                    directives
-                        .iter()
-                        .any(|dir| dir == name)
-                        .then_some(DirectiveType::FieldResolver)
-                } else {
-                    Some(DirectiveType::FieldResolver)
-                }
-            }
-            Type::Authorization(AuthorizationType { directives }) => {
-                if let Some(directives) = directives {
-                    directives
-                        .iter()
-                        .any(|dir| dir == name)
-                        .then_some(DirectiveType::Authorization)
-                } else {
-                    Some(DirectiveType::Authorization)
-                }
-            }
-            Type::SelectionSetResolver(_) => Some(DirectiveType::SelectionSetResolver),
-            Type::Resolver(ResolverType { directives }) => {
-                if let Some(directives) = directives {
-                    directives
-                        .iter()
-                        .any(|dir| dir == name)
-                        .then_some(DirectiveType::Resolver)
-                } else {
-                    Some(DirectiveType::Resolver)
-                }
-            }
-            Type::Authentication(_) | Type::Hooks(_) | Type::Contracts(_) => Default::default(),
-        }
-        .unwrap_or_default()
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, strum::EnumDiscriminants)]
@@ -133,48 +95,24 @@ impl Type {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, serde::Serialize, serde::Deserialize)]
-pub enum DirectiveType {
-    #[default]
-    Unknown,
-    FieldResolver,
-    Resolver,
-    SelectionSetResolver,
-    Authorization,
-}
-
-impl DirectiveType {
-    pub fn is_authorization(&self) -> bool {
-        matches!(self, DirectiveType::Authorization)
-    }
-
-    pub fn is_field_resolver(&self) -> bool {
-        matches!(self, DirectiveType::FieldResolver)
-    }
-
-    pub fn is_resolver(&self) -> bool {
-        matches!(self, DirectiveType::Resolver)
-    }
-
-    pub fn is_selection_set_resolver(&self) -> bool {
-        matches!(self, DirectiveType::SelectionSetResolver)
-    }
-
-    pub fn is_unknown(&self) -> bool {
-        matches!(self, DirectiveType::Unknown)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FieldResolverType {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolver_directives: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct AuthorizationType {
     #[serde(skip_serializing_if = "Option::is_none", alias = "authorization_directives")]
     pub directives: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group_by: Option<Vec<AuthorizationGroupBy>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AuthorizationGroupBy {
+    Subgraph,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -197,6 +135,7 @@ pub struct Empty {}
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
     use serde_json::json;
 
     #[test]
@@ -425,6 +364,7 @@ mod tests {
             },
             r#type: Type::Authorization(AuthorizationType {
                 directives: Some(vec!["authorized".to_string(), "authenticated".to_string()]),
+                group_by: None,
             }),
             sdk_version: semver::Version::new(0, 1, 0),
             minimum_gateway_version: semver::Version::new(0, 1, 0),
@@ -475,11 +415,56 @@ mod tests {
                 name: "authz".to_string(),
                 version: semver::Version::new(1, 0, 0),
             },
-            r#type: Type::Authorization(AuthorizationType { directives: None }),
+            r#type: Type::Authorization(AuthorizationType {
+                directives: None,
+                group_by: None,
+            }),
             sdk_version: semver::Version::new(0, 1, 0),
             minimum_gateway_version: semver::Version::new(0, 1, 0),
             sdl: None,
             description: "An authorization extension test".to_owned(),
+            readme: None,
+            homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
+            repository_url: None,
+            license: None,
+            permissions: Default::default(),
+            legacy_event_filter: None,
+        };
+
+        assert_eq!(manifest, expected);
+    }
+
+    #[test]
+    fn authorization_compatibility_with_grouping() {
+        let json = json!({
+            "id": {"name": "authz", "version": "1.0.0"},
+            "kind": {
+                "Authorization": {
+                    "directives": ["authorized", "authenticated"],
+                    "group_by": ["subgraph"]
+                }
+            },
+            "sdk_version": "0.1.0",
+            "minimum_gateway_version": "0.1.0",
+            "description": "An authorization extension test with grouping",
+            "homepage_url": "http://example.com/my-extension"
+        });
+
+        let manifest: Manifest = serde_json::from_value(json).unwrap();
+
+        let expected = Manifest {
+            id: Id {
+                name: "authz".to_string(),
+                version: semver::Version::new(1, 0, 0),
+            },
+            r#type: Type::Authorization(AuthorizationType {
+                directives: Some(vec!["authorized".to_string(), "authenticated".to_string()]),
+                group_by: Some(vec![AuthorizationGroupBy::Subgraph]),
+            }),
+            sdk_version: semver::Version::new(0, 1, 0),
+            minimum_gateway_version: semver::Version::new(0, 1, 0),
+            sdl: None,
+            description: "An authorization extension test with grouping".to_owned(),
             readme: None,
             homepage_url: Some("http://example.com/my-extension".parse().unwrap()),
             repository_url: None,

@@ -27,7 +27,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_10_0 {
             let result = self
                 .inner
                 .grafbase_sdk_authorization()
-                .call_authorize_query(&mut self.store, headers, token_param, elements)
+                .call_authorize_query(&mut self.store, headers, token_param, elements.into())
                 .await?;
 
             let headers = self.store.data_mut().take_leased_resource(headers_rep)?;

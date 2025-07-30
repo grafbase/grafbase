@@ -44,7 +44,9 @@ interface authorization-types {
         // the field or type on which the directive was applied
         site: directive-site,
         // directive arguments encoded in CBOR.
-        arguments: list<u8>
+        arguments: list<u8>,
+        // Name of the subgraph from which this field will be requested from.
+        subgraph-name: option<string>
     }
 
     record response-elements {

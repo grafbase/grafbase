@@ -2989,6 +2989,7 @@ name = "engine-schema"
 version = "0.0.0"
 dependencies = [
  "anyhow",
+ "bitflags 2.9.1",
  "blake3",
  "cynic-parser",
  "cynic-parser-deser",
@@ -3218,6 +3219,7 @@ name = "extension"
 version = "0.0.0"
 dependencies = [
  "grafbase-workspace-hack",
+ "pretty_assertions",
  "semver 1.0.26",
  "serde",
  "serde_json",

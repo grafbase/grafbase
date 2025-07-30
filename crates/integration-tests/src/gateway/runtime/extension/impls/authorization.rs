@@ -162,6 +162,7 @@ impl AuthorizationExtension<ExtContext> for TestExtensions {
             .map(|element| QueryElement {
                 site: element.site,
                 arguments: serde_json::to_value(element.arguments).unwrap(),
+                subgraph: element.subgraph,
             })
             .collect::<Vec<_>>();
 
@@ -272,6 +273,7 @@ impl AnyExtension for AuthorizationExt {
             },
             r#type: extension_catalog::Type::Authorization(extension_catalog::AuthorizationType {
                 directives: None,
+                group_by: None,
             }),
             sdl: self.sdl.or(Some(
                 r#"

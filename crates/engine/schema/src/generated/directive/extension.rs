@@ -4,7 +4,7 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
-    ExtensionDirectiveArgumentId, FieldSet, FieldSetRecord, StringId,
+    ExtensionDirectiveArgumentId, ExtensionDirectiveType, FieldSet, FieldSetRecord, StringId,
     generated::{Subgraph, SubgraphId},
     prelude::*,
 };

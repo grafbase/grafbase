@@ -63,6 +63,7 @@ struct GraphQLDefinitionsTemplate<'a> {
 struct ExtensionTomlTemplate<'a> {
     name: &'a str,
     r#type: ExtensionType,
+    type_config: &'a str,
 }
 
 #[derive(askama::Template)]
@@ -171,6 +172,43 @@ fn init_extension_toml(project_path: &Path, r#type: ExtensionType, extension_nam
     let template = ExtensionTomlTemplate {
         name: extension_name,
         r#type,
+        type_config: match r#type {
+            ExtensionType::Resolver => indoc::indoc! { r#"
+                [resolver]
+                # Directives that resolve to data. Every other directive will be treated as metadata only.
+                # Defaults to all defined directives.
+                #
+                # directives = ["resolve"]
+            "#},
+            ExtensionType::Authentication => "",
+            ExtensionType::Authorization => indoc::indoc! { r#"
+                [authorization]
+                # Directives that need to granted authorization during execution. Every other directive will be treated as metadata only.
+                # Defaults to all defined directives.
+                #
+                # directives = ["myAuth"]
+
+                # Refine the grouping used by the gateway for authorization. By default, the gateway will request authorization only once for
+                # any decorated element (ex: field), independent of its location in the query, from which subgraph it comes from 
+                # and how many times it appears in the query.
+                #
+                # Supported values include:
+                # - `subgraph`: The gateway will request authorization for each subgraph that contains the decorated element.
+                #
+                # Defaults to empty list.
+                #
+                # grouping = ["subgraph"]
+            "# },
+            ExtensionType::Hooks => indoc::indoc! { r#"
+                [hooks]
+                # Specify the events you intend to read in the on_response hook.
+                # Defaults to no events.
+                #
+                # events = "*"
+                # events = ["operation", "http_request"]
+            "#},
+            ExtensionType::Contracts => "",
+        },
     };
 
     template.write_into(&mut writer)?;

@@ -1,8 +1,10 @@
 mod argument;
 mod input_value;
+mod ty;
 
 pub use argument::*;
 pub use input_value::*;
+pub use ty::*;
 
 use crate::ExtensionDirective;
 

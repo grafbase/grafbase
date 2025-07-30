@@ -14,7 +14,7 @@ fn query_and_response_auth_with_headers_modifications() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                    extend schema @link(url: "authorization-10-1.0.0", import: ["@deniedIds", "@deny"])
+                    extend schema @link(url: "authz-13-1.0.0", import: ["@deniedIds", "@deny"])
 
                     type Query {
                         users: [User]!
@@ -44,7 +44,7 @@ fn query_and_response_auth_with_headers_modifications() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthenticationExt::new(StaticToken::bytes("Hello world!")))
-            .with_extension("authorization-10")
+            .with_extension("authz-13")
             .build()
             .await;
 

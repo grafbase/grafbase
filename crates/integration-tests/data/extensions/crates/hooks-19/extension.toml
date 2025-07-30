@@ -1,11 +1,14 @@
 [extension]
 name = "hooks-19"
-version = "0.1.0"
 type = "hooks"
+version = "0.1.0"
 description = "A new extension"
 # homepage_url = "https://example.com/my-extension"
 # repository_url = "https://github.com/my-username/my-extension"
 # license = "MIT"
+
+[hooks]
+events = "*"
 
 # These are the default permissions for the extension.
 # The user can enable or disable them as needed in the gateway
@@ -15,7 +18,3 @@ network = false
 stdout = false
 stderr = false
 environment_variables = false
-
-
-[hooks]
-events = "*"

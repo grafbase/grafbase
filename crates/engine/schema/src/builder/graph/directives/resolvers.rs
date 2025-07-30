@@ -1,12 +1,10 @@
 use std::{mem::take, ops::DerefMut};
 
-use extension_catalog::DirectiveType;
-
 use crate::{
-    EntityDefinitionId, ExtensionResolverDefinitionRecord, FieldResolverExtensionDefinitionRecord,
-    GraphqlFederationEntityResolverDefinitionRecord, GraphqlRootFieldResolverDefinitionRecord, ResolverDefinitionId,
-    ResolverDefinitionRecord, SelectionSetResolverExtensionDefinitionRecord, SubgraphId, TypeSystemDirectiveId,
-    VirtualSubgraphId,
+    EntityDefinitionId, ExtensionDirectiveType, ExtensionResolverDefinitionRecord,
+    FieldResolverExtensionDefinitionRecord, GraphqlFederationEntityResolverDefinitionRecord,
+    GraphqlRootFieldResolverDefinitionRecord, ResolverDefinitionId, ResolverDefinitionRecord,
+    SelectionSetResolverExtensionDefinitionRecord, SubgraphId, TypeSystemDirectiveId, VirtualSubgraphId,
     builder::{
         Error,
         sdl::{self, SdlDefinition},
@@ -65,7 +63,7 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
             };
             let directive = &graph.extension_directives[usize::from(id)];
             match directive.ty {
-                DirectiveType::FieldResolver => {
+                ExtensionDirectiveType::FieldResolver => {
                     let subgraph_id = directive.subgraph_id;
                     if !field.exists_in_subgraph_ids.contains(&subgraph_id) {
                         field.exists_in_subgraph_ids.push(subgraph_id);
@@ -79,7 +77,7 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
                         .resolver_ids
                         .push(ResolverDefinitionId::from(graph.resolver_definitions.len() - 1))
                 }
-                DirectiveType::Resolver => {
+                ExtensionDirectiveType::Resolver => {
                     let subgraph_id = directive.subgraph_id;
                     if !field.exists_in_subgraph_ids.contains(&subgraph_id) {
                         field.exists_in_subgraph_ids.push(subgraph_id);

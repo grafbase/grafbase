@@ -1,7 +1,7 @@
 [extension]
 name = "auth-17"
-version = "0.1.0"
 type = "authentication"
+version = "0.1.0"
 description = "A new extension"
 # homepage_url = "https://example.com/my-extension"
 # repository_url = "https://github.com/my-username/my-extension"

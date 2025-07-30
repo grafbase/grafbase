@@ -23,7 +23,7 @@ impl HooksExtension for {{name}} {
         status: StatusCode,
         headers: &mut GatewayHeaders,
         event_queue: EventQueue,
-    ) -> Result<(), String> {
+    ) -> Result<(), Error> {
         Ok(())
     }
 }
