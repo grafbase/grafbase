@@ -119,26 +119,30 @@ impl ObjectStorageUpdater {
             .build()
             .map_err(|e| crate::Error::InternalError(e.to_string()))?;
 
-        let object_storage_host = object_storage_host();
+        let mut object_storage_url: url::Url = object_storage_host().parse().map_err(|err| {
+            crate::Error::FetcherConfigError(format!("The configured object storage host is not a valid URL: {err}"))
+        })?;
 
-        let object_storage_url = match graph_ref {
+        object_storage_url.set_path(&match graph_ref {
             GraphRef::LatestProductionVersion { graph_slug } => {
-                format!("{object_storage_host}/graphs/{graph_slug}")
+                format!("/graphs/{graph_slug}")
             }
             GraphRef::LatestVersion {
                 graph_slug,
                 branch_name,
-            } => format!("{object_storage_host}/graphs/{graph_slug}/branch/{branch_name}"),
+            } => {
+                let branch_name = url::form_urlencoded::byte_serialize(branch_name.as_bytes()).collect::<String>();
+                format!("/graphs/{graph_slug}/branch/{branch_name}")
+            }
             GraphRef::Id {
                 graph_slug,
                 branch_name,
                 version,
-            } => format!("{object_storage_host}/graphs/{graph_slug}/branch/{branch_name}/version/{version}"),
-        };
-
-        let object_storage_url = object_storage_url
-            .parse::<Url>()
-            .map_err(|e| crate::Error::InternalError(e.to_string()))?;
+            } => {
+                let branch_name = url::form_urlencoded::byte_serialize(branch_name.as_bytes()).collect::<String>();
+                format!("/graphs/{graph_slug}/branch/{branch_name}/version/{version}")
+            }
+        });
 
         Ok(Self {
             object_storage_url,
