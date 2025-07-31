@@ -124,7 +124,7 @@ jobs:
 
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
-      - uses: ./.github/parts/actions/install-rust
+      - uses: ./.github/actions/install-rust
         with:
           target: ${{ matrix.archs.target }}
 
@@ -138,7 +138,7 @@ jobs:
           packages: musl musl-tools
           version: 1.0
 
-      - uses: ./.github/parts/actions/fetch-assets
+      - uses: ./.github/actions/fetch-assets
 
       - name: Build releases
         env:
@@ -207,7 +207,7 @@ jobs:
 
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
-      - uses: ./.github/parts/actions/install-rust
+      - uses: ./.github/actions/install-rust
         with:
           target: x86_64-pc-windows-msvc
 
@@ -216,7 +216,7 @@ jobs:
           cache-workspace-crates: true
           prefix-key: cargo-v1
 
-      - uses: ./.github/parts/actions/fetch-assets
+      - uses: ./.github/actions/fetch-assets
 
       - uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1
 
@@ -258,7 +258,7 @@ jobs:
 
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
-      - uses: ./.github/parts/actions/install-rust
+      - uses: ./.github/actions/install-rust
         with:
           target: ${{ matrix.target }}
 
@@ -267,7 +267,7 @@ jobs:
           cache-workspace-crates: true
           prefix-key: cargo-v1
 
-      - uses: ./.github/parts/actions/fetch-assets
+      - uses: ./.github/actions/fetch-assets
 
       - name: Build grafbase release
         env:
@@ -312,7 +312,7 @@ jobs:
   release-grafbase:
     needs: [windows, linux, darwin]
     if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
-    uses: ./.github/parts/workflows/grafbase-release.yml
+    uses: ./.github/workflows/partial-grafbase-release.yml
     with:
       draft: false
       tag: ${{ github.ref_name }}
@@ -324,7 +324,7 @@ jobs:
   release-gateway:
     needs: [windows, linux, darwin]
     if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
-    uses: ./.github/parts/workflows/gateway-release.yml
+    uses: ./.github/workflows/partial-gateway-release.yml
     with:
       draft: false
       tag: ${{ github.ref_name }}

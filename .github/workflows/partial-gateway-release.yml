@@ -31,7 +31,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-small
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/parts/actions/install-rust
+      - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-musl
 
