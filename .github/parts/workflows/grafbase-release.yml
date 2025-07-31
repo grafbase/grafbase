@@ -30,6 +30,11 @@ jobs:
     name: Release grafbase
     runs-on: depot-ubuntu-24.04-small
     steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/parts/actions/install-rust
+        with:
+          target: x86_64-unknown-linux-musl
+
       - name: Parse version tag
         run: |
           VERSION_BUMP="${{ inputs.tag }}"
@@ -43,17 +48,6 @@ jobs:
           footer: '<{run_url}|View Run>'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-      - name: Get sources
-        uses: actions/checkout@v4
-
-      - name: Rust job init
-        uses: ./.github/actions/init_rust_job
-        with:
-          platform: linux
-
-      - name: Fetch CLI assets
-        uses: ./.github/actions/fetch-assets
 
       # This is annoying, but github doesn't pass env vars down to child workflows,
       # and you can't use them as input parameters either so lets read them out the
@@ -145,6 +139,9 @@ jobs:
             sed -i 's/{{LATEST_VERSION}}/${{ env.VERSION_BUMP }}/g' cli
             aws s3 cp cli s3://downloads-071269490873/install/cli
           fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
 
       - name: Publish npm
         shell: bash

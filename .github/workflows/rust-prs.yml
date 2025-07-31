@@ -3,6 +3,11 @@ name: rust-prs
 on:
   workflow_dispatch:
   pull_request:
+  workflow_call:
+    inputs:
+      base_ref:
+        type: string
+        required: true
 
 env:
   CARGO_PROFILE_DEV_DEBUG: 0
@@ -29,29 +34,30 @@ jobs:
       cargo-docker-test-specs: ${{ steps.rust.outputs.cargo-docker-test-specs }}
       cargo-bin-specs: ${{ steps.rust.outputs.cargo-bin-specs }}
 
-      grafbase-docker: ${{ steps.paths-changed.outputs.grafbase-docker }}
       gateway-docker: ${{ steps.paths-changed.outputs.gateway-docker }}
-      examples: ${{ steps.paths-changed.outputs.gateway-examples }}
+      examples: ${{ steps.paths-changed.outputs.examples }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           # TODO: Figure out how to not make this zero
           # Seems like if it's not zero you dont get branches
           fetch-depth: 0
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - uses: ./.github/parts/actions/install-rust
+        with:
+          target: x86_64-unknown-linux-musl
 
-      - name: Install rust
-        uses: ./.github/actions/install-rust
+      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+        with:
+          prefix-key: cargo-v1
 
       - name: Run what-rust-changed
         id: rust
         uses: grafbase/what-rust-changed@3827ff3c909f05702f95dcb36721cb67a1e116e8 # v0.2.1
         with:
           config: .github/what-rust-changed.toml
-          base: ${{ github.event.pull_request.base.ref || 'main' }}
+          base: ${{ inputs.base_ref || github.event.pull_request.base.ref || 'main' }}
 
       - name: Check paths changed
         uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
@@ -68,11 +74,10 @@ jobs:
     if: needs.what-changed.outputs.changed-packages != '[]'
     runs-on: depot-ubuntu-24.04-small
     steps:
-      - name: Get sources
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-
-      - name: Install Rust
-        uses: ./.github/actions/install-rust
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: ./.github/parts/actions/install-rust
+        with:
+          target: x86_64-unknown-linux-musl
 
       - name: Install cargo-binstall and cargo-about
         shell: bash
@@ -91,12 +96,10 @@ jobs:
     if: needs.what-changed.outputs.changed-packages != '[]'
     runs-on: depot-ubuntu-24.04-small
     steps:
-      - name: Get sources
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: ./.github/actions/install-rust
+      - uses: actions/checkout@v4
+      - uses: ./.github/parts/actions/install-rust
         with:
+          target: x86_64-unknown-linux-musl
           components: rustfmt
 
       - name: cargo fmt
@@ -119,17 +122,12 @@ jobs:
     if: contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-sdk')
     runs-on: depot-ubuntu-24.04-small
     steps:
-      - name: Get sources
-        uses: actions/checkout@v4
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-
-      - name: Install Rust
-        uses: ./.github/actions/install-rust
+      - uses: actions/checkout@v4
+      - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - uses: ./.github/parts/actions/install-rust
         with:
+          target: x86_64-unknown-linux-musl
           components: rust-docs
-
       - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
         with:
           prefix-key: cargo-v1
@@ -149,25 +147,20 @@ jobs:
           cargo test --doc -p grafbase-sdk
 
   wasm-extensions:
-    if: |
-      needs.what-changed.outputs.changed-packages != '[]'
     needs: [what-changed]
     runs-on: depot-ubuntu-24.04-8
+    if: |
+      contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
+      || contains(fromJson(needs.what-changed.outputs.changed-packages), 'integration-tests')
+      || contains(fromJson(needs.what-changed.outputs.changed-packages), 'wasi-component-loader')
     steps:
-      - name: Get sources
-        uses: actions/checkout@v4
-
-      - name: Fetch CLI assets
-        uses: ./.github/actions/fetch-assets
-
-      - name: Install cargo binstall
-        uses: cargo-bins/cargo-binstall@63aaa5c1932cebabc34eceda9d92a70215dcead6 # v1.12.3
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-
+      - uses: actions/checkout@v4
+      - uses: ./.github/parts/actions/fetch-assets
+      - uses: cargo-bins/cargo-binstall@63aaa5c1932cebabc34eceda9d92a70215dcead6 # v1.12.3
+      - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
       - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
         with:
+          cache-workspace-crates: true
           prefix-key: cargo-v1
           workspaces: |
             . -> target
@@ -207,7 +200,7 @@ jobs:
           path: crates/wasi-component-loader/examples/target/wasm32-wasip2/debug/*.wasm
           retention-days: 5
 
-  builds:
+  tests:
     needs: [what-changed, wasm-extensions]
     # We need the cancelled & result checks of this if to make sure that we
     # run even if some of our needs were skipped.
@@ -231,37 +224,32 @@ jobs:
     env:
       RUSTFLAGS: '-D warnings --cfg tracing_unstable'
     steps:
-      - name: Get sources
-        uses: actions/checkout@v4
-
-      - name: Fetch CLI assets
-        uses: ./.github/actions/fetch-assets
-
-      - name: Dump inputs for debugging
-        shell: bash
-        run: |
-          echo ${{ needs.what-changed.outputs.changed-packages }}
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - uses: actions/checkout@v4
+      - uses: ./.github/parts/actions/fetch-assets
+      - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
       - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
         with:
+          cache-workspace-crates: true
           prefix-key: cargo-v1
           cache-directories: |
             .grafbase/wasm-cache
 
-      - name: Install Rust
-        uses: ./.github/actions/install-rust
+      - uses: ./.github/parts/actions/install-rust
         with:
           target: ${{ matrix.platform.target }}
-          components: clippy, rustfmt
+          components: clippy
 
-      - name: Install musl-tools
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        if: ${{ contains(matrix.platform.target, 'linux') }}
+        with:
+          packages: musl musl-tools
+          version: 1.0
+
+      - name: Update musl-tools post installation
         if: ${{ contains(matrix.platform.target, 'linux') }}
         shell: bash
         run: |
-          sudo apt-get install musl musl-tools
           # This seems like a horrible hack that might come back to bite, but lets see!
           sudo ln -s /bin/g++ /bin/musl-g++
           sudo ln -s /bin/g++ /bin/aarch64-linux-musl-g++
@@ -271,15 +259,13 @@ jobs:
         with:
           tool: nextest
 
-      - name: Download pre-built example component
-        if: needs.wasm-extensions.result != 'skipped'
+      - if: needs.wasm-extensions.result != 'skipped'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: example-component
           path: crates/wasi-component-loader/examples/target/wasm32-wasip2/debug
 
-      - name: Download pre-built integration-tests extensions
-        if: needs.wasm-extensions.result != 'skipped'
+      - if: needs.wasm-extensions.result != 'skipped'
         uses: actions/download-artifact@v4
         with:
           name: integration-tests-extensions
@@ -313,7 +299,7 @@ jobs:
             --target ${{ matrix.platform.target }} \
             ${{ needs.what-changed.outputs.cargo-build-specs }}
 
-      - name: Login to Docker Hub
+      - name: Docker Login
         env:
           dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
         if: env.dockerhub_username != '' && runner.os == 'Linux'
@@ -416,13 +402,13 @@ jobs:
 
   docker-gateway:
     needs: [what-changed]
-    env:
-      COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
     if: |
       needs.what-changed.outputs.gateway-docker == 'true'
       || needs.what-changed.outputs.examples == 'true'
       || contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
+    env:
+      COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
     runs-on: depot-ubuntu-24.04-8
     permissions:
       packages: write
@@ -458,7 +444,7 @@ jobs:
           tags: ghcr.io/grafbase/gateway:${{ env.COMMIT_SHA }}
           file: ./gateway/Dockerfile
 
-  gateway-examples:
+  examples:
     needs: [docker-gateway]
     env:
       COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -534,8 +520,12 @@ jobs:
             && !(cancelled())
             && !(contains(needs.*.result, 'failure'))
     steps:
-      - name: Get sources
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - uses: ./.github/parts/actions/install-rust
+        with:
+          target: x86_64-unknown-linux-musl
+          components: clippy, rustfmt
 
       - name: Checkout Extensions
         uses: actions/checkout@v4
@@ -543,16 +533,9 @@ jobs:
           repository: 'grafbase/extensions'
           path: extensions
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-
-      - name: Install Rust
-        uses: ./.github/actions/install-rust
-        with:
-          components: clippy, rustfmt
-
       - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
         with:
+          cache-workspace-crates: true
           prefix-key: cargo-v1
           workspaces: |
             . -> target
@@ -560,13 +543,7 @@ jobs:
           cache-directories: |
             extensions/extensions/*/.grafbase/wasm-cache
 
-      - name: Fetch CLI assets
-        uses: ./.github/actions/fetch-assets
-
-      - name: Dump inputs for debugging
-        shell: bash
-        run: |
-          echo ${{ needs.what-changed.outputs.changed-packages }}
+      - uses: ./.github/parts/actions/fetch-assets
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
@@ -578,8 +555,8 @@ jobs:
         env:
           RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo build --release -p grafbase -p grafbase-gateway
-          echo "$(pwd)/target/release" >> $GITHUB_PATH
+          cargo build -p grafbase -p grafbase-gateway
+          echo "$(pwd)/target/debug" >> $GITHUB_PATH
 
       - name: Login to Docker Hub
         env:
@@ -629,7 +606,7 @@ jobs:
     # This job is responsible for reacting to build success or failure. It must
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
-    needs: [check-format, builds, docker-gateway, extensions]
+    needs: [check-format, grafbase-sdk-doc, tests, examples, extensions]
     runs-on: depot-ubuntu-24.04-small
     if: ${{ always() }}
     steps:

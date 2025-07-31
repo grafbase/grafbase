@@ -21,15 +21,19 @@ jobs:
       changed-packages: ${{ steps.rust.outputs.changed-packages }}
       github-action: ${{ steps.paths-changed.outputs.github-action }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           # TODO: Figure out how to not make this zero
           # Seems like if it's not zero you dont get branches
           fetch-depth: 0
 
-      - name: Install rust
-        uses: ./.github/actions/install-rust
+      - uses: ./.github/parts/actions/install-rust
+        with:
+          target: x86_64-unknown-linux-musl
+
+      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+        with:
+          prefix-key: cargo-v1
 
       - name: Run what-rust-changed
         id: rust
@@ -59,26 +63,16 @@ jobs:
     env:
       RUSTFLAGS: '-D warnings --cfg tracing_unstable'
     steps:
-      - name: Get sources
-        uses: actions/checkout@v4
-
-      # Disabling caching for now because I'm worried about using up any more of our cache storage.
-      # Can revisit later if we need to.
-      # - uses: Swatinem/rust-cache@v2
-      #   if: ${{ !startsWith(github.head_ref, 'renovate-') }}
-      #   with:
-      #     # Our windows & mac runners are hosted by github, so using github for
-      #     # their cache makes sense.  Buildjet is faster (and offers more storage) for
-      #     # others though.
-      #     cache-provider: ${{ contains(matrix.platform.target, 'linux') && 'buildjet' || 'github' }}
-
-      - name: Install rust
-        uses: ./.github/actions/install-rust
+      - uses: actions/checkout@v4
+      - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - uses: ./.github/parts/actions/install-rust
         with:
           target: x86_64-unknown-linux-gnu
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+        with:
+          cache-workspace-crates: true
+          prefix-key: cargo-v1
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
@@ -90,8 +84,7 @@ jobs:
         shell: bash
         run: corepack enable
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
 

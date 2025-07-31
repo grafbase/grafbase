@@ -36,8 +36,7 @@ jobs:
     outputs:
       build: ${{ steps.filter.outputs.build }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Path filter check
         uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
@@ -53,95 +52,13 @@ jobs:
               - '.github/actions/**/*'
               - '!**/*.md'
 
-  lint:
-    name: Lint
-    needs: [detect-change-type]
-    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: depot-ubuntu-24.04-8
-    steps:
-      - name: Get sources
-        uses: actions/checkout@v4
-
-      - name: Rust job init
-        uses: ./.github/actions/init_rust_job
-        with:
-          platform: linux
-
-      - name: Fetch CLI assets
-        uses: ./.github/actions/fetch-assets
-
-      - name: Lint
-        uses: ./.github/actions/lint
-
-  test:
-    name: Test
-    needs: [lint]
-    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: depot-ubuntu-24.04-8
-    steps:
-      - name: Get sources
-        uses: actions/checkout@v4
-
-      - name: Rust job init
-        uses: ./.github/actions/init_rust_job
-        with:
-          platform: linux
-
-      - name: Fetch CLI assets
-        uses: ./.github/actions/fetch-assets
-
-      - name: Test
-        uses: ./.github/actions/test
-        with:
-          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
-          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
-
-  individual-builds:
-    needs: [detect-change-type]
-    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    strategy:
-      fail-fast: false
-      matrix:
-        package: [grafbase, grafbase-gateway, federated-server]
-    runs-on: depot-ubuntu-24.04-8
-    steps:
-      - name: Get sources
-        uses: actions/checkout@v4
-
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-
-      - name: Rust job init
-        uses: ./.github/actions/init_rust_job
-        with:
-          platform: linux
-
-      - name: Fetch CLI assets
-        uses: ./.github/actions/fetch-assets
-
-      - name: Individual package build
-        shell: bash
-        env:
-          RUSTC_WRAPPER: 'sccache'
-        run: |
-          set -euo pipefail
-          # The actual features used for each dependency depends on what is being built simultaneously.
-          # However, each package is published individually, so we're checking that all packages compile
-          # with only their defined features.
-          # See: https://github.com/rust-lang/cargo/issues/4463
-          cargo check --all-features --package ${{ matrix.package }}
-
-      - name: Individual package without lambda
-        if: ${{ matrix.package == 'grafbase-gateway' }}
-        shell: bash
-        env:
-          RUSTC_WRAPPER: 'sccache'
-        run: |
-          set -euo pipefail
-          cargo check --package ${{ matrix.package }}
+  check:
+    uses: ./.github/workflows/rust-prs.yml
+    with:
+      base_ref: HEAD~1
 
   docker-gateway:
-    needs: [test]
+    needs: [check]
     if: ${{ (needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/')) }}
     runs-on: depot-ubuntu-24.04
     permissions:
@@ -149,11 +66,9 @@ jobs:
     env:
       COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
-      - name: Get sources
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -194,7 +109,7 @@ jobs:
           file: ./gateway/Dockerfile
 
   linux:
-    needs: [test]
+    needs: [check]
     strategy:
       fail-fast: false
       matrix:
@@ -205,37 +120,31 @@ jobs:
           ]
     runs-on: ${{ matrix.archs.runner }}
     steps:
-      - name: Get sources
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Rust job init
-        uses: ./.github/actions/init_rust_job
+      - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
+      - uses: ./.github/parts/actions/install-rust
         with:
-          platform: ${{ matrix.archs.platform }}
+          target: ${{ matrix.archs.target }}
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+        with:
+          cache-workspace-crates: true
+          prefix-key: cargo-v1
 
-      - name: Fetch CLI assets
-        uses: ./.github/actions/fetch-assets
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: musl musl-tools
+          version: 1.0
 
-      - name: Install musl
-        run: |
-          sudo apt update
-          sudo apt install musl
+      - uses: ./.github/parts/actions/fetch-assets
 
-      - name: Build grafbase release
+      - name: Build releases
         env:
           RUSTC_WRAPPER: 'sccache'
         run: |
-          cd cli
-          cargo build --release -p grafbase --target ${{ matrix.archs.target }} --timings
-
-      - name: Build gateway release
-        env:
-          RUSTC_WRAPPER: 'sccache'
-        run: |
-          cargo build --release -p grafbase-gateway --target ${{ matrix.archs.target }}
+          cargo build --release -p grafbase -p grafbase-gateway --target ${{ matrix.archs.target }} --timings
 
       - uses: actions/upload-artifact@v4
         with:
@@ -291,38 +200,30 @@ jobs:
             target/${{ matrix.archs.target }}/lambda/grafbase-gateway
 
   windows:
-    needs: [test]
+    needs: [check]
     runs-on: depot-windows-2022-8
     steps:
-      - name: Get sources
-        uses: actions/checkout@v4
-      - name: Rust job init
-        uses: ./.github/actions/init_rust_job
+      - uses: actions/checkout@v4
+
+      - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
+      - uses: ./.github/parts/actions/install-rust
         with:
-          platform: windows
+          target: x86_64-pc-windows-msvc
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+        with:
+          cache-workspace-crates: true
+          prefix-key: cargo-v1
 
-      - name: Fetch CLI assets
-        uses: ./.github/actions/fetch-assets
+      - uses: ./.github/parts/actions/fetch-assets
 
       - uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1
 
-      - if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        name: Test
-        uses: ./.github/actions/test
-        with:
-          with-integration-tests: 'false'
-          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
-          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Build grafbase release
-        shell: bash
         env:
           RUSTC_WRAPPER: sccache
         run: |
-          cd cli
           cargo build --release -p grafbase --target x86_64-pc-windows-msvc --timings
 
       - uses: actions/upload-artifact@v4
@@ -346,46 +247,33 @@ jobs:
           path: target/x86_64-pc-windows-msvc/release/grafbase.exe
 
   darwin:
-    needs: [test]
+    needs: [check]
     runs-on: depot-macos-latest
     strategy:
       matrix:
         target:
           - aarch64-apple-darwin
     steps:
-      - name: Get sources
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Rust job init
-        uses: ./.github/actions/init_rust_job
+      - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
+      - uses: ./.github/parts/actions/install-rust
         with:
-          platform: macos
+          target: ${{ matrix.target }}
 
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-
-      - name: Fetch CLI assets
-        uses: ./.github/actions/fetch-assets
-
-      - if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        name: Test
-        uses: ./.github/actions/test
+      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
         with:
-          with-integration-tests: 'false'
-          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
-          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          cache-workspace-crates: true
+          prefix-key: cargo-v1
+
+      - uses: ./.github/parts/actions/fetch-assets
 
       - name: Build grafbase release
         env:
           RUSTC_WRAPPER: sccache
         run: |
-          cargo build --release --target=${{ matrix.target }} -p grafbase --timings
-
-      - name: Build gateway release
-        env:
-          RUSTC_WRAPPER: sccache
-        run: |
-          cargo build --release --target=${{ matrix.target }} -p grafbase-gateway
+          cargo build --release --target=${{ matrix.target }} -p grafbase-gateway -p grafbase --timings
 
       - uses: actions/upload-artifact@v4
         with:
@@ -424,7 +312,7 @@ jobs:
   release-grafbase:
     needs: [windows, linux, darwin]
     if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
-    uses: ./.github/workflows/grafbase-partial-release.yml
+    uses: ./.github/parts/workflows/grafbase-release.yml
     with:
       draft: false
       tag: ${{ github.ref_name }}
@@ -436,7 +324,7 @@ jobs:
   release-gateway:
     needs: [windows, linux, darwin]
     if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
-    uses: ./.github/workflows/gateway-partial-release.yml
+    uses: ./.github/parts/workflows/gateway-release.yml
     with:
       draft: false
       tag: ${{ github.ref_name }}
