@@ -1,7 +1,5 @@
 mod loader;
 
-use std::path::{Path, PathBuf};
-
 use ulid::Ulid;
 
 pub use loader::*;
@@ -14,7 +12,6 @@ pub enum Graph {
         sdl: String,
     },
     FromText {
-        parent_dir: Option<PathBuf>,
         sdl: String,
     },
 }
@@ -24,13 +21,6 @@ impl Graph {
         match self {
             Graph::FromGraphRef { sdl, .. } => sdl,
             Graph::FromText { sdl, .. } => sdl,
-        }
-    }
-
-    pub fn parent_dir_path(&self) -> Option<&Path> {
-        match self {
-            Graph::FromGraphRef { .. } => None,
-            Graph::FromText { parent_dir, .. } => parent_dir.as_deref(),
         }
     }
 

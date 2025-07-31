@@ -118,6 +118,7 @@ async fn start(args: DevCommand, logging_filter: String) -> anyhow::Result<()> {
 
     let (config_sender, config_receiver) = watch::channel(config.clone());
 
+    let config = Arc::new(config);
     tokio::spawn(hot_reload(
         config_sender,
         sdl_sender,
@@ -126,18 +127,12 @@ async fn start(args: DevCommand, logging_filter: String) -> anyhow::Result<()> {
         config,
     ));
 
-    let current_dir = std::env::current_dir()
-        .map_err(|error| BackendError::Error(format!("Failed to get current directory: {error}")))?;
-
     let server_config = ServeConfig {
         listen_address,
         config_path: None,
         config_hot_reload: false,
         config_receiver,
-        graph_loader: GraphLoader::FromChannel {
-            current_dir,
-            sdl_receiver,
-        },
+        graph_loader: GraphLoader::FromChannel { sdl_receiver },
         grafbase_access_token: None,
         logging_filter,
     };

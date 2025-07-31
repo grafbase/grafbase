@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     Diagnostics, VecExt,
     composition_ir::{self as ir, CompositionIr},
@@ -20,20 +18,6 @@ impl<'a> Context<'a> {
     pub(crate) fn new(subgraphs: &'a subgraphs::Subgraphs, diagnostics: &'a mut Diagnostics) -> Self {
         subgraphs.emit_ingestion_diagnostics(diagnostics);
 
-        let extensions_by_url: HashMap<_, _> = subgraphs
-            .iter_extensions()
-            .map(|extension| (extension.url, extension.id))
-            .collect();
-
-        let linked_schema_to_extension = subgraphs
-            .iter_linked_schemas()
-            .filter_map(|linked_schema| {
-                extensions_by_url
-                    .get(&linked_schema.url)
-                    .map(|extension_id| (linked_schema.id, *extension_id))
-            })
-            .collect();
-
         let mut context = Context {
             subgraphs,
             diagnostics,
@@ -41,7 +25,6 @@ impl<'a> Context<'a> {
         };
 
         context.ir.used_extensions = fixedbitset::FixedBitSet::with_capacity(subgraphs.iter_extensions().len());
-        context.ir.linked_schema_to_extension = linked_schema_to_extension;
 
         for builtin_scalar in subgraphs.iter_builtin_scalars() {
             context.insert_scalar(builtin_scalar.as_str(), None, Vec::new());
@@ -263,20 +246,6 @@ impl<'a> Context<'a> {
     // interned in subgraphs.
     pub(crate) fn insert_static_str(&mut self, string: &'static str) -> federated::StringId {
         self.ir.strings.insert(string)
-    }
-
-    /// Is this linked schema from a Grafbase extension?
-    pub(crate) fn get_extension_for_linked_schema(
-        &self,
-        linked_schema_id: subgraphs::LinkedSchemaId,
-    ) -> Option<subgraphs::ExtensionId> {
-        let idx = self
-            .ir
-            .linked_schema_to_extension
-            .binary_search_by_key(&linked_schema_id, |(linked_schema_id, _)| *linked_schema_id)
-            .ok()?;
-
-        Some(self.ir.linked_schema_to_extension[idx].1)
     }
 
     pub(crate) fn set_query(&mut self, id: federated::ObjectId) {

@@ -16,23 +16,37 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
         }
     };
 
-    let (name, version) = subgraphs::parse_link_url(url)
-        .map(|url| (url.name, url.version))
-        .unwrap_or_default();
-
-    let name = name.map(|name| subgraphs.strings.intern(name));
-    let version = version.map(|version| subgraphs.strings.intern(version));
-
-    let url = subgraphs.strings.intern(url);
     let r#as = r#as.map(|r#as| subgraphs.strings.intern(r#as));
+    let linked_schema_id = match subgraphs.find_matching_extension(url) {
+        Some(id) => {
+            let extension = &subgraphs[id];
+            subgraphs.push_linked_schema(subgraphs::LinkedSchemaRecord {
+                subgraph_id,
+                extension_id: Some(id),
+                url: extension.url,
+                r#as,
+                name: Some(extension.name),
+                version: Some(extension.version),
+            })
+        }
+        None => {
+            let (name, version) = subgraphs::parse_link_url(url)
+                .map(|url| (url.name, url.version))
+                .unwrap_or_default();
 
-    let linked_schema_id = subgraphs.push_linked_schema(subgraphs::LinkedSchemaRecord {
-        subgraph_id,
-        url,
-        r#as,
-        name_from_url: name,
-        version_from_url: version,
-    });
+            let url = subgraphs.strings.intern(url);
+            let name = name.map(|name| subgraphs.strings.intern(name));
+            let version = version.map(|version| subgraphs.strings.intern(version));
+            subgraphs.push_linked_schema(subgraphs::LinkedSchemaRecord {
+                subgraph_id,
+                extension_id: None,
+                url,
+                r#as,
+                name,
+                version,
+            })
+        }
+    };
 
     for import in import.into_iter().flatten() {
         match import {

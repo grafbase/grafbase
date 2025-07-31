@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
-    AuthorizationGrouping, ExtensionDirectiveId, ExtensionDirectiveRecord, ExtensionDirectiveType, SubgraphId,
+    AuthorizationGroupBy, ExtensionDirectiveId, ExtensionDirectiveRecord, ExtensionDirectiveType, SubgraphId,
     builder::{Error, GraphBuilder, sdl},
 };
 
@@ -143,18 +143,15 @@ pub fn get_directive_type(manifest: &extension_catalog::Manifest, name: &str) ->
                 Some(ExtensionDirectiveType::FieldResolver)
             }
         }
-        Type::Authorization(AuthorizationType {
-            directives,
-            group_by: grouping,
-        }) => {
-            let grouping = grouping
+        Type::Authorization(AuthorizationType { directives, group_by }) => {
+            let group_by = group_by
                 .as_ref()
-                .map(|grouping| {
-                    let mut flag = AuthorizationGrouping::empty();
-                    for g in grouping {
+                .map(|group_by| {
+                    let mut flag = AuthorizationGroupBy::empty();
+                    for g in group_by {
                         match g {
                             extension_catalog::AuthorizationGroupBy::Subgraph => {
-                                flag |= AuthorizationGrouping::Subgraph;
+                                flag |= AuthorizationGroupBy::Subgraph;
                             }
                         }
                     }
@@ -165,9 +162,9 @@ pub fn get_directive_type(manifest: &extension_catalog::Manifest, name: &str) ->
                 directives
                     .iter()
                     .any(|dir| dir == name)
-                    .then_some(ExtensionDirectiveType::Authorization { grouping })
+                    .then_some(ExtensionDirectiveType::Authorization { group_by })
             } else {
-                Some(ExtensionDirectiveType::Authorization { grouping })
+                Some(ExtensionDirectiveType::Authorization { group_by })
             }
         }
         Type::SelectionSetResolver(_) => Some(ExtensionDirectiveType::SelectionSetResolver),

@@ -148,25 +148,26 @@ impl GatewayBuilder {
                 Some(sdl) => graphql_composition::FederatedGraph::from_sdl(&sdl).unwrap(),
                 None => {
                     if !subgraphs.is_empty() {
-                        let extensions = runtime.extensions.iter_with_url().collect::<Vec<_>>();
-                        let mut acc = graphql_composition::Subgraphs::default();
+                        let mut composed_subgraphs = graphql_composition::Subgraphs::default();
+
+                        composed_subgraphs.ingest_loaded_extensions(runtime.extensions.iter_with_url().map(
+                            |(manifest, url)| graphql_composition::LoadedExtension {
+                                link_url: manifest.id.to_string(),
+                                url,
+                                name: manifest.id.name.to_string(),
+                                version: manifest.id.version.to_string(),
+                            },
+                        ));
+
                         for subgraph in subgraphs.iter() {
-                            let url = subgraph.url();
-
-                            // Quite ugly to replace directly, but should work most of time considering we append
-                            // the version number
-                            let sdl = extensions.iter().fold(subgraph.sdl(), |sdl, (manifest, url)| {
-                                sdl.replace(&manifest.id.to_string(), url.as_str()).into()
-                            });
-
-                            acc.ingest_str(&sdl, subgraph.name(), url.as_ref().map(url::Url::as_str))?;
+                            composed_subgraphs.ingest_str(
+                                subgraph.sdl().as_ref(),
+                                subgraph.name(),
+                                subgraph.url().as_ref().map(url::Url::as_str),
+                            )?;
                         }
 
-                        acc.ingest_loaded_extensions(extensions.into_iter().map(|(manifest, url)| {
-                            graphql_composition::LoadedExtension::new(url.to_string(), manifest.name().to_string())
-                        }));
-
-                        graphql_composition::compose(acc)
+                        graphql_composition::compose(composed_subgraphs)
                             .warnings_are_fatal()
                             .into_result()
                             .expect("schemas to compose succesfully")
@@ -224,7 +225,7 @@ impl GatewayBuilder {
         let schema = Arc::new(
             ::engine::Schema::builder(&federated_sdl)
                 .config(&config)
-                .extensions(Some(tmpdir.path()), runtime.extensions.catalog())
+                .extensions(runtime.extensions.catalog())
                 .build()
                 .await
                 .map_err(|err| anyhow::anyhow!(err))?,

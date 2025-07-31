@@ -25,7 +25,6 @@ pub enum GraphLoader {
         path: PathBuf,
     },
     FromChannel {
-        current_dir: PathBuf,
         sdl_receiver: mpsc::Receiver<String>,
     },
 }
@@ -63,10 +62,7 @@ impl GraphLoader {
                 })?;
 
                 sender
-                    .send(UpdateEvent::Graph(Graph::FromText {
-                        parent_dir: path.parent().map(|p| p.to_owned()),
-                        sdl,
-                    }))
+                    .send(UpdateEvent::Graph(Graph::FromText { sdl }))
                     .await
                     .expect("channel must be up");
 
@@ -76,20 +72,10 @@ impl GraphLoader {
 
                 Ok(())
             }
-            GraphLoader::FromChannel {
-                current_dir,
-                mut sdl_receiver,
-            } => {
+            GraphLoader::FromChannel { mut sdl_receiver } => {
                 tokio::spawn(async move {
                     while let Some(sdl) = sdl_receiver.recv().await {
-                        if sender
-                            .send(UpdateEvent::Graph(Graph::FromText {
-                                parent_dir: Some(current_dir.clone()),
-                                sdl,
-                            }))
-                            .await
-                            .is_err()
-                        {
+                        if sender.send(UpdateEvent::Graph(Graph::FromText { sdl })).await.is_err() {
                             break;
                         }
                     }

@@ -6,6 +6,7 @@ pub(crate) struct LinkUrl {
 }
 
 /// https://specs.apollo.dev/link/v1.0/#@link.url
+/// With support for extension manifests
 pub(crate) fn parse_link_url(url: &str) -> Option<LinkUrl> {
     // Must be a url, or treated as an opaque identifier (which is valid).
     let url = url::Url::parse(url).ok()?;

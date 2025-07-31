@@ -64,10 +64,7 @@ impl SchemaFileGraphUpdater {
                 tracing::info!("Detected a schema file update");
 
                 self.sender
-                    .send(UpdateEvent::Graph(Graph::FromText {
-                        parent_dir: self.schema_path.parent().map(ToOwned::to_owned),
-                        sdl: schema,
-                    }))
+                    .send(UpdateEvent::Graph(Graph::FromText { sdl: schema }))
                     .await
                     .expect("channel must be up");
             } else {

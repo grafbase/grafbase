@@ -40,12 +40,14 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
             .map_err(|err| anyhow::anyhow!("Error parsing {}: \n{err:#}", path.display()))?;
     }
 
-    subgraphs.ingest_loaded_extensions(
-        extensions
-            .extensions
-            .into_iter()
-            .map(|extension| graphql_composition::LoadedExtension::new(extension.url, extension.name)),
-    );
+    subgraphs.ingest_loaded_extensions(extensions.extensions.into_iter().map(|extension| {
+        graphql_composition::LoadedExtension {
+            url: extension.url.parse().unwrap(),
+            link_url: extension.url,
+            name: extension.name,
+            version: extension.version,
+        }
+    }));
 
     let result = graphql_composition::compose(subgraphs);
 
@@ -152,4 +154,5 @@ struct TestExtensions {
 struct TestExtension {
     url: String,
     name: String,
+    version: String,
 }

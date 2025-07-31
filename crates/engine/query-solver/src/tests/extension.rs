@@ -278,7 +278,7 @@ async fn mix_of_look_derive_require() {
         "file:///rest/build",
         url::Url::from_file_path(tmpdir.path()).unwrap().as_str(),
     ))
-    .extensions(None, &catalog)
+    .extensions(&catalog)
     .build()
     .await
     .unwrap();

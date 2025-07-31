@@ -21,6 +21,7 @@ cynic-parser-deser.workspace = true
 fixedbitset.workspace = true
 indexmap.workspace = true
 itertools.workspace = true
+reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 url.workspace = true

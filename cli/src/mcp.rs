@@ -69,10 +69,9 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
                 )
             })?;
         let sdl = graphql_composition::render_federated_sdl(&federated_graph).expect("render_federated_sdl()");
-        let current_dir = std::env::current_dir().ok();
         engine::Schema::builder(&sdl)
             .config(&config)
-            .extensions(current_dir.as_deref(), &extensions_catalog)
+            .extensions(&extensions_catalog)
             .build()
             .await
             .map_err(|err| anyhow::anyhow!("Internal: failed to build schema: {err}"))?

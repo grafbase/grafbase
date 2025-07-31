@@ -128,7 +128,7 @@ impl<'a> QueryElement<'a> {
     /// # extension.toml
     /// [api]
     /// type = "authorization"
-    /// grouping = ["subgraph"]
+    /// group_by = ["subgraph"]
     /// ```
     pub fn subgraph_name(&self) -> Option<&'a str> {
         self.element.subgraph_name.as_deref()

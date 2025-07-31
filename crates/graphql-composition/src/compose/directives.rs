@@ -68,10 +68,7 @@ pub(super) fn collect_composed_directives<'a>(
                 subgraphs::DirectiveProvenance::Linked {
                     linked_schema_id,
                     is_composed_directive,
-                } => match (
-                    ctx.get_extension_for_linked_schema(linked_schema_id),
-                    is_composed_directive,
-                ) {
+                } => match (ctx.subgraphs[linked_schema_id].extension_id, is_composed_directive) {
                     (Some(_), true) => {
                         ctx.diagnostics.push_fatal(String::from(
                             "Directives from extensions must not be composed with `@composeDirective`",

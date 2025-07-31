@@ -1,19 +1,11 @@
 use cynic_parser::{TypeSystemDocument, type_system as ast};
 use extension_catalog::load_manifest;
 use futures::{TryFutureExt as _, future::join_all};
-use std::path::Path;
+use gateway_config::Config;
+use graphql_composition::LoadedExtension;
 use url::Url;
 
-#[derive(Debug)]
-pub(crate) struct DetectedExtension {
-    pub(crate) url: String,
-    pub(crate) name: String,
-}
-
-pub(super) async fn detect_extensions(
-    current_dir: Option<&Path>,
-    parsed_schema: &TypeSystemDocument,
-) -> Vec<DetectedExtension> {
+pub(super) async fn detect_extensions(config: &Config, parsed_schema: &TypeSystemDocument) -> Vec<LoadedExtension> {
     let link_directives = parsed_schema
         .definitions()
         .filter_map(|definition| match definition {
@@ -25,26 +17,44 @@ pub(super) async fn detect_extensions(
         .flatten()
         .filter(|directive| directive.name() == "link");
 
-    let urls = link_directives
+    let mut urls = link_directives
         .into_iter()
         .filter_map(|link_directive| {
             link_directive
                 .argument("url")
                 .and_then(|value| value.value().as_str())
-                .and_then(|url| url.parse().ok())
+                .and_then(|link_url| {
+                    let url = if let Some(url) = link_url.strip_prefix("./") {
+                        config
+                            .parent_dir_path()
+                            .map(|p| p.join(url))
+                            .and_then(|p| Url::from_file_path(p).ok())
+                    } else {
+                        link_url.parse::<Url>().ok()
+                    };
+                    url.map(|url| (link_url, url))
+                })
         })
         // These are for sure not grafbase extensions.
-        .filter(|url: &Url| url.domain() != Some("specs.apollo.dev"));
+        .filter(|(_, url)| url.domain() != Some("specs.apollo.dev") && url.domain() != Some("specs.grafbase.com"))
+        .collect::<Vec<_>>();
 
-    let futures = urls.map(|url| load_manifest(current_dir, url.clone()).map_ok(move |manifest| (url, manifest)));
+    urls.sort_unstable();
+    urls.dedup();
+
+    let futures = urls
+        .into_iter()
+        .map(|(link_url, url)| load_manifest(url.clone()).map_ok(move |manifest| (link_url, url, manifest)));
 
     let extensions = join_all(futures)
         .await
         .into_iter()
         .filter_map(|result| result.ok())
-        .map(|(url, manifest)| DetectedExtension {
-            url: url.to_string(),
+        .map(|(link_url, url, manifest)| LoadedExtension {
+            link_url: link_url.to_owned(),
+            url,
             name: manifest.id.name,
+            version: manifest.id.version.to_string(),
         })
         .collect();
 
@@ -77,7 +87,7 @@ mod tests {
 
         let ast = parse_type_system_document(schema).unwrap();
 
-        let extensions = detect_extensions(None, &ast).await;
+        let extensions = detect_extensions(&Default::default(), &ast).await;
 
         assert!(extensions.is_empty(), "Expected empty, got {extensions:#?}");
     }
@@ -100,7 +110,7 @@ mod tests {
 
         let ast = parse_type_system_document(schema).unwrap();
 
-        let extensions = detect_extensions(None, &ast).await;
+        let extensions = detect_extensions(&Default::default(), &ast).await;
 
         assert!(extensions.is_empty(), "Expected empty, got {extensions:#?}");
     }
@@ -153,7 +163,7 @@ mod tests {
         eprintln!("{schema}");
         let ast = parse_type_system_document(&schema).unwrap();
 
-        let detected_extensions = detect_extensions(None, &ast).await;
+        let detected_extensions = detect_extensions(&Default::default(), &ast).await;
 
         assert_eq!(detected_extensions.len(), 1);
         assert_eq!(detected_extensions[0].name, "test-extension");

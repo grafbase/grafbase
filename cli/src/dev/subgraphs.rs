@@ -21,7 +21,6 @@ use gateway_config::{Config, SubgraphConfig};
 use grafbase_graphql_introspection::introspect;
 use std::{
     collections::{BTreeMap, HashMap, HashSet},
-    path::PathBuf,
     sync::Arc,
 };
 use tokio::{
@@ -51,7 +50,6 @@ pub(crate) struct SubgraphOwner {
 }
 
 pub(crate) struct SubgraphCache {
-    current_dir: PathBuf,
     /// Urls from remote subgraphs (subgraphs fetched from the API with the graph ref).
     ///
     /// subgraph name -> subgraph url
@@ -78,9 +76,6 @@ impl SubgraphCache {
     ) -> Result<SubgraphCache, BackendError> {
         // subgraph name -> subgraph url
         let mut remote_urls: HashMap<String, Option<String>> = HashMap::new();
-
-        let current_dir = std::env::current_dir()
-            .map_err(|error| BackendError::Error(format!("Failed to get current directory: {error}")))?;
 
         let remote = if let Some(graph_ref) = graph_ref {
             let all_remote_subgraphs = fetch_remote_subgraphs(graph_ref).await?;
@@ -120,7 +115,6 @@ impl SubgraphCache {
         };
 
         let subgraph_cache = SubgraphCache {
-            current_dir,
             remote_urls,
             remote,
             data_json_schemas: Mutex::new((Utc::now(), data_json::Schemas::default())),
@@ -174,64 +168,37 @@ impl SubgraphCache {
         self.for_each_subgraph(|subgraph| {
             all_subgraphs.push(subgraph.clone());
 
-            futs.push_back({
-                let current_dir = self.current_dir.clone();
-                let subgraph = subgraph.clone();
-                async move {
-                    let current_dir = current_dir;
+            let subgraph = subgraph.clone();
+            futs.push_back(async move {
+                let diagnostics = graphql_schema_validation::validate(&subgraph.sdl);
 
-                    {
-                        let diagnostics = graphql_schema_validation::validate(&subgraph.sdl);
-
-                        if diagnostics.has_errors() {
-                            return Err(anyhow::anyhow!(
-                                "The schema of subgraph `{}` is invalid: {}",
-                                subgraph.name,
-                                diagnostics
-                                    .iter()
-                                    .map(|diagnostic| diagnostic.to_string())
-                                    .collect::<Vec<_>>()
-                                    .join("\n\n")
-                            ));
-                        }
-                    }
-
-                    let parsed_schema = cynic_parser::parse_type_system_document(&subgraph.sdl).map_err(|err| {
-                        anyhow::anyhow!("Failed to parse subgraph SDL for `{}`: {err}", subgraph.name)
-                    })?;
-
-                    let extensions = detect_extensions(Some(&current_dir), &parsed_schema).await;
-
-                    anyhow::Result::<_>::Ok((subgraph, parsed_schema, extensions))
+                if diagnostics.has_errors() {
+                    return Err(anyhow::anyhow!(
+                        "The schema of subgraph `{}` is invalid: {}",
+                        subgraph.name,
+                        diagnostics
+                            .iter()
+                            .map(|diagnostic| diagnostic.to_string())
+                            .collect::<Vec<_>>()
+                            .join("\n\n")
+                    ));
                 }
+
+                let parsed_schema = cynic_parser::parse_type_system_document(&subgraph.sdl)
+                    .map_err(|err| anyhow::anyhow!("Failed to parse subgraph SDL for `{}`: {err}", subgraph.name))?;
+
+                anyhow::Result::Ok((subgraph, parsed_schema))
             });
         })
         .await;
 
         let mut stream = futs.into_stream();
-        let mut subgraphs = graphql_composition::Subgraphs::default();
+        let mut subgraphs = graphql_composition::Subgraphs::default()
+            .with_current_dir(config.parent_dir_path().map(|p| p.to_path_buf()));
 
-        subgraphs.ingest_loaded_extensions(config.extensions.iter().map(|(extension_name, extension)| {
-            if let Some(path_url) = extension.path().and_then(|path| url::Url::from_file_path(path).ok()) {
-                return graphql_composition::LoadedExtension::new(path_url.to_string(), extension_name.clone());
-            }
-
-            graphql_composition::LoadedExtension::new(
-                format!(
-                    "https://extensions.grafbase.com/{extension_name}/{}",
-                    extension.version()
-                ),
-                extension_name.clone(),
-            )
-        }));
-
-        while let Some((subgraph, parsed_schema, extensions)) = stream.try_next().await? {
-            subgraphs.ingest_loaded_extensions(
-                extensions
-                    .into_iter()
-                    .map(|ext| graphql_composition::LoadedExtension::new(ext.url, ext.name)),
-            );
-
+        while let Some((subgraph, parsed_schema)) = stream.try_next().await? {
+            let extensions = detect_extensions(config, &parsed_schema).await;
+            subgraphs.ingest_loaded_extensions(extensions);
             subgraphs.ingest(&parsed_schema, &subgraph.name, subgraph.url.as_deref());
         }
 

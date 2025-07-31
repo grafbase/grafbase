@@ -48,7 +48,7 @@ pub(super) async fn generate(
     let schema = Arc::new(
         engine::Schema::builder(graph.sdl())
             .config(context.gateway_config)
-            .extensions(graph.parent_dir_path(), &extension_catalog)
+            .extensions(&extension_catalog)
             .build()
             .await
             .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?,

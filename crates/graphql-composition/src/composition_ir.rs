@@ -42,8 +42,6 @@ pub(crate) struct CompositionIr {
     pub(crate) fields: Vec<FieldIr>,
     pub(crate) union_members: BTreeSet<(federated::StringId, federated::StringId)>,
 
-    /// Link declaration in subgraphs that link to a Grafbase extension. Sorted.
-    pub(crate) linked_schema_to_extension: Vec<(subgraphs::LinkedSchemaId, subgraphs::ExtensionId)>,
     // indexed by ExtensionId
     pub(crate) used_extensions: fixedbitset::FixedBitSet,
 }

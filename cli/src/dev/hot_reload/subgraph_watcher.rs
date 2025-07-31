@@ -65,9 +65,9 @@ impl SubgraphWatcher {
             .filter_map(|(name, subgraph)| {
                 subgraph.introspection_url.as_ref().map(|introspection_url| {
                     (
-                        name,
-                        introspection_url.as_ref(),
-                        subgraph.introspection_headers.as_ref(),
+                        name.to_string(),
+                        introspection_url.to_string(),
+                        subgraph.introspection_headers.clone(),
                     )
                 })
             })
@@ -77,7 +77,7 @@ impl SubgraphWatcher {
             return Ok(());
         }
 
-        let poller_cancellation_token = self.cancellation_token.as_ref().expect("must exist").child_token();
+        let poller_cancellation_token = self.cancellation_token.clone().expect("must exist").child_token();
 
         let reload_cancellation_token = poller_cancellation_token.child_token();
 

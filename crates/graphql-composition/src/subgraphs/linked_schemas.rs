@@ -1,7 +1,5 @@
 use super::*;
 
-pub(crate) type LinkedSchema<'a> = View<'a, LinkedSchemaId, LinkedSchemaRecord>;
-
 /// Schemas linked with `@link`.
 #[derive(Default)]
 pub(crate) struct LinkedSchemas {
@@ -17,18 +15,19 @@ pub(crate) struct LinkedSchemas {
 pub(crate) struct LinkedSchemaRecord {
     /// The subgraph where the schema is @link'ed (imported).
     pub(crate) subgraph_id: SubgraphId,
+    pub(crate) extension_id: Option<ExtensionId>,
     /// The url of the schema.
     pub(crate) url: StringId,
-    pub(crate) name_from_url: Option<StringId>,
+    pub(crate) name: Option<StringId>,
     #[expect(unused)]
-    pub(crate) version_from_url: Option<StringId>,
+    pub(crate) version: Option<StringId>,
     pub(crate) r#as: Option<StringId>,
 }
 
 impl LinkedSchemaRecord {
     /// The prefix for the qualified imports from this schema. This can be None, when the url is not a url, or it doesn't have a path segment representing the name, and no `as:` argument is provided. The definitions linked from that `@link()` are then not addressable.
     pub(crate) fn namespace(&self) -> Option<StringId> {
-        self.r#as.or(self.name_from_url)
+        self.r#as.or(self.name)
     }
 
     pub(crate) fn is_federation_v2(&self, subgraphs: &Subgraphs) -> bool {
@@ -69,14 +68,6 @@ impl Subgraphs {
             .imported_definitions_by_name
             .get(&(subgraph_id, name))
             .copied()
-    }
-
-    pub(crate) fn iter_linked_schemas(&self) -> impl ExactSizeIterator<Item = LinkedSchema<'_>> {
-        self.linked_schemas
-            .schemas
-            .iter()
-            .enumerate()
-            .map(|(idx, record)| View { id: idx.into(), record })
     }
 
     pub(crate) fn push_linked_definition(
