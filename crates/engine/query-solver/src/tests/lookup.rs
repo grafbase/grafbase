@@ -63,7 +63,7 @@ async fn direct_lookup_call() {
         url::Url::from_file_path(tmpdir.path()).unwrap()
     );
 
-    let schema = Schema::builder(&sdl).extensions(None, &catalog).build().await.unwrap();
+    let schema = Schema::builder(&sdl).extensions(&catalog).build().await.unwrap();
 
     // The tricky part here is that one can easily end up using the lookup variant even though the
     // field is resolvable because we need special treatment to handle nested resolvers.

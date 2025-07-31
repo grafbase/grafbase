@@ -73,8 +73,10 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
         // The range we have in the current directive_names are relative to the whole elements
         // array. But we won't send the whole elements array to each extension. We'll only send the
         // relevant part. So we must adjust the range to take this in account.
-        for (_, _, query_elements_range) in extensions.clone() {
-            for (_, directive_query_elements_start, directive_query_elements_end) in &mut directive_names {
+        for (_, directives_range, query_elements_range) in extensions.clone() {
+            for (_, directive_query_elements_start, directive_query_elements_end) in
+                &mut directive_names[directives_range]
+            {
                 *directive_query_elements_start -= query_elements_range.start as u32;
                 *directive_query_elements_end -= query_elements_range.start as u32;
             }

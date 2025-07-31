@@ -51,7 +51,7 @@ pub(crate) async fn hot_reload(
     sdl_sender: mpsc::Sender<String>,
     mut ready_receiver: Receiver<String>,
     subgraph_cache: Arc<SubgraphCache>,
-    config: Config,
+    config: Arc<Config>,
 ) {
     // start hot reloading once the server is ready
     if ready_receiver.recv().await.is_err() {
@@ -85,8 +85,6 @@ pub(crate) async fn hot_reload(
             })
             .collect::<HashSet<_>>(),
     );
-
-    let config = Arc::new(config);
 
     // don't skip the config reloader if
     // the subgraph watcher encountered an error

@@ -52,7 +52,7 @@ type Doctor
   firstName: String! @join__field(graph: DOCTORS)
   id: ID!
   lastName: String! @join__field(graph: DOCTORS)
-  phone: String @extension__directive(graph: DOCTORS, extension: REST_CONNECTOR, name: "call", arguments: {method: GET, url: "https://my-phone_registry/doctors/{id}"}) @join__field(graph: DOCTORS)
+  phone: String @extension__directive(graph: DOCTORS, extension: REST, name: "call", arguments: {method: GET, url: "https://my-phone_registry/doctors/{id}"}) @join__field(graph: DOCTORS)
   specialty: String! @join__field(graph: DOCTORS)
   type: DoctorType @join__field(graph: DOCTORS)
 }
@@ -69,21 +69,21 @@ type Query
 
 type Mutation
 {
-  cancelAppointment(id: ID!): Boolean! @extension__directive(graph: APPOINTMENTS, extension: KAFKA_CONNECTOR, name: "post", arguments: {topic: "cancellations", value: "{\"id\":$id}"}) @join__field(graph: APPOINTMENTS)
+  cancelAppointment(id: ID!): Boolean! @extension__directive(graph: APPOINTMENTS, extension: KAFKA, name: "post", arguments: {topic: "cancellations", value: "{\"id\":$id}"}) @join__field(graph: APPOINTMENTS)
   createDoctor(input: DoctorInput!): Doctor! @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "execute_sql", arguments: {sql: "INSERT INTO doctors (first_name, last_name, specialty, email, phone) VALUES ($input.firstName, $input.lastName, $input.specialty, $input.email, $input.phone) RETURNING *"}) @join__field(graph: DOCTORS)
-  createPatient(input: PatientInput!): Patient! @extension__directive(graph: PATIENTS, extension: KAFKA_CONNECTOR, name: "post", arguments: {topic: "newPatients"}) @join__field(graph: PATIENTS)
+  createPatient(input: PatientInput!): Patient! @extension__directive(graph: PATIENTS, extension: KAFKA, name: "post", arguments: {topic: "newPatients"}) @join__field(graph: PATIENTS)
   scheduleAppointment(input: AppointmentInput!): Appointment! @join__field(graph: APPOINTMENTS)
-  updateDoctor(id: ID!, input: DoctorInput!): Doctor! @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "execute", arguments: {procedure: "update_doctor"}) @extension__directive(graph: DOCTORS, extension: KAFKA_CONNECTOR, name: "post", arguments: {topic: "doctorUpdates"}) @join__field(graph: DOCTORS)
+  updateDoctor(id: ID!, input: DoctorInput!): Doctor! @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "execute", arguments: {procedure: "update_doctor"}) @extension__directive(graph: DOCTORS, extension: KAFKA, name: "post", arguments: {topic: "doctorUpdates"}) @join__field(graph: DOCTORS)
   updatePatient(id: ID!, input: PatientInput!): Patient! @join__field(graph: PATIENTS)
 }
 
 type Subscription
 {
-  newAppointments(doctorId: ID!): Appointment! @extension__directive(graph: APPOINTMENTS, extension: KAFKA_CONNECTOR, name: "tail", arguments: {topic: "appointments", filter: "doctorId = $doctorId"}) @join__field(graph: APPOINTMENTS)
+  newAppointments(doctorId: ID!): Appointment! @extension__directive(graph: APPOINTMENTS, extension: KAFKA, name: "tail", arguments: {topic: "appointments", filter: "doctorId = $doctorId"}) @join__field(graph: APPOINTMENTS)
 }
 
 enum AppointmentStatus
-  @extension__directive(graph: APPOINTMENTS, extension: KAFKA_CONNECTOR, name: "message", arguments: {topic: "appointments"})
+  @extension__directive(graph: APPOINTMENTS, extension: KAFKA, name: "message", arguments: {topic: "appointments"})
   @join__type(graph: APPOINTMENTS)
 {
   SCHEDULED
@@ -109,9 +109,9 @@ enum join__Graph
 
 enum extension__Link
 {
-  KAFKA_CONNECTOR @extension__link(url: "https://grafbase.com/extensions/kafka/v1.0.0")
+  KAFKA @extension__link(url: "https://grafbase.com/extensions/kafka/v1.0.0")
   ORACLE_CONNECTOR @extension__link(url: "file:///home/lellison/src/oracle-grafbase-extension/dist")
-  REST_CONNECTOR @extension__link(url: "https://grafbase.com/extensions/rest")
+  REST @extension__link(url: "https://grafbase.com/extensions/rest")
 }
 
 input AppointmentInput

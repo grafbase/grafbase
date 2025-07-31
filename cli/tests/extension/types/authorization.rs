@@ -44,12 +44,12 @@ fn init() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.19.1"
+    grafbase-sdk = "0.19.2"
     serde = { version = "1", features = ["derive"] }
 
     [dev-dependencies]
     insta = { version = "1", features = ["json"] }
-    grafbase-sdk = { version = "0.19.1", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.19.2", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -81,7 +81,7 @@ fn init() {
     #
     # Defaults to empty list.
     #
-    # grouping = ["subgraph"]
+    # group_by = ["subgraph"]
 
 
     # === Default permissions ===

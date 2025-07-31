@@ -4,7 +4,7 @@ pub enum ExtensionDirectiveType {
     Resolver,
     SelectionSetResolver,
     Authorization {
-        grouping: AuthorizationGrouping,
+        group_by: AuthorizationGroupBy,
     },
     #[default]
     Unknown,
@@ -32,13 +32,13 @@ impl ExtensionDirectiveType {
 bitflags::bitflags! {
     /// Represents a set of flags.
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
-    pub struct AuthorizationGrouping: u8 {
+    pub struct AuthorizationGroupBy: u8 {
         const Subgraph = 1;
     }
 }
 
-impl AuthorizationGrouping {
+impl AuthorizationGroupBy {
     pub fn has_subgraph(&self) -> bool {
-        self.contains(AuthorizationGrouping::Subgraph)
+        self.contains(AuthorizationGroupBy::Subgraph)
     }
 }

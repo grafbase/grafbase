@@ -62,7 +62,7 @@ pub fn compose(subgraphs: Subgraphs) -> CompositionResult {
             continue;
         };
 
-        if let Some(extension_id) = context.get_extension_for_linked_schema(linked_schema_id) {
+        if let Some(extension_id) = context.subgraphs[linked_schema_id].extension_id {
             context.mark_used_extension(extension_id);
         } else if !is_composed_directive {
             context.diagnostics.push_warning(format!(

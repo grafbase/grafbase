@@ -9,7 +9,7 @@ pub(crate) mod mutable;
 mod sdl;
 mod subgraphs;
 
-use std::{borrow::Cow, path::Path};
+use std::borrow::Cow;
 
 use context::{BuildContext, Interners};
 use extension::ExtensionsContext;
@@ -25,7 +25,6 @@ use crate::*;
 
 pub struct Builder<'a> {
     pub sdl: &'a str,
-    pub current_dir: Option<&'a Path>,
     pub config: Option<&'a gateway_config::Config>,
     pub extension_catalog: Option<&'a ExtensionCatalog>,
     pub for_operation_analytics_only: bool,
@@ -35,7 +34,6 @@ impl<'a> Builder<'a> {
     pub fn new(sdl: &'a str) -> Self {
         Self {
             sdl,
-            current_dir: None,
             config: None,
             extension_catalog: None,
             for_operation_analytics_only: false,
@@ -53,13 +51,12 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn extensions<'b, 'out>(self, current_dir: Option<&'b Path>, catalog: &'b ExtensionCatalog) -> Builder<'out>
+    pub fn extensions<'b, 'out>(self, catalog: &'b ExtensionCatalog) -> Builder<'out>
     where
         'a: 'out,
         'b: 'out,
     {
         Builder {
-            current_dir,
             extension_catalog: Some(catalog),
             ..self
         }
@@ -83,7 +80,6 @@ impl<'a> Builder<'a> {
     async fn build_inner(self) -> Result<Schema, Error> {
         let Self {
             sdl,
-            current_dir,
             config,
             extension_catalog,
             for_operation_analytics_only,
@@ -97,7 +93,7 @@ impl<'a> Builder<'a> {
             let extensions = if for_operation_analytics_only {
                 ExtensionsContext::empty_with_catalog(&extension_catalog)
             } else {
-                ExtensionsContext::load(current_dir, &sdl, &extension_catalog).await?
+                ExtensionsContext::load(&sdl, &extension_catalog).await?
             };
 
             BuildContext::new(&sdl, &extensions, &config)?.build(for_operation_analytics_only)
@@ -106,7 +102,7 @@ impl<'a> Builder<'a> {
             let extensions = if for_operation_analytics_only {
                 ExtensionsContext::empty_with_catalog(&extension_catalog)
             } else {
-                ExtensionsContext::load(current_dir, &sdl, &extension_catalog).await?
+                ExtensionsContext::load(&sdl, &extension_catalog).await?
             };
 
             BuildContext::new(&sdl, &extensions, &config)?.build(for_operation_analytics_only)

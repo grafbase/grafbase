@@ -86,10 +86,10 @@ impl Solver<'_> {
                         }
                     }
                     TypeSystemDirective::Extension(directive) => {
-                        let ExtensionDirectiveType::Authorization { grouping } = directive.ty else {
+                        let ExtensionDirectiveType::Authorization { group_by } = directive.ty else {
                             continue;
                         };
-                        let subgraph_id = if grouping.has_subgraph() {
+                        let subgraph_id = if group_by.has_subgraph() {
                             Some(
                                 self.output.query_plan[self.output.query_plan[field_id].query_partition_id]
                                     .resolver_definition_id
@@ -178,10 +178,10 @@ impl Solver<'_> {
                             Rule::Query(QueryModifierRule::RequiresScopes(dir.id))
                         }
                         TypeSystemDirective::Extension(directive) => {
-                            let ExtensionDirectiveType::Authorization { grouping } = directive.ty else {
+                            let ExtensionDirectiveType::Authorization { group_by } = directive.ty else {
                                 continue;
                             };
-                            let subgraph_id = if grouping.has_subgraph() {
+                            let subgraph_id = if group_by.has_subgraph() {
                                 Some(
                                     self.output.query_plan[parent_field_query_partition_id]
                                         .resolver_definition_id
@@ -243,10 +243,10 @@ impl Solver<'_> {
                     }
                     TypeSystemDirective::RequiresScopes(dir) => Rule::Query(QueryModifierRule::RequiresScopes(dir.id)),
                     TypeSystemDirective::Extension(directive) => {
-                        let ExtensionDirectiveType::Authorization { grouping } = directive.ty else {
+                        let ExtensionDirectiveType::Authorization { group_by } = directive.ty else {
                             continue;
                         };
-                        let subgraph_id = if grouping.has_subgraph() {
+                        let subgraph_id = if group_by.has_subgraph() {
                             Some(
                                 self.output.query_plan[self.output.query_plan[field_id].query_partition_id]
                                     .resolver_definition_id
@@ -302,10 +302,10 @@ impl Solver<'_> {
                     None,
                 ),
                 TypeSystemDirective::Extension(directive) => {
-                    let ExtensionDirectiveType::Authorization { grouping } = directive.ty else {
+                    let ExtensionDirectiveType::Authorization { group_by } = directive.ty else {
                         continue;
                     };
-                    if grouping.has_subgraph() {
+                    if group_by.has_subgraph() {
                         let mut subgraph_ids = Vec::new();
                         for query_partition in &self.output.query_plan.partitions {
                             if query_partition.input_id == self.output.query_plan.root_response_object_set_id {

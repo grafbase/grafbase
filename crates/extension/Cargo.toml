@@ -1,9 +1,9 @@
 [package]
+name = "grafbase-extension"
 edition.workspace = true
 homepage.workspace = true
 keywords.workspace = true
 license = "MPL-2.0"
-name = "extension"
 repository.workspace = true
 
 [lints]

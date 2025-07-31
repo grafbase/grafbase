@@ -278,7 +278,7 @@ engine-error = { path = "crates/engine/error" }
 engine-operation = { path = "crates/engine/operation" }
 engine-schema = { path = "crates/engine/schema" }
 event-queue = { path = "crates/event-queue" }
-extension = { path = "crates/extension" }
+extension = { path = "crates/extension", package = "grafbase-extension" }
 extension-catalog = { path = "crates/extension-catalog" }
 federated-server = { path = "crates/federated-server" }
 gateway-config = { path = "crates/gateway-config" }

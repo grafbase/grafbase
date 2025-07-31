@@ -197,7 +197,7 @@ fn init_extension_toml(project_path: &Path, r#type: ExtensionType, extension_nam
                 #
                 # Defaults to empty list.
                 #
-                # grouping = ["subgraph"]
+                # group_by = ["subgraph"]
             "# },
             ExtensionType::Hooks => indoc::indoc! { r#"
                 [hooks]

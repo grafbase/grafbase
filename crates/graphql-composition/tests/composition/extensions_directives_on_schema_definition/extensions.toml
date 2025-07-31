@@ -1,3 +1,4 @@
 [[extensions]]
-name = "rest-connector"
-url = "https://extensions.grafbase.com/rest"
+name = "rest"
+version = "1.0.0"
+url = "https://grafbase.com/extensions/rest"

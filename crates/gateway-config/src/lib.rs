@@ -232,12 +232,15 @@ impl Config {
         Self::loader().load(Some(path))
     }
 
-    pub fn with_absolute_paths(mut self) -> Option<Self> {
-        let parent = self
-            .path
+    pub fn parent_dir_path(&self) -> Option<&Path> {
+        self.path
             .as_ref()
             .and_then(|path| path.parent())
-            .filter(|path| path.is_absolute())?;
+            .filter(|path| path.is_absolute())
+    }
+
+    pub fn with_absolute_paths(mut self) -> Option<Self> {
+        let parent = self.parent_dir_path()?.to_path_buf();
 
         for subgraph in self.subgraphs.values_mut() {
             if let Some(schema_path) = &mut subgraph.schema_path {
