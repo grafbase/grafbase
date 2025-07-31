@@ -1,4 +1,4 @@
-schema @link(url: "https://extensions.grafbase.com/rest") @rest__assured {
+schema @link(url: "https://grafbase.com/extensions/rest") @rest__assured {
   query: Query
 }
 

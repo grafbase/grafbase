@@ -1,6 +1,6 @@
 directive @unrelated on SCHEMA
 
-schema @link(url: "https://extensions.grafbase.com/rest") {
+schema @link(url: "https://grafbase.com/extensions/rest") {
   query: Query
 }
 

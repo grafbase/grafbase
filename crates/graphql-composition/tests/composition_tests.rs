@@ -32,14 +32,6 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
 
     let mut subgraphs = graphql_composition::Subgraphs::default();
 
-    for (sdl, path) in subgraphs_sdl {
-        let name = path.file_stem().unwrap().to_str().unwrap().replace('_', "-");
-
-        subgraphs
-            .ingest_str(&sdl, &name, Some(&format!("http://example.com/{name}")))
-            .map_err(|err| anyhow::anyhow!("Error parsing {}: \n{err:#}", path.display()))?;
-    }
-
     subgraphs.ingest_loaded_extensions(extensions.extensions.into_iter().map(|extension| {
         graphql_composition::LoadedExtension {
             url: extension.url.parse().unwrap(),
@@ -48,6 +40,14 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
             version: extension.version,
         }
     }));
+
+    for (sdl, path) in subgraphs_sdl {
+        let name = path.file_stem().unwrap().to_str().unwrap().replace('_', "-");
+
+        subgraphs
+            .ingest_str(&sdl, &name, Some(&format!("http://example.com/{name}")))
+            .map_err(|err| anyhow::anyhow!("Error parsing {}: \n{err:#}", path.display()))?;
+    }
 
     let result = graphql_composition::compose(subgraphs);
 

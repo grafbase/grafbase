@@ -31,5 +31,5 @@ enum join__Graph
 
 enum extension__Link
 {
-  REST_CONNECTOR @extension__link(url: "https://extensions.grafbase.com/rest", schemaDirectives: [{graph: DEFINITION, name: "assured", arguments: {}}, {graph: SCHEMA_EXTENSION, name: "assured", arguments: {}}])
+  REST @extension__link(url: "https://grafbase.com/extensions/rest", schemaDirectives: [{graph: DEFINITION, name: "assured", arguments: {}}, {graph: SCHEMA_EXTENSION, name: "assured", arguments: {}}])
 }
