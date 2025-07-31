@@ -56,6 +56,8 @@ jobs:
     uses: ./.github/workflows/rust-prs.yml
     with:
       base_ref: HEAD~1
+    permissions:
+      packages: write
 
   docker-gateway:
     needs: [check]
@@ -133,7 +135,8 @@ jobs:
           cache-workspace-crates: true
           prefix-key: cargo-v1
 
-      - uses: awalsh128/cache-apt-pkgs-action@latest
+      - name: Install musl
+        uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: musl musl-tools
           version: 1.0
