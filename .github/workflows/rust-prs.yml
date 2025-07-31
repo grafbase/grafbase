@@ -44,7 +44,7 @@ jobs:
           fetch-depth: 0
 
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-      - uses: ./.github/parts/actions/install-rust
+      - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-musl
 
@@ -75,7 +75,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-small
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-      - uses: ./.github/parts/actions/install-rust
+      - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-musl
 
@@ -97,7 +97,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-small
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/parts/actions/install-rust
+      - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-musl
           components: rustfmt
@@ -124,7 +124,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-      - uses: ./.github/parts/actions/install-rust
+      - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-musl
           components: rust-docs
@@ -155,7 +155,7 @@ jobs:
       || contains(fromJson(needs.what-changed.outputs.changed-packages), 'wasi-component-loader')
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/parts/actions/fetch-assets
+      - uses: ./.github/actions/fetch-assets
       - uses: cargo-bins/cargo-binstall@63aaa5c1932cebabc34eceda9d92a70215dcead6 # v1.12.3
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
       - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
@@ -225,7 +225,7 @@ jobs:
       RUSTFLAGS: '-D warnings --cfg tracing_unstable'
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/parts/actions/fetch-assets
+      - uses: ./.github/actions/fetch-assets
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
       - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
@@ -235,7 +235,7 @@ jobs:
           cache-directories: |
             .grafbase/wasm-cache
 
-      - uses: ./.github/parts/actions/install-rust
+      - uses: ./.github/actions/install-rust
         with:
           target: ${{ matrix.platform.target }}
           components: clippy
@@ -522,7 +522,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-      - uses: ./.github/parts/actions/install-rust
+      - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-musl
           components: clippy, rustfmt
@@ -543,7 +543,7 @@ jobs:
           cache-directories: |
             extensions/extensions/*/.grafbase/wasm-cache
 
-      - uses: ./.github/parts/actions/fetch-assets
+      - uses: ./.github/actions/fetch-assets
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2

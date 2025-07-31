@@ -27,7 +27,7 @@ jobs:
           # Seems like if it's not zero you dont get branches
           fetch-depth: 0
 
-      - uses: ./.github/parts/actions/install-rust
+      - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-musl
 
@@ -65,7 +65,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-      - uses: ./.github/parts/actions/install-rust
+      - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-gnu
 
