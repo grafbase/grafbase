@@ -126,8 +126,7 @@ impl<'a> QueryElement<'a> {
     /// was declared with the `subgraph` grouping:
     /// ```toml
     /// # extension.toml
-    /// [api]
-    /// type = "authorization"
+    /// [authorization]
     /// group_by = ["subgraph"]
     /// ```
     pub fn subgraph_name(&self) -> Option<&'a str> {

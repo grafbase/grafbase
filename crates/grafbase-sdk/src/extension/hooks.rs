@@ -108,6 +108,7 @@ pub trait HooksExtension: Sized + 'static {
         Ok(())
     }
 
+    /// Called when a (GraphQL) subgraph request is made, allowing you to modify the request parts before they are sent to the subgraph.
     fn on_subgraph_request(&mut self, parts: &mut HttpRequestParts) -> Result<(), Error> {
         Ok(())
     }
