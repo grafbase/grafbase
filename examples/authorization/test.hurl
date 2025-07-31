@@ -160,3 +160,37 @@ query {
 HTTP 200
 {"data":{"accounts":[{"id":1,"name":"Alice's account"},null,{"id":3,"name":"Musti's account"},null]},"errors":[{"message":"Not authorized: cannot access account","locations":[{"line":2,"column":5}],"path":["accounts",1],"extensions":{"code":"UNAUTHORIZED"}},{"message":"Not authorized: cannot access account","locations":[{"line":2,"column":5}],"path":["accounts",3],"extensions":{"code":"UNAUTHORIZED"}}]}
 
+
+# == Policy ==
+# We always read policy
+POST http://localhost:5000/graphql
+Content-Type: application/json
+current-user-id: 0
+```graphql
+query {
+    users {
+        id
+        name
+    }
+}
+```
+
+HTTP 200
+{"data":{"users":[{"id":1,"name":"Alice"},{"id":2,"name":"Bob"},{"id":3,"name":"Musti"},{"id":4,"name":"Naukio"}]}}
+
+# But we don't have the write policy
+POST http://localhost:5000/graphql
+Content-Type: application/json
+current-user-id: 0
+```graphql
+mutation {
+    updateUser(id: 1, name: "Alice Smith") {
+        id
+        name
+    }
+}
+```
+
+HTTP 200
+{"data":{"updateUser":null},"errors":[{"message":"Not authorized: policy not granted.","locations":[{"line":2,"column":5}],"path":["updateUser"],"extensions":{"code":"UNAUTHORIZED"}}]}
+

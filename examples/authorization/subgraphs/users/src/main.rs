@@ -1,8 +1,6 @@
 use std::sync::Arc;
 
-use async_graphql::{
-    Context, EmptyMutation, EmptySubscription, Object, SDLExportOptions, Schema, SimpleObject, http::GraphiQLSource,
-};
+use async_graphql::{Context, EmptySubscription, Object, SDLExportOptions, Schema, SimpleObject, http::GraphiQLSource};
 use axum::{
     Json, Router,
     extract::State,
@@ -10,10 +8,10 @@ use axum::{
     response::{Html, IntoResponse},
     routing::{get, post},
 };
-use tokio::{net::TcpListener, signal};
+use tokio::{net::TcpListener, signal, sync::RwLock};
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
-type UsersSchema = Arc<Schema<Query, EmptyMutation, EmptySubscription>>;
+type UsersSchema = Arc<Schema<Query, Mutation, EmptySubscription>>;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -28,7 +26,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let schema: UsersSchema = Arc::new(
-        Schema::build(Query, EmptyMutation, EmptySubscription)
+        Schema::build(Query, Mutation, EmptySubscription)
             .enable_federation()
             .data(Data::default())
             .finish(),
@@ -86,17 +84,29 @@ async fn shutdown_signal() {
 }
 
 struct Data {
-    users: Vec<User>,
+    users: RwLock<Vec<User>>,
     accounts: Vec<Account>,
 }
 
 impl Default for Data {
     fn default() -> Self {
         let users = vec![
-            User { id: 1, name: "Alice" },
-            User { id: 2, name: "Bob" },
-            User { id: 3, name: "Musti" },
-            User { id: 4, name: "Naukio" },
+            User {
+                id: 1,
+                name: "Alice".to_owned(),
+            },
+            User {
+                id: 2,
+                name: "Bob".to_owned(),
+            },
+            User {
+                id: 3,
+                name: "Musti".to_owned(),
+            },
+            User {
+                id: 4,
+                name: "Naukio".to_owned(),
+            },
         ];
         let accounts = vec![
             Account {
@@ -116,7 +126,10 @@ impl Default for Data {
                 name: "Naukio's account",
             },
         ];
-        Self { users, accounts }
+        Self {
+            users: RwLock::new(users),
+            accounts,
+        }
     }
 }
 
@@ -140,11 +153,11 @@ fn jwt_scope(scope: String) {}
 )]
 fn access_control(arguments: Option<String>, fields: Option<String>) {}
 
-#[derive(Clone, Copy, SimpleObject)]
+#[derive(Clone, SimpleObject)]
 #[graphql(directive = jwt_scope::apply("user".to_string()))]
 pub struct User {
     id: u64,
-    name: &'static str,
+    name: String,
 }
 
 #[derive(Clone, Copy, SimpleObject)]
@@ -181,6 +194,7 @@ impl Query {
     #[graphql(
         directive = access_control::apply(Some("id".to_string()), None)
     )]
+
     async fn user(&self, ctx: &Context<'_>, id: u64) -> Option<async_graphql::FieldResult<User>> {
         if !ctx
             .data_unchecked::<HeaderMap>()
@@ -193,9 +207,40 @@ impl Query {
         }
         ctx.data_unchecked::<Data>()
             .users
+            .read()
+            .await
             .iter()
             .find(|user| user.id == id)
-            .copied()
+            .cloned()
             .map(Ok)
+    }
+
+    async fn users(&self, ctx: &Context<'_>) -> Vec<User> {
+        ctx.data_unchecked::<Data>().users.read().await.clone()
+    }
+}
+
+pub struct Mutation;
+
+#[Object]
+impl Mutation {
+    async fn update_user(&self, ctx: &Context<'_>, id: u64, name: String) -> Option<async_graphql::FieldResult<User>> {
+        if !ctx
+            .data_unchecked::<HeaderMap>()
+            .get("authorization")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or_default()
+            .contains("user")
+        {
+            return Some(Err("Insufficient scopes".into()));
+        }
+
+        for user in ctx.data_unchecked::<Data>().users.write().await.iter_mut() {
+            if user.id == id {
+                user.name = name.clone();
+                return Some(Ok(user.clone()));
+            }
+        }
+        None
     }
 }
