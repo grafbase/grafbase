@@ -22,10 +22,11 @@ fn with_working_subgraph_rate_limited() {
 
         [subgraphs.accounts.rate_limit]
         limit = 1
-        duration = "1m"
+        duration = "5s"
     "#};
 
     with_gateway(&config, Some(200), |gateway| async move {
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
         let resp = gateway
             .gql::<serde_json::Value>("query Simple { me { id } }")
             .header("traceparent", "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01")
