@@ -1,0 +1,45 @@
+syntax = "proto2";
+
+import "google/protobuf/descriptor.proto";
+
+package grafbase.graphql;
+
+message CompositeSchemaEntity {
+  optional string entity = 1;
+  optional string field = 2;
+  optional string is = 3;
+}
+
+extend google.protobuf.MessageOptions {
+  optional string object_directives = 58301;
+  optional string input_object_directives = 58302;
+  repeated CompositeSchemaEntity derive = 58303;
+  repeated string object_extra_field = 58304;
+}
+
+extend google.protobuf.FieldOptions {
+  optional string output_field_directives = 58301;
+  optional string input_field_directives = 58302;
+}
+
+extend google.protobuf.EnumOptions {
+  optional string enum_directives = 58301;
+}
+
+extend google.protobuf.EnumValueOptions {
+  optional string enum_value_directives = 58301;
+}
+
+extend google.protobuf.ServiceOptions {
+  optional bool default_to_query_fields = 58301;
+  optional bool default_to_mutation_fields = 58302;
+  optional string subgraph_name = 58303;
+  optional string schema_directives = 58304;
+}
+
+extend google.protobuf.MethodOptions {
+  optional string directives = 58301;
+  optional bool is_query = 58302;
+  optional bool is_mutation = 58303;
+  optional string argument_directives = 58304;
+}

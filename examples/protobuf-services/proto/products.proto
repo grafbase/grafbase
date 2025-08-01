@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package products;
+
+import "grafbase/options.proto";
+
+option go_package = "github.com/grafbase/grafbase/examples/protobuf-services/products";
+
+message Product {
+  option (grafbase.graphql.object_directives) = "@key(fields: \"id\") @key(fields: \"sku\")";
+  option (grafbase.graphql.derive) = { entity: "locations_Location", field: "warehouse", is: "{ id: warehouse_id }" };
+  option (grafbase.graphql.object_extra_field) = "parts("
+    "input: products_GetProductPartsRequestInput @require(field: \"{ product_id: id }\")): products_GetProductPartsResponse @grpcMethod(service: \"products.ProductService\", method: \"GetProductParts\""
+  ")";
+
+  string id = 1;
+  string sku = 2;
+  string name = 3;
+  string description = 4;
+  double price = 5;
+  string warehouse_id = 6;
+  int32 quantity_in_stock = 7;
+  string category = 8;
+}
+
+// ProductPart represents the relationship between a product and a part
+// with the quantity of parts needed to build one unit of the product
+message ProductPart {
+  option (grafbase.graphql.object_directives) = "@key(fields: \"product_id part_id\")";
+  option (grafbase.graphql.derive) = { entity: "products_Product", field: "product", is: "{ id: product_id }" };
+  option (grafbase.graphql.derive) = { entity: "parts_Part", field: "part", is: "{ id: part_id }" };
+
+  string product_id = 1;
+  string part_id = 2;
+  int32 quantity_required = 3; // How many units of this part are needed per product
+}
+
+// Request message for getting a single product
+message GetProductRequest {
+  string id = 1;
+}
+
+// Response message for getting a single product
+message GetProductResponse {
+  Product product = 1;
+}
+
+// Request message for batch getting products
+message BatchGetProductsRequest {
+  repeated string ids = 1;
+}
+
+// Response message for batch getting products
+message BatchGetProductsResponse {
+  repeated Product products = 1;
+}
+
+// Request message for getting parts for a product
+message GetProductPartsRequest {
+  string product_id = 1;
+}
+
+// Response message for getting parts for a product
+message GetProductPartsResponse {
+  repeated ProductPart product_parts = 1;
+}
+
+// Request message for getting products that use a part
+message GetProductsForPartRequest {
+  string part_id = 1;
+}
+
+// Response message for getting products that use a part
+message GetProductsForPartResponse {
+  repeated ProductPart product_parts = 1;
+}
+
+// Request message for searching products with filters
+message SearchProductsRequest {
+  // Filter by name (partial match)
+  string name = 1;
+  // Filter by category
+  string category = 2;
+  // Filter by minimum price
+  double min_price = 3;
+  // Filter by maximum price
+  double max_price = 4;
+  // Filter by warehouse ID
+  string warehouse_id = 5;
+  // Filter by minimum quantity in stock
+  int32 min_quantity = 6;
+  // Filter by SKU (partial match)
+  string sku = 7;
+}
+
+// Response message for searching products
+message SearchProductsResponse {
+  repeated Product products = 1;
+}
+
+// ProductService provides operations for managing products and product-part relationships
+service ProductService {
+  option (grafbase.graphql.default_to_query_fields) = true;
+  option (grafbase.graphql.subgraph_name) = "products";
+  option (grafbase.graphql.schema_directives) = "@link(url: \"https://specs.grafbase.com/composite-schemas/v1\", import: [\"@key\", \"@lookup\", \"@derive\", \"@is\", \"@require\"])";
+
+  // Get a single product by ID
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+
+  // Batch get products by IDs
+  rpc BatchGetProducts(BatchGetProductsRequest) returns (BatchGetProductsResponse) {
+    option (grafbase.graphql.directives) = "@lookup";
+    option (grafbase.graphql.argument_directives) = "@is(field: \"{ ids: [id] }\")";
+  }
+
+  // Get all parts for a specific product with quantities
+  rpc GetProductParts(GetProductPartsRequest) returns (GetProductPartsResponse);
+
+  // Get all products that use a specific part
+  rpc GetProductsForPart(GetProductsForPartRequest) returns (GetProductsForPartResponse);
+
+  // Search products with optional filters
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse);
+}

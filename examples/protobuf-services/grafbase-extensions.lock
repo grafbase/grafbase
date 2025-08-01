@@ -1,0 +1,5 @@
+version = "1"
+
+[[extensions]]
+name = "grpc"
+version = "0.2.0"

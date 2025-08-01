@@ -1,0 +1,458 @@
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+directive @composite__lookup on FIELD_DEFINITION
+
+directive @composite__require(field: composite__FieldSelectionMap!) on ARGUMENT_DEFINITION
+
+directive @composite__is(field: composite__FieldSelectionMap!) on FIELD_DEFINITION | ARGUMENT_DEFINITION
+
+"""
+64 bit signed integer
+"""
+scalar I64
+
+"""
+64 bit unsigned integer
+"""
+scalar U64
+
+scalar join__FieldSet
+
+scalar composite__FieldSelectionMap
+
+"""
+Location represents a warehouse or storage location in the system
+"""
+type locations_Location
+  @join__type(graph: LOCATIONS, key: "id", resolvable: false)
+  @join__type(graph: PARTS, key: "id", resolvable: false)
+  @join__type(graph: PRODUCTS, key: "id", resolvable: false)
+{
+  address: String! @join__field(graph: LOCATIONS)
+  capacity: Int! @join__field(graph: LOCATIONS)
+  city: String! @join__field(graph: LOCATIONS)
+  contact_phone: String! @join__field(graph: LOCATIONS)
+  country: String! @join__field(graph: LOCATIONS)
+  id: String!
+  is_active: Boolean! @join__field(graph: LOCATIONS)
+  manager_name: String! @join__field(graph: LOCATIONS)
+  name: String! @join__field(graph: LOCATIONS)
+  postal_code: String! @join__field(graph: LOCATIONS)
+  state: String! @join__field(graph: LOCATIONS)
+}
+
+"""
+Response message for getting a single location
+"""
+type locations_GetLocationResponse
+  @join__type(graph: LOCATIONS)
+{
+  location: locations_Location
+}
+
+"""
+Response message for batch getting locations
+"""
+type locations_BatchGetLocationsResponse
+  @join__type(graph: LOCATIONS)
+{
+  locations: [locations_Location!]
+}
+
+"""
+Response message for searching locations
+"""
+type locations_SearchLocationsResponse
+  @join__type(graph: LOCATIONS)
+{
+  locations: [locations_Location!]
+}
+
+"""
+Part represents a component part in the system
+"""
+type parts_Part
+  @join__type(graph: PARTS, key: "id", resolvable: false)
+  @join__type(graph: PARTS, key: "part_number", resolvable: false)
+  @join__type(graph: PRODUCTS, key: "id", resolvable: false)
+{
+  category: String! @join__field(graph: PARTS)
+  cost: Float! @join__field(graph: PARTS)
+  description: String! @join__field(graph: PARTS)
+  id: String!
+  is_critical: Boolean! @join__field(graph: PARTS)
+  name: String! @join__field(graph: PARTS)
+  part_number: String! @join__field(graph: PARTS)
+  quantity_available: Int! @join__field(graph: PARTS)
+  supplier: String! @join__field(graph: PARTS)
+  warehouse: locations_Location @composite__derive(graph: PARTS) @composite__is(graph: PARTS, field: "{ id: warehouse_id }") @join__field(graph: PARTS)
+  warehouse_id: String! @join__field(graph: PARTS)
+}
+
+"""
+Response message for getting a single part
+"""
+type parts_GetPartResponse
+  @join__type(graph: PARTS)
+{
+  part: parts_Part
+}
+
+"""
+Response message for batch getting parts
+"""
+type parts_BatchGetPartsResponse
+  @join__type(graph: PARTS)
+{
+  parts: [parts_Part!]
+}
+
+"""
+Response message for searching parts
+"""
+type parts_SearchPartsResponse
+  @join__type(graph: PARTS)
+{
+  parts: [parts_Part!]
+}
+
+type products_Product
+  @join__type(graph: PRODUCTS, key: "id", resolvable: false)
+  @join__type(graph: PRODUCTS, key: "sku", resolvable: false)
+{
+  category: String!
+  description: String!
+  id: String!
+  name: String!
+  parts(input: products_GetProductPartsRequestInput @composite__require(graph: PRODUCTS, field: "{ product_id: id }")): products_GetProductPartsResponse @extension__directive(graph: PRODUCTS, extension: GRPC, name: "grpcMethod", arguments: {service: "products.ProductService", method: "GetProductParts"})
+  price: Float!
+  quantity_in_stock: Int!
+  sku: String!
+  warehouse: locations_Location @composite__derive(graph: PRODUCTS) @composite__is(graph: PRODUCTS, field: "{ id: warehouse_id }")
+  warehouse_id: String!
+}
+
+"""
+ProductPart represents the relationship between a product and a part
+with the quantity of parts needed to build one unit of the product
+"""
+type products_ProductPart
+  @join__type(graph: PRODUCTS, key: "product_id part_id", resolvable: false)
+{
+  part: parts_Part @composite__derive(graph: PRODUCTS) @composite__is(graph: PRODUCTS, field: "{ id: part_id }")
+  part_id: String!
+  product: products_Product @composite__derive(graph: PRODUCTS) @composite__is(graph: PRODUCTS, field: "{ id: product_id }")
+  product_id: String!
+  """
+  How many units of this part are needed per product
+  """
+  quantity_required: Int!
+}
+
+"""
+Response message for getting a single product
+"""
+type products_GetProductResponse
+  @join__type(graph: PRODUCTS)
+{
+  product: products_Product
+}
+
+"""
+Response message for batch getting products
+"""
+type products_BatchGetProductsResponse
+  @join__type(graph: PRODUCTS)
+{
+  products: [products_Product!]
+}
+
+"""
+Response message for getting parts for a product
+"""
+type products_GetProductPartsResponse
+  @join__type(graph: PRODUCTS)
+{
+  product_parts: [products_ProductPart!]
+}
+
+"""
+Response message for getting products that use a part
+"""
+type products_GetProductsForPartResponse
+  @join__type(graph: PRODUCTS)
+{
+  product_parts: [products_ProductPart!]
+}
+
+"""
+Response message for searching products
+"""
+type products_SearchProductsResponse
+  @join__type(graph: PRODUCTS)
+{
+  products: [products_Product!]
+}
+
+type Query
+{
+  """
+  Batch get locations by IDs
+  """
+  locations_LocationService_BatchGetLocations(input: locations_BatchGetLocationsRequestInput @composite__is(graph: LOCATIONS, field: "{ ids: [id] }")): locations_BatchGetLocationsResponse @composite__lookup(graph: LOCATIONS) @extension__directive(graph: LOCATIONS, extension: GRPC, name: "grpcMethod", arguments: {service: "locations.LocationService", method: "BatchGetLocations"}) @join__field(graph: LOCATIONS)
+  """
+  Get a single location by ID
+  """
+  locations_LocationService_GetLocation(input: locations_GetLocationRequestInput): locations_GetLocationResponse @extension__directive(graph: LOCATIONS, extension: GRPC, name: "grpcMethod", arguments: {service: "locations.LocationService", method: "GetLocation"}) @join__field(graph: LOCATIONS)
+  """
+  Search locations with optional filters
+  """
+  locations_LocationService_SearchLocations(input: locations_SearchLocationsRequestInput): locations_SearchLocationsResponse @extension__directive(graph: LOCATIONS, extension: GRPC, name: "grpcMethod", arguments: {service: "locations.LocationService", method: "SearchLocations"}) @join__field(graph: LOCATIONS)
+  """
+  Batch get parts by IDs
+  """
+  parts_PartService_BatchGetParts(input: parts_BatchGetPartsRequestInput @composite__is(graph: PARTS, field: "{ ids: [id] }")): parts_BatchGetPartsResponse @composite__lookup(graph: PARTS) @extension__directive(graph: PARTS, extension: GRPC, name: "grpcMethod", arguments: {service: "parts.PartService", method: "BatchGetParts"}) @join__field(graph: PARTS)
+  """
+  Get a single part by ID
+  """
+  parts_PartService_GetPart(input: parts_GetPartRequestInput): parts_GetPartResponse @extension__directive(graph: PARTS, extension: GRPC, name: "grpcMethod", arguments: {service: "parts.PartService", method: "GetPart"}) @join__field(graph: PARTS)
+  """
+  Search parts with optional filters
+  """
+  parts_PartService_SearchParts(input: parts_SearchPartsRequestInput): parts_SearchPartsResponse @extension__directive(graph: PARTS, extension: GRPC, name: "grpcMethod", arguments: {service: "parts.PartService", method: "SearchParts"}) @join__field(graph: PARTS)
+  """
+  Batch get products by IDs
+  """
+  products_ProductService_BatchGetProducts(input: products_BatchGetProductsRequestInput @composite__is(graph: PRODUCTS, field: "{ ids: [id] }")): products_BatchGetProductsResponse @composite__lookup(graph: PRODUCTS) @extension__directive(graph: PRODUCTS, extension: GRPC, name: "grpcMethod", arguments: {service: "products.ProductService", method: "BatchGetProducts"}) @join__field(graph: PRODUCTS)
+  """
+  Get a single product by ID
+  """
+  products_ProductService_GetProduct(input: products_GetProductRequestInput): products_GetProductResponse @extension__directive(graph: PRODUCTS, extension: GRPC, name: "grpcMethod", arguments: {service: "products.ProductService", method: "GetProduct"}) @join__field(graph: PRODUCTS)
+  """
+  Get all parts for a specific product with quantities
+  """
+  products_ProductService_GetProductParts(input: products_GetProductPartsRequestInput): products_GetProductPartsResponse @extension__directive(graph: PRODUCTS, extension: GRPC, name: "grpcMethod", arguments: {service: "products.ProductService", method: "GetProductParts"}) @join__field(graph: PRODUCTS)
+  """
+  Get all products that use a specific part
+  """
+  products_ProductService_GetProductsForPart(input: products_GetProductsForPartRequestInput): products_GetProductsForPartResponse @extension__directive(graph: PRODUCTS, extension: GRPC, name: "grpcMethod", arguments: {service: "products.ProductService", method: "GetProductsForPart"}) @join__field(graph: PRODUCTS)
+  """
+  Search products with optional filters
+  """
+  products_ProductService_SearchProducts(input: products_SearchProductsRequestInput): products_SearchProductsResponse @extension__directive(graph: PRODUCTS, extension: GRPC, name: "grpcMethod", arguments: {service: "products.ProductService", method: "SearchProducts"}) @join__field(graph: PRODUCTS)
+}
+
+enum join__Graph
+{
+  LOCATIONS @join__graph(name: "locations")
+  PARTS @join__graph(name: "parts")
+  PRODUCTS @join__graph(name: "products")
+}
+
+enum extension__Link
+{
+  GRPC @extension__link(url: "https://grafbase.com/extensions/grpc/0.2.0", schemaDirectives: [{graph: LOCATIONS, name: "protoServices", arguments: {definitions: [{name: "locations.LocationService", methods: [{name: "GetLocation", inputType: ".locations.GetLocationRequest", outputType: ".locations.GetLocationResponse"}, {name: "BatchGetLocations", inputType: ".locations.BatchGetLocationsRequest", outputType: ".locations.BatchGetLocationsResponse"}, {name: "SearchLocations", inputType: ".locations.SearchLocationsRequest", outputType: ".locations.SearchLocationsResponse"}]}]}}, {graph: LOCATIONS, name: "protoMessages", arguments: {definitions: [{name: ".locations.Location", fields: [{name: "id", number: 1, repeated: false, type: "string"}, {name: "name", number: 2, repeated: false, type: "string"}, {name: "address", number: 3, repeated: false, type: "string"}, {name: "city", number: 4, repeated: false, type: "string"}, {name: "state", number: 5, repeated: false, type: "string"}, {name: "country", number: 6, repeated: false, type: "string"}, {name: "postal_code", number: 7, repeated: false, type: "string"}, {name: "capacity", number: 8, repeated: false, type: "int32"}, {name: "manager_name", number: 9, repeated: false, type: "string"}, {name: "contact_phone", number: 10, repeated: false, type: "string"}, {name: "is_active", number: 11, repeated: false, type: "bool"}]}, {name: ".locations.GetLocationRequest", fields: [{name: "id", number: 1, repeated: false, type: "string"}]}, {name: ".locations.GetLocationResponse", fields: [{name: "location", number: 1, repeated: false, type: ".locations.Location"}]}, {name: ".locations.BatchGetLocationsRequest", fields: [{name: "ids", number: 1, repeated: true, type: "string"}]}, {name: ".locations.BatchGetLocationsResponse", fields: [{name: "locations", number: 1, repeated: true, type: ".locations.Location"}]}, {name: ".locations.SearchLocationsRequest", fields: [{name: "name", number: 1, repeated: false, type: "string"}, {name: "city", number: 2, repeated: false, type: "string"}, {name: "state", number: 3, repeated: false, type: "string"}, {name: "country", number: 4, repeated: false, type: "string"}, {name: "min_capacity", number: 5, repeated: false, type: "int32"}, {name: "is_active", number: 6, repeated: false, type: "bool"}, {name: "postal_code", number: 7, repeated: false, type: "string"}, {name: "manager_name", number: 8, repeated: false, type: "string"}]}, {name: ".locations.SearchLocationsResponse", fields: [{name: "locations", number: 1, repeated: true, type: ".locations.Location"}]}]}}, {graph: PARTS, name: "protoServices", arguments: {definitions: [{name: "parts.PartService", methods: [{name: "GetPart", inputType: ".parts.GetPartRequest", outputType: ".parts.GetPartResponse"}, {name: "BatchGetParts", inputType: ".parts.BatchGetPartsRequest", outputType: ".parts.BatchGetPartsResponse"}, {name: "SearchParts", inputType: ".parts.SearchPartsRequest", outputType: ".parts.SearchPartsResponse"}]}]}}, {graph: PARTS, name: "protoMessages", arguments: {definitions: [{name: ".parts.Part", fields: [{name: "id", number: 1, repeated: false, type: "string"}, {name: "part_number", number: 2, repeated: false, type: "string"}, {name: "name", number: 3, repeated: false, type: "string"}, {name: "description", number: 4, repeated: false, type: "string"}, {name: "cost", number: 5, repeated: false, type: "double"}, {name: "supplier", number: 6, repeated: false, type: "string"}, {name: "warehouse_id", number: 7, repeated: false, type: "string"}, {name: "quantity_available", number: 8, repeated: false, type: "int32"}, {name: "category", number: 9, repeated: false, type: "string"}, {name: "is_critical", number: 10, repeated: false, type: "bool"}]}, {name: ".parts.GetPartRequest", fields: [{name: "id", number: 1, repeated: false, type: "string"}]}, {name: ".parts.GetPartResponse", fields: [{name: "part", number: 1, repeated: false, type: ".parts.Part"}]}, {name: ".parts.BatchGetPartsRequest", fields: [{name: "ids", number: 1, repeated: true, type: "string"}]}, {name: ".parts.BatchGetPartsResponse", fields: [{name: "parts", number: 1, repeated: true, type: ".parts.Part"}]}, {name: ".parts.SearchPartsRequest", fields: [{name: "name", number: 1, repeated: false, type: "string"}, {name: "category", number: 2, repeated: false, type: "string"}, {name: "supplier", number: 3, repeated: false, type: "string"}, {name: "warehouse_id", number: 4, repeated: false, type: "string"}, {name: "min_quantity", number: 5, repeated: false, type: "int32"}, {name: "is_critical", number: 6, repeated: false, type: "bool"}, {name: "min_cost", number: 7, repeated: false, type: "double"}, {name: "max_cost", number: 8, repeated: false, type: "double"}, {name: "part_number", number: 9, repeated: false, type: "string"}]}, {name: ".parts.SearchPartsResponse", fields: [{name: "parts", number: 1, repeated: true, type: ".parts.Part"}]}]}}, {graph: PRODUCTS, name: "protoServices", arguments: {definitions: [{name: "products.ProductService", methods: [{name: "GetProduct", inputType: ".products.GetProductRequest", outputType: ".products.GetProductResponse"}, {name: "BatchGetProducts", inputType: ".products.BatchGetProductsRequest", outputType: ".products.BatchGetProductsResponse"}, {name: "GetProductParts", inputType: ".products.GetProductPartsRequest", outputType: ".products.GetProductPartsResponse"}, {name: "GetProductsForPart", inputType: ".products.GetProductsForPartRequest", outputType: ".products.GetProductsForPartResponse"}, {name: "SearchProducts", inputType: ".products.SearchProductsRequest", outputType: ".products.SearchProductsResponse"}]}]}}, {graph: PRODUCTS, name: "protoMessages", arguments: {definitions: [{name: ".products.Product", fields: [{name: "id", number: 1, repeated: false, type: "string"}, {name: "sku", number: 2, repeated: false, type: "string"}, {name: "name", number: 3, repeated: false, type: "string"}, {name: "description", number: 4, repeated: false, type: "string"}, {name: "price", number: 5, repeated: false, type: "double"}, {name: "warehouse_id", number: 6, repeated: false, type: "string"}, {name: "quantity_in_stock", number: 7, repeated: false, type: "int32"}, {name: "category", number: 8, repeated: false, type: "string"}]}, {name: ".products.ProductPart", fields: [{name: "product_id", number: 1, repeated: false, type: "string"}, {name: "part_id", number: 2, repeated: false, type: "string"}, {name: "quantity_required", number: 3, repeated: false, type: "int32"}]}, {name: ".products.GetProductRequest", fields: [{name: "id", number: 1, repeated: false, type: "string"}]}, {name: ".products.GetProductResponse", fields: [{name: "product", number: 1, repeated: false, type: ".products.Product"}]}, {name: ".products.BatchGetProductsRequest", fields: [{name: "ids", number: 1, repeated: true, type: "string"}]}, {name: ".products.BatchGetProductsResponse", fields: [{name: "products", number: 1, repeated: true, type: ".products.Product"}]}, {name: ".products.GetProductPartsRequest", fields: [{name: "product_id", number: 1, repeated: false, type: "string"}]}, {name: ".products.GetProductPartsResponse", fields: [{name: "product_parts", number: 1, repeated: true, type: ".products.ProductPart"}]}, {name: ".products.GetProductsForPartRequest", fields: [{name: "part_id", number: 1, repeated: false, type: "string"}]}, {name: ".products.GetProductsForPartResponse", fields: [{name: "product_parts", number: 1, repeated: true, type: ".products.ProductPart"}]}, {name: ".products.SearchProductsRequest", fields: [{name: "name", number: 1, repeated: false, type: "string"}, {name: "category", number: 2, repeated: false, type: "string"}, {name: "min_price", number: 3, repeated: false, type: "double"}, {name: "max_price", number: 4, repeated: false, type: "double"}, {name: "warehouse_id", number: 5, repeated: false, type: "string"}, {name: "min_quantity", number: 6, repeated: false, type: "int32"}, {name: "sku", number: 7, repeated: false, type: "string"}]}, {name: ".products.SearchProductsResponse", fields: [{name: "products", number: 1, repeated: true, type: ".products.Product"}]}]}}])
+}
+
+"""
+Request message for getting a single location
+"""
+input locations_GetLocationRequestInput
+  @join__type(graph: LOCATIONS)
+{
+  id: String
+}
+
+"""
+Request message for batch getting locations
+"""
+input locations_BatchGetLocationsRequestInput
+  @join__type(graph: LOCATIONS)
+{
+  ids: [String!]
+}
+
+"""
+Request message for searching locations with filters
+"""
+input locations_SearchLocationsRequestInput
+  @join__type(graph: LOCATIONS)
+{
+  """
+  Filter by name (partial match)
+  """
+  name: String
+  """
+  Filter by city
+  """
+  city: String
+  """
+  Filter by state
+  """
+  state: String
+  """
+  Filter by country
+  """
+  country: String
+  """
+  Filter by postal code (partial match)
+  """
+  postal_code: String
+  """
+  Filter by manager name (partial match)
+  """
+  manager_name: String
+  """
+  Filter by is_active flag
+  """
+  is_active: Boolean
+  """
+  Filter by minimum capacity
+  """
+  min_capacity: Int
+}
+
+"""
+Request message for getting a single part
+"""
+input parts_GetPartRequestInput
+  @join__type(graph: PARTS)
+{
+  id: String
+}
+
+"""
+Request message for batch getting parts
+"""
+input parts_BatchGetPartsRequestInput
+  @join__type(graph: PARTS)
+{
+  ids: [String!]
+}
+
+"""
+Request message for searching parts with filters
+"""
+input parts_SearchPartsRequestInput
+  @join__type(graph: PARTS)
+{
+  """
+  Filter by name (partial match)
+  """
+  name: String
+  """
+  Filter by part number (partial match)
+  """
+  part_number: String
+  """
+  Filter by supplier
+  """
+  supplier: String
+  """
+  Filter by warehouse ID
+  """
+  warehouse_id: String
+  """
+  Filter by category
+  """
+  category: String
+  """
+  Filter by is_critical flag
+  """
+  is_critical: Boolean
+  """
+  Filter by minimum quantity available
+  """
+  min_quantity: Int
+  """
+  Filter by minimum cost
+  """
+  min_cost: Float
+  """
+  Filter by maximum cost
+  """
+  max_cost: Float
+}
+
+"""
+Request message for getting a single product
+"""
+input products_GetProductRequestInput
+  @join__type(graph: PRODUCTS)
+{
+  id: String
+}
+
+"""
+Request message for batch getting products
+"""
+input products_BatchGetProductsRequestInput
+  @join__type(graph: PRODUCTS)
+{
+  ids: [String!]
+}
+
+"""
+Request message for getting parts for a product
+"""
+input products_GetProductPartsRequestInput
+  @join__type(graph: PRODUCTS)
+{
+  product_id: String
+}
+
+"""
+Request message for getting products that use a part
+"""
+input products_GetProductsForPartRequestInput
+  @join__type(graph: PRODUCTS)
+{
+  part_id: String
+}
+
+"""
+Request message for searching products with filters
+"""
+input products_SearchProductsRequestInput
+  @join__type(graph: PRODUCTS)
+{
+  """
+  Filter by name (partial match)
+  """
+  name: String
+  """
+  Filter by warehouse ID
+  """
+  warehouse_id: String
+  """
+  Filter by category
+  """
+  category: String
+  """
+  Filter by minimum quantity in stock
+  """
+  min_quantity: Int
+  """
+  Filter by SKU (partial match)
+  """
+  sku: String
+  """
+  Filter by minimum price
+  """
+  min_price: Float
+  """
+  Filter by maximum price
+  """
+  max_price: Float
+}
+

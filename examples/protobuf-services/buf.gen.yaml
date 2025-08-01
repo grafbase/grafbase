@@ -1,0 +1,18 @@
+version: v2
+plugins:
+  - local: protoc-gen-grafbase-subgraph
+    out: gen/graphql
+    opt:
+      - paths=source_relative
+  - remote: buf.build/protocolbuffers/go:v1.32.0
+    out: services/parts-go
+    opt:
+      - paths=source_relative
+      - Mgrafbase/options.proto=github.com/grafbase/grafbase/examples/protobuf-services/grafbase
+  - remote: buf.build/grpc/go:v1.3.0
+    out: services/parts-go
+    opt:
+      - paths=source_relative
+      - Mgrafbase/options.proto=github.com/grafbase/grafbase/examples/protobuf-services/grafbase
+inputs:
+  - directory: ./proto
