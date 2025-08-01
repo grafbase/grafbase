@@ -62,7 +62,11 @@ impl Cache {
 
     /// Retrieves a value from the cache by key or initialize it with the provided function using
     /// the default timeout. See [get_or_init_with_timeout](Cache::get_or_init_with_timeout) for more details
-    pub fn get_or_insert<E>(&self, key: &str, f: impl FnOnce() -> Result<Vec<u8>, E>) -> Result<Vec<u8>, E> {
+    pub fn get_or_insert<T, E>(
+        &self,
+        key: &str,
+        f: impl FnOnce() -> Result<(T, Vec<u8>), E>,
+    ) -> Result<(Option<T>, Vec<u8>), E> {
         self.get_or_insert_with_timeout(key, self.timeout, f)
     }
 
@@ -72,17 +76,17 @@ impl Cache {
     /// the value to be computed. As the callback might crash, a timeout limits how long this
     /// function will wait. Unfortunately it does result in a thundering herd problem where all
     /// Wasm instances will try to compute the value at the same time.
-    pub fn get_or_insert_with_timeout<E>(
+    pub fn get_or_insert_with_timeout<T, E>(
         &self,
         key: &str,
         timeout: Duration,
-        f: impl FnOnce() -> Result<Vec<u8>, E>,
-    ) -> Result<Vec<u8>, E> {
+        f: impl FnOnce() -> Result<(T, Vec<u8>), E>,
+    ) -> Result<(Option<T>, Vec<u8>), E> {
         if let Some(value) = self.inner.get_or_reserve(key, timeout.as_millis() as u64) {
-            return Ok(value);
+            return Ok((None, value));
         }
-        let value = f()?;
-        self.inner.insert(key, &value);
-        Ok(value)
+        let (value, bytes) = f()?;
+        self.inner.insert(key, &bytes);
+        Ok((Some(value), bytes))
     }
 }

@@ -542,7 +542,7 @@ jobs:
             . -> target
             extensions -> target
           cache-directories: |
-            extensions/extensions/*/.grafbase/wasm-cache
+            extensions/extensions/*/build/wasm-cache
 
       - uses: ./.github/actions/fetch-assets
 

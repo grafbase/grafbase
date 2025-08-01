@@ -9,6 +9,7 @@
 //! The [FileLogger] is a special logger that writes logs to files with configurable rotation
 //! policies. The user decides the serialization format for the logs.
 
+pub use log;
 mod file;
 mod system;
 

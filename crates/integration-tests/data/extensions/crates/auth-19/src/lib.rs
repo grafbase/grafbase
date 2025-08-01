@@ -69,8 +69,11 @@ impl AuthenticationExtension for CachingProvider {
         let jwks: Jwks = serde_json::from_slice(
             &self
                 .cache
-                .get_or_insert(&cache_key, || serde_json::to_vec(&Jwks { key: value }))
-                .unwrap(),
+                .get_or_insert(&cache_key, || {
+                    serde_json::to_vec(&Jwks { key: value }).map(|bytes| ((), bytes))
+                })
+                .unwrap()
+                .1,
         )
         .unwrap();
 

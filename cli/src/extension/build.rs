@@ -253,7 +253,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
                     },
                 })
                 .unwrap();
-                watercolor::output!("⚠️ Warning: 'extension.type = \"resolver\"' is deprecated, instead use:\n{new_toml}", @BrightYellow);
+                watercolor::output!("⚠️ Warning: 'directives.resolvers' is deprecated, instead use:\n{new_toml}", @BrightYellow);
                 extension::ResolverType {
                     directives: Some(directives),
                 }
@@ -281,7 +281,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
                     },
                 })
                 .unwrap();
-                watercolor::output!("⚠️ Warning: 'extension.type = \"resolver\"' is deprecated, instead use:\n{new_toml}", @BrightYellow);
+                watercolor::output!("⚠️ Warning: 'directives.authorization' is deprecated, instead use:\n{new_toml}", @BrightYellow);
                 extension::AuthorizationType {
                     directives: Some(directives),
                     group_by: None,
