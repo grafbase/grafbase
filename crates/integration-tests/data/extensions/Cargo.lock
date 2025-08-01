@@ -570,7 +570,7 @@ dependencies = [
 name = "auth-19"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.20.0",
+ "grafbase-sdk 0.20.1",
  "serde",
  "serde_json",
 ]
@@ -588,7 +588,7 @@ dependencies = [
 name = "authenticated-19"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.20.0",
+ "grafbase-sdk 0.20.1",
  "indoc",
  "insta",
  "openidconnect",
@@ -615,7 +615,7 @@ dependencies = [
 name = "authz-19"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.20.0",
+ "grafbase-sdk 0.20.1",
  "http",
  "rkyv 0.8.10",
  "serde",
@@ -627,7 +627,7 @@ dependencies = [
 name = "authz-19-subgraph-grouping"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.20.0",
+ "grafbase-sdk 0.20.1",
  "insta",
  "log",
  "serde",
@@ -1214,7 +1214,7 @@ checksum = "2f8a2ca5ac02d09563609681103aada9e1777d54fc57a5acd7a41404f9c93b6e"
 name = "contracts"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.20.0",
+ "grafbase-sdk 0.20.1",
  "insta",
  "serde",
  "serde_json",
@@ -2422,7 +2422,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -3115,7 +3115,7 @@ name = "hooks-19"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
- "grafbase-sdk 0.20.0",
+ "grafbase-sdk 0.20.1",
  "indoc",
  "insta",
  "serde",

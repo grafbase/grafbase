@@ -44,8 +44,8 @@ impl OnRequestOutput {
     }
 
     /// Sets the contract key for the request.
-    pub fn contract_key(mut self, contract_key: String) -> Self {
-        self.contract_key = Some(contract_key);
+    pub fn contract_key(mut self, contract_key: impl Into<String>) -> Self {
+        self.contract_key = Some(contract_key.into());
         self
     }
 }
