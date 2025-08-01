@@ -3873,7 +3873,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.101.0"
+version = "0.101.1"
 dependencies = [
  "anyhow",
  "askama",
@@ -4089,7 +4089,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.19.3"
+version = "0.20.0"
 dependencies = [
  "anyhow",
  "async-tungstenite",

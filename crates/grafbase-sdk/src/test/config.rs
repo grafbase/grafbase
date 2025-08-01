@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 use serde::{Deserialize, Deserializer};
 
@@ -71,8 +71,16 @@ pub(super) struct ExtensionDefinition {
 pub(super) struct GatewayToml {
     #[serde(default)]
     pub extensions: HashMap<String, ExtensionConfig>,
+    #[serde(default)]
+    pub wasm: WasmConfig,
     #[serde(flatten)]
     pub rest: toml::Table,
+}
+
+#[derive(Default, Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct WasmConfig {
+    pub cache_path: Option<PathBuf>,
 }
 
 #[derive(Debug)]

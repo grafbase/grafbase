@@ -570,7 +570,7 @@ dependencies = [
 name = "auth-19"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.19.0",
+ "grafbase-sdk 0.20.0",
  "serde",
  "serde_json",
 ]
@@ -588,7 +588,7 @@ dependencies = [
 name = "authenticated-19"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.19.0",
+ "grafbase-sdk 0.20.0",
  "indoc",
  "insta",
  "openidconnect",
@@ -615,7 +615,7 @@ dependencies = [
 name = "authz-19"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.19.0",
+ "grafbase-sdk 0.20.0",
  "http",
  "rkyv 0.8.10",
  "serde",
@@ -627,7 +627,7 @@ dependencies = [
 name = "authz-19-subgraph-grouping"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.19.0",
+ "grafbase-sdk 0.20.0",
  "insta",
  "log",
  "serde",
@@ -1214,7 +1214,7 @@ checksum = "2f8a2ca5ac02d09563609681103aada9e1777d54fc57a5acd7a41404f9c93b6e"
 name = "contracts"
 version = "0.1.0"
 dependencies = [
- "grafbase-sdk 0.19.0",
+ "grafbase-sdk 0.20.0",
  "insta",
  "serde",
  "serde_json",
@@ -2343,7 +2343,7 @@ dependencies = [
  "fslock",
  "futures-util",
  "fxhash",
- "grafbase-sdk-derive 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-sdk-derive 0.5.0",
  "grafbase-sdk-mock 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "graphql-composition 0.9.0",
  "graphql-ws-client",
@@ -2389,7 +2389,7 @@ dependencies = [
  "fslock",
  "futures-util",
  "fxhash",
- "grafbase-sdk-derive 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-sdk-derive 0.5.0",
  "grafbase-sdk-mock 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "graphql-composition 0.9.0",
  "graphql-ws-client",
@@ -2422,7 +2422,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.19.0"
+version = "0.20.0"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -2435,9 +2435,9 @@ dependencies = [
  "fslock",
  "futures-util",
  "fxhash",
- "grafbase-sdk-derive 0.5.0",
+ "grafbase-sdk-derive 0.6.0",
  "grafbase-sdk-mock 0.2.0",
- "graphql-composition 0.9.0",
+ "graphql-composition 0.10.0",
  "graphql-ws-client",
  "http",
  "http-body-util",
@@ -2490,6 +2490,8 @@ dependencies = [
 [[package]]
 name = "grafbase-sdk-derive"
 version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a24a373c1e36970214d3ca548e85943ce39042abf996c76d95f9f32bbec03805"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2498,9 +2500,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk-derive"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a24a373c1e36970214d3ca548e85943ce39042abf996c76d95f9f32bbec03805"
+version = "0.6.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2757,6 +2757,24 @@ name = "graphql-composition"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7420268c37c1beb02ee6d476283cefe0fe4fa1efe6cd050fbdb7dc7361f4d2bd"
+dependencies = [
+ "bitflags",
+ "cynic-parser",
+ "cynic-parser-deser",
+ "fixedbitset",
+ "graphql-wrapping-types 0.4.0",
+ "indexmap 2.10.0",
+ "itertools 0.14.0",
+ "serde",
+ "serde_json",
+ "url",
+]
+
+[[package]]
+name = "graphql-composition"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "628239fc5052b42ee1306fe83e0c95235a08f737029495f730dfa4b01927cabb"
 dependencies = [
  "bitflags",
  "cynic-parser",
@@ -3097,7 +3115,7 @@ name = "hooks-19"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
- "grafbase-sdk 0.19.0",
+ "grafbase-sdk 0.20.0",
  "indoc",
  "insta",
  "serde",

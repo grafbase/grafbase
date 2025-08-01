@@ -37,6 +37,3 @@ pub use schema::*;
 pub use selection_set::*;
 pub use subscription_item::*;
 pub use token::*;
-
-/// A cache implementation for storing data between requests.
-pub struct Cache;

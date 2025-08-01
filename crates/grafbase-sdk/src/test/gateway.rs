@@ -267,6 +267,10 @@ impl TestGatewayBuilder {
             compose(self.subgraphs, &extension_path, extensions).await
         }?;
 
+        if toml_config.wasm.cache_path.is_none() {
+            toml_config.wasm.cache_path = Some(extension_path.join("build").join("wasm-cache"));
+        }
+
         // Build test dir
         let tmp_dir = tempfile::Builder::new().prefix("sdk-tests").tempdir()?;
         let config_path = tmp_dir.path().join("grafbase.toml");
