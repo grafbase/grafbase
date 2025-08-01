@@ -25,6 +25,7 @@ env:
   CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_PROFILE_TEST_DEBUG: 0
   CARGO_TERM_COLOR: 'always'
+  DEPOT_PROJECT: lc6t0h7bhh
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -56,6 +57,7 @@ jobs:
     uses: ./.github/workflows/rust-prs.yml
     with:
       base_ref: HEAD~1
+    secrets: inherit
     permissions:
       packages: write
 
@@ -86,7 +88,7 @@ jobs:
         uses: depot/build-push-action@636daae76684e38c301daa0c5eca1c095b24e780 # v1
         if: ${{ github.ref == 'refs/heads/main' }}
         with:
-          project: lc6t0h7bhh
+          project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
           push: true
           platforms: linux/amd64,linux/arm64
@@ -103,7 +105,7 @@ jobs:
         uses: depot/build-push-action@636daae76684e38c301daa0c5eca1c095b24e780 # v1
         if: ${{ startsWith(github.ref, 'refs/tags') && startsWith(github.ref_name, 'gateway-') }}
         with:
-          project: lc6t0h7bhh
+          project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
           push: true
           platforms: linux/amd64,linux/arm64
@@ -316,25 +318,21 @@ jobs:
     needs: [windows, linux, darwin]
     if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
     uses: ./.github/workflows/partial-grafbase-release.yml
+    secrets: inherit
     with:
       draft: false
       tag: ${{ github.ref_name }}
       prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
-    secrets:
-      CRATES_ACCESS_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
-      NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
   release-gateway:
     needs: [windows, linux, darwin]
     if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
     uses: ./.github/workflows/partial-gateway-release.yml
+    secrets: inherit
     with:
       draft: false
       tag: ${{ github.ref_name }}
       prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
-    secrets:
-      CRATES_ACCESS_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
-      NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
   after-build:
     # This job is responsible for reacting to build success or failure. It must
