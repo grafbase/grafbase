@@ -21,8 +21,8 @@ use crate::{
 /// # struct MyContract;
 /// # impl MyContract {
 /// #[allow(refining_impl_trait)]
-/// fn on_request(&mut self, _: &str, _: Method, headers: &mut GatewayHeaders) -> Result<OnRequestOutput, ErrorResponse> {
-///     Ok(OnRequestOutput::new().contract_key("my-contract-key".to_owned()))
+/// fn on_request(&mut self, url: &str, method: Method, headers: &mut GatewayHeaders) -> Result<OnRequestOutput, ErrorResponse> {
+///     Ok(OnRequestOutput::new().contract_key("my-contract-key"))
 /// }
 /// # }
 /// ```

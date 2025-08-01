@@ -87,6 +87,20 @@ pub trait HooksExtension: Sized + 'static {
     /// Called immediately when a request is received, before entering the GraphQL engine.
     ///
     /// This hook can be used to modify the request headers before they are processed by the GraphQL engine, and provides a way to audit the headers, URL, and method before processing the operation.
+    ///
+    /// It can also be used to define the contract key to use for the contracts extension if you
+    /// have any configured:
+    ///
+    /// ```rust
+    /// # use grafbase_sdk::{host_io::http::Method, types::{ErrorResponse, GatewayHeaders, OnRequestOutput}};
+    /// # struct MyContract;
+    /// # impl MyContract {
+    /// #[allow(refining_impl_trait)]
+    /// fn on_request(&mut self, url: &str, method: Method, headers: &mut GatewayHeaders) -> Result<OnRequestOutput, ErrorResponse> {
+    ///     Ok(OnRequestOutput::new().contract_key("my-contract-key"))
+    /// }
+    /// # }
+    /// ```
     fn on_request(
         &mut self,
         url: &str,
