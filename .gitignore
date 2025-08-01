@@ -64,3 +64,13 @@ yarn-error.log*
 
 ./extensions
 /crates/integration-tests/data/extensions/**/build
+
+# Devenv
+.devenv*
+devenv.local.nix
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml

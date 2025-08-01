@@ -1,2 +1,0 @@
-[hooks]
-location = "target/wasm32-wasip1/release/request_hook.wasm"
