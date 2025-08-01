@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  products:
+    build:
+      context: ../  # Build from parent directory to access proto files
+      dockerfile: services/products-ts/Dockerfile
+    ports:
+      - "50051:50051"
+    environment:
+      - PORT=50051
+    networks:
+      - services-network
+
+  parts:
+    build:
+      context: ../  # Build from parent directory to access proto files
+      dockerfile: services/parts-go/Dockerfile
+    ports:
+      - "50052:50052"
+    environment:
+      - PORT=50052
+    networks:
+      - services-network
+
+  locations:
+    build:
+      context: ../  # Build from parent directory to access proto files
+      dockerfile: services/locations-rust/Dockerfile
+    ports:
+      - "50053:50053"
+    environment:
+      - PORT=50053
+    networks:
+      - services-network
+
+networks:
+  services-network:
+    driver: bridge

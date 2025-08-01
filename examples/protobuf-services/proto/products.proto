@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package products;
+
+import "grafbase/options.proto";
+
+option go_package = "github.com/grafbase/grafbase/examples/protobuf-services/products";
+
+// Product represents a product in the system
+message Product {
+  option (grafbase.graphql.object_directives) = "@key(fields: \"id\") @key(fields: \"sku\")";
+
+  string id = 1;
+  string sku = 2;
+  string name = 3;
+  string description = 4;
+  double price = 5;
+  string warehouse_id = 6 [(grafbase.graphql.output_field_directives) = "@derive"]; // References locations service
+  int32 quantity_in_stock = 7;
+  string category = 8;
+}
+
+// ProductPart represents the relationship between a product and a part
+// with the quantity of parts needed to build one unit of the product
+message ProductPart {
+  option (grafbase.graphql.object_directives) = "@key(fields: \"product_id part_id\")";
+
+  string product_id = 1;
+  string part_id = 2;
+  int32 quantity_required = 3; // How many units of this part are needed per product
+}
+
+// Request message for getting a single product
+message GetProductRequest {
+  string id = 1;
+}
+
+// Response message for getting a single product
+message GetProductResponse {
+  Product product = 1;
+}
+
+// Request message for batch getting products
+message BatchGetProductsRequest {
+  repeated string ids = 1;
+}
+
+// Response message for batch getting products
+message BatchGetProductsResponse {
+  repeated Product products = 1;
+}
+
+// Request message for getting parts for a product
+message GetProductPartsRequest {
+  string product_id = 1;
+}
+
+// Response message for getting parts for a product
+message GetProductPartsResponse {
+  repeated ProductPart product_parts = 1;
+}
+
+// Request message for getting products that use a part
+message GetProductsForPartRequest {
+  string part_id = 1;
+}
+
+// Response message for getting products that use a part
+message GetProductsForPartResponse {
+  repeated ProductPart product_parts = 1;
+}
+
+// ProductService provides operations for managing products and product-part relationships
+service ProductService {
+  option (grafbase.graphql.default_to_query_fields) = true;
+  option (grafbase.graphql.subgraph_name) = "products";
+
+  // Get a single product by ID
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+
+  // Batch get products by IDs
+  rpc BatchGetProducts(BatchGetProductsRequest) returns (BatchGetProductsResponse) {
+    option (grafbase.graphql.directives) = "@lookup";
+  }
+
+  // Get all parts for a specific product with quantities
+  rpc GetProductParts(GetProductPartsRequest) returns (GetProductPartsResponse) {
+    option (grafbase.graphql.directives) = "@lookup";
+  }
+
+  // Get all products that use a specific part
+  rpc GetProductsForPart(GetProductsForPartRequest) returns (GetProductsForPartResponse) {
+    option (grafbase.graphql.directives) = "@lookup";
+  }
+}

@@ -1,0 +1,14 @@
+[subgraphs.locations]
+url = "http://localhost:50053"
+schema_path = "./gen/graphql/locations.graphql"
+
+[subgraphs.parts]
+url = "http://localhost:50052"
+schema_path = "./gen/graphql/parts.graphql"
+
+[subgraphs.products]
+url = "http://localhost:50051"
+schema_path = "./gen/graphql/products.graphql"
+
+[extensions]
+grpc.version = "0.2"

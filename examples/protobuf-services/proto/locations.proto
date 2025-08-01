@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package locations;
+
+import "grafbase/options.proto";
+
+option go_package = "github.com/grafbase/grafbase/examples/protobuf-services/locations";
+
+// Location represents a warehouse or storage location in the system
+message Location {
+  option (grafbase.graphql.object_directives) = "@key(fields: \"id\")";
+
+  string id = 1;
+  string name = 2;
+  string address = 3;
+  string city = 4;
+  string state = 5;
+  string country = 6;
+  string postal_code = 7;
+  int32 capacity = 8;
+  string manager_name = 9;
+  string contact_phone = 10;
+  bool is_active = 11;
+}
+
+// Request message for getting a single location
+message GetLocationRequest {
+  string id = 1;
+}
+
+// Response message for getting a single location
+message GetLocationResponse {
+  Location location = 1;
+}
+
+// Request message for batch getting locations
+message BatchGetLocationsRequest {
+  repeated string ids = 1;
+}
+
+// Response message for batch getting locations
+message BatchGetLocationsResponse {
+  repeated Location locations = 1;
+}
+
+// LocationService provides operations for managing warehouse locations
+service LocationService {
+  option (grafbase.graphql.default_to_query_fields) = true;
+  option (grafbase.graphql.subgraph_name) = "locations";
+
+  // Get a single location by ID
+  rpc GetLocation(GetLocationRequest) returns (GetLocationResponse);
+
+  // Batch get locations by IDs
+  rpc BatchGetLocations(BatchGetLocationsRequest) returns (BatchGetLocationsResponse) {
+    option (grafbase.graphql.directives) = "@lookup";
+  }
+}

@@ -1,0 +1,199 @@
+extend schema
+  @link(url: "https://grafbase.com/extensions/grpc/0.2.0", import: ["@protoServices", "@protoEnums", "@protoMessages", "@grpcMethod"])
+  @protoServices(
+    definitions: [
+      {
+        name: "locations.LocationService"
+        methods: [
+          {
+            name: "GetLocation"
+            inputType: ".locations.GetLocationRequest"
+            outputType: ".locations.GetLocationResponse"
+          }
+          {
+            name: "BatchGetLocations"
+            inputType: ".locations.BatchGetLocationsRequest"
+            outputType: ".locations.BatchGetLocationsResponse"
+          }
+        ]
+      }
+    ]
+  )
+  @protoMessages(
+    definitions: [
+      {
+        name: ".locations.Location"
+        fields: [
+          {
+            name: "id"
+            number: 1
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "name"
+            number: 2
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "address"
+            number: 3
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "city"
+            number: 4
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "state"
+            number: 5
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "country"
+            number: 6
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "postal_code"
+            number: 7
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "capacity"
+            number: 8
+            repeated: false
+            type: "int32"
+          }
+          {
+            name: "manager_name"
+            number: 9
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "contact_phone"
+            number: 10
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "is_active"
+            number: 11
+            repeated: false
+            type: "bool"
+          }
+        ]
+      }
+      {
+        name: ".locations.GetLocationRequest"
+        fields: [
+          {
+            name: "id"
+            number: 1
+            repeated: false
+            type: "string"
+          }
+        ]
+      }
+      {
+        name: ".locations.GetLocationResponse"
+        fields: [
+          {
+            name: "location"
+            number: 1
+            repeated: false
+            type: ".locations.Location"
+          }
+        ]
+      }
+      {
+        name: ".locations.BatchGetLocationsRequest"
+        fields: [
+          {
+            name: "ids"
+            number: 1
+            repeated: true
+            type: "string"
+          }
+        ]
+      }
+      {
+        name: ".locations.BatchGetLocationsResponse"
+        fields: [
+          {
+            name: "locations"
+            number: 1
+            repeated: true
+            type: ".locations.Location"
+          }
+        ]
+      }
+    ]
+  )
+
+type Query {
+"""
+Get a single location by ID
+"""
+  locations_LocationService_GetLocation(input: locations_GetLocationRequestInput): locations_GetLocationResponse @grpcMethod(service: "locations.LocationService", method: "GetLocation")
+"""
+Batch get locations by IDs
+"""
+  locations_LocationService_BatchGetLocations(input: locations_BatchGetLocationsRequestInput): locations_BatchGetLocationsResponse @grpcMethod(service: "locations.LocationService", method: "BatchGetLocations") @lookup
+}
+
+"64 bit signed integer" scalar I64
+"64 bit unsigned integer" scalar U64
+
+"""
+Request message for getting a single location
+"""
+input locations_GetLocationRequestInput {
+  id: String
+}
+
+"""
+Request message for batch getting locations
+"""
+input locations_BatchGetLocationsRequestInput {
+  ids: [String!]
+}
+
+"""
+Location represents a warehouse or storage location in the system
+"""
+type locations_Location @key(fields: "id") {
+  id: String
+  name: String
+  address: String
+  city: String
+  state: String
+  country: String
+  postal_code: String
+  capacity: Int
+  manager_name: String
+  contact_phone: String
+  is_active: Boolean
+}
+
+"""
+Response message for getting a single location
+"""
+type locations_GetLocationResponse {
+  location: locations_Location
+}
+
+"""
+Response message for batch getting locations
+"""
+type locations_BatchGetLocationsResponse {
+  locations: [locations_Location!]
+}

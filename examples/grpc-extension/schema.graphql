@@ -1,26 +1,21 @@
 extend schema
-  @link(url: "https://grafbase.com/extensions/grpc/0.1.2", import: ["@protoServices", "@protoEnums", "@protoMessages", "@grpcMethod"])
+  @link(
+    url: "https://grafbase.com/extensions/grpc/0.2.0"
+    import: ["@protoServices", "@protoEnums", "@protoMessages", "@grpcMethod"]
+  )
   @protoServices(
     definitions: [
       {
         name: "routeguide.RouteGuide"
         methods: [
-          {
-            name: "GetFeature"
-            inputType: ".routeguide.Point"
-            outputType: ".routeguide.Feature"
-          }
+          { name: "GetFeature", inputType: ".routeguide.Point", outputType: ".routeguide.Feature" }
           {
             name: "ListFeatures"
             inputType: ".routeguide.Rectangle"
             outputType: ".routeguide.Feature"
             serverStreaming: true
           }
-          {
-            name: "RecordRoute"
-            inputType: ".routeguide.Point"
-            outputType: ".routeguide.RouteSummary"
-          }
+          { name: "RecordRoute", inputType: ".routeguide.Point", outputType: ".routeguide.RouteSummary" }
           {
             name: "RouteChat"
             inputType: ".routeguide.RouteNote"
@@ -36,143 +31,89 @@ extend schema
       {
         name: ".routeguide.Point"
         fields: [
-          {
-            name: "latitude"
-            number: 1
-            repeated: false
-            type: "int32"
-          }
-          {
-            name: "longitude"
-            number: 2
-            repeated: false
-            type: "int32"
-          }
+          { name: "latitude", number: 1, repeated: false, type: "int32" }
+          { name: "longitude", number: 2, repeated: false, type: "int32" }
         ]
       }
       {
         name: ".routeguide.Rectangle"
         fields: [
-          {
-            name: "lo"
-            number: 1
-            repeated: false
-            type: ".routeguide.Point"
-          }
-          {
-            name: "hi"
-            number: 2
-            repeated: false
-            type: ".routeguide.Point"
-          }
+          { name: "lo", number: 1, repeated: false, type: ".routeguide.Point" }
+          { name: "hi", number: 2, repeated: false, type: ".routeguide.Point" }
         ]
       }
       {
         name: ".routeguide.Feature"
         fields: [
-          {
-            name: "name"
-            number: 1
-            repeated: false
-            type: "string"
-          }
-          {
-            name: "location"
-            number: 2
-            repeated: false
-            type: ".routeguide.Point"
-          }
+          { name: "name", number: 1, repeated: false, type: "string" }
+          { name: "location", number: 2, repeated: false, type: ".routeguide.Point" }
         ]
       }
       {
         name: ".routeguide.RouteNote"
         fields: [
-          {
-            name: "location"
-            number: 1
-            repeated: false
-            type: ".routeguide.Point"
-          }
-          {
-            name: "message"
-            number: 2
-            repeated: false
-            type: "string"
-          }
+          { name: "location", number: 1, repeated: false, type: ".routeguide.Point" }
+          { name: "message", number: 2, repeated: false, type: "string" }
         ]
       }
       {
         name: ".routeguide.RouteSummary"
         fields: [
-          {
-            name: "point_count"
-            number: 1
-            repeated: false
-            type: "int32"
-          }
-          {
-            name: "feature_count"
-            number: 2
-            repeated: false
-            type: "int32"
-          }
-          {
-            name: "distance"
-            number: 3
-            repeated: false
-            type: "int32"
-          }
-          {
-            name: "elapsed_time"
-            number: 4
-            repeated: false
-            type: "int32"
-          }
+          { name: "point_count", number: 1, repeated: false, type: "int32" }
+          { name: "feature_count", number: 2, repeated: false, type: "int32" }
+          { name: "distance", number: 3, repeated: false, type: "int32" }
+          { name: "elapsed_time", number: 4, repeated: false, type: "int32" }
         ]
       }
     ]
   )
 
 type Mutation {
-"""
-A simple RPC.
+  """
+  A simple RPC.
 
- Obtains the feature at a given position.
+   Obtains the feature at a given position.
 
- A feature with an empty name is returned if there's no feature at the given
- position.
-"""
-  routeguide_RouteGuide_GetFeature(input: routeguide_PointInput): routeguide_Feature @grpcMethod(service: "routeguide.RouteGuide", method: "GetFeature")
-"""
-A client-to-server streaming RPC.
+   A feature with an empty name is returned if there's no feature at the given
+   position.
+  """
+  routeguide_RouteGuide_GetFeature(input: routeguide_PointInput): routeguide_Feature
+    @grpcMethod(service: "routeguide.RouteGuide", method: "GetFeature")
+  """
+  A client-to-server streaming RPC.
 
- Accepts a stream of Points on a route being traversed, returning a
- RouteSummary when traversal is completed.
-"""
-  routeguide_RouteGuide_RecordRoute(input: routeguide_PointInput): routeguide_RouteSummary @grpcMethod(service: "routeguide.RouteGuide", method: "RecordRoute")
+   Accepts a stream of Points on a route being traversed, returning a
+   RouteSummary when traversal is completed.
+  """
+  routeguide_RouteGuide_RecordRoute(input: routeguide_PointInput): routeguide_RouteSummary
+    @grpcMethod(service: "routeguide.RouteGuide", method: "RecordRoute")
 }
 
 type Subscription {
-"""
-A server-to-client streaming RPC.
+  """
+  A server-to-client streaming RPC.
 
- Obtains the Features available within the given Rectangle.  Results are
- streamed rather than returned at once (e.g. in a response message with a
- repeated field), as the rectangle may cover a large area and contain a
- huge number of features.
-"""
-  routeguide_RouteGuide_ListFeatures(input: routeguide_RectangleInput): routeguide_Feature @grpcMethod(service: "routeguide.RouteGuide", method: "ListFeatures")
-"""
-A Bidirectional streaming RPC.
+   Obtains the Features available within the given Rectangle.  Results are
+   streamed rather than returned at once (e.g. in a response message with a
+   repeated field), as the rectangle may cover a large area and contain a
+   huge number of features.
+  """
+  routeguide_RouteGuide_ListFeatures(input: routeguide_RectangleInput): routeguide_Feature
+    @grpcMethod(service: "routeguide.RouteGuide", method: "ListFeatures")
+  """
+  A Bidirectional streaming RPC.
 
- Accepts a stream of RouteNotes sent while a route is being traversed,
- while receiving other RouteNotes (e.g. from other users).
-"""
-  routeguide_RouteGuide_RouteChat(input: routeguide_RouteNoteInput): routeguide_RouteNote @grpcMethod(service: "routeguide.RouteGuide", method: "RouteChat")
+   Accepts a stream of RouteNotes sent while a route is being traversed,
+   while receiving other RouteNotes (e.g. from other users).
+  """
+  routeguide_RouteGuide_RouteChat(input: routeguide_RouteNoteInput): routeguide_RouteNote
+    @grpcMethod(service: "routeguide.RouteGuide", method: "RouteChat")
 }
 
-"64 bit signed integer" scalar I64
-"64 bit unsigned integer" scalar U64
+"64 bit signed integer"
+scalar I64
+"64 bit unsigned integer"
+scalar U64
 
 """
 Points are represented as latitude-longitude pairs in the E7 representation
@@ -190,13 +131,13 @@ A latitude-longitude rectangle, represented as two diagonally opposite
  points "lo" and "hi".
 """
 input routeguide_RectangleInput {
-"""
-One corner of the rectangle.
-"""
+  """
+  One corner of the rectangle.
+  """
   lo: routeguide_PointInput
-"""
-The other corner of the rectangle.
-"""
+  """
+  The other corner of the rectangle.
+  """
   hi: routeguide_PointInput
 }
 
@@ -204,13 +145,13 @@ The other corner of the rectangle.
 A RouteNote is a message sent while at a given point.
 """
 input routeguide_RouteNoteInput {
-"""
-The location from which the message is sent.
-"""
+  """
+  The location from which the message is sent.
+  """
   location: routeguide_PointInput
-"""
-The message to be sent.
-"""
+  """
+  The message to be sent.
+  """
   message: String
 }
 
@@ -231,13 +172,13 @@ A feature names something at a given point.
  If a feature could not be named, the name is empty.
 """
 type routeguide_Feature {
-"""
-The name of the feature.
-"""
+  """
+  The name of the feature.
+  """
   name: String
-"""
-The point where the feature is detected.
-"""
+  """
+  The point where the feature is detected.
+  """
   location: routeguide_Point
 }
 
@@ -245,13 +186,13 @@ The point where the feature is detected.
 A RouteNote is a message sent while at a given point.
 """
 type routeguide_RouteNote {
-"""
-The location from which the message is sent.
-"""
+  """
+  The location from which the message is sent.
+  """
   location: routeguide_Point
-"""
-The message to be sent.
-"""
+  """
+  The message to be sent.
+  """
   message: String
 }
 
@@ -263,20 +204,20 @@ A RouteSummary is received in response to a RecordRoute rpc.
  the distance between each point.
 """
 type routeguide_RouteSummary {
-"""
-The number of points received.
-"""
+  """
+  The number of points received.
+  """
   point_count: Int
-"""
-The number of known features passed while traversing the route.
-"""
+  """
+  The number of known features passed while traversing the route.
+  """
   feature_count: Int
-"""
-The distance covered in metres.
-"""
+  """
+  The distance covered in metres.
+  """
   distance: Int
-"""
-The duration of the traversal in seconds.
-"""
+  """
+  The duration of the traversal in seconds.
+  """
   elapsed_time: Int
 }

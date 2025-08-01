@@ -1,0 +1,8 @@
+version: v2
+plugins:
+  - local: protoc-gen-grafbase-subgraph
+    out: gen/graphql
+    opt:
+      - paths=source_relative
+inputs:
+  - directory: ./proto

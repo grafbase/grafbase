@@ -1,0 +1,307 @@
+extend schema
+  @link(url: "https://grafbase.com/extensions/grpc/0.2.0", import: ["@protoServices", "@protoEnums", "@protoMessages", "@grpcMethod"])
+  @protoServices(
+    definitions: [
+      {
+        name: "products.ProductService"
+        methods: [
+          {
+            name: "GetProduct"
+            inputType: ".products.GetProductRequest"
+            outputType: ".products.GetProductResponse"
+          }
+          {
+            name: "BatchGetProducts"
+            inputType: ".products.BatchGetProductsRequest"
+            outputType: ".products.BatchGetProductsResponse"
+          }
+          {
+            name: "GetProductParts"
+            inputType: ".products.GetProductPartsRequest"
+            outputType: ".products.GetProductPartsResponse"
+          }
+          {
+            name: "GetProductsForPart"
+            inputType: ".products.GetProductsForPartRequest"
+            outputType: ".products.GetProductsForPartResponse"
+          }
+        ]
+      }
+    ]
+  )
+  @protoMessages(
+    definitions: [
+      {
+        name: ".products.Product"
+        fields: [
+          {
+            name: "id"
+            number: 1
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "sku"
+            number: 2
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "name"
+            number: 3
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "description"
+            number: 4
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "price"
+            number: 5
+            repeated: false
+            type: "double"
+          }
+          {
+            name: "warehouse_id"
+            number: 6
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "quantity_in_stock"
+            number: 7
+            repeated: false
+            type: "int32"
+          }
+          {
+            name: "category"
+            number: 8
+            repeated: false
+            type: "string"
+          }
+        ]
+      }
+      {
+        name: ".products.ProductPart"
+        fields: [
+          {
+            name: "product_id"
+            number: 1
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "part_id"
+            number: 2
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "quantity_required"
+            number: 3
+            repeated: false
+            type: "int32"
+          }
+        ]
+      }
+      {
+        name: ".products.GetProductRequest"
+        fields: [
+          {
+            name: "id"
+            number: 1
+            repeated: false
+            type: "string"
+          }
+        ]
+      }
+      {
+        name: ".products.GetProductResponse"
+        fields: [
+          {
+            name: "product"
+            number: 1
+            repeated: false
+            type: ".products.Product"
+          }
+        ]
+      }
+      {
+        name: ".products.BatchGetProductsRequest"
+        fields: [
+          {
+            name: "ids"
+            number: 1
+            repeated: true
+            type: "string"
+          }
+        ]
+      }
+      {
+        name: ".products.BatchGetProductsResponse"
+        fields: [
+          {
+            name: "products"
+            number: 1
+            repeated: true
+            type: ".products.Product"
+          }
+        ]
+      }
+      {
+        name: ".products.GetProductPartsRequest"
+        fields: [
+          {
+            name: "product_id"
+            number: 1
+            repeated: false
+            type: "string"
+          }
+        ]
+      }
+      {
+        name: ".products.GetProductPartsResponse"
+        fields: [
+          {
+            name: "product_parts"
+            number: 1
+            repeated: true
+            type: ".products.ProductPart"
+          }
+        ]
+      }
+      {
+        name: ".products.GetProductsForPartRequest"
+        fields: [
+          {
+            name: "part_id"
+            number: 1
+            repeated: false
+            type: "string"
+          }
+        ]
+      }
+      {
+        name: ".products.GetProductsForPartResponse"
+        fields: [
+          {
+            name: "product_parts"
+            number: 1
+            repeated: true
+            type: ".products.ProductPart"
+          }
+        ]
+      }
+    ]
+  )
+
+type Query {
+"""
+Get a single product by ID
+"""
+  products_ProductService_GetProduct(input: products_GetProductRequestInput): products_GetProductResponse @grpcMethod(service: "products.ProductService", method: "GetProduct")
+"""
+Batch get products by IDs
+"""
+  products_ProductService_BatchGetProducts(input: products_BatchGetProductsRequestInput): products_BatchGetProductsResponse @grpcMethod(service: "products.ProductService", method: "BatchGetProducts") @lookup
+"""
+Get all parts for a specific product with quantities
+"""
+  products_ProductService_GetProductParts(input: products_GetProductPartsRequestInput): products_GetProductPartsResponse @grpcMethod(service: "products.ProductService", method: "GetProductParts") @lookup
+"""
+Get all products that use a specific part
+"""
+  products_ProductService_GetProductsForPart(input: products_GetProductsForPartRequestInput): products_GetProductsForPartResponse @grpcMethod(service: "products.ProductService", method: "GetProductsForPart") @lookup
+}
+
+"64 bit signed integer" scalar I64
+"64 bit unsigned integer" scalar U64
+
+"""
+Request message for getting a single product
+"""
+input products_GetProductRequestInput {
+  id: String
+}
+
+"""
+Request message for batch getting products
+"""
+input products_BatchGetProductsRequestInput {
+  ids: [String!]
+}
+
+"""
+Request message for getting parts for a product
+"""
+input products_GetProductPartsRequestInput {
+  product_id: String
+}
+
+"""
+Request message for getting products that use a part
+"""
+input products_GetProductsForPartRequestInput {
+  part_id: String
+}
+
+"""
+Product represents a product in the system
+"""
+type products_Product @key(fields: "id") @key(fields: "sku") {
+  id: String
+  sku: String
+  name: String
+  description: String
+  price: Float
+"""
+References locations service
+"""
+  warehouse_id: String @derive
+  quantity_in_stock: Int
+  category: String
+}
+
+"""
+ProductPart represents the relationship between a product and a part
+ with the quantity of parts needed to build one unit of the product
+"""
+type products_ProductPart @key(fields: "product_id part_id") {
+  product_id: String
+  part_id: String
+"""
+How many units of this part are needed per product
+"""
+  quantity_required: Int
+}
+
+"""
+Response message for getting a single product
+"""
+type products_GetProductResponse {
+  product: products_Product
+}
+
+"""
+Response message for batch getting products
+"""
+type products_BatchGetProductsResponse {
+  products: [products_Product!]
+}
+
+"""
+Response message for getting parts for a product
+"""
+type products_GetProductPartsResponse {
+  product_parts: [products_ProductPart!]
+}
+
+"""
+Response message for getting products that use a part
+"""
+type products_GetProductsForPartResponse {
+  product_parts: [products_ProductPart!]
+}
