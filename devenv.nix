@@ -4,7 +4,8 @@
   config,
   inputs,
   ...
-}: {
+}:
+{
   packages = with pkgs; [
     rustup
     cargo-make
