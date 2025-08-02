@@ -1,9 +1,0 @@
-[toolchain]
-profile = "default"
-channel = "1.87.0"
-targets = [
-    "aarch64-apple-darwin",
-    "x86_64-apple-darwin",
-    "x86_64-pc-windows-msvc",
-    "wasm32-wasip2"
-]
