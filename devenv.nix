@@ -12,6 +12,7 @@
 
     # Examples
     hurl
+    poppler-utils
   ];
 
   # Federation audit tests

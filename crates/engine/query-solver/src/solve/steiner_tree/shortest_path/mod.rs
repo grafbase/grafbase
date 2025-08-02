@@ -254,11 +254,11 @@ where
         {
             self.tmp.terminals_buffer.clear();
             return 0;
-        } else if let [terminal_ix] = self.tmp.terminals_buffer[..]
-            && zero_cost_edges.is_empty()
-        {
-            self.tmp.terminals_buffer.clear();
-            return self.steiner_tree.node_addition_cost(terminal_ix);
+        } else if let [terminal_ix] = self.tmp.terminals_buffer[..] {
+            if zero_cost_edges.is_empty() {
+                self.tmp.terminals_buffer.clear();
+                return self.steiner_tree.node_addition_cost(terminal_ix);
+            }
         }
 
         debug_assert!(self.tmp.lowered_cost_nodes.is_empty() && self.tmp.cost_backup.is_empty());
@@ -297,7 +297,7 @@ where
         self.steiner_tree.contains(self.ctx.to_node_ix(node_id))
     }
 
-    pub(crate) fn query_graph_nodes_bitset(&self) -> FixedBitSet {
+    pub(crate) fn into_query_graph_nodes_bitset(self) -> FixedBitSet {
         let mut bitset = FixedBitSet::with_capacity(self.ctx.query_graph_node_id_to_node_ix.len());
         for (i, ix) in self.ctx.query_graph_node_id_to_node_ix.iter().copied().enumerate() {
             bitset.set(i, self.steiner_tree.contains(ix));

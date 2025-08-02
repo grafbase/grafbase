@@ -138,7 +138,7 @@ where
 
     pub fn into_solution(self) -> SteinerTreeSolution {
         SteinerTreeSolution {
-            node_bitset: self.algorithm.query_graph_nodes_bitset(),
+            node_bitset: self.algorithm.into_query_graph_nodes_bitset(),
         }
     }
 

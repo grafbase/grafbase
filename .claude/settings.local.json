@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Edit",
       "Bash(cargo nextest run:*)",
       "Bash(INSTA_FORCE_PASS=1 cargo nextest run:*)",
       "Bash(cargo test:*)",
@@ -10,7 +11,8 @@
       "Bash(taplo check:*)",
       "Bash(taplo fmt:*)",
       "Bash(git checkout:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(pdftotext:*)",
     ],
     "deny": []
   },

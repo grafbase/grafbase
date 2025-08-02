@@ -2614,6 +2614,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "dot-parser"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6cce83b336cd8d9b2718f4e8228a185de6e7a1cfe34f237e8c4acaf1c4141630"
+dependencies = [
+ "either",
+ "pest",
+ "pest_derive",
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
+name = "dot-parser-macros"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5f46b58a6249ec5f7102770351aeca8eef2a3093872bb8eec1eb9e0b432d260"
+dependencies = [
+ "dot-parser",
+ "litrs",
+ "proc-macro2",
+ "quote",
+]
+
+[[package]]
 name = "dotenvy"
 version = "0.15.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2958,6 +2983,7 @@ version = "0.0.0"
 dependencies = [
  "bitflags 2.9.1",
  "ctor",
+ "dot-parser",
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-operation",
@@ -2972,6 +2998,8 @@ dependencies = [
  "insta",
  "itertools 0.14.0",
  "petgraph",
+ "pretty_assertions",
+ "priority-queue",
  "serde",
  "serde_json",
  "similar",
@@ -5968,6 +5996,9 @@ name = "litrs"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4ce301924b7887e9d637144fdade93f9dfff9b60981d4ac161db09720d39aa5"
+dependencies = [
+ "proc-macro2",
+]
 
 [[package]]
 name = "lock_api"
@@ -7101,6 +7132,8 @@ version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54acf3a685220b533e437e264e4d932cfbdc4cc7ec0cd232ed73c08d03b8a7ca"
 dependencies = [
+ "dot-parser",
+ "dot-parser-macros",
  "fixedbitset",
  "hashbrown 0.15.4",
  "indexmap 2.10.0",
