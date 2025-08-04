@@ -1,5 +1,4 @@
 use crate::normalize;
-use expect_test::expect;
 use indoc::indoc;
 
 #[test]
@@ -8,7 +7,7 @@ fn no_operation_name() {
         query Employees { employeeCollection(first: 5) { edges { node { id firstName lastName } } } }
     "#};
     let output = normalize(input, None).unwrap();
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query Employees {
           employeeCollection(first: 0) {
             edges {
@@ -20,8 +19,7 @@ fn no_operation_name() {
             }
           }
         }
-    "#]];
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -47,7 +45,7 @@ fn apollo_example() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         fragment NameParts on User {
           firstname
           lastname
@@ -60,9 +58,7 @@ fn apollo_example() {
             ...NameParts
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -77,7 +73,7 @@ fn inline_strings() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser {
           user(id: "") @include(by: "") {
             names(first: 0) {
@@ -85,9 +81,7 @@ fn inline_strings() {
             }
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -102,15 +96,13 @@ fn inline_ints() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser {
           user(id: 0) {
             name
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -125,15 +117,13 @@ fn inline_floats() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser {
           user(id: 0) {
             name
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -148,15 +138,13 @@ fn inline_lists() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser {
           user(id: []) {
             name
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -171,15 +159,13 @@ fn inline_objects() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser {
           user(id: {}) {
             name
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -194,15 +180,13 @@ fn inline_enums() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser {
           user(id: ID) {
             name
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -217,15 +201,13 @@ fn inline_booleans() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser {
           user(id: true) {
             name
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -240,15 +222,13 @@ fn variables() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser($id: Int) {
           user(id: $id) {
             name
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -265,7 +245,7 @@ fn argument_order() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser($bar: Int, $foo: Int, $limit: Int) {
           user(bar: $bar, foo: $foo) {
             names(foo: $foo, limit: $limit) {
@@ -273,9 +253,7 @@ fn argument_order() {
             }
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -298,7 +276,7 @@ fn inline_fragment() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser($limit: Int, $zimit: String) {
           user {
             age
@@ -311,9 +289,7 @@ fn inline_fragment() {
             }
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -334,7 +310,7 @@ fn used_fragment() {
 
     let output = normalize(input, None).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         fragment NameParts on User {
           firstname
           lastname
@@ -346,9 +322,7 @@ fn used_fragment() {
             ...NameParts
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -374,7 +348,7 @@ fn used_fragment_in_fragment() {
 
     let output = normalize(input, None).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         fragment AgeParts on User {
           age
         }
@@ -391,9 +365,7 @@ fn used_fragment_in_fragment() {
             ...NameParts
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -413,15 +385,13 @@ fn unused_fragment() {
 
     let output = normalize(input, None).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query {
           user {
             name
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -442,15 +412,13 @@ fn unused_queries() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser {
           user {
             name
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -471,15 +439,13 @@ fn unused_mutations() {
 
     let output = normalize(input, Some("UpdateUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         mutation UpdateUser {
           updateUser {
             name
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -500,15 +466,13 @@ fn unused_subscriptions() {
 
     let output = normalize(input, Some("Locations")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         subscription Locations {
           locations {
             address
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -523,15 +487,13 @@ fn directives() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser {
           user @exclude @include {
             name
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }
 
 #[test]
@@ -546,13 +508,11 @@ fn directive_arguments() {
 
     let output = normalize(input, Some("GetUser")).unwrap();
 
-    let expected = expect![[r#"
+    insta::assert_snapshot!(output, @r#"
         query GetUser {
           user @include(goo: true, zoo: false) {
             name
           }
         }
-    "#]];
-
-    expected.assert_eq(&output);
+    "#);
 }

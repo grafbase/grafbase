@@ -20,8 +20,18 @@ pub(super) fn sanitize(value: Value<'_>, rendered: &mut String) {
         Value::List(_) => {
             rendered.push_str("[]");
         }
-        Value::Object(_) => {
-            rendered.push_str("{}");
+        Value::Object(object_value) => {
+            rendered.push('{');
+            let fields_count = object_value.fields().len();
+            for (i, field) in object_value.fields().enumerate() {
+                rendered.push_str(field.name());
+                rendered.push_str(": ");
+                sanitize(field.value(), rendered);
+                if i != fields_count - 1 {
+                    rendered.push_str(", ");
+                }
+            }
+            rendered.push('}');
         }
     }
 }

@@ -18,5 +18,5 @@ graphql-parser.workspace = true
 workspace = true
 
 [dev-dependencies]
-expect-test.workspace = true
 indoc.workspace = true
+insta.workspace = true
