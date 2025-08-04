@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo nextest run:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo fmt:*)",
+      "Bash(taplo check:*)",
+      "Bash(taplo fmt:*)",
+      "Bash(git checkout:*)",
+      "Bash(INSTA_FORCE_PASS=1 cargo nextest run)",
+      "Bash(INSTA_FORCE_PASS=1 cargo nextest run -p operation-normalizer)",
+      "Bash(find:*)"
+    ],
+    "deny": []
+  }
+}
