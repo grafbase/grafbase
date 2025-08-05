@@ -29,6 +29,13 @@ struct OnSubgraphRequestConfig {
     url: Option<String>,
     header_name: Option<String>,
     header_value: Option<String>,
+    rename_header: Option<RenameHeader>,
+}
+
+#[derive(serde::Deserialize)]
+struct RenameHeader {
+    from: String,
+    to: String,
 }
 
 #[derive(serde::Deserialize)]
@@ -173,6 +180,11 @@ impl HooksExtension for Hooks {
         }
         if let Some((name, value)) = config.header_name.as_ref().zip(config.header_value.as_ref()) {
             parts.headers.append(name, value);
+        }
+        if let Some(RenameHeader { from, to }) = &config.rename_header {
+            if let Some(value) = parts.headers.remove(from) {
+                parts.headers.append(to, value);
+            }
         }
 
         Ok(())

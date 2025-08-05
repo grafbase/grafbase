@@ -107,3 +107,42 @@ fn subgraph_url_change() {
         "#);
     });
 }
+
+#[test]
+fn receives_header_from_on_request() {
+    runtime().block_on(async move {
+        let config = indoc! {r#"
+            [[headers]]
+            rule = "forward"
+            name = "x-incoming-header"
+
+            [extensions.hooks-19.config]
+            incoming_header.key = "X-Incoming-Header"
+            incoming_header.value = "kekw"
+            on_subgraph_request.rename_header.from = "x-incoming-header"
+            on_subgraph_request.rename_header.to = "x-renamed-header"
+        "#};
+
+        let engine = Gateway::builder()
+            .with_toml_config(config)
+            .with_extension("hooks-19")
+            .with_subgraph(EchoSchema::default())
+            .build()
+            .await;
+
+        let query = indoc! {r#"
+            query {
+                header(name: "x-renamed-header")
+            }
+        "#};
+
+        let response = engine.post(query).await;
+        insta::assert_snapshot!(response, @r#"
+        {
+          "data": {
+            "header": "kekw"
+          }
+        }
+        "#);
+    })
+}

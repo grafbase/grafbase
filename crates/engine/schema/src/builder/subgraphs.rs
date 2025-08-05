@@ -146,8 +146,8 @@ fn ingest_header_rules(
         match rule {
             HeaderRule::Forward(rule) => {
                 let name_id = match &rule.name {
-                    NameOrPattern::Pattern(regex) => {
-                        NameOrPatternId::Pattern(interners.regexps.get_or_insert(regex.clone()))
+                    NameOrPattern::Pattern(pattern) => {
+                        NameOrPatternId::Pattern(interners.regexps.get_or_insert(pattern.0.clone()))
                     }
                     NameOrPattern::Name(name) => NameOrPatternId::Name(interners.strings.get_or_new(name.as_str())),
                 };
@@ -169,8 +169,8 @@ fn ingest_header_rules(
             }
             HeaderRule::Remove(rule) => {
                 let name_id = match &rule.name {
-                    NameOrPattern::Pattern(regex) => {
-                        NameOrPatternId::Pattern(interners.regexps.get_or_insert(regex.clone()))
+                    NameOrPattern::Pattern(pattern) => {
+                        NameOrPatternId::Pattern(interners.regexps.get_or_insert(pattern.0.clone()))
                     }
                     NameOrPattern::Name(name) => NameOrPatternId::Name(interners.strings.get_or_new(name.as_str())),
                 };
