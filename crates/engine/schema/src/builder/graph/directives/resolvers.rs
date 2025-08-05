@@ -65,6 +65,13 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
             match directive.ty {
                 ExtensionDirectiveType::FieldResolver => {
                     let subgraph_id = directive.subgraph_id;
+                    if !directive.subgraph_id.is_virtual() {
+                        return Err(
+                            "Field resolver extensions can only be used with virtual subgraphs (subgraphs without a URL)."
+                                .to_string()
+                                .into(),
+                        );
+                    }
                     if !field.exists_in_subgraph_ids.contains(&subgraph_id) {
                         field.exists_in_subgraph_ids.push(subgraph_id);
                     }
@@ -79,13 +86,23 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
                 }
                 ExtensionDirectiveType::Resolver => {
                     let subgraph_id = directive.subgraph_id;
+                    let virtual_subgraph_id = match directive.subgraph_id.as_virtual() {
+                        Some(id) => id,
+                        None => {
+                            return Err(
+                                "Resolver extensions can only be used with virtual subgraphs (subgraphs without a URL)."
+                                    .to_string()
+                                    .into(),
+                            );
+                        }
+                    };
                     if !field.exists_in_subgraph_ids.contains(&subgraph_id) {
                         field.exists_in_subgraph_ids.push(subgraph_id);
                     }
                     graph.resolver_definitions.push(ResolverDefinitionRecord::Extension(
                         ExtensionResolverDefinitionRecord {
                             directive_id: id,
-                            subgraph_id: directive.subgraph_id.as_virtual().unwrap(),
+                            subgraph_id: virtual_subgraph_id,
                             extension_id: directive.extension_id,
                             guest_batch: false,
                         },
@@ -103,10 +120,10 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
     // Ensure they're not mixed with field resolvers.
     for resolver in &builder.graph.resolver_definitions {
         if let Some(FieldResolverExtensionDefinitionRecord { directive_id }) = resolver.as_field_resolver_extension() {
-            let subgraph_id = builder.graph[*directive_id]
-                .subgraph_id
-                .as_virtual()
-                .expect("should have failed at directive creation");
+            let Some(subgraph_id) = builder.graph[*directive_id].subgraph_id.as_virtual() else {
+                // Already validated above that field resolvers are only on virtual subgraphs
+                continue;
+            };
             if let Some(id) = builder.virtual_subgraph_to_selection_set_resolver[usize::from(subgraph_id)] {
                 return Err(format!(
                     "Selection Set Resolver extension {} cannot be mixed with other resolvers in subgraph '{}', found {}",
