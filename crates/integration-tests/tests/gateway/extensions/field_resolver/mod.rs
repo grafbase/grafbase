@@ -2,6 +2,7 @@ mod alias;
 mod backwards_compatibility;
 mod errors;
 mod injection;
+mod url_subgraph_error;
 mod validation;
 
 use std::sync::Arc;

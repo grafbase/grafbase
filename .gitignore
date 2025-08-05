@@ -20,7 +20,6 @@ target
 .DS_Store
 .cargo/*
 !/.cargo/config.toml
-.zed
 
 # debug
 npm-debug.log*
@@ -60,6 +59,7 @@ yarn-error.log*
 /.zed
 
 .aider*
+.claude/
 
 ./extensions
 /crates/integration-tests/data/extensions/**/build
