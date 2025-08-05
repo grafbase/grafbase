@@ -31,7 +31,7 @@ fn basic() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -87,7 +87,7 @@ fn multiple_keys() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -156,7 +156,7 @@ fn nullable_lookup() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -209,7 +209,7 @@ fn arg_type_compatibility_inner_nullable() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -263,7 +263,7 @@ fn arg_with_same_name_and_extra_input_field_with_matching_type() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -316,7 +316,7 @@ fn arg_with_different_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -370,7 +370,7 @@ fn other_input_field() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -423,7 +423,7 @@ fn invalid_single() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
@@ -464,7 +464,7 @@ fn multiple_injections_oneof() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
@@ -505,7 +505,7 @@ fn extra_required_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 

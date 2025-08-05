@@ -4,7 +4,7 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
-    FieldSet, FieldSetRecord,
+    FieldSet, FieldSetRecord, StringId,
     generated::{
         ArgumentInjection, ArgumentInjectionId, FieldDefinition, FieldDefinitionId, ResolverDefinition,
         ResolverDefinitionId,
@@ -22,6 +22,9 @@ use walker::{Iter, Walk};
 ///   field_definition: FieldDefinition!
 ///   resolver: ResolverDefinition!
 ///   guest_batch: Boolean!
+///   # If the lookup result is nested within a key such as: `{"data": [<entities>]}` for gRPC typically which
+///   # doesn't support returning a list directly.
+///   namespace_key: String
 ///   injections: [ArgumentInjection!]!
 /// }
 /// ```
@@ -31,6 +34,7 @@ pub struct LookupResolverDefinitionRecord {
     pub field_definition_id: FieldDefinitionId,
     pub resolver_id: ResolverDefinitionId,
     pub guest_batch: bool,
+    pub namespace_key_id: Option<StringId>,
     pub injection_ids: IdRange<ArgumentInjectionId>,
 }
 
@@ -65,6 +69,9 @@ impl<'a> LookupResolverDefinition<'a> {
     pub fn resolver(&self) -> ResolverDefinition<'a> {
         self.resolver_id.walk(self.schema)
     }
+    pub fn namespace_key(&self) -> Option<&'a str> {
+        self.namespace_key_id.walk(self.schema)
+    }
     pub fn injections(&self) -> impl Iter<Item = ArgumentInjection<'a>> + 'a {
         self.as_ref().injection_ids.walk(self.schema)
     }
@@ -94,6 +101,7 @@ impl std::fmt::Debug for LookupResolverDefinition<'_> {
             .field("field_definition", &self.field_definition())
             .field("resolver", &self.resolver())
             .field("guest_batch", &self.guest_batch)
+            .field("namespace_key", &self.namespace_key())
             .field("injections", &self.injections())
             .finish()
     }

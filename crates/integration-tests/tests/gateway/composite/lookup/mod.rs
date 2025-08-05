@@ -17,7 +17,31 @@ use serde_json::json;
 
 #[derive(Clone)]
 struct EchoLookup {
-    pub batch: bool,
+    batch: bool,
+    namespace: Option<&'static str>,
+}
+
+impl EchoLookup {
+    pub fn single() -> Self {
+        Self {
+            batch: false,
+            namespace: None,
+        }
+    }
+
+    pub fn batch() -> Self {
+        Self {
+            batch: true,
+            namespace: None,
+        }
+    }
+
+    pub fn namespaced(self, namespace: &'static str) -> Self {
+        Self {
+            namespace: Some(namespace),
+            ..self
+        }
+    }
 }
 
 impl AnyExtension for EchoLookup {
@@ -49,8 +73,22 @@ impl ResolverTestExtension for EchoLookup {
         assert!(arguments.len() == 1);
         let (_, arg) = arguments.pop().unwrap();
         if self.batch {
+            if let Some(namespace) = self.namespace {
+                Response::data(Data::Json(
+                    serde_json::to_vec(&serde_json::json!({namespace: [{"args": arg}]}))
+                        .unwrap()
+                        .into(),
+                ))
+            } else {
+                Response::data(Data::Json(
+                    serde_json::to_vec(&serde_json::json!([{"args": arg}])).unwrap().into(),
+                ))
+            }
+        } else if let Some(namespace) = self.namespace {
             Response::data(Data::Json(
-                serde_json::to_vec(&serde_json::json!([{"args": arg}])).unwrap().into(),
+                serde_json::to_vec(&serde_json::json!({namespace: {"args": arg}}))
+                    .unwrap()
+                    .into(),
             ))
         } else {
             Response::data(Data::Json(

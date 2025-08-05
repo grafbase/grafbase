@@ -391,6 +391,9 @@ type LookupResolverDefinition @meta(module: "resolver/lookup") @indexed(id_size:
   field_definition: FieldDefinition!
   resolver: ResolverDefinition!
   guest_batch: Boolean!
+  # If the lookup result is nested within a key such as: `{"data": [<entities>]}` for gRPC typically which
+  # doesn't support returning a list directly.
+  namespace_key: String
   injections: [ArgumentInjection!]!
 }
 

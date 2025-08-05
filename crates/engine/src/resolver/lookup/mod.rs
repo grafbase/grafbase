@@ -1,6 +1,9 @@
+mod nested;
+
 use futures::{FutureExt as _, future::BoxFuture};
 use operation::{Operation, OperationContext};
-use schema::{LookupResolverDefinition, ResolverDefinitionVariant};
+use schema::{LookupResolverDefinition, ResolverDefinitionVariant, StringId};
+use walker::Walk as _;
 
 use crate::{
     Runtime,
@@ -12,9 +15,12 @@ use crate::{
 
 use super::{ResolverResult, extension::ExtensionResolver, graphql::GraphqlResolver};
 
+pub(in crate::resolver) use nested::*;
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct LookupResolver {
     guest_batch: bool,
+    namespace_key_id: Option<StringId>,
     pub proxied: LookupProxiedResolver,
 }
 
@@ -61,6 +67,7 @@ impl LookupResolver {
         }?;
         Ok(LookupResolver {
             guest_batch: definition.guest_batch,
+            namespace_key_id: definition.namespace_key_id,
             proxied,
         })
     }
@@ -75,11 +82,13 @@ impl LookupResolver {
     where
         'ctx: 'f,
     {
+        let namespace_key = self.namespace_key_id.walk(&ctx);
         if self.guest_batch {
             match &self.proxied {
                 LookupProxiedResolver::Graphql(_) => unimplemented!("GB-8942"),
                 LookupProxiedResolver::Extension(resolver) => {
-                    let fut = resolver.execute_guest_batch_lookup(ctx, plan, parent_objects, response_part);
+                    let fut =
+                        resolver.execute_guest_batch_lookup(ctx, plan, namespace_key, parent_objects, response_part);
                     async move {
                         let response_part = fut.await;
                         ResolverResult { response_part }
@@ -99,7 +108,8 @@ impl LookupResolver {
             match &self.proxied {
                 LookupProxiedResolver::Graphql(_) => unimplemented!("GB-8942"),
                 LookupProxiedResolver::Extension(resolver) => {
-                    let fut = resolver.execute_host_batch_lookup(ctx, plan, parent_objects, response_part);
+                    let fut =
+                        resolver.execute_host_batch_lookup(ctx, plan, namespace_key, parent_objects, response_part);
                     async move {
                         let response_part = fut.await;
                         ResolverResult { response_part }

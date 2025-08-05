@@ -6,10 +6,10 @@ use wrapping::Wrapping;
 use crate::{
     ArgumentInjectionId, ArgumentInjectionRecord, ArgumentValueInjection, DirectiveSiteId, EntityDefinitionId,
     FieldDefinitionId, FieldSetItemRecord, FieldSetRecord, Graph, InputValueDefinitionId, LookupResolverDefinitionId,
-    LookupResolverDefinitionRecord, SchemaFieldRecord, TypeRecord, ValueInjection,
+    LookupResolverDefinitionRecord, SchemaFieldRecord, StringId, SubgraphId, TypeRecord, ValueInjection,
     builder::{
         BoundSelectedObjectField, BoundSelectedValue, BoundSelectedValueEntry, DirectivesIngester, Error, GraphBuilder,
-        SelectedValueOrField,
+        PossibleCompositeEntityKeys, SelectedValueOrField,
         graph::{
             directives::{PossibleCompositeEntityKey, composite::injection::create_requirements_and_injection},
             selections::SelectionsBuilder,
@@ -41,34 +41,33 @@ pub(super) fn ingest<'sdl>(
     let graph = &ingester.builder.graph;
     let field_definition = &graph[field.id];
     let argument_ids = field_definition.argument_ids;
-    let Some(entity_id) = field_definition.ty_record.definition_id.as_entity() else {
-        return Err(("can only be used to return objects or interfaces.", field.span()).into());
-    };
 
-    let batch = match field_definition.ty_record.wrapping.list_wrappings().len() {
-        0 => false,
-        1 => true,
-        _ => return Err(("output wrapping cannot be multiple lists.", field.span()).into()),
-    };
+    let LookupEntity {
+        batch,
+        entity_id,
+        possible_keys,
+        namespace_key,
+    } = detect_lookup_entity(
+        ingester.builder,
+        &mut ingester.possible_composite_entity_keys,
+        subgraph_id,
+        field_definition.ty_record,
+    )
+    .map_err(|err| err.with_span_if_absent(field.span()))?;
 
-    let explicit_injections = detect_explicit_is_directive_injections(ingester.builder, field, batch, subgraph_name)?;
-    let Some(possible_keys) = ingester
-        .possible_composite_entity_keys
-        .get_mut(&(entity_id, subgraph_id))
-    else {
-        let ty = ingester.definitions.site_id_to_sdl[&entity_id.into()]
-            .as_type()
-            .unwrap();
-        return Err((
-            format!(
-                "Type {} doesn't define any keys with @key directive that may be used for @lookup",
-                ty.name()
-            ),
-            ty.span(),
-        )
-            .into());
-    };
-
+    let explicit_injections = detect_explicit_is_directive_injections(
+        ingester.builder,
+        field,
+        TypeRecord {
+            definition_id: entity_id.into(),
+            wrapping: if batch {
+                Wrapping::default().non_null().list_non_null()
+            } else {
+                Wrapping::default().non_null()
+            },
+        },
+        subgraph_name,
+    )?;
     let mut lookup_keys = Vec::new();
     for PossibleCompositeEntityKey { key, key_str, used_by } in possible_keys {
         let span = tracing::debug_span!("match_key", key = %key_str);
@@ -117,10 +116,99 @@ pub(super) fn ingest<'sdl>(
         field.id,
         entity_id,
         batch,
+        namespace_key,
         lookup_keys,
     );
 
     Ok(())
+}
+
+struct LookupEntity<'a, 'sdl> {
+    batch: bool,
+    entity_id: EntityDefinitionId,
+    possible_keys: &'a mut Vec<PossibleCompositeEntityKey<'sdl>>,
+    namespace_key: Option<StringId>,
+}
+
+fn detect_lookup_entity<'a, 'sdl>(
+    builder: &GraphBuilder<'_>,
+    possible_composite_entity_keys: &'a mut PossibleCompositeEntityKeys<'sdl>,
+    subgraph_id: SubgraphId,
+    output: TypeRecord,
+) -> Result<LookupEntity<'a, 'sdl>, Error> {
+    let Some(entity_id) = output.definition_id.as_entity() else {
+        return Err("can only be used to return objects or interfaces.".into());
+    };
+
+    if possible_composite_entity_keys.contains_key(&(entity_id, subgraph_id)) {
+        let batch = match output.wrapping.list_wrappings().len() {
+            0 => false,
+            1 => true,
+            _ => return Err(("output wrapping cannot be multiple lists.").into()),
+        };
+
+        return Ok(LookupEntity {
+            batch,
+            entity_id,
+            namespace_key: None,
+            // Looks really stupid, but for some reason Rust complains about
+            // possible_composite_entity_keys still being borrowed despite the change in the 2024
+            // edition.
+            possible_keys: possible_composite_entity_keys
+                .get_mut(&(entity_id, subgraph_id))
+                .expect("should be present since we checked it before"),
+        });
+    }
+
+    let output_sdl = builder.definitions.site_id_to_sdl[&entity_id.into()].as_type().unwrap();
+
+    let field_ids = match entity_id {
+        EntityDefinitionId::Object(id) => builder.graph[id].field_ids,
+        EntityDefinitionId::Interface(id) => builder.graph[id].field_ids,
+    };
+    let mut candidates = Vec::new();
+    for field in builder.graph[field_ids].iter() {
+        if let Some(entity_id) = field.ty_record.definition_id.as_entity() {
+            if possible_composite_entity_keys.contains_key(&(entity_id, subgraph_id)) {
+                candidates.push((field, entity_id));
+            }
+        }
+    }
+    if let Some((namespace_field, entity_id)) = candidates.pop() {
+        if let Some((other_field, _)) = candidates.pop() {
+            let message = format!(
+                "Type {} doesn't define any keys with @key directive that may be used for @lookup. Tried treating it as a namespace type, but it has multiple fields that may be used for @lookup: {} and {}",
+                output_sdl.name(),
+                builder.ctx[namespace_field.name_id],
+                builder.ctx[other_field.name_id]
+            );
+            return Err((message, output_sdl.span()).into());
+        }
+
+        let batch = match namespace_field.ty_record.wrapping.list_wrappings().len() {
+            0 => false,
+            1 => true,
+            _ => return Err(("output wrapping cannot be multiple lists.").into()),
+        };
+
+        return Ok(LookupEntity {
+            batch,
+            entity_id,
+            namespace_key: Some(namespace_field.name_id),
+            // Looks really stupid, but for some reason Rust complains about
+            // possible_composite_entity_keys still being borrowed despite the change in the 2024
+            // edition.
+            possible_keys: possible_composite_entity_keys
+                .get_mut(&(entity_id, subgraph_id))
+                .expect("should be present since we checked it before"),
+        });
+    }
+
+    let message = format!(
+        "Type {} doesn't define any keys with @key directive that may be used for @lookup. Tried treating it as a namespace type, but it didn't have any fields that may be used for @lookup.",
+        output_sdl.name()
+    );
+    Err((message, output_sdl.span()).into())
 }
 
 fn add_lookup_entity_resolvers(
@@ -128,7 +216,8 @@ fn add_lookup_entity_resolvers(
     selections: &SelectionsBuilder,
     lookup_field_id: FieldDefinitionId,
     output: EntityDefinitionId,
-    batch: bool,
+    guest_batch: bool,
+    namespace_key_id: Option<StringId>,
     lookup_keys: Vec<(FieldSetRecord, IdRange<ArgumentInjectionId>)>,
 ) {
     let field_ids = match output {
@@ -144,8 +233,9 @@ fn add_lookup_entity_resolvers(
                 key_record: key.clone(),
                 field_definition_id: lookup_field_id,
                 resolver_id,
-                guest_batch: batch,
+                guest_batch,
                 injection_ids,
+                namespace_key_id,
             });
             resolvers.push(graph.resolver_definitions.len().into());
             graph.resolver_definitions.push(lookup_resolver_id.into());
@@ -166,7 +256,7 @@ fn add_lookup_entity_resolvers(
 fn detect_explicit_is_directive_injections(
     builder: &mut GraphBuilder<'_>,
     field: sdl::FieldSdlDefinition<'_>,
-    batch: bool,
+    source: TypeRecord,
     subgraph_name: sdl::GraphName<'_>,
 ) -> Result<ExplicitKeyInjection, Error> {
     let field_definition = &builder.graph[field.id];
@@ -176,14 +266,6 @@ fn detect_explicit_is_directive_injections(
         BoundSelectedValue<InputValueDefinitionId>,
         sdl::Directive<'_>,
     )> = {
-        let source = TypeRecord {
-            definition_id: builder.graph[field.id].ty_record.definition_id,
-            wrapping: if batch {
-                Wrapping::default().non_null().list_non_null()
-            } else {
-                Wrapping::default().non_null()
-            },
-        };
         argument_ids
             .into_iter()
             .map(|argument_id| {

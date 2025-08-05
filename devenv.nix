@@ -11,6 +11,9 @@
     cargo-nextest
     cargo-insta
 
+    # TOML
+    taplo
+
     # Examples
     hurl
   ];

@@ -31,7 +31,7 @@ fn arg_with_same_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -89,7 +89,7 @@ fn multiple_keys() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -162,7 +162,7 @@ fn nullable_lookup() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -217,7 +217,7 @@ fn arg_type_compatibility_inner_nullable() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -273,7 +273,7 @@ fn arg_with_same_name_and_extra_input_field_with_matching_type() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -328,7 +328,7 @@ fn arg_with_different_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -384,7 +384,7 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -439,7 +439,7 @@ fn good_name_not_a_list() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .try_build()
             .await;
 
@@ -480,7 +480,7 @@ fn ambiguous_multiple_arg_matches() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .try_build()
             .await;
 
@@ -521,7 +521,7 @@ fn lookup_arg_in_a_list() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .try_build()
             .await;
 
@@ -563,7 +563,7 @@ fn ambiguous_multiple_oneof_field_matches() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .try_build()
             .await;
 
@@ -604,7 +604,7 @@ fn extra_required_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .try_build()
             .await;
 

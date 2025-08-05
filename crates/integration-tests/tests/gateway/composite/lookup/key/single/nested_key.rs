@@ -16,7 +16,7 @@ fn arg_with_same_name() {
 
 
                 type Query {
-                    productBatch(nested: NestedInput!): Product! @lookup @echo
+                    productLookup(nested: NestedInput!): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -35,7 +35,7 @@ fn arg_with_same_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -72,7 +72,7 @@ fn arg_type_compatibility_nullable() {
 
 
                 type Query {
-                    productBatch(nested: NestedInput): Product! @lookup @echo
+                    productLookup(nested: NestedInput): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -91,7 +91,7 @@ fn arg_type_compatibility_nullable() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -128,7 +128,7 @@ fn arg_type_compatibility_nested_nullable() {
 
 
                 type Query {
-                    productBatch(nested: NestedInput!): Product! @lookup @echo
+                    productLookup(nested: NestedInput!): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -147,7 +147,7 @@ fn arg_type_compatibility_nested_nullable() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -184,7 +184,7 @@ fn arg_type_compatibility_all_nullable() {
 
 
                 type Query {
-                    productBatch(nested: NestedInput): Product! @lookup @echo
+                    productLookup(nested: NestedInput): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -203,7 +203,7 @@ fn arg_type_compatibility_all_nullable() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -240,7 +240,7 @@ fn arg_with_same_name_and_extra_optional_arg_with_matching_type() {
 
 
                 type Query {
-                    productBatch(nested: NestedInput!, anything: NestedInput): Product! @lookup @echo
+                    productLookup(nested: NestedInput!, anything: NestedInput): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -260,7 +260,7 @@ fn arg_with_same_name_and_extra_optional_arg_with_matching_type() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -297,7 +297,7 @@ fn arg_with_different_name() {
 
 
                 type Query {
-                    productBatch(x: NestedInput!): Product! @lookup @echo
+                    productLookup(x: NestedInput!): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -316,7 +316,7 @@ fn arg_with_different_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -353,7 +353,7 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
 
 
                 type Query {
-                    productBatch(x: NestedInput!, nested: ID): Product! @lookup @echo
+                    productLookup(x: NestedInput!, nested: ID): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -373,7 +373,7 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -410,7 +410,7 @@ fn arg_with_default_value() {
 
 
                 type Query {
-                    productBatch(nested: NestedInput!, extra: Boolean! = true): Product! @lookup @echo
+                    productLookup(nested: NestedInput!, extra: Boolean! = true): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -430,7 +430,7 @@ fn arg_with_default_value() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -469,7 +469,7 @@ fn arg_with_default_value_coercion() {
 
 
                 type Query {
-                    productBatch(nested: NestedInput!, extra: [Boolean!]! = true): Product! @lookup @echo
+                    productLookup(nested: NestedInput!, extra: [Boolean!]! = true): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -489,7 +489,7 @@ fn arg_with_default_value_coercion() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -532,7 +532,7 @@ fn no_arguments() {
 
 
                 type Query {
-                    productBatch: Product! @lookup @echo
+                    productLookup: Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -551,14 +551,14 @@ fn no_arguments() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.productLookup, for directive @lookup no matching @key directive was found
         See schema at 36:3:
-        productBatch: Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        productLookup: Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -577,7 +577,7 @@ fn no_matching_argument() {
 
 
                 type Query {
-                    productBatch(somethign: Int): Product! @lookup @echo
+                    productLookup(somethign: Int): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -596,14 +596,14 @@ fn no_matching_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.productLookup, for directive @lookup no matching @key directive was found
         See schema at 36:3:
-        productBatch(somethign: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        productLookup(somethign: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -622,7 +622,7 @@ fn no_matching_nested_field() {
 
 
                 type Query {
-                    productBatch(nested: NestedInput!): Product! @lookup @echo
+                    productLookup(nested: NestedInput!): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -641,14 +641,14 @@ fn no_matching_nested_field() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.productLookup, for directive @lookup no matching @key directive was found
         See schema at 36:3:
-        productBatch(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        productLookup(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -667,7 +667,7 @@ fn arg_good_name_bad_type() {
 
 
                 type Query {
-                    productBatch(nested: Int): Product! @lookup @echo
+                    productLookup(nested: Int): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "nested { id }") {
@@ -682,14 +682,14 @@ fn arg_good_name_bad_type() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.productLookup, for directive @lookup no matching @key directive was found
         See schema at 36:3:
-        productBatch(nested: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        productLookup(nested: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -708,7 +708,7 @@ fn field_good_name_bad_type() {
 
 
                 type Query {
-                    productBatch(nested: NestedInput!): Product! @lookup @echo
+                    productLookup(nested: NestedInput!): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -727,14 +727,14 @@ fn field_good_name_bad_type() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.productLookup, for directive @lookup no matching @key directive was found
         See schema at 36:3:
-        productBatch(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        productLookup(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -753,7 +753,7 @@ fn good_name_but_a_list() {
 
 
                 type Query {
-                    productBatch(nested: [NestedInput!]): Product! @lookup @echo
+                    productLookup(nested: [NestedInput!]): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -772,14 +772,14 @@ fn good_name_but_a_list() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.productLookup, for directive @lookup no matching @key directive was found
         See schema at 36:3:
-        productBatch(nested: [NestedInput!]): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        productLookup(nested: [NestedInput!]): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -798,7 +798,7 @@ fn ambiguous_multiple_arg_matches() {
 
 
                 type Query {
-                    productBatch(a: NestedInput!, b: NestedInput!): Product! @lookup @echo
+                    productLookup(a: NestedInput!, b: NestedInput!): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -817,14 +817,14 @@ fn ambiguous_multiple_arg_matches() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.productLookup, for directive @lookup no matching @key directive was found
         See schema at 36:3:
-        productBatch(a: NestedInput!, b: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        productLookup(a: NestedInput!, b: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -843,7 +843,7 @@ fn ambiguous_multiple_field_matches() {
 
 
                 type Query {
-                    productBatch(a: NestedInput!): Product! @lookup @echo
+                    productLookup(a: NestedInput!): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -863,14 +863,14 @@ fn ambiguous_multiple_field_matches() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.productLookup, for directive @lookup no matching @key directive was found
         See schema at 36:3:
-        productBatch(a: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        productLookup(a: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -889,7 +889,7 @@ fn extra_required_argument() {
 
 
                 type Query {
-                    productBatch(nested: NestedInput!, required: Boolean!): Product! @lookup @echo
+                    productLookup(nested: NestedInput!, required: Boolean!): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -908,14 +908,14 @@ fn extra_required_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.productLookup, for directive @lookup no matching @key directive was found
         See schema at 36:3:
-        productBatch(nested: NestedInput!, required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        productLookup(nested: NestedInput!, required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -934,7 +934,7 @@ fn extra_required_field() {
 
 
                 type Query {
-                    productBatch(nested: NestedInput!): Product! @lookup @echo
+                    productLookup(nested: NestedInput!): Product! @lookup @echo
                 }
 
                 input NestedInput {
@@ -954,14 +954,14 @@ fn extra_required_field() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.productLookup, for directive @lookup no matching @key directive was found
         See schema at 36:3:
-        productBatch(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        productLookup(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }

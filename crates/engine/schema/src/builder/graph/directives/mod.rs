@@ -8,10 +8,12 @@ use crate::builder::{Error, extension::ingest_extension_schema_directives, sdl};
 use super::*;
 pub(in crate::builder) use common::finalize_inaccessible;
 
+pub(crate) type PossibleCompositeEntityKeys<'sdl> =
+    FxHashMap<(EntityDefinitionId, SubgraphId), Vec<PossibleCompositeEntityKey<'sdl>>>;
+
 pub(crate) struct DirectivesIngester<'a, 'sdl> {
     pub builder: &'a mut GraphBuilder<'sdl>,
-    pub possible_composite_entity_keys:
-        FxHashMap<(EntityDefinitionId, SubgraphId), Vec<PossibleCompositeEntityKey<'sdl>>>,
+    pub possible_composite_entity_keys: PossibleCompositeEntityKeys<'sdl>,
     pub for_operation_analytics_only: bool,
 }
 
