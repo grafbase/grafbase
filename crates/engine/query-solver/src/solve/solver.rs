@@ -41,7 +41,7 @@ pub(crate) struct Solver<'schema, 'op, 'q> {
     schema: &'schema Schema,
     operation: &'op Operation,
     query_solution_space: &'q QuerySolutionSpace<'schema>,
-    algorithm: steiner_tree::ShortestPathAlgorithm<&'q StableGraph<SpaceNode<'schema>, SpaceEdge>, SteinerGraph>,
+    algorithm: steiner_tree::GreedyFlacAlgorithm<&'q StableGraph<SpaceNode<'schema>, SpaceEdge>, SteinerGraph>,
     /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
     /// them.
     dispensable_requirements_metadata: DispensableRequirementsMetadata,
@@ -89,7 +89,7 @@ where
             SpaceEdge::Field | SpaceEdge::HasChildResolver | SpaceEdge::Requires => None,
         };
 
-        let algorithm = steiner_tree::ShortestPathAlgorithm::initialize(
+        let algorithm = steiner_tree::GreedyFlacAlgorithm::initialize(
             SteinerContext::build(
                 &query_solution_space.graph,
                 query_solution_space.root_node_ix,
@@ -124,9 +124,9 @@ where
     /// Solves the Steiner tree problem for the resolvers of our operation graph.
     pub fn execute(&mut self) -> crate::Result<()> {
         loop {
-            let has_terminals_left = self.algorithm.continue_steiner_tree_growth();
+            let flow = self.algorithm.continue_steiner_tree_growth();
             let added_new_terminals = self.cost_fixed_point_iteration()?;
-            if !has_terminals_left && !added_new_terminals {
+            if flow.is_break() && !added_new_terminals {
                 break;
             }
             tracing::trace!("Solver step:\n{}", self.to_pretty_dot_graph());

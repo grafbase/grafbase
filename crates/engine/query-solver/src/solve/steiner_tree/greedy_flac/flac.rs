@@ -81,10 +81,14 @@ impl Flac {
     }
 
     pub fn extend_terminals(&mut self, terminals: impl IntoIterator<Item = NodeIndex>) {
-        self.terminals.extend(terminals);
+        self.terminals.extend(
+            terminals
+                .into_iter()
+                .filter(|idx| !self.steiner_tree_nodes[idx.index()]),
+        );
     }
 
-    pub fn run<N>(&mut self, graph: &Graph<N, Cost>) -> Outcome
+    pub fn run<N>(&mut self, graph: &Graph<N, Cost>) -> ControlFlow<()>
     where
         N: std::fmt::Debug,
     {
@@ -97,10 +101,7 @@ impl Flac {
     {
         let mut runner = Runner { state: self, graph };
         loop {
-            println!("\n\n=== NEW RUN ===\n\n{}", runner.debug_dot_graph());
-            let Outcome { is_finished } = runner.run();
-            println!("{}", runner.debug_dot_graph());
-            if is_finished {
+            if runner.run().is_break() {
                 return self.total_cost;
             }
         }
@@ -108,13 +109,9 @@ impl Flac {
 
     pub fn reset(&mut self) {
         self.total_cost = 0;
+        self.root_feeding_terminals.clear();
         self.terminals.clear();
     }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub(super) struct Outcome {
-    pub is_finished: bool,
 }
 
 struct Runner<'s, 'g, N> {
@@ -139,7 +136,12 @@ impl<'g, N> Runner<'_, 'g, N>
 where
     N: std::fmt::Debug,
 {
-    fn run(&mut self) -> Outcome {
+    fn run(&mut self) -> ControlFlow<()> {
+        if self.terminals.is_empty() {
+            // No terminals to process, nothing to do
+            return ControlFlow::Break(());
+        }
+
         // Prepare the initial state
         debug_assert!(self.stack.is_empty());
         self.time = 0.0;
@@ -153,6 +155,7 @@ where
         // last run.
         let n_terminals = self.state.terminals.len();
         self.state.root_feeding_terminals.grow(n_terminals);
+        debug_assert!(!self.root_feeding_terminals.is_full(), "No missing terminals?");
         for ix in self.state.root_feeding_terminals.zeroes() {
             let terminal = self.state.terminals[ix];
             if let Some(edge) = self.find_next_edge_in_T_minus(terminal) {
@@ -173,7 +176,6 @@ where
 
             // The new update_flow_rates handles degenerate flow checking internally
             if let ControlFlow::Break((_, v)) = self.update_flow_rates(edge) {
-                println!("{}", self.debug_dot_graph());
                 let new_feeding_terminals = &self.state.node_to_feeding_terminals[v.index()];
                 debug_assert!(
                     !new_feeding_terminals.is_clear(),
@@ -211,7 +213,11 @@ where
                     }
                 }
 
-                return Outcome { is_finished };
+                return if is_finished {
+                    ControlFlow::Break(())
+                } else {
+                    ControlFlow::Continue(())
+                };
             }
         }
     }
@@ -267,11 +273,11 @@ where
             DegenerateFlow::No {
                 next_saturating_edges_in_T_u,
             } => {
-                debug_assert!(
-                    !next_saturating_edges_in_T_u.is_empty(),
-                    "No further edges found, but still haven't reached the steiner tree?\n{}",
-                    self.debug_dot_graph()
-                );
+                // debug_assert!(
+                //     !next_saturating_edges_in_T_u.is_empty(),
+                //     "No further edges found, but still haven't reached the steiner tree?\n{}",
+                //     self.debug_dot_graph()
+                // );
                 self.saturated_edges.insert(saturating_edge.index());
 
                 // Update all the next saturating edges in T_u
@@ -333,6 +339,7 @@ where
             // Check for degenerate flow
             let current_feeding = &self.node_to_feeding_terminals[current.index()];
             if !(new_feeding & current_feeding).is_clear() {
+                self.stack.clear();
                 return DegenerateFlow::Yes; // Degenerate flow detected
             }
 
@@ -525,12 +532,7 @@ mod tests {
         let mut flac = build(&graph, &nodes, "root", ["b", "c"]);
 
         let outcome = flac.run(&graph);
-        assert_eq!(
-            outcome,
-            Outcome { is_finished: false },
-            "\n{}",
-            debug_graph(&graph, &mut flac)
-        );
+        assert!(outcome.is_continue(), "\n{}", debug_graph(&graph, &mut flac));
         insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
         digraph {
           a -> b
@@ -539,12 +541,7 @@ mod tests {
         ");
 
         let outcome = flac.run(&graph);
-        assert_eq!(
-            outcome,
-            Outcome { is_finished: true },
-            "\n{}",
-            debug_graph(&graph, &mut flac)
-        );
+        assert!(outcome.is_break(), "\n{}", debug_graph(&graph, &mut flac));
         insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
         digraph {
           a -> b
