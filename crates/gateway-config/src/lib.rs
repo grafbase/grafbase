@@ -1531,13 +1531,15 @@ mod tests {
 
         let result: Config = toml::from_str(input).unwrap();
 
-        insta::assert_debug_snapshot!(&result.headers, @r###"
+        insta::assert_debug_snapshot!(&result.headers, @r#"
         [
             Forward(
                 HeaderForward {
                     name: Pattern(
-                        Regex(
-                            "^content-type-*",
+                        NamePattern(
+                            Regex(
+                                "^content-type-*",
+                            ),
                         ),
                     ),
                     default: None,
@@ -1545,7 +1547,7 @@ mod tests {
                 },
             ),
         ]
-        "###);
+        "#);
     }
 
     #[test]
