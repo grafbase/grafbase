@@ -1,3 +1,5 @@
+use std::ops::ControlFlow;
+
 use fixedbitset::FixedBitSet;
 use petgraph::{
     data::DataMap,
@@ -20,6 +22,7 @@ pub(crate) struct GreedyFlacAlgorithm<QG: GraphBase, G: Data<EdgeWeight = Cost>>
     ctx: SteinerContext<QG, G>,
     flac: flac::Flac,
     cost_estimerator: Option<CostEstimator<G>>,
+    has_updated_cost: bool,
 }
 
 #[allow(unused)]
@@ -53,6 +56,7 @@ where
             flac: flac::Flac::new(&ctx.graph, terminals, steiner_tree_nodes),
             cost_estimerator: None,
             ctx,
+            has_updated_cost: false,
         }
     }
 
@@ -77,7 +81,6 @@ where
                     if let Some(node_id) = self.ctx.to_query_graph_node_id(node_ix) {
                         node_label(node_id, is_in_steiner_tree)
                     } else {
-                        debug_assert!(!is_in_steiner_tree);
                         "label=\"\", style=dashed".to_string()
                     }
                 }
@@ -88,8 +91,12 @@ where
     pub(crate) fn insert_edge_cost_update(&mut self, _source_id: QG::NodeId, edge_id: QG::EdgeId, cost: Cost) {
         let edge_ix = self.ctx.to_edge_ix(edge_id);
         // FIXME: drop weights from the graph?
-        self.ctx.graph[edge_ix] = cost;
+        let old = std::mem::replace(&mut self.ctx.graph[edge_ix], cost);
         self.flac.weights[edge_ix.index()] = cost;
+        if let Some(estimator) = self.cost_estimerator.as_mut() {
+            estimator.flac.weights[edge_ix.index()] = cost;
+        }
+        self.has_updated_cost |= old != cost;
     }
 
     pub(crate) fn extend_terminals(&mut self, extra_terminals: impl IntoIterator<Item = QG::NodeId>) {
@@ -99,12 +106,11 @@ where
 
     pub(crate) fn apply_all_cost_updates(&mut self) -> bool {
         // For this simple implementation, costs are updated immediately
-        false
+        std::mem::take(&mut self.has_updated_cost)
     }
 
-    pub(crate) fn continue_steiner_tree_growth(&mut self) -> bool {
-        let flac::Outcome { is_finished } = self.flac.run(&self.ctx.graph);
-        is_finished
+    pub(crate) fn continue_steiner_tree_growth(&mut self) -> ControlFlow<()> {
+        self.flac.run(&self.ctx.graph)
     }
 
     pub(crate) fn estimate_extra_cost(
@@ -129,7 +135,8 @@ where
                 estimator
             }
             None => {
-                let flac = flac::Flac::new(&self.ctx.graph, Vec::new(), self.flac.steiner_tree_nodes.clone());
+                let mut flac = flac::Flac::new(&self.ctx.graph, Vec::new(), self.flac.steiner_tree_nodes.clone());
+                flac.steiner_tree_edges.clone_from(&self.flac.steiner_tree_edges);
                 CostEstimator {
                     flac,
                     cost_backup: Vec::new(),

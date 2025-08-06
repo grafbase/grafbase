@@ -1,0 +1,20 @@
+---
+source: crates/engine/query-solver/src/tests/derive.rs
+assertion_line: 92
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Comment.id\", style=dashed ]\n    2 [ label = \"Root#ext\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    3 [ label = \"products#ext\", shape=box, color=dodgerblue, style=dashed ]\n    4 [ label = \"comments#ext@derive\", shape=box, color=dodgerblue, style=dashed ]\n    5 [ label = \"id#ext@derive\", shape=box, color=dodgerblue, style=dashed ]\n    6 [ label=\"\", style=dashed]\n    0 -> 2 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 0 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+    1 [ label = "Comment.id", steiner=0 ]
+    2 [ label = "Root#ext", steiner=0 ]
+    3 [ label = "products#ext", steiner=0 ]
+    4 [ label = "comments#ext@derive", steiner=0 ]
+    5 [ label = "id#ext@derive", steiner=0 ]
+    6 [ label="", style=dashed]
+    0 -> 2 [ cost=1, steiner=0]
+    2 -> 3 [ cost=0, steiner=0]
+    3 -> 4 [ cost=0, steiner=0]
+    4 -> 5 [ cost=0, steiner=0]
+    5 -> 1 [ cost=0, steiner=0]
+    6 -> 0 [ cost=0, steiner=1]
+}
