@@ -157,7 +157,7 @@ impl<'de> Visitor<'de> for PartiallyCachedEntitiesSeed<'_, '_, '_, 'de> {
     type Value = ();
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("a non null entities list")
+        formatter.write_str("an non null entities list")
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>

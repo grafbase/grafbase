@@ -41,7 +41,7 @@ where
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_seq(self)
+        deserializer.deserialize_any(self)
     }
 }
 
@@ -53,7 +53,23 @@ where
     type Value = ();
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str("a non null entities list")
+        formatter.write_str("an entities list")
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.visit_none()
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.deserialize(serde_json::Value::Array(Vec::new()))
+            .expect("Deserializer never fails");
+        Ok(())
     }
 
     fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>

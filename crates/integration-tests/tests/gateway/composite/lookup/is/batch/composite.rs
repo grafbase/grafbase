@@ -33,7 +33,7 @@ fn basic() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -90,7 +90,7 @@ fn renames() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -147,7 +147,7 @@ fn arg_type_compatibility_nullable_list() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -204,7 +204,7 @@ fn arg_type_compatibility_inner_nullable() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -261,7 +261,7 @@ fn arg_type_compatibility_inner_and_list_nullable() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -318,7 +318,7 @@ fn arg_with_same_name_and_extra_optional_input_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -376,7 +376,7 @@ fn arg_with_same_name_and_extra_optional_input_field() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -433,7 +433,7 @@ fn different_input_field_types() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -491,7 +491,7 @@ fn field_with_default_value() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -550,7 +550,7 @@ fn field_with_default_value_coercion() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .build()
             .await;
 
@@ -610,7 +610,7 @@ fn cannot_inject_nullable_field_into_required() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .try_build()
             .await;
 
@@ -653,7 +653,7 @@ fn invalid_batch() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .try_build()
             .await;
 
@@ -696,7 +696,7 @@ fn extra_required_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .try_build()
             .await;
 
@@ -740,7 +740,7 @@ fn extra_required_field() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: true })
+            .with_extension(EchoLookup::batch())
             .try_build()
             .await;
 

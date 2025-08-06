@@ -1,5 +1,6 @@
 mod composite;
-mod nested;
+mod nested_key;
+mod nested_output;
 mod oneof;
 mod oneof_composite;
 
@@ -21,7 +22,7 @@ fn arg_with_same_name() {
 
 
                 type Query {
-                    productBatch(id: ID!): Product! @lookup @echo
+                    ProductLookup(id: ID!): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -32,7 +33,7 @@ fn arg_with_same_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -68,7 +69,7 @@ fn arg_type_compatibility_nullable() {
 
 
                 type Query {
-                    productBatch(id: ID): Product! @lookup @echo
+                    ProductLookup(id: ID): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -79,7 +80,7 @@ fn arg_type_compatibility_nullable() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -115,7 +116,7 @@ fn arg_with_same_name_and_extra_optional_arg_with_matching_type() {
 
 
                 type Query {
-                    productBatch(id: ID!, anything: ID): Product! @lookup @echo
+                    ProductLookup(id: ID!, anything: ID): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -126,7 +127,7 @@ fn arg_with_same_name_and_extra_optional_arg_with_matching_type() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -162,7 +163,7 @@ fn arg_with_different_name() {
 
 
                 type Query {
-                    productBatch(productId: ID!): Product! @lookup @echo
+                    ProductLookup(productId: ID!): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -173,7 +174,7 @@ fn arg_with_different_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -209,7 +210,7 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
 
 
                 type Query {
-                    productBatch(productId: ID!, id: Int): Product! @lookup @echo
+                    ProductLookup(productId: ID!, id: Int): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -220,7 +221,7 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -256,7 +257,7 @@ fn arg_with_default_value() {
 
 
                 type Query {
-                    productBatch(id: ID!, extra: Boolean! = true): Product! @lookup @echo
+                    ProductLookup(id: ID!, extra: Boolean! = true): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -267,7 +268,7 @@ fn arg_with_default_value() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -303,7 +304,7 @@ fn arg_with_default_value_coercion() {
 
 
                 type Query {
-                    productBatch(id: ID!, extra: [Boolean!]! = true): Product! @lookup @echo
+                    ProductLookup(id: ID!, extra: [Boolean!]! = true): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -314,7 +315,7 @@ fn arg_with_default_value_coercion() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .build()
             .await;
 
@@ -352,7 +353,7 @@ fn no_arguments() {
 
 
                 type Query {
-                    productBatch: Product! @lookup @echo
+                    ProductLookup: Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -363,14 +364,14 @@ fn no_arguments() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
         See schema at 29:3:
-        productBatch: Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        ProductLookup: Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -389,7 +390,7 @@ fn no_matching_argument() {
 
 
                 type Query {
-                    productBatch(somethign: Int): Product! @lookup @echo
+                    ProductLookup(somethign: Int): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -400,14 +401,14 @@ fn no_matching_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
         See schema at 29:3:
-        productBatch(somethign: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        ProductLookup(somethign: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -426,7 +427,7 @@ fn cannot_inject_nullable_into_required() {
 
 
                 type Query {
-                    productBatch(id: ID!): Product! @lookup @echo
+                    ProductLookup(id: ID!): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -437,14 +438,14 @@ fn cannot_inject_nullable_into_required() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
         See schema at 29:3:
-        productBatch(id: ID!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        ProductLookup(id: ID!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -463,7 +464,7 @@ fn good_name_bad_type() {
 
 
                 type Query {
-                    productBatch(id: Int): Product! @lookup @echo
+                    ProductLookup(id: Int): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -474,14 +475,14 @@ fn good_name_bad_type() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
         See schema at 29:3:
-        productBatch(id: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        ProductLookup(id: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -500,7 +501,7 @@ fn good_name_but_is_a_list() {
 
 
                 type Query {
-                    productBatch(id: ID!): [Product!] @lookup @echo
+                    ProductLookup(id: ID!): [Product!] @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -511,14 +512,14 @@ fn good_name_but_is_a_list() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
         See schema at 29:3:
-        productBatch(id: ID!): [Product!] @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        ProductLookup(id: ID!): [Product!] @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -537,7 +538,7 @@ fn ambiguous_multiple_matches() {
 
 
                 type Query {
-                    productBatch(a: ID!, b: ID!): Product! @lookup @echo
+                    ProductLookup(a: ID!, b: ID!): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -548,14 +549,14 @@ fn ambiguous_multiple_matches() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
         See schema at 29:3:
-        productBatch(a: ID!, b: ID!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        ProductLookup(a: ID!, b: ID!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }
@@ -574,7 +575,7 @@ fn extra_required_argument() {
 
 
                 type Query {
-                    productBatch(id: ID!, required: Boolean!): Product! @lookup @echo
+                    ProductLookup(id: ID!, required: Boolean!): Product! @lookup @echo
                 }
 
                 type Product @key(fields: "id") {
@@ -585,14 +586,14 @@ fn extra_required_argument() {
                 scalar JSON
                 "#,
             )
-            .with_extension(EchoLookup { batch: false })
+            .with_extension(EchoLookup::single())
             .try_build()
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
+        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
         See schema at 29:3:
-        productBatch(id: ID!, required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        ProductLookup(id: ID!, required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
         "#);
     })
 }

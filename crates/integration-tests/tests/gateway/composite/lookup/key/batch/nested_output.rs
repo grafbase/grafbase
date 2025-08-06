@@ -1,0 +1,275 @@
+use integration_tests::{gateway::Gateway, runtime};
+
+use super::super::super::{EchoLookup, gql_id};
+
+#[test]
+fn single_field() {
+    runtime().block_on(async {
+        let engine = Gateway::builder()
+            .with_subgraph(gql_id())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productLookup(id: [ID!]!): Namespace! @lookup @echo
+                }
+
+                type Namespace {
+                    product: [Product!]!
+                }
+
+                type Product @key(fields: "id") {
+                    id: ID!
+                    args: JSON
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup::batch().namespaced("product"))
+            .build()
+            .await;
+
+        let response = engine.post("query { products { args } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "products": [
+              {
+                "args": {
+                  "id": [
+                    "1"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+        "#);
+    })
+}
+
+#[test]
+fn other_unrelated_fields() {
+    runtime().block_on(async {
+        let engine = Gateway::builder()
+            .with_subgraph(gql_id())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productLookup(id: [ID!]!): Namespace! @lookup @echo
+                }
+
+                type Namespace {
+                    product: [Product!]!
+                    other: String
+                    anything: JSON
+                }
+
+                type Product @key(fields: "id") {
+                    id: ID!
+                    args: JSON
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup::batch().namespaced("product"))
+            .build()
+            .await;
+
+        let response = engine.post("query { products { args } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "products": [
+              {
+                "args": {
+                  "id": [
+                    "1"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+        "#);
+    })
+}
+
+#[test]
+fn invalid_namespace_key_at_runtime() {
+    runtime().block_on(async {
+        let engine = Gateway::builder()
+            .with_subgraph(gql_id())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productLookup(id: [ID!]!): Namespace! @lookup @echo
+                }
+
+                type Namespace {
+                    product: [Product!]!
+                }
+
+                type Product @key(fields: "id") {
+                    id: ID!
+                    args: JSON
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup::batch().namespaced("wrong key"))
+            .build()
+            .await;
+
+        let response = engine.post("query { products { args } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "products": [
+              {
+                "args": null
+              }
+            ]
+          },
+          "errors": [
+            {
+              "message": "Invalid response from subgraph",
+              "locations": [
+                {
+                  "line": 1,
+                  "column": 20
+                }
+              ],
+              "path": [
+                "products",
+                0,
+                "args"
+              ],
+              "extensions": {
+                "code": "SUBGRAPH_INVALID_RESPONSE_ERROR"
+              }
+            }
+          ]
+        }
+        "#);
+    })
+}
+
+#[test]
+fn nested_but_unknown_fields() {
+    runtime().block_on(async {
+        let result = Gateway::builder()
+            .with_subgraph(gql_id())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productLookup(id: [ID!]!): Namespace! @lookup @echo
+                }
+
+                type Namespace {
+                    other: String
+                    anything: JSON
+                }
+
+                type Product @key(fields: "id") {
+                    id: ID!
+                    args: JSON
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup::batch().namespaced("product"))
+            .try_build()
+            .await;
+
+        insta::assert_snapshot!(result.unwrap_err(), @r"
+        At site Query.productLookup, for directive @lookup Type Namespace doesn't define any keys with @key directive that may be used for @lookup. Tried treating it as a namespace type, but it didn't have any fields that may be used for @lookup.
+        See schema at 19:1:
+        type Namespace
+          @join__type(graph: EXT)
+        {
+          anything: JSON
+          other: String
+        }
+        ");
+    })
+}
+
+#[test]
+fn multiple_entities() {
+    runtime().block_on(async {
+        let result = Gateway::builder()
+            .with_subgraph(gql_id())
+            .with_subgraph_sdl(
+                "ext",
+                r#"
+                extend schema
+                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@shareable"])
+
+
+                type Query {
+                    productLookup(id: [ID!]!): Namespace! @lookup @echo
+                }
+
+                type Namespace {
+                    product: [Product!]!
+                    account: [Account!]!
+                }
+
+                type Product @key(fields: "id") {
+                    id: ID!
+                    args: JSON
+                }
+
+                type Account @key(fields: "id") {
+                    id: ID!
+                    args: JSON
+                }
+
+                scalar JSON
+                "#,
+            )
+            .with_extension(EchoLookup::batch().namespaced("product"))
+            .try_build()
+            .await;
+
+        insta::assert_snapshot!(result.unwrap_err(), @r"
+        At site Query.productLookup, for directive @lookup Type Namespace doesn't define any keys with @key directive that may be used for @lookup. Tried treating it as a namespace type, but it has multiple fields that may be used for @lookup: product and account
+        See schema at 19:1:
+        type Namespace
+          @join__type(graph: EXT)
+        {
+          account: [Account!]!
+          product: [Product!]!
+        }
+        ");
+    })
+}

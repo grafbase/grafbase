@@ -6,6 +6,7 @@ use crate::{
     Runtime,
     execution::ExecutionContext,
     prepare::Plan,
+    resolver::lookup::NestedSeed,
     response::{ParentObjects, ResponsePartBuilder},
 };
 
@@ -14,6 +15,7 @@ impl super::ExtensionResolver {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
+        namespace_key: Option<&'ctx str>,
         parent_objects: ParentObjects<'_>,
         response_part: ResponsePartBuilder<'ctx>,
     ) -> impl Future<Output = ResponsePartBuilder<'ctx>> + Send + 'f
@@ -59,9 +61,17 @@ impl super::ExtensionResolver {
                     data: Some(data),
                     mut errors,
                 } => {
-                    if let Err(Some(error)) =
-                        state.deserialize_data_with(&data, state.parent_list_seed(&parent_objects))
-                    {
+                    let result = match namespace_key {
+                        Some(key) => state.deserialize_data_with(
+                            &data,
+                            NestedSeed {
+                                key,
+                                seed: state.parent_list_seed(&parent_objects),
+                            },
+                        ),
+                        None => state.deserialize_data_with(&data, state.parent_list_seed(&parent_objects)),
+                    };
+                    if let Err(Some(error)) = result {
                         errors.push(error);
                         state.insert_errors(parent_objects.iter().next().unwrap(), errors);
                     } else {
@@ -81,6 +91,7 @@ impl super::ExtensionResolver {
         &'ctx self,
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
+        namespace_key: Option<&'ctx str>,
         parent_objects: ParentObjects<'_>,
         response_part: ResponsePartBuilder<'ctx>,
     ) -> impl Future<Output = ResponsePartBuilder<'ctx>> + Send + 'f
@@ -134,7 +145,17 @@ impl super::ExtensionResolver {
                         data: Some(data),
                         mut errors,
                     } => {
-                        if let Err(Some(error)) = state.deserialize_data_with(&data, state.parent_seed(parent_object)) {
+                        let result = match namespace_key {
+                            Some(key) => state.deserialize_data_with(
+                                &data,
+                                NestedSeed {
+                                    key,
+                                    seed: state.parent_seed(parent_object),
+                                },
+                            ),
+                            None => state.deserialize_data_with(&data, state.parent_seed(parent_object)),
+                        };
+                        if let Err(Some(error)) = result {
                             errors.push(error);
                             state.insert_errors(parent_object, errors);
                         } else {

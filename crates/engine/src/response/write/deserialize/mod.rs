@@ -15,6 +15,7 @@ use serde::de::DeserializeSeed;
 use crate::response::{GraphqlError, ResponseObjectRef};
 
 use self::r#enum::*;
+pub(crate) use key::*;
 use list::ListSeed;
 use scalar::*;
 pub(crate) use state::*;
