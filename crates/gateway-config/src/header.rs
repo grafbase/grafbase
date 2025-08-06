@@ -34,6 +34,12 @@ impl<'de> serde::Deserialize<'de> for NamePattern {
     }
 }
 
+impl From<Regex> for NamePattern {
+    fn from(regex: Regex) -> Self {
+        NamePattern(regex)
+    }
+}
+
 /// Defines a header rule, executed in order before anything else in the engine.
 #[derive(Deserialize, Debug, Clone)]
 #[serde(tag = "rule")]
