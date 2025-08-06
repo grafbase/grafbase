@@ -1,10 +1,5 @@
-{
-  pkgs,
-  lib,
-  config,
-  inputs,
-  ...
-}:
+
+{ pkgs, ... }:
 {
   packages = with pkgs; [
     rustup

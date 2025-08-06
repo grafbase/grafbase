@@ -6862,10 +6862,10 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "cynic-parser",
- "expect-test",
  "grafbase-workspace-hack",
  "graphql-parser",
  "indoc",
+ "insta",
 ]
 
 [[package]]
