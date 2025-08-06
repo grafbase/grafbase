@@ -4380,7 +4380,6 @@ dependencies = [
  "insta",
  "itertools 0.14.0",
  "pretty_assertions",
- "reqwest 0.12.22",
  "serde",
  "serde_json",
  "tokio",
