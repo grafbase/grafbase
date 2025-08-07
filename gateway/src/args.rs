@@ -15,7 +15,6 @@ pub(crate) trait Args {
 
     fn fetch_method(&self) -> anyhow::Result<GraphLoader>;
 
-
     fn config_path(&self) -> Option<&Path>;
 
     fn hot_reload(&self) -> bool;
@@ -31,7 +30,6 @@ pub(crate) trait Args {
     fn grafbase_access_token(&self) -> anyhow::Result<Option<AccessToken>> {
         AccessToken::from_env().map_err(anyhow::Error::msg)
     }
-
 }
 
 pub(crate) fn parse() -> impl Args {

@@ -82,7 +82,6 @@ impl super::Args for Args {
         self.hot_reload
     }
 
-
     fn log_style(&self) -> LogStyle {
         self.log_style.unwrap_or_else(|| {
             let log_level = self.log_level();

@@ -42,7 +42,6 @@ impl super::Args for Args {
         })
     }
 
-
     fn config_path(&self) -> Option<&Path> {
         Some(&self.config)
     }

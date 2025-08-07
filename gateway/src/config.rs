@@ -123,4 +123,3 @@ fn merge_headers(
 
     Ok(())
 }
-
