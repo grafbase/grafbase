@@ -39,6 +39,7 @@ use clap::Parser;
 use common::{
     consts::OUTPUT_LAYER_LOG_FILTER,
     environment::{Environment, PlatformData},
+    log::LogStyle,
 };
 use errors::CliError;
 use output::report;
@@ -88,10 +89,38 @@ fn try_main(args: Args) -> Result<(), CliError> {
 
     let logging_filter = filter.to_string();
 
-    tracing_subscriber::registry()
-        .with(output_layer)
-        .with(fmt::layer().with_filter(filter))
-        .init();
+    // Determine log style based on args or environment
+    let log_style = args.log_style.unwrap_or_else(|| {
+        let is_terminal = std::io::stdout().is_terminal();
+        if is_terminal && (logging_filter.contains("debug") || logging_filter.contains("trace")) {
+            LogStyle::Pretty
+        } else {
+            LogStyle::Text
+        }
+    });
+
+    let registry = tracing_subscriber::registry().with(output_layer);
+
+    match log_style {
+        LogStyle::Pretty => registry
+            .with(
+                fmt::layer()
+                    .pretty()
+                    .with_ansi(std::io::stdout().is_terminal())
+                    .with_target(false)
+                    .with_filter(filter),
+            )
+            .init(),
+        LogStyle::Text => registry
+            .with(
+                fmt::layer()
+                    .with_ansi(std::io::stdout().is_terminal())
+                    .with_target(false)
+                    .with_filter(filter),
+            )
+            .init(),
+        LogStyle::Json => registry.with(fmt::layer().json().with_filter(filter)).init(),
+    };
 
     let command = args.command;
 

@@ -36,6 +36,7 @@ pub(crate) use sub_command::SubCommand;
 pub(crate) use subgraph::{SubgraphCommand, SubgraphSubCommand};
 
 use crate::common::consts::TRACE_LOG_FILTER;
+use crate::common::log::LogStyle;
 use clap::Parser;
 use std::path::PathBuf;
 
@@ -73,6 +74,9 @@ pub struct Args {
     pub trace: u16,
     #[arg(long, hide = true)]
     pub custom_trace_filter: Option<String>,
+    /// Set the style of log output
+    #[arg(long)]
+    pub log_style: Option<LogStyle>,
     #[command(subcommand)]
     pub command: SubCommand,
     /// An optional replacement path for the home directory
