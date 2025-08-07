@@ -8,17 +8,22 @@ use crate::{
     FieldDefinitionId, FieldSetItemRecord, FieldSetRecord, Graph, InputValueDefinitionId, LookupResolverDefinitionId,
     LookupResolverDefinitionRecord, SchemaFieldRecord, StringId, SubgraphId, TypeRecord, ValueInjection,
     builder::{
-        BoundSelectedObjectField, BoundSelectedValue, BoundSelectedValueEntry, DirectivesIngester, Error, GraphBuilder,
-        PossibleCompositeEntityKeys, SelectedValueOrField,
+        BoundFieldValue, BoundSelectedObjectField, BoundSelectedValueEntry, BoundValue, DirectivesIngester, Error,
+        GraphBuilder, PossibleCompositeEntityKeys,
         graph::{
-            directives::{PossibleCompositeEntityKey, composite::injection::create_requirements_and_injection},
+            directives::{
+                PossibleCompositeEntityKey,
+                composite::injection::{
+                    create_requirements_and_injection_for_selected_value, prepend_requirements_and_injection_with_path,
+                },
+            },
             selections::SelectionsBuilder,
         },
         sdl,
     },
 };
 
-use super::injection::{prepend_requirements_and_injection_with_path, try_auto_detect_unique_injection};
+use super::injection::{create_requirements_and_injections, try_auto_detect_unique_injection};
 
 #[tracing::instrument(name = "ingest_composite_loop", fields(field = %field.to_site_string(ingester)), skip_all)]
 pub(super) fn ingest<'sdl>(
@@ -66,7 +71,10 @@ pub(super) fn ingest<'sdl>(
                 Wrapping::default().non_null()
             },
         },
-        subgraph_name,
+        SubgraphInfo {
+            id: subgraph_id,
+            name: subgraph_name,
+        },
     )?;
     let mut lookup_keys = Vec::new();
     for PossibleCompositeEntityKey { key, key_str, used_by } in possible_keys {
@@ -257,173 +265,153 @@ fn detect_explicit_is_directive_injections(
     builder: &mut GraphBuilder<'_>,
     field: sdl::FieldSdlDefinition<'_>,
     source: TypeRecord,
-    subgraph_name: sdl::GraphName<'_>,
+    subgraph: SubgraphInfo<'_>,
 ) -> Result<ExplicitKeyInjection, Error> {
     let field_definition = &builder.graph[field.id];
     let argument_ids = field_definition.argument_ids;
-    let is_directive_injections: Vec<(
-        InputValueDefinitionId,
-        BoundSelectedValue<InputValueDefinitionId>,
-        sdl::Directive<'_>,
-    )> = {
+    let injections = {
         argument_ids
             .into_iter()
             .map(|argument_id| {
                 let sdl_arg = builder.definitions.site_id_to_sdl[&DirectiveSiteId::from(argument_id)];
-                find_field_selection_map(
-                    builder,
-                    subgraph_name,
-                    source,
-                    field.id,
-                    argument_id,
-                    sdl_arg.directives(),
-                )
-                .map(|opt| {
+                find_field_selection_map(builder, subgraph, source, argument_id, sdl_arg.directives()).map(|opt| {
                     opt.map(|(field_selection_map, is_directive)| (argument_id, field_selection_map, is_directive))
                 })
             })
             .filter_map_ok(|x| x)
-            .collect::<Result<_, _>>()
+            .collect::<Result<Vec<_>, _>>()
     }?;
 
-    let has_one_of = is_directive_injections.iter().any(|(arg_id, _, _)| {
-        builder.graph[*arg_id]
-            .ty_record
-            .definition_id
-            .as_input_object()
-            .map(|id| builder.graph[id].is_one_of)
+    if injections.is_empty() {
+        return Ok(ExplicitKeyInjection::None);
+    }
+
+    // We need to split this case to generate a different candidate for each alternative, as each
+    // of them can match a different key.
+    if injections.len() == 1
+        && injections
+            .first()
+            .map(|(arg_id, value, _)| {
+                let is_one_of = builder.graph[*arg_id]
+                    .ty_record
+                    .definition_id
+                    .as_input_object()
+                    .map(|id| builder.graph[id].is_one_of)
+                    .unwrap_or_default();
+                matches!(value, BoundValue::Value(value) if value.alternatives.len() > 1 && is_one_of)
+            })
             .unwrap_or_default()
-    });
-
-    match is_directive_injections.len() {
-        0 => Ok(ExplicitKeyInjection::None),
-        1 if has_one_of => {
-            let Some((argument_id, field_selection_map, directive)) = is_directive_injections.into_iter().next() else {
-                unreachable!()
-            };
-            field_selection_map
-                .alternatives
-                .into_iter()
-                .map(|entry| {
-                    let BoundSelectedValueEntry::Object { path, object } = entry else {
-                        unreachable!()
-                    };
-                    if object.fields.len() != 1 {
-                        return Err((
-                            "With a @oneOf input object argument, only one field can be provided per alternative.",
-                            directive.arguments_span(),
-                        )
-                            .into());
-                    }
-                    let BoundSelectedObjectField { id, value } = object.fields.into_iter().next().unwrap();
-                    let result = match value {
-                        SelectedValueOrField::Value(value) => create_requirements_and_injection(builder, value)?,
-                        SelectedValueOrField::Field(definition_id) => {
-                            let field_id = builder.selections.insert_field(SchemaFieldRecord {
-                                definition_id,
-                                sorted_argument_ids: Default::default(),
-                            });
-                            (
-                                FieldSetRecord::from_iter([FieldSetItemRecord {
-                                    field_id,
-                                    subselection_record: Default::default(),
-                                }]),
-                                ValueInjection::Select {
-                                    field_id,
-                                    next: builder.selections.push_injection(ValueInjection::Identity),
-                                },
-                            )
-                        }
-                        SelectedValueOrField::DefaultValue(_) => unreachable!(),
-                    };
-                    let (requires, injection) =
-                        prepend_requirements_and_injection_with_path(builder, path.unwrap_or_default(), result);
-
-                    let value = builder
-                        .selections
-                        .push_argument_value_injection(ArgumentValueInjection::Value(injection));
-                    let mut arguments = vec![ArgumentInjectionRecord {
-                        definition_id: argument_id,
-                        value: ArgumentValueInjection::Nested {
-                            key: builder.graph[id].name_id,
-                            value,
-                        },
-                    }];
-                    for id in argument_ids {
-                        if id == argument_id {
-                            continue;
-                        }
-                        let arg = &builder.graph[id];
-                        if let Some(default_value_id) = arg.default_value_id {
-                            arguments.push(ArgumentInjectionRecord {
-                                definition_id: id,
-                                value: ArgumentValueInjection::Value(ValueInjection::DefaultValue(default_value_id)),
-                            });
-                        } else if arg.ty_record.wrapping.is_non_null() {
-                            return Err((
-                                format!(
-                                    "Argument '{}' is required but is not injected by any @is directive.",
-                                    builder.ctx[arg.name_id]
-                                ),
-                                field.span(),
-                            )
-                                .into());
-                        }
-                    }
-                    let range = builder.selections.push_argument_injections(arguments);
-                    Ok((requires, range))
-                })
-                .collect::<Result<Vec<_>, _>>()
-                .map(ExplicitKeyInjection::OneOf)
-        }
-        _ => {
-            if is_directive_injections.len() > 1 && has_one_of {
-                return Err((
-                    "With a @oneOf argument, only one @is directive is supported for @lookup.",
-                    field.span(),
-                )
-                    .into());
-            }
-
-            let mut field_set = FieldSetRecord::default();
-            let mut arguments = Vec::new();
-            for (argument_id, field_selection_map, _) in is_directive_injections {
-                let (requires, injection) = create_requirements_and_injection(builder, field_selection_map)?;
-                field_set = field_set.union(&requires);
-                arguments.push(ArgumentInjectionRecord {
-                    definition_id: argument_id,
-                    value: ArgumentValueInjection::Value(injection),
-                });
-            }
-            let present_ids = arguments.iter().map(|record| record.definition_id).collect::<Vec<_>>();
-            for id in argument_ids {
-                if present_ids.contains(&id) {
-                    continue;
-                }
-                let arg = &builder.graph[id];
-                if let Some(default_value_id) = arg.default_value_id {
-                    arguments.push(ArgumentInjectionRecord {
-                        definition_id: id,
-                        value: ArgumentValueInjection::Value(ValueInjection::DefaultValue(default_value_id)),
-                    });
-                } else if arg.ty_record.wrapping.is_non_null() {
+    {
+        let Some((argument_id, BoundValue::Value(value), directive)) = injections.into_iter().next() else {
+            unreachable!()
+        };
+        return value
+            .alternatives
+            .into_iter()
+            .map(|entry| {
+                let BoundSelectedValueEntry::Object { path, object } = entry else {
+                    unreachable!()
+                };
+                if object.fields.len() != 1 {
                     return Err((
-                        format!(
-                            "Argument '{}' is required but is not injected by any @is directive.",
-                            builder.ctx[arg.name_id]
-                        ),
-                        field.span(),
+                        "With a @oneOf input object argument, only one field can be provided per alternative.",
+                        directive.arguments_span(),
                     )
                         .into());
                 }
-            }
+                let BoundSelectedObjectField {
+                    id: oneof_field_id,
+                    value,
+                } = object.fields.into_iter().next().unwrap();
+                let result = match value {
+                    BoundFieldValue::Value(value) => {
+                        create_requirements_and_injection_for_selected_value(builder, value)?
+                    }
+                    BoundFieldValue::Field(definition_id) => {
+                        let field_id = builder.selections.insert_field(SchemaFieldRecord {
+                            definition_id,
+                            sorted_argument_ids: Default::default(),
+                        });
+                        let requires = FieldSetRecord::from_iter([FieldSetItemRecord {
+                            field_id,
+                            subselection_record: Default::default(),
+                        }]);
+                        let value = ValueInjection::Select {
+                            field_id,
+                            next: builder.selections.push_injection(ValueInjection::Identity),
+                        };
+                        (requires, value)
+                    }
+                    BoundFieldValue::DefaultValue(_) => unreachable!(),
+                };
+                let (requires, value) =
+                    prepend_requirements_and_injection_with_path(builder, path.unwrap_or_default(), result);
 
-            Ok(ExplicitKeyInjection::Exact(
-                field_set,
-                builder.selections.push_argument_injections(arguments),
-            ))
+                let nested = builder.selections.push_argument_injections([ArgumentInjectionRecord {
+                    definition_id: oneof_field_id,
+                    value: ArgumentValueInjection::Value(value),
+                }]);
+                let mut arguments = vec![ArgumentInjectionRecord {
+                    definition_id: argument_id,
+                    value: ArgumentValueInjection::InputObject(nested),
+                }];
+                for id in argument_ids {
+                    if id == argument_id {
+                        continue;
+                    }
+                    let arg = &builder.graph[id];
+                    if let Some(default_value_id) = arg.default_value_id {
+                        arguments.push(ArgumentInjectionRecord {
+                            definition_id: id,
+                            value: ArgumentValueInjection::Value(ValueInjection::DefaultValue(default_value_id)),
+                        });
+                    } else if arg.ty_record.wrapping.is_non_null() {
+                        return Err((
+                            format!(
+                                "Argument '{}' is required but is not injected by any @is directive.",
+                                builder.ctx[arg.name_id]
+                            ),
+                            field.span(),
+                        )
+                            .into());
+                    }
+                }
+                let range = builder.selections.push_argument_injections(arguments);
+                Ok((requires, range))
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map(ExplicitKeyInjection::OneOf);
+    }
+
+    let (field_set, mut arguments) =
+        create_requirements_and_injections(builder, injections.into_iter().map(|(a, v, _)| (a, v)))?;
+    let present_ids = arguments.iter().map(|record| record.definition_id).collect::<Vec<_>>();
+    for id in argument_ids {
+        if present_ids.contains(&id) {
+            continue;
+        }
+        let arg = &builder.graph[id];
+        if let Some(default_value_id) = arg.default_value_id {
+            arguments.push(ArgumentInjectionRecord {
+                definition_id: id,
+                value: ArgumentValueInjection::Value(ValueInjection::DefaultValue(default_value_id)),
+            });
+        } else if arg.ty_record.wrapping.is_non_null() {
+            return Err((
+                format!(
+                    "Argument '{}' is required but is not injected by any @is directive.",
+                    builder.ctx[arg.name_id]
+                ),
+                field.span(),
+            )
+                .into());
         }
     }
+
+    Ok(ExplicitKeyInjection::Exact(
+        field_set,
+        builder.selections.push_argument_injections(arguments),
+    ))
 }
 
 enum ExplicitKeyInjection {
@@ -434,12 +422,11 @@ enum ExplicitKeyInjection {
 
 fn find_field_selection_map<'d>(
     builder: &mut GraphBuilder<'_>,
-    subgraph_name: sdl::GraphName<'_>,
+    subgraph: SubgraphInfo<'_>,
     source: TypeRecord,
-    field_definition_id: FieldDefinitionId,
     argument_id: InputValueDefinitionId,
     directives: impl Iterator<Item = sdl::Directive<'d>>,
-) -> Result<Option<(BoundSelectedValue<InputValueDefinitionId>, sdl::Directive<'d>)>, Error> {
+) -> Result<Option<(BoundValue, sdl::Directive<'d>)>, Error> {
     let mut is_directives = directives
         .filter(|dir| dir.name() == "composite__is")
         .map(|dir| {
@@ -447,9 +434,9 @@ fn find_field_selection_map<'d>(
                 .map_err(|err| (format!("for associated @is directive: {err}"), dir.arguments_span()))
                 .map(|args| (dir, args))
         })
-        .filter_ok(|(_, args)| args.graph == subgraph_name);
+        .filter_ok(|(_, args)| args.graph == subgraph.name);
 
-    let Some((field_selection_map, is_directive)) = is_directives
+    let Some((bound_value, is_directive)) = is_directives
         .next()
         .transpose()?
         .map(
@@ -465,12 +452,7 @@ fn find_field_selection_map<'d>(
                     builder.ctx[builder.graph[argument_id].name_id]
                 );
                 builder
-                    .parse_field_selection_map_for_argument(
-                        source,
-                        field_definition_id,
-                        argument_id,
-                        field_selection_map,
-                    )
+                    .parse_field_selection_map_for_argument(source, subgraph.id, argument_id, field_selection_map)
                     .map(|field_selection_map| (field_selection_map, is_directive))
                     .map_err(|err| {
                         (
@@ -493,5 +475,11 @@ fn find_field_selection_map<'d>(
             .into());
     }
 
-    Ok(Some((field_selection_map, is_directive)))
+    Ok(Some((bound_value, is_directive)))
+}
+
+#[derive(Clone, Copy)]
+struct SubgraphInfo<'sdl> {
+    id: SubgraphId,
+    name: sdl::GraphName<'sdl>,
 }

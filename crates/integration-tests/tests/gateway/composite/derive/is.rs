@@ -352,7 +352,7 @@ fn inexistent_target_field() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Product.user, for directive @composite__derive: for associated @is directive: Field 'non_existent_field' does not exist on Product.user
+        At site Product.user, for directive @composite__derive: for associated @is directive: Product.user does not have a field named 'non_existent_field' or was present twice in the FieldSelectionMap
         See schema at 24:60:
         (graph: EXT, field: "{ non_existent_field: id }")
         "#);

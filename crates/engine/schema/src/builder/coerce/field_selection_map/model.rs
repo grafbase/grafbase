@@ -1,4 +1,27 @@
-use crate::{FieldDefinitionId, SchemaInputValueId};
+use crate::{FieldDefinitionId, InputValueDefinitionId, SchemaInputValueId};
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum BoundValue {
+    InputObject(BoundInputObject),
+    Value(BoundSelectedValue<InputValueDefinitionId>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BoundInputObject {
+    pub input_fields: Vec<BoundInputField>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BoundInputField {
+    pub id: InputValueDefinitionId,
+    pub value: BoundInputFieldValue,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum BoundInputFieldValue {
+    InputObject(BoundInputObject),
+    Value(BoundFieldValue<InputValueDefinitionId>),
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BoundSelectedValue<Id> {
@@ -66,19 +89,19 @@ pub(crate) struct BoundSelectedObjectValue<Id> {
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct BoundSelectedObjectField<Id> {
     pub id: Id,
-    pub value: SelectedValueOrField<Id>,
+    pub value: BoundFieldValue<Id>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum SelectedValueOrField<Id> {
+pub(crate) enum BoundFieldValue<Id> {
     Value(BoundSelectedValue<Id>),
     Field(FieldDefinitionId),
     DefaultValue(SchemaInputValueId),
 }
 
-impl<Id> SelectedValueOrField<Id> {
+impl<Id> BoundFieldValue<Id> {
     pub fn into_value(self) -> Option<BoundSelectedValue<Id>> {
-        if let SelectedValueOrField::Value(value) = self {
+        if let BoundFieldValue::Value(value) = self {
             Some(value)
         } else {
             None

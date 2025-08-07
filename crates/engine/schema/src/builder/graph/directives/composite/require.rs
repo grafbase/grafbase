@@ -3,10 +3,9 @@ use itertools::Itertools as _;
 use wrapping::Wrapping;
 
 use crate::{
-    ArgumentInjectionRecord, ArgumentValueInjection, DirectiveSiteId, FieldRequiresRecord, ResolverDefinitionRecord,
-    SubgraphId, TypeRecord,
+    DirectiveSiteId, FieldRequiresRecord, ResolverDefinitionRecord, SubgraphId, TypeRecord,
     builder::{
-        DirectivesIngester, Error, graph::directives::composite::injection::create_requirements_and_injection, sdl,
+        DirectivesIngester, Error, graph::directives::composite::injection::create_requirements_and_injections, sdl,
     },
 };
 
@@ -51,43 +50,80 @@ pub(super) fn ingest_field<'sdl>(
         .chunk_by(|(subgraph_id, _, _, _)| *subgraph_id)
         .into_iter()
     {
-        let (_, arg_id, field_selection_map, directive) = directives.next().unwrap();
-        // All @require must be consistent
-        let batch = field_selection_map.trim_start().starts_with('[');
-        let source = if batch {
-            TypeRecord {
-                definition_id: parent_entity_id.into(),
-                wrapping: Wrapping::default().non_null().list_non_null(),
+        let (_, first_arg_id, first_field_selection_map, directive) = directives.next().unwrap();
+        // All @require must be consistent. Requires a bit of effort to detect it, so we just try
+        // for now.
+        let single_source = TypeRecord {
+            definition_id: parent_entity_id.into(),
+            wrapping: Wrapping::default().non_null(),
+        };
+        let batch_source = TypeRecord {
+            definition_id: parent_entity_id.into(),
+            wrapping: Wrapping::default().non_null().list_non_null(),
+        };
+
+        let (source, first_value) = if first_field_selection_map.contains('[') {
+            // Probably batch
+            match ingester.parse_field_selection_map_for_argument(
+                batch_source,
+                subgraph_id,
+                first_arg_id,
+                first_field_selection_map,
+            ) {
+                Ok(field_selection_map) => (batch_source, field_selection_map),
+                Err(batch_err) => {
+                    match ingester.parse_field_selection_map_for_argument(
+                        single_source,
+                        subgraph_id,
+                        first_arg_id,
+                        first_field_selection_map,
+                    ) {
+                        Ok(field_selection_map) => (single_source, field_selection_map),
+                        Err(single_err) => {
+                            let message = format!(
+                                "Could not infer whether to batch requirements or not.\nBatch error: {batch_err}\nSingle error: {single_err}"
+                            );
+                            return Err((message, directive.arguments_span()).into());
+                        }
+                    }
+                }
             }
         } else {
-            TypeRecord {
-                definition_id: parent_entity_id.into(),
-                wrapping: Wrapping::default().non_null(),
+            match ingester.parse_field_selection_map_for_argument(
+                single_source,
+                subgraph_id,
+                first_arg_id,
+                first_field_selection_map,
+            ) {
+                Ok(field_selection_map) => (single_source, field_selection_map),
+                Err(single_err) => {
+                    match ingester.parse_field_selection_map_for_argument(
+                        batch_source,
+                        subgraph_id,
+                        first_arg_id,
+                        first_field_selection_map,
+                    ) {
+                        Ok(field_selection_map) => (batch_source, field_selection_map),
+                        Err(batch_err) => {
+                            let message = format!(
+                                "Could not infer whether to batch requirements or not.\nBatch error: {batch_err}\nSingle error: {single_err}"
+                            );
+                            return Err((message, directive.arguments_span()).into());
+                        }
+                    }
+                }
             }
         };
-        let field_selection_map = ingester
-            .parse_field_selection_map_for_argument(source, def.id, arg_id, field_selection_map)
-            .map_err(|err| (err, directive.arguments_span()))?;
-
-        let (mut requires, value_injection) = create_requirements_and_injection(ingester.builder, field_selection_map)?;
-        let mut injections = vec![ArgumentInjectionRecord {
-            definition_id: arg_id,
-            value: ArgumentValueInjection::Value(value_injection),
-        }];
-
+        let mut injections = vec![(first_arg_id, first_value)];
         for (_, arg_id, field_selection_map, directive) in directives {
-            let field_selection_map = ingester
-                .parse_field_selection_map_for_argument(source, def.id, arg_id, field_selection_map)
+            let value = ingester
+                .parse_field_selection_map_for_argument(source, subgraph_id, arg_id, field_selection_map)
                 .map_err(|err| (err, directive.arguments_span()))?;
-            let (arg_requires, value_injection) =
-                create_requirements_and_injection(ingester.builder, field_selection_map)?;
-            requires = requires.union(&arg_requires);
-            injections.push(ArgumentInjectionRecord {
-                definition_id: arg_id,
-                value: ArgumentValueInjection::Value(value_injection),
-            });
+            injections.push((arg_id, value));
         }
-        let injection_ids = ingester.builder.selections.push_argument_injections(injections);
+
+        let (requires, arguments) = create_requirements_and_injections(ingester.builder, injections)?;
+        let injection_ids = ingester.builder.selections.push_argument_injections(arguments);
 
         if let Some(field_requires) = ingester.builder.graph[def.id]
             .requires_records
@@ -113,7 +149,7 @@ pub(super) fn ingest_field<'sdl>(
                 continue;
             };
             if SubgraphId::from(record.subgraph_id) == subgraph_id {
-                record.guest_batch = batch;
+                record.guest_batch = source.wrapping.is_list();
             }
         }
     }

@@ -1,17 +1,24 @@
 use wrapping::Wrapping;
 
 use crate::{
-    EntityDefinitionId, FieldDefinitionId, Graph, InputObjectDefinitionId, InputValueDefinitionId, SchemaInputValueId,
-    StringId, SubgraphId, TypeDefinitionId, builder::GraphBuilder,
+    EntityDefinitionId, FieldDefinitionId, Graph, InputValueDefinitionId, InputValueParentDefinitionId,
+    SchemaInputValueId, StringId, SubgraphId, TypeDefinitionId, builder::GraphBuilder,
 };
 
-pub(super) trait Target: Copy {
+/// The wrapping is separated from the Target because we remove it when binding lists
+pub(super) trait TargetField: Copy {
     type Id: Copy + Eq;
     fn id(self) -> Self::Id;
+    fn id_display<'g>(id: Self::Id, ctx: &'g GraphBuilder<'_>) -> &'g str;
     fn display(self, ctx: &GraphBuilder<'_>) -> String;
     fn type_definition(self, graph: &Graph) -> TypeDefinitionId;
-    fn fields(self, ctx: &GraphBuilder<'_>) -> Vec<(StringId, (Self, Wrapping))>;
+    fn as_object(self, ctx: &GraphBuilder<'_>) -> Option<ObjectLikeTarget<Self>>;
     fn on_missing_field(self, ctx: &GraphBuilder<'_>) -> OnMissingField;
+}
+
+pub(super) struct ObjectLikeTarget<T> {
+    pub is_one_of: bool,
+    pub target_fields: Vec<(StringId, (T, Wrapping))>,
 }
 
 pub(super) enum OnMissingField {
@@ -20,47 +27,34 @@ pub(super) enum OnMissingField {
     Providable,
 }
 
-#[derive(Clone, Copy)]
-pub(super) enum InputTarget {
-    InputField {
-        input_object_id: InputObjectDefinitionId,
-        input_field_id: InputValueDefinitionId,
-    },
-    Argument {
-        field_id: FieldDefinitionId,
-        argument_id: InputValueDefinitionId,
-    },
-}
-
-impl Target for InputTarget {
+impl TargetField for (SubgraphId, InputValueDefinitionId) {
     type Id = InputValueDefinitionId;
 
     fn id(self) -> Self::Id {
-        match self {
-            InputTarget::InputField { input_field_id, .. } => input_field_id,
-            InputTarget::Argument { argument_id, .. } => argument_id,
-        }
+        self.1
+    }
+
+    fn id_display<'g>(id: Self::Id, ctx: &'g GraphBuilder<'_>) -> &'g str {
+        &ctx[ctx.graph[id].name_id]
     }
 
     fn display(self, ctx: &GraphBuilder<'_>) -> String {
-        match self {
-            InputTarget::InputField {
-                input_object_id,
-                input_field_id,
-            } => {
-                let input_object = &ctx.graph[input_object_id];
-                let field = &ctx.graph[input_field_id];
-                format!("{}.{}", &ctx[input_object.name_id], &ctx[field.name_id])
-            }
-            InputTarget::Argument { field_id, argument_id } => {
+        let id = self.id();
+        match ctx.graph[id].parent_id {
+            InputValueParentDefinitionId::Field(field_id) => {
                 let field = &ctx.graph[field_id];
-                let argument = &ctx.graph[argument_id];
+                let argument = &ctx.graph[id];
                 format!(
                     "{}.{}.{}",
                     ctx[ctx.definition_name_id(field.parent_entity_id.into())],
                     ctx[field.name_id],
                     ctx[argument.name_id]
                 )
+            }
+            InputValueParentDefinitionId::InputObject(input_object_id) => {
+                let input_object = &ctx.graph[input_object_id];
+                let input_field = &ctx.graph[id];
+                format!("{}.{}", &ctx[input_object.name_id], &ctx[input_field.name_id])
             }
         }
     }
@@ -69,30 +63,30 @@ impl Target for InputTarget {
         graph[self.id()].ty_record.definition_id
     }
 
-    fn fields(self, ctx: &GraphBuilder<'_>) -> Vec<(StringId, (Self, Wrapping))> {
-        ctx.graph[self.id()]
-            .ty_record
-            .definition_id
-            .as_input_object()
-            .map(|input_object_id| {
-                ctx.graph[input_object_id]
-                    .input_field_ids
-                    .into_iter()
-                    .map(|id| {
-                        (
-                            ctx.graph[id].name_id,
-                            (
-                                InputTarget::InputField {
-                                    input_object_id,
-                                    input_field_id: id,
-                                },
-                                ctx.graph[id].ty_record.wrapping,
-                            ),
-                        )
-                    })
-                    .collect::<Vec<_>>()
+    fn as_object(self, ctx: &GraphBuilder<'_>) -> Option<ObjectLikeTarget<Self>> {
+        let (subgraph_id, input_value_id) = self;
+        let input_object_id = ctx.graph[input_value_id].ty_record.definition_id.as_input_object()?;
+
+        let fields = ctx.graph[input_object_id]
+            .input_field_ids
+            .into_iter()
+            .filter(|id| {
+                ctx.graph[*id]
+                    .is_internal_in_id
+                    .is_none_or(|internal_id| internal_id == subgraph_id)
             })
-            .unwrap_or_default()
+            .map(|id| {
+                (
+                    ctx.graph[id].name_id,
+                    ((subgraph_id, id), ctx.graph[id].ty_record.wrapping),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        Some(ObjectLikeTarget {
+            is_one_of: ctx.graph[input_object_id].is_one_of,
+            target_fields: fields,
+        })
     }
 
     fn on_missing_field(self, ctx: &GraphBuilder<'_>) -> OnMissingField {
@@ -103,11 +97,15 @@ impl Target for InputTarget {
     }
 }
 
-impl Target for (SubgraphId, FieldDefinitionId) {
+impl TargetField for (SubgraphId, FieldDefinitionId) {
     type Id = FieldDefinitionId;
 
     fn id(self) -> Self::Id {
         self.1
+    }
+
+    fn id_display<'g>(id: Self::Id, ctx: &'g GraphBuilder<'_>) -> &'g str {
+        &ctx[ctx.graph[id].name_id]
     }
 
     fn display(self, ctx: &GraphBuilder<'_>) -> String {
@@ -123,29 +121,29 @@ impl Target for (SubgraphId, FieldDefinitionId) {
         graph[self.id()].ty_record.definition_id
     }
 
-    fn fields(self, ctx: &GraphBuilder<'_>) -> Vec<(StringId, (Self, Wrapping))> {
+    fn as_object(self, ctx: &GraphBuilder<'_>) -> Option<ObjectLikeTarget<Self>> {
         let (subgraph_id, field_id) = self;
-        ctx.graph[field_id]
-            .ty_record
-            .definition_id
-            .as_entity()
-            .map(|entity_id| {
-                let field_ids = match entity_id {
-                    EntityDefinitionId::Interface(id) => ctx.graph[id].field_ids,
-                    EntityDefinitionId::Object(id) => ctx.graph[id].field_ids,
-                };
-                field_ids
-                    .into_iter()
-                    .filter(|id| ctx.graph[*id].exists_in_subgraph_ids.contains(&subgraph_id))
-                    .map(|id| {
-                        (
-                            ctx.graph[id].name_id,
-                            ((subgraph_id, id), ctx.graph[id].ty_record.wrapping),
-                        )
-                    })
-                    .collect::<Vec<_>>()
+        let entity_id = ctx.graph[field_id].ty_record.definition_id.as_entity()?;
+
+        let field_ids = match entity_id {
+            EntityDefinitionId::Interface(id) => ctx.graph[id].field_ids,
+            EntityDefinitionId::Object(id) => ctx.graph[id].field_ids,
+        };
+        let fields = field_ids
+            .into_iter()
+            .filter(|id| ctx.graph[*id].exists_in_subgraph_ids.contains(&subgraph_id))
+            .map(|id| {
+                (
+                    ctx.graph[id].name_id,
+                    ((subgraph_id, id), ctx.graph[id].ty_record.wrapping),
+                )
             })
-            .unwrap_or_default()
+            .collect::<Vec<_>>();
+
+        Some(ObjectLikeTarget {
+            is_one_of: false,
+            target_fields: fields,
+        })
     }
 
     fn on_missing_field(self, ctx: &GraphBuilder<'_>) -> OnMissingField {

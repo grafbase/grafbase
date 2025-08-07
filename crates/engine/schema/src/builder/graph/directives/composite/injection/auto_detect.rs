@@ -95,15 +95,13 @@ fn try_auto_detect_all_possible_injections(
                     &key_fields[0],
                     input_object.input_field_ids,
                 )? {
-                    let value = builder
-                        .selections
-                        .push_argument_value_injection(ArgumentValueInjection::Value(value));
+                    let nested = builder.selections.push_argument_injections([ArgumentInjectionRecord {
+                        definition_id: input_field_id,
+                        value: ArgumentValueInjection::Value(value),
+                    }]);
                     let range = builder.selections.push_argument_injections([ArgumentInjectionRecord {
                         definition_id: argument_id,
-                        value: ArgumentValueInjection::Nested {
-                            key: builder.graph[input_field_id].name_id,
-                            value,
-                        },
+                        value: ArgumentValueInjection::InputObject(nested),
                     }]);
                     candidates.push(range)
                 } else {
@@ -122,19 +120,19 @@ fn try_auto_detect_all_possible_injections(
                     ) {
                         continue;
                     }
-                    let name_id = oneof_field.name_id;
                     if let Some(value) = try_auto_detect_input_object_injections(
                         builder,
                         false,
                         key_fields,
                         builder.graph[nested_input_object_id].input_field_ids,
                     )? {
-                        let value = builder
-                            .selections
-                            .push_argument_value_injection(ArgumentValueInjection::Value(value));
+                        let nested = builder.selections.push_argument_injections([ArgumentInjectionRecord {
+                            definition_id: oneof_field_id,
+                            value: ArgumentValueInjection::Value(value),
+                        }]);
                         let range = builder.selections.push_argument_injections([ArgumentInjectionRecord {
                             definition_id: argument_id,
-                            value: ArgumentValueInjection::Nested { key: name_id, value },
+                            value: ArgumentValueInjection::InputObject(nested),
                         }]);
                         candidates.push(range)
                     } else {
