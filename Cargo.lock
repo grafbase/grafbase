@@ -3726,7 +3726,6 @@ dependencies = [
  "semver 1.0.26",
  "serde",
  "serde-dynamic-string",
- "serde_regex",
  "size",
  "strum 0.27.2",
  "temp-env",

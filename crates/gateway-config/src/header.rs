@@ -1,16 +1,43 @@
+use std::borrow::Cow;
+
 use ascii::AsciiString;
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 use serde::Deserialize;
 
 /// A header name can be provided either as a regex or as a static name.
 #[derive(Deserialize, Debug, Clone)]
 pub enum NameOrPattern {
     /// A regex pattern matching multiple headers.
-    #[serde(with = "serde_regex", rename = "pattern")]
-    Pattern(Regex),
+    #[serde(rename = "pattern")]
+    Pattern(NamePattern),
     /// A static single name.
     #[serde(rename = "name")]
     Name(AsciiString),
+}
+
+#[derive(Debug, Clone)]
+pub struct NamePattern(pub Regex);
+
+impl<'de> serde::Deserialize<'de> for NamePattern {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let pattern = Cow::<'de, str>::deserialize(deserializer)?;
+        Ok(NamePattern(
+            RegexBuilder::new(&pattern)
+                // Header names are case insensitive
+                .case_insensitive(true)
+                .build()
+                .map_err(serde::de::Error::custom)?,
+        ))
+    }
+}
+
+impl From<Regex> for NamePattern {
+    fn from(regex: Regex) -> Self {
+        NamePattern(regex)
+    }
 }
 
 /// Defines a header rule, executed in order before anything else in the engine.

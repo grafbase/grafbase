@@ -39,7 +39,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
     println!("{} the MCP server...\n", "Preparing".yellow().bold());
     let mut config = Config::default();
     config.headers.push(HeaderRule::Forward(HeaderForward {
-        name: NameOrPattern::Pattern(Regex::new(r".*").unwrap()),
+        name: NameOrPattern::Pattern(Regex::new(r".*").unwrap().into()),
         default: None,
         rename: None,
     }));

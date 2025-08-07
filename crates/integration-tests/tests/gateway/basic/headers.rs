@@ -584,6 +584,67 @@ fn test_regex_header_forwarding_then_delete() {
 }
 
 #[test]
+fn test_pattern_is_case_insensitive() {
+    let response = runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph(EchoSchema::default())
+            .with_toml_config(
+                r###"
+                [[headers]]
+                rule = "forward"
+                pattern = "^X-Test*"
+
+                [[headers]]
+                rule = "forward"
+                pattern = "(?i)^X-Second*"
+                "###,
+            )
+            .build()
+            .await;
+
+        engine
+            .post("query { headers { name value }}")
+            .header("X-Test", "boom")
+            .header("X-Second", "boom2")
+            .header("X-Other", "boom3")
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "headers": [
+          {
+            "name": "accept",
+            "value": "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip, br, zstd, deflate"
+          },
+          {
+            "name": "content-length",
+            "value": "59"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "x-second",
+            "value": "boom2"
+          },
+          {
+            "name": "x-test",
+            "value": "boom"
+          }
+        ]
+      }
+    }
+    "#);
+}
+
+#[test]
 fn test_regex_header_forwarding_then_delete_with_regex() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
