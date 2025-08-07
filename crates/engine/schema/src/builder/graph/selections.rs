@@ -3,9 +3,8 @@ use std::collections::{BTreeMap, btree_map::Entry};
 use id_newtypes::IdRange;
 
 use crate::{
-    ArgumentInjectionId, ArgumentInjectionRecord, ArgumentValueInjection, ArgumentValueInjectionId,
-    KeyValueInjectionId, KeyValueInjectionRecord, SchemaFieldId, SchemaFieldRecord, Selections, StringId,
-    ValueInjection, ValueInjectionId,
+    ArgumentInjectionId, ArgumentInjectionRecord, KeyValueInjectionId, KeyValueInjectionRecord, SchemaFieldId,
+    SchemaFieldRecord, Selections, StringId, ValueInjection, ValueInjectionId,
 };
 
 pub(crate) struct SelectionsBuilder {
@@ -65,15 +64,6 @@ impl SelectionsBuilder {
         self.inner.argument_value_injections.truncate(state[1]);
         self.inner.injections.truncate(state[2]);
         self.inner.key_value_injections.truncate(state[3]);
-    }
-
-    pub(crate) fn push_argument_value_injection(
-        &mut self,
-        injection: ArgumentValueInjection,
-    ) -> ArgumentValueInjectionId {
-        let id = self.inner.argument_value_injections.len().into();
-        self.inner.argument_value_injections.push(injection);
-        id
     }
 
     pub(crate) fn push_injection(&mut self, injection: ValueInjection) -> ValueInjectionId {

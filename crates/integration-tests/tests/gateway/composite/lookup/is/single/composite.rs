@@ -432,9 +432,9 @@ fn field_with_default_value() {
               {
                 "args": {
                   "key": {
-                    "extra": false,
                     "a": "A1",
-                    "b": 1
+                    "b": 1,
+                    "extra": false
                   }
                 }
               }
@@ -489,11 +489,11 @@ fn field_with_default_value_coercion() {
               {
                 "args": {
                   "key": {
+                    "a": "A1",
+                    "b": 1,
                     "extra": [
                       false
-                    ],
-                    "a": "A1",
-                    "b": 1
+                    ]
                   }
                 }
               }

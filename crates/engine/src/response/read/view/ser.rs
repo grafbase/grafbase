@@ -350,9 +350,8 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
 
                 map.end()
             }
-            ValueInjection::DefaultValue(_) => unreachable!("handled within objects or when injecting arguments."),
+            ValueInjection::DefaultValue(value) => value.walk(schema).serialize(serializer),
             ValueInjection::Identity => unreachable!("Only used for scalars which we aren't"),
-            ValueInjection::OneOf(_) => todo!(),
         }
     }
 }

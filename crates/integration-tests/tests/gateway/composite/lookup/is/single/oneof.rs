@@ -438,7 +438,7 @@ fn invalid_single() {
 #[test]
 fn multiple_injections_oneof() {
     runtime().block_on(async {
-        let result = Gateway::builder()
+        let gateway = Gateway::builder()
             .with_subgraph(gql_id())
             .with_subgraph_sdl(
                 "ext",
@@ -465,13 +465,28 @@ fn multiple_injections_oneof() {
                 "#,
             )
             .with_extension(EchoLookup::single())
-            .try_build()
+            .build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup With a @oneOf argument, only one @is directive is supported for @lookup.
-        See schema at 33:3:
-        productBatch(a: Lookup! @composite__is(graph: EXT, field: "{ id }"), b: Lookup! @composite__is(graph: EXT, field: "{ id }")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        let response = gateway.post("query { products { id args } }").await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "products": [
+              {
+                "id": "1",
+                "args": {
+                  "a": {
+                    "id": "1"
+                  },
+                  "b": {
+                    "id": "1"
+                  }
+                }
+              }
+            ]
+          }
+        }
         "#);
     })
 }

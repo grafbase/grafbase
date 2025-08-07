@@ -6,8 +6,8 @@ use crate::{
     DeriveScalarAsFieldRecord, DirectiveSiteId, EntityDefinitionId, FieldDefinitionId, FieldSetRecord, SubgraphId,
     TypeRecord,
     builder::{
-        BoundSelectedObjectField, BoundSelectedObjectValue, BoundSelectedValueEntry, DirectivesIngester, Error,
-        GraphBuilder, PossibleCompositeEntityKey, SelectedValueOrField,
+        BoundFieldValue, BoundSelectedObjectField, BoundSelectedObjectValue, BoundSelectedValueEntry,
+        DirectivesIngester, Error, GraphBuilder, PossibleCompositeEntityKey,
         sdl::{self, IsDirective},
     },
 };
@@ -418,13 +418,13 @@ fn create_explicit_object_mapping<'k>(
     let mut field_records = Vec::new();
     for BoundSelectedObjectField { id: to_id, value } in object.fields {
         let from_id = match value {
-            SelectedValueOrField::Value(value) => value
+            BoundFieldValue::Value(value) => value
                 .into_single()
                 .and_then(|value| value.into_path())
                 .and_then(|path| path.into_single())
                 .ok_or("Derived object fields can only be mapped to parent scalar/enum fields")?,
-            SelectedValueOrField::Field(id) => id,
-            SelectedValueOrField::DefaultValue(_) => unreachable!("Fields have no default values"),
+            BoundFieldValue::Field(id) => id,
+            BoundFieldValue::DefaultValue(_) => unreachable!("Fields have no default values"),
         };
         field_records.push(DeriveObjectFieldRecord { from_id, to_id });
     }

@@ -697,8 +697,8 @@ fn arg_with_default_value() {
               {
                 "args": {
                   "input": {
-                    "extra": true,
-                    "a": "1"
+                    "a": "1",
+                    "extra": true
                   },
                   "extra": true
                 }
@@ -756,10 +756,10 @@ fn arg_with_default_value_coercion() {
               {
                 "args": {
                   "input": {
+                    "a": "1",
                     "extra": [
                       true
-                    ],
-                    "a": "1"
+                    ]
                   },
                   "extra": [
                     true

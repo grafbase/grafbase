@@ -1,5 +1,6 @@
+use id_newtypes::IdRange;
 use operation::{InputValueContext, QueryOrSchemaInputValue, Variables};
-use schema::{ArgumentValueInjection, ArgumentValueInjectionId, InputValueSet, Schema, StringId, ValueInjection};
+use schema::{ArgumentInjectionId, ArgumentValueInjection, InputValueSet, Schema, ValueInjection};
 use serde::ser::SerializeMap as _;
 use walker::Walk as _;
 
@@ -176,6 +177,7 @@ impl serde::Serialize for PlanFieldArgumentsQueryView<'_> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub(crate) struct PlanFieldArgumentsBatchView<'a> {
     pub(in crate::prepare::cached::query_plan) ctx: CachedOperationContext<'a>,
     pub(in crate::prepare::cached::query_plan) variables: &'a Variables,
@@ -218,14 +220,13 @@ impl serde::Serialize for PlanFieldArgumentsBatchView<'_> {
                             )?;
                         }
                     },
-                    ArgumentValueInjection::Nested { key, value } => {
+                    ArgumentValueInjection::InputObject(input_fields) => {
                         map.serialize_entry(
                             arg.definition().name(),
-                            &NestedInjection {
+                            &ArgumentObject {
                                 schema: self.ctx.schema,
-                                key,
-                                value,
-                                callback: &(|injection| self.parent_objects.for_injection(injection)),
+                                input_fields,
+                                injection_as_serde: &(|injection| self.parent_objects.for_injection(injection)),
                             },
                         )?;
                     }
@@ -275,14 +276,13 @@ impl serde::Serialize for PlanFieldArgumentsView<'_> {
                             map.serialize_entry(arg.definition().name(), &self.parent_object.for_injection(injection))?;
                         }
                     },
-                    ArgumentValueInjection::Nested { key, value } => {
+                    ArgumentValueInjection::InputObject(input_fields) => {
                         map.serialize_entry(
                             arg.definition().name(),
-                            &NestedInjection {
+                            &ArgumentObject {
                                 schema: self.ctx.schema,
-                                key,
-                                value,
-                                callback: &(|injection| self.parent_object.for_injection(injection)),
+                                input_fields,
+                                injection_as_serde: &(|injection| self.parent_object.for_injection(injection)),
                             },
                         )?;
                     }
@@ -293,14 +293,13 @@ impl serde::Serialize for PlanFieldArgumentsView<'_> {
     }
 }
 
-struct NestedInjection<'a, F> {
+struct ArgumentObject<'a, F> {
     schema: &'a Schema,
-    key: StringId,
-    value: ArgumentValueInjectionId,
-    callback: &'a F,
+    input_fields: IdRange<ArgumentInjectionId>,
+    injection_as_serde: &'a F,
 }
 
-impl<F, Value> serde::Serialize for NestedInjection<'_, F>
+impl<F, Value> serde::Serialize for ArgumentObject<'_, F>
 where
     F: Fn(ValueInjection) -> Value,
     Value: serde::Serialize,
@@ -309,22 +308,23 @@ where
     where
         S: serde::Serializer,
     {
-        let mut map = serializer.serialize_map(Some(1))?;
-        match self.schema[self.value] {
-            ArgumentValueInjection::Nested { key, value } => {
-                map.serialize_entry(
-                    &self.schema[self.key],
-                    &NestedInjection {
-                        key,
-                        value,
-                        schema: self.schema,
-                        callback: self.callback,
-                    },
-                )?;
-            }
-            ArgumentValueInjection::Value(injection) => {
-                map.serialize_entry(&self.schema[self.key], &(self.callback)(injection))?;
-            }
+        let mut map = serializer.serialize_map(Some(self.input_fields.len()))?;
+        for arg in self.input_fields.walk(self.schema) {
+            match arg.value {
+                ArgumentValueInjection::Value(injection) => {
+                    map.serialize_entry(arg.definition().name(), &(self.injection_as_serde)(injection))?;
+                }
+                ArgumentValueInjection::InputObject(input_fields) => {
+                    map.serialize_entry(
+                        arg.definition().name(),
+                        &ArgumentObject {
+                            schema: self.schema,
+                            input_fields,
+                            injection_as_serde: self.injection_as_serde,
+                        },
+                    )?;
+                }
+            };
         }
         map.end()
     }

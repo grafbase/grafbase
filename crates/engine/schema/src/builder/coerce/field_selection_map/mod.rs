@@ -1,6 +1,7 @@
 mod model;
 mod target;
 
+use itertools::Itertools as _;
 pub(crate) use model::*;
 use std::collections::VecDeque;
 use target::*;
@@ -19,24 +20,12 @@ impl GraphBuilder<'_> {
     pub(crate) fn parse_field_selection_map_for_argument(
         &mut self,
         source: TypeRecord,
-        target_field_id: FieldDefinitionId,
+        subgraph_id: SubgraphId,
         target_argument_id: InputValueDefinitionId,
         field_selection_map: &str,
-    ) -> Result<BoundSelectedValue<InputValueDefinitionId>, String> {
+    ) -> Result<BoundValue, String> {
         let selected_value = SelectedValue::try_from(field_selection_map).map_err(|err| format!("\n{err}\n"))?;
-        let wrapping = self.graph[target_argument_id].ty_record.wrapping;
-        bind_selected_value(
-            self,
-            source,
-            (
-                InputTarget::Argument {
-                    field_id: target_field_id,
-                    argument_id: target_argument_id,
-                },
-                wrapping,
-            ),
-            selected_value,
-        )
+        bind_value(self, source, (subgraph_id, target_argument_id), selected_value)
     }
 
     pub(crate) fn parse_field_selection_map_for_derived_field(
@@ -60,7 +49,122 @@ impl GraphBuilder<'_> {
     }
 }
 
-fn bind_selected_value<T: Target>(
+fn bind_value(
+    ctx: &mut GraphBuilder<'_>,
+    source: TypeRecord,
+    target: (SubgraphId, InputValueDefinitionId),
+    selected_value: SelectedValue<'_>,
+) -> Result<BoundValue, String> {
+    let wrapping = ctx.graph[target.1].ty_record.wrapping;
+    if selected_value.alternatives.len() > 1 {
+        return bind_selected_value(ctx, source, (target, wrapping), selected_value).map(BoundValue::Value);
+    }
+    let value = selected_value
+        .alternatives
+        .into_iter()
+        .next()
+        .expect("SelectedValue cannot be empty");
+
+    match value {
+        SelectedValueEntry::Object { path: None, object } => {
+            bind_input_object(ctx, source, target, object).map(BoundValue::InputObject)
+        }
+        value => Ok(BoundValue::Value(BoundSelectedValue {
+            alternatives: vec![bind_selected_value_entry(ctx, source, (target, wrapping), value)?],
+        })),
+    }
+}
+
+fn bind_input_object(
+    ctx: &mut GraphBuilder<'_>,
+    source: TypeRecord,
+    target: (SubgraphId, InputValueDefinitionId),
+    selected_value: SelectedObjectValue<'_>,
+) -> Result<BoundInputObject, String> {
+    let Some(ObjectLikeTarget {
+        is_one_of,
+        mut target_fields,
+    }) = target.as_object(ctx)
+    else {
+        return Err(format!(
+            "Cannot map object into {}, it doesn't have fields",
+            target.display(ctx),
+        ));
+    };
+
+    let mut input_fields = selected_value
+        .fields
+        .into_iter()
+        .map(|field| match field.value {
+            Some(value) => {
+                let Some(ix) = target_fields.iter().position(|(name_id, _)| ctx[*name_id] == field.key) else {
+                    return Err(format!(
+                        "{} does not have a field named '{}' or was present twice in the FieldSelectionMap",
+                        target.display(ctx),
+                        field.key,
+                    ));
+                };
+                let (_name, (target, _wrapping)) = target_fields.swap_remove(ix);
+
+                Ok(BoundInputField {
+                    id: target.1,
+                    value: match bind_value(ctx, source, target, value)? {
+                        BoundValue::InputObject(input_object) => BoundInputFieldValue::InputObject(input_object),
+                        BoundValue::Value(value) => BoundInputFieldValue::Value(BoundFieldValue::Value(value)),
+                    },
+                })
+            }
+            None => {
+                let BoundSelectedObjectField { id, value } =
+                    bind_selected_object_field(ctx, source, target, &mut target_fields, field)?;
+                Ok(BoundInputField {
+                    id,
+                    value: BoundInputFieldValue::Value(value),
+                })
+            }
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if is_one_of && input_fields.len() > 1 {
+        return Err(format!(
+            "{} is a @oneOf input object, but multiple fields were selected: {}",
+            target.display(ctx),
+            input_fields.iter().format_with(", ", |field, f| f(&format_args!(
+                "{}",
+                ctx[ctx.graph[field.id].name_id],
+            )))
+        ));
+    }
+
+    for (name_id, (target_field, wrapping)) in target_fields {
+        let id = target_field.id();
+        if input_fields.iter().any(|field| field.id == id) {
+            continue;
+        }
+        match target_field.on_missing_field(ctx) {
+            OnMissingField::DefaultValue(default_value) => {
+                input_fields.push(BoundInputField {
+                    id,
+                    value: BoundInputFieldValue::Value(BoundFieldValue::DefaultValue(default_value)),
+                });
+            }
+            OnMissingField::Providable => continue,
+            OnMissingField::None => {
+                if wrapping.is_non_null() {
+                    return Err(format!(
+                        "For {}, field '{}' is required but it's missing from the FieldSelectionMap",
+                        target.display(ctx),
+                        ctx[name_id]
+                    ));
+                }
+            }
+        }
+    }
+
+    Ok(BoundInputObject { input_fields })
+}
+
+fn bind_selected_value<T: TargetField>(
     ctx: &mut GraphBuilder<'_>,
     source: TypeRecord,
     target: (T, Wrapping),
@@ -74,7 +178,7 @@ fn bind_selected_value<T: Target>(
     Ok(BoundSelectedValue { alternatives })
 }
 
-fn bind_selected_value_entry<T: Target>(
+fn bind_selected_value_entry<T: TargetField>(
     ctx: &mut GraphBuilder<'_>,
     source: TypeRecord,
     target: (T, Wrapping),
@@ -222,7 +326,7 @@ fn bind_type_condition(
     Ok(ty_id)
 }
 
-fn bind_selected_object_value<T: Target>(
+fn bind_selected_object_value<T: TargetField>(
     ctx: &mut GraphBuilder<'_>,
     source: TypeRecord,
     (target, target_wrapping): (T, Wrapping),
@@ -238,19 +342,33 @@ fn bind_selected_object_value<T: Target>(
             target.display(ctx),
         ));
     }
-    let mut nested_target_fields = target.fields(ctx);
-    if nested_target_fields.is_empty() {
+    let Some(ObjectLikeTarget {
+        is_one_of,
+        mut target_fields,
+    }) = target.as_object(ctx)
+    else {
         return Err(format!(
-            "Cannot map object into {}, it's not an object nor an interface",
-            target.display(ctx)
+            "Cannot map object into {}, it doesn't have fields",
+            target.display(ctx),
         ));
-    }
+    };
     let mut fields = object
         .fields
         .into_iter()
-        .map(|field| bind_selected_object_field(ctx, source, target, &mut nested_target_fields, field))
+        .map(|field| bind_selected_object_field(ctx, source, target, &mut target_fields, field))
         .collect::<Result<Vec<_>, _>>()?;
-    for (name_id, (target_field, wrapping)) in nested_target_fields {
+
+    if is_one_of && fields.len() > 1 {
+        return Err(format!(
+            "{} is a @oneOf input object, but multiple fields were selected: {}",
+            target.display(ctx),
+            fields
+                .iter()
+                .format_with(", ", |field, f| f(&format_args!("{}", T::id_display(field.id, ctx))))
+        ));
+    }
+
+    for (name_id, (target_field, wrapping)) in target_fields {
         let id = target_field.id();
         if fields.iter().any(|field| field.id == id) {
             continue;
@@ -259,7 +377,7 @@ fn bind_selected_object_value<T: Target>(
             OnMissingField::DefaultValue(default_value) => {
                 fields.push(BoundSelectedObjectField {
                     id,
-                    value: SelectedValueOrField::DefaultValue(default_value),
+                    value: BoundFieldValue::DefaultValue(default_value),
                 });
             }
             OnMissingField::Providable => continue,
@@ -277,7 +395,7 @@ fn bind_selected_object_value<T: Target>(
     Ok(BoundSelectedObjectValue { fields })
 }
 
-fn bind_selected_object_field<T: Target>(
+fn bind_selected_object_field<T: TargetField>(
     ctx: &mut GraphBuilder<'_>,
     source: TypeRecord,
     parent_target: T,
@@ -286,16 +404,16 @@ fn bind_selected_object_field<T: Target>(
 ) -> Result<BoundSelectedObjectField<T::Id>, String> {
     let Some(ix) = target_fields.iter().position(|(name_id, _)| ctx[*name_id] == field.key) else {
         return Err(format!(
-            "Field '{}' does not exist on {}",
+            "{} does not have a field named '{}' or was present twice in the FieldSelectionMap",
+            parent_target.display(ctx),
             field.key,
-            parent_target.display(ctx)
         ));
     };
     let (_, target) = target_fields.swap_remove(ix);
 
     let value = if let Some(value) = field.value {
         // The parent wrapping doesn't matter anymore, it was already handled.
-        SelectedValueOrField::Value(bind_selected_value(ctx, source, target, value)?)
+        BoundFieldValue::Value(bind_selected_value(ctx, source, target, value)?)
     } else {
         if source.wrapping.is_list() {
             return Err(format!(
@@ -335,7 +453,7 @@ fn bind_selected_object_field<T: Target>(
             ctx.graph[field_id].ty_record,
             target,
         )?;
-        SelectedValueOrField::Field(field_id)
+        BoundFieldValue::Field(field_id)
     };
 
     Ok(BoundSelectedObjectField {
@@ -344,7 +462,7 @@ fn bind_selected_object_field<T: Target>(
     })
 }
 
-fn bind_selected_list_value<T: Target>(
+fn bind_selected_list_value<T: TargetField>(
     ctx: &mut GraphBuilder<'_>,
     source: TypeRecord,
     (target, target_wrapping): (T, Wrapping),
@@ -375,7 +493,7 @@ fn bind_selected_list_value<T: Target>(
     Ok(BoundSelectedListValue(value))
 }
 
-fn ensure_type_compatibility<T: Target>(
+fn ensure_type_compatibility<T: TargetField>(
     ctx: &GraphBuilder<'_>,
     source_display: impl std::fmt::Display,
     source: TypeRecord,

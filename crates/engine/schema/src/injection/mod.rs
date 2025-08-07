@@ -2,7 +2,7 @@ use id_newtypes::IdRange;
 
 use crate::{
     ArgumentInjectionId, ArgumentInjectionRecord, KeyValueInjectionId, KeyValueInjectionRecord, SchemaFieldArgumentId,
-    SchemaFieldArgumentRecord, SchemaFieldId, SchemaFieldRecord, SchemaInputValueId, StringId,
+    SchemaFieldArgumentRecord, SchemaFieldId, SchemaFieldRecord, SchemaInputValueId,
 };
 
 #[derive(Clone, Default, id_derives::IndexedFields, serde::Serialize, serde::Deserialize)]
@@ -28,10 +28,7 @@ pub struct ArgumentValueInjectionId(u32);
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub enum ArgumentValueInjection {
     Value(ValueInjection),
-    Nested {
-        key: StringId,
-        value: ArgumentValueInjectionId,
-    },
+    InputObject(IdRange<ArgumentInjectionId>),
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id, serde::Serialize, serde::Deserialize)]
@@ -47,6 +44,4 @@ pub enum ValueInjection {
     },
     // sorted by field_id if it exists.
     Object(IdRange<KeyValueInjectionId>),
-    // sorted by field_id if it exists.
-    OneOf(IdRange<ValueInjectionId>),
 }

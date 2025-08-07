@@ -1,4 +1,5 @@
 mod composite;
+mod nested_input;
 mod nested_key;
 mod nested_output;
 mod oneof;
