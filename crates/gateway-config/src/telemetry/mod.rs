@@ -22,7 +22,6 @@ pub struct TelemetryConfig {
     /// Separate configuration for metrics exports. If set, overrides the global values.
     pub metrics: Option<MetricsConfig>,
     /// Grafbase OTEL exporter configuration when an access token is used.
-    #[serde(skip)]
     pub grafbase: Option<OtlpExporterConfig>,
 }
 

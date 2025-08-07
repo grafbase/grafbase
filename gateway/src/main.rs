@@ -11,6 +11,7 @@ use federated_server::ServeConfig;
 static GLOBAL: MiMalloc = MiMalloc;
 
 mod args;
+mod config;
 mod server_runtime;
 mod telemetry;
 
@@ -22,7 +23,7 @@ fn main() -> anyhow::Result<()> {
         .expect("installing default crypto provider");
 
     let args = self::args::parse();
-    let config = args.config()?;
+    let config = self::config::load(&args)?;
 
     let runtime = runtime::Builder::new_multi_thread()
         .enable_all()

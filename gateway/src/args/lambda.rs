@@ -1,12 +1,7 @@
-use std::{
-    fs,
-    io::ErrorKind,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use federated_server::GraphLoader;
-use gateway_config::Config;
 use graph_ref::GraphRef;
 
 use super::{LogLevel, log::LogStyle};
@@ -47,22 +42,6 @@ impl super::Args for Args {
         })
     }
 
-    /// The gateway configuration
-    fn config(&self) -> anyhow::Result<Config> {
-        let mut config = match fs::read_to_string(&self.config) {
-            Ok(config) => toml::from_str(&config)?,
-            Err(e) => match e.kind() {
-                ErrorKind::NotFound => Config::default(),
-                _ => return Err(anyhow::anyhow!("error loading config file: {e}")),
-            },
-        };
-
-        if let Some(otel_config) = self.grafbase_otel_config()? {
-            config.telemetry.grafbase = Some(otel_config);
-        }
-
-        Ok(config)
-    }
 
     fn config_path(&self) -> Option<&Path> {
         Some(&self.config)
