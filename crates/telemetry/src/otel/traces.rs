@@ -122,10 +122,6 @@ fn setup_exporters(
     }
 
     if let Some(config) = config.grafbase_otlp_config() {
-        let config = LayeredOtlExporterConfig {
-            global: config.clone(),
-            local: config.clone(),
-        };
         let span_exporter = build_otlp_exporter(&config)?;
 
         let span_processor = build_batched_span_processor(config.timeout(), &config.batch_export(), span_exporter);
