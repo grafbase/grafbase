@@ -50,13 +50,13 @@ impl<R: Runtime> Engine<R> {
                     );
                 }
 
-                if let Some(limit) = self.schema.config.batching.limit {
-                    if requests.len() > (limit as usize) {
-                        return self.bad_request_but_well_formed_graphql_over_http_request(
-                            &request_context,
-                            format_args!("batch size exceeds limit of {limit}"),
-                        );
-                    }
+                if let Some(limit) = self.schema.config.batching.limit
+                    && requests.len() > (limit as usize)
+                {
+                    return self.bad_request_but_well_formed_graphql_over_http_request(
+                        &request_context,
+                        format_args!("batch size exceeds limit of {limit}"),
+                    );
                 }
 
                 self.runtime.metrics().record_batch_size(requests.len());

@@ -279,10 +279,10 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                 }
             }
 
-            if let Some(name) = dir.r#override {
-                if let Ok(graph) = self.subgraphs.try_get(GraphName(name), span) {
-                    overrides.push(graph);
-                }
+            if let Some(name) = dir.r#override
+                && let Ok(graph) = self.subgraphs.try_get(GraphName(name), span)
+            {
+                overrides.push(graph);
             }
         }
 

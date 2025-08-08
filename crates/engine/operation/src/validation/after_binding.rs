@@ -37,18 +37,17 @@ pub(crate) fn validate(schema: &Schema, operation: &Operation) -> Result<(), Vec
 fn ensure_introspection_is_accepted(ctx: OperationContext<'_>) -> Result<(), ValidationError> {
     if ctx.operation.attributes.ty.is_query() && ctx.schema.config.disable_introspection {
         for field in ctx.root_selection_set().fields() {
-            if let Some(field) = field.as_data() {
-                if ctx
+            if let Some(field) = field.as_data()
+                && ctx
                     .schema
                     .subgraphs
                     .introspection
                     .meta_fields
                     .contains(&field.definition_id)
-                {
-                    return Err(ValidationError::IntrospectionIsDisabled {
-                        location: field.location,
-                    });
-                }
+            {
+                return Err(ValidationError::IntrospectionIsDisabled {
+                    location: field.location,
+                });
             }
         }
     }

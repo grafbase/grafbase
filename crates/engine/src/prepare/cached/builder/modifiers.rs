@@ -41,12 +41,12 @@ impl Solver<'_> {
             let Some(field_id) = field_id else {
                 continue;
             };
-            if let Node::Field { id, .. } = self.solution.graph[node_ix] {
-                if let Some(id) = self.solution[id].flat_directive_id {
-                    accumulator.query_modifiers[usize::from(id)]
-                        .impacted_field_ids
-                        .push(*field_id);
-                }
+            if let Node::Field { id, .. } = self.solution.graph[node_ix]
+                && let Some(id) = self.solution[id].flat_directive_id
+            {
+                accumulator.query_modifiers[usize::from(id)]
+                    .impacted_field_ids
+                    .push(*field_id);
             }
 
             let PartitionFieldId::Data(field_id) = *field_id else {

@@ -12,13 +12,13 @@ pub(crate) async fn execute<R: engine::Runtime, SR: ServerRuntime>(
 
     let (parts, body) = request.into_parts();
     let body = axum::body::to_bytes(body, state.request_body_limit_bytes).map_err(|error| {
-        if let Some(source) = std::error::Error::source(&error) {
-            if source.is::<http_body_util::LengthLimitError>() {
-                return (
-                    http::StatusCode::PAYLOAD_TOO_LARGE,
-                    format!("Request body exceeded: {}", state.request_body_limit_bytes),
-                );
-            }
+        if let Some(source) = std::error::Error::source(&error)
+            && source.is::<http_body_util::LengthLimitError>()
+        {
+            return (
+                http::StatusCode::PAYLOAD_TOO_LARGE,
+                format!("Request body exceeded: {}", state.request_body_limit_bytes),
+            );
         }
         (http::StatusCode::INTERNAL_SERVER_ERROR, error.to_string())
     });

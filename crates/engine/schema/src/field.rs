@@ -37,7 +37,7 @@ impl<'a> FieldDefinition<'a> {
         self.schema.graph.inaccessible.field_definitions[self.id]
     }
 
-    pub fn cost(&self) -> Option<CostDirective> {
+    pub fn cost(&self) -> Option<CostDirective<'_>> {
         self.directives().find_map(|directive| match directive {
             TypeSystemDirective::Cost(cost) => Some(cost),
             _ => None,

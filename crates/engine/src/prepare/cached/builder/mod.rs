@@ -100,19 +100,18 @@ impl<'a> Solver<'a> {
             .insert(self.solution.root_node_ix, root_input_id);
 
         for edge in self.solution.graph.edges(self.solution.root_node_ix) {
-            if let Edge::QueryPartition = edge.weight() {
-                if let Node::QueryPartition {
+            if let Edge::QueryPartition = edge.weight()
+                && let Node::QueryPartition {
                     entity_definition_id,
                     resolver_definition_id,
                 } = self.solution.graph[edge.target()]
-                {
-                    self.query_partitions_to_create_stack.push(QueryPartitionToCreate {
-                        input_id: root_input_id,
-                        source_ix: edge.target(),
-                        entity_definition_id,
-                        resolver_definition_id,
-                    });
-                }
+            {
+                self.query_partitions_to_create_stack.push(QueryPartitionToCreate {
+                    input_id: root_input_id,
+                    source_ix: edge.target(),
+                    entity_definition_id,
+                    resolver_definition_id,
+                });
             }
         }
 

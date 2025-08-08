@@ -82,10 +82,10 @@ pub(crate) fn validate_schema_definition_references<'a>(def: &SchemaDefinition<'
 
 pub(crate) fn validate_root_types(ctx: &mut Context<'_>) {
     for name in ["Query", "Mutation", "Subscription"] {
-        if let Some(def) = ctx.definition_names.get(name) {
-            if !matches!(def.node.kind, ast::TypeKind::Object(_)) {
-                ctx.push_error(miette::miette!("{name} should be an object"));
-            }
+        if let Some(def) = ctx.definition_names.get(name)
+            && !matches!(def.node.kind, ast::TypeKind::Object(_))
+        {
+            ctx.push_error(miette::miette!("{name} should be an object"));
         }
     }
 }

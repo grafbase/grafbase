@@ -68,20 +68,20 @@ impl<R: engine::Runtime> Tool for ExecuteTool<R> {
     async fn call(&self, parts: Parts, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {
         let EngineResponse { json, mcp } = self.execute(parts, parameters).await?;
         let mut content = vec![Content::text(String::from_utf8(json).unwrap())];
-        if let Some(McpResponseExtension { schema, mut site_ids }) = mcp {
-            if !site_ids.is_empty() {
-                site_ids.sort_unstable();
-                site_ids.dedup();
+        if let Some(McpResponseExtension { schema, mut site_ids }) = mcp
+            && !site_ids.is_empty()
+        {
+            site_ids.sort_unstable();
+            site_ids.dedup();
 
-                let sdl = PartialSdl {
-                    max_depth: 2,
-                    search_tokens: Vec::new(),
-                    max_size_for_extra_content: 1024,
-                    site_ids_and_score: site_ids.into_iter().map(|id| (id, 1.0)).collect(),
-                }
-                .generate(&schema);
-                content.push(Content::text(sdl));
+            let sdl = PartialSdl {
+                max_depth: 2,
+                search_tokens: Vec::new(),
+                max_size_for_extra_content: 1024,
+                site_ids_and_score: site_ids.into_iter().map(|id| (id, 1.0)).collect(),
             }
+            .generate(&schema);
+            content.push(Content::text(sdl));
         }
         Ok(CallToolResult {
             content,

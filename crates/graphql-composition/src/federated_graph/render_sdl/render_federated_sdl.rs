@@ -169,19 +169,18 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
                     write_directive(f, directive, graph)?;
                 }
 
-                if is_extension_link {
-                    if let Some(extension) = graph
+                if is_extension_link
+                    && let Some(extension) = graph
                         .extensions
                         .iter()
                         .find(|extension| extension.enum_value_id == value.id())
-                    {
-                        super::directive::render_extension_link_directive(
-                            f,
-                            extension.url,
-                            &extension.schema_directives,
-                            graph,
-                        )?;
-                    }
+                {
+                    super::directive::render_extension_link_directive(
+                        f,
+                        extension.url,
+                        &extension.schema_directives,
+                        graph,
+                    )?;
                 }
 
                 Ok(())
@@ -369,10 +368,9 @@ fn write_field_directives(
                 subgraph_id: Some(subgraph_id),
                 ..
             }) = &directive
+                && (!join_field_must_be_present || fully_overridden_subgraph_ids.contains(subgraph_id))
             {
-                if !join_field_must_be_present || fully_overridden_subgraph_ids.contains(subgraph_id) {
-                    continue;
-                }
+                continue;
             }
             f.write_str(" ")?;
             write_directive(f, directive, graph)?;

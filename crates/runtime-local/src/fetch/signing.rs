@@ -173,10 +173,10 @@ impl SigningParameters {
             return false;
         }
 
-        if let Some(include_headers) = &self.include_headers {
-            if include_headers.contains(name) {
-                return true;
-            }
+        if let Some(include_headers) = &self.include_headers
+            && include_headers.contains(name)
+        {
+            return true;
         }
 
         true

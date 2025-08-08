@@ -64,10 +64,10 @@ where
     ) -> crate::Result<Self> {
         let mut terminals = Vec::new();
         for (node_ix, node) in query_solution_space.graph.node_references() {
-            if let SpaceNode::QueryField(field) = node {
-                if field.flags.contains(FieldFlags::LEAF_NODE | FieldFlags::INDISPENSABLE) {
-                    terminals.push(node_ix);
-                }
+            if let SpaceNode::QueryField(field) = node
+                && field.flags.contains(FieldFlags::LEAF_NODE | FieldFlags::INDISPENSABLE)
+            {
+                terminals.push(node_ix);
             }
         }
         let node_filter = |(node_ix, node): (NodeIndex, &SpaceNode<'schema>)| match node {

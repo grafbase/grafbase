@@ -385,10 +385,10 @@ fn try_get_readme(source_dir: &Path) -> Option<String> {
             continue;
         };
 
-        if file_name.eq_ignore_ascii_case("readme.md") {
-            if let Ok(readme) = fs::read_to_string(entry.path()) {
-                return Some(readme);
-            }
+        if file_name.eq_ignore_ascii_case("readme.md")
+            && let Ok(readme) = fs::read_to_string(entry.path())
+        {
+            return Some(readme);
         }
     }
 

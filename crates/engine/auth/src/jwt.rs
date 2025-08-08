@@ -138,10 +138,10 @@ impl JwtProvider {
             .ok()?;
         let token = decode_token(jwks.keys, UntrustedToken::new(token_str).ok()?)?;
 
-        if let Some(expected) = self.config.jwks.issuer.as_ref() {
-            if token.claims().custom.issuer.as_ref() != Some(expected) {
-                return None;
-            }
+        if let Some(expected) = self.config.jwks.issuer.as_ref()
+            && token.claims().custom.issuer.as_ref() != Some(expected)
+        {
+            return None;
         }
 
         if !self.config.jwks.audience.is_empty() {
