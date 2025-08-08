@@ -63,13 +63,7 @@ pub(super) fn build_meter_provider(
     }
 
     if let Some(config) = config.grafbase_otlp_config() {
-        provider = attach_reader(
-            LayeredOtlExporterConfig {
-                global: config.clone(),
-                local: config,
-            },
-            provider,
-        )?;
+        provider = attach_reader(config, provider)?;
     }
 
     Ok(provider.build())

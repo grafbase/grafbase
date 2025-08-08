@@ -22,7 +22,6 @@ pub struct TelemetryConfig {
     /// Separate configuration for metrics exports. If set, overrides the global values.
     pub metrics: Option<MetricsConfig>,
     /// Grafbase OTEL exporter configuration when an access token is used.
-    #[serde(skip)]
     pub grafbase: Option<OtlpExporterConfig>,
 }
 
@@ -107,8 +106,14 @@ impl TelemetryConfig {
         self.logs_otlp_config().is_some() || self.logs_stdout_config().is_some()
     }
 
-    pub fn grafbase_otlp_config(&self) -> Option<OtlpExporterConfig> {
-        self.grafbase.clone()
+    pub fn grafbase_otlp_config(&self) -> Option<LayeredOtlExporterConfig> {
+        self.grafbase
+            .as_ref()
+            .filter(|cfg| cfg.enabled.unwrap_or(true))
+            .map(|cfg| LayeredOtlExporterConfig {
+                global: cfg.clone(),
+                local: Default::default(),
+            })
     }
 }
 
