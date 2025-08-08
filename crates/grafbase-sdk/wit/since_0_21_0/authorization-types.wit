@@ -1,0 +1,69 @@
+// For a query like:
+// ```graphql
+// query { products { id name } }
+// ```
+// If `Product.name` is decorated with an authorization directive, then authorize-query will receive it
+// as a query item with all the directive arguments that can be computed before execution. So InputValueSet but
+// not FieldSet for example.
+// If the directive also relies on response data, authorize-response will all `Product.name` fields in the response as response element items.
+// `Product.name` itself will be a response element that will have a reference to the query element.
+interface authorization-types {
+    use error.{error};
+    use schema.{directive-site};
+    use headers.{headers};
+
+    record authorization-output {
+        decisions: authorization-decisions,
+        state: list<u8>,
+        original-headers: headers,
+        extra-headers: option<headers>
+    }
+
+    variant authorization-decisions {
+        grant-all,
+        deny-all(error),
+        deny-some(authorization-decisions-deny-some)
+    }
+
+    record authorization-decisions-deny-some {
+        // For elements
+        element-to-error: list<tuple<u32, u32>>,
+        errors: list<error>
+    }
+
+    // Elements in the query that require authorization
+    record query-elements {
+        // Tuple of directive name and a range over the `elements` list it's associated with.
+        directive-names: list<tuple<string, u32, u32>>,
+        // Represents an element of the query associated with the directive
+        elements: list<query-element>
+    }
+
+    record query-element {
+        // Unique id.
+        id: u32,
+        // the field or type on which the directive was applied
+        site: directive-site,
+        // directive arguments encoded in CBOR.
+        arguments: list<u8>,
+        // Name of the subgraph from which this field will be requested from.
+        subgraph-name: option<string>
+    }
+
+    record response-elements {
+        // Tuple of directive name and a range over the `elements` list it's associated with.
+        directive-names: list<tuple<string, u32, u32>>,
+        /// Represents an element of the response associated with the directive
+        elements: list<response-element>,
+        // directive arguments which depend on the response encoded in CBOR for each response item.
+        items: list<list<u8>>
+    }
+
+    record response-element {
+        // Query element id this response element is associated with.
+        query-element-id: u32,
+        // Range of the items associated with this response element.
+        items-range: tuple<u32, u32>
+    }
+
+}

@@ -3,6 +3,7 @@
 mod authentication;
 mod authorization;
 mod configuration;
+mod context;
 mod contract;
 mod data;
 mod directive_site;
@@ -20,9 +21,10 @@ mod selection_set;
 mod subscription_item;
 mod token;
 
-pub use self::authentication::*;
+pub use authentication::*;
 pub use authorization::*;
 pub use configuration::*;
+pub use context::*;
 pub use contract::*;
 pub use data::*;
 pub use directive_site::*;

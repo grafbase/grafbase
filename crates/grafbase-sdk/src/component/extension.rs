@@ -2,9 +2,9 @@ use crate::{
     extension::resolver::SubscriptionCallback,
     host_io::event_queue::EventQueue,
     types::{
-        AuthorizationDecisions, Contract, ContractDirective, Error, ErrorResponse, GraphqlSubgraph, Headers,
-        HttpRequestParts, OnRequestOutput, PublicMetadataEndpoint, QueryElements, ResolvedField, Response,
-        ResponseElements, Token, Variables,
+        AuthorizationDecisions, AuthorizeQueryOutput, Contract, ContractDirective, Error, ErrorResponse,
+        GraphqlSubgraph, Headers, HttpRequestParts, OnRequestOutput, PublicMetadataEndpoint, QueryElements,
+        ResolvedField, Response, ResponseElements, Token, Variables,
     },
 };
 
@@ -55,9 +55,8 @@ pub(crate) trait AnyExtension {
     fn authorize_query(
         &mut self,
         headers: &mut Headers,
-        token: Token,
         elements: QueryElements<'_>,
-    ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
+    ) -> Result<AuthorizeQueryOutput, ErrorResponse> {
         Err(ErrorResponse::internal_server_error()
             .with_error("Authorization extension not initialized correctly. Is it defined with the appropriate type?"))
     }
@@ -91,9 +90,13 @@ pub(crate) trait AnyExtension {
         ))
     }
 
-    fn on_subgraph_request(&mut self, parts: &mut HttpRequestParts) -> Result<(), Error> {
+    fn on_graphql_subgraph_request(&mut self, subgraph_name: &str, parts: &mut HttpRequestParts) -> Result<(), Error> {
         Err(Error::new(
             "Hooks extension not initialized correctly. Is it defined with the appropriate type?",
         ))
+    }
+
+    fn on_virtual_subgraph_request(&mut self, subgraph_name: &str, headers: &mut Headers) -> Result<(), Error> {
+        Ok(())
     }
 }

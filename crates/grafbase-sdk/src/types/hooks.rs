@@ -31,14 +31,15 @@ impl From<HttpRequestParts> for wit::HttpRequestParts {
     }
 }
 
-/// Output type for the `on_request` hook.
+/// Output type for the [on_request()](crate::HooksExtension::on_request()) hook.
 #[derive(Default)]
 pub struct OnRequestOutput {
+    pub(crate) state: Vec<u8>,
     pub(crate) contract_key: Option<String>,
 }
 
 impl OnRequestOutput {
-    /// Creates a new `OnRequestOutput` instance with default values.
+    /// Creates a new [OnRequestOutput] instance with default values.
     pub fn new() -> Self {
         Self::default()
     }

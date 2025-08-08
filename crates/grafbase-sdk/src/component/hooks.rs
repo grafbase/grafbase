@@ -16,6 +16,7 @@ impl wit::HooksGuest for Component {
                 .on_request(&parts.url, parts.method, &mut parts.headers)
                 .map(|output| wit::OnRequestOutput {
                     contract_key: output.contract_key,
+                    state: output.state,
                     headers: parts.headers.into(),
                 })
                 .map_err(Into::into)
@@ -42,15 +43,31 @@ impl wit::HooksGuest for Component {
         })
     }
 
-    fn on_subgraph_request(
+    fn on_virtual_subgraph_request(
         context: wit::SharedContext,
+        subgraph_name: String,
+        headers: wit::Headers,
+    ) -> Result<wit::Headers, wit::Error> {
+        state::with_context(context, || {
+            let mut headers: Headers = headers.into();
+
+            state::extension()?
+                .on_virtual_subgraph_request(&subgraph_name, &mut headers)
+                .map(|_| headers.into())
+                .map_err(Into::into)
+        })
+    }
+
+    fn on_graphql_subgraph_request(
+        context: wit::SharedContext,
+        subgraph_name: String,
         parts: wit::HttpRequestParts,
     ) -> Result<wit::HttpRequestParts, wit::Error> {
         state::with_context(context, || {
             let mut parts: HttpRequestParts = parts.into();
 
             state::extension()?
-                .on_subgraph_request(&mut parts)
+                .on_graphql_subgraph_request(&subgraph_name, &mut parts)
                 .map(|_| parts.into())
                 .map_err(Into::into)
         })

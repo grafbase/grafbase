@@ -1,4 +1,4 @@
-use crate::wit;
+use crate::{types::Headers, wit};
 
 use super::Error;
 
@@ -6,6 +6,17 @@ use super::Error;
 /// response, the error will be repeated if necessary during serialization.
 #[derive(Clone, Copy)]
 pub struct ErrorId(u32);
+
+/// Output type for the [authorize_query()](crate::AuthorizationExtension::authorize_query())
+/// method.
+pub struct AuthorizeQueryOutput {
+    /// Authorization decisions for each query element to be applied by the GraphQL engine.
+    pub decisions: AuthorizationDecisions,
+    /// Authorization state if any.
+    pub state: Vec<u8>,
+    /// Extra headers to add to the subgraph headers if any.
+    pub extra_headers: Option<Headers>,
+}
 
 /// Authorization decisions for each query elements to be applied by the GraphQL engine.
 pub struct AuthorizationDecisions(wit::AuthorizationDecisions);

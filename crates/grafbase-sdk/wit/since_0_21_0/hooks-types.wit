@@ -1,0 +1,16 @@
+interface hooks-types {
+    use http-types.{http-method};
+    use headers.{headers};
+
+    record http-request-parts {
+        url: string,
+        method: http-method,
+        headers: headers,
+    }
+
+    record on-request-output {
+        headers: headers,
+        contract-key: option<string>,
+        state: list<u8>,
+    }
+}

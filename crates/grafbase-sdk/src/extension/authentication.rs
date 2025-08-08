@@ -1,6 +1,6 @@
 use crate::{
     component::AnyExtension,
-    types::{Configuration, Error, ErrorResponse, GatewayHeaders, PublicMetadataEndpoint, Token},
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders, PublicMetadataEndpoint, RequestContext, Token},
 };
 
 /// An authentication extension is called before any request processing, authenticating a user with
@@ -99,7 +99,7 @@ pub trait AuthenticationExtension: Sized + 'static {
     /// GraphQL processing and an error will stop any further actions.
     ///
     /// The [HttpHeaders] are the headers received by the gateway before any header rules.
-    fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse>;
+    fn authenticate(&mut self, ctx: &RequestContext, headers: &GatewayHeaders) -> Result<Token, ErrorResponse>;
 
     /// Define endpoints on the gateway that expose authentication related metadata. This can be used to implement [OAuth 2.0 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/rfc9728), for example. This method is only called once, on gateway initialization. The endpoints are available on the gateway for GET requests at a custom path, and they return a static payload with custom headers.
     ///
@@ -115,7 +115,7 @@ pub fn register<T: AuthenticationExtension>() {
 
     impl<T: AuthenticationExtension> AnyExtension for Proxy<T> {
         fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
-            AuthenticationExtension::authenticate(&mut self.0, headers)
+            self.0.authenticate(&RequestContext, headers)
         }
 
         fn public_metadata(&mut self) -> Result<Vec<PublicMetadataEndpoint>, Error> {

@@ -5,7 +5,7 @@ pub mod hooks;
 pub mod resolver;
 
 pub use authentication::AuthenticationExtension;
-pub use authorization::{AuthorizationExtension, IntoQueryAuthorization};
+pub use authorization::AuthorizationExtension;
 pub use contracts::ContractsExtension;
 pub use hooks::HooksExtension;
 pub use resolver::{IntoSubscription, ResolverExtension, Subscription};

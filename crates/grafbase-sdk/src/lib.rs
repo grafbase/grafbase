@@ -17,8 +17,8 @@ mod wit;
 
 pub use component::SdkError;
 pub use extension::{
-    AuthenticationExtension, AuthorizationExtension, ContractsExtension, HooksExtension, IntoQueryAuthorization,
-    IntoSubscription, ResolverExtension, Subscription,
+    AuthenticationExtension, AuthorizationExtension, ContractsExtension, HooksExtension, IntoSubscription,
+    ResolverExtension, Subscription,
 };
 pub use grafbase_sdk_derive::{
     AuthenticationExtension, AuthorizationExtension, ContractsExtension, HooksExtension, ResolverExtension,

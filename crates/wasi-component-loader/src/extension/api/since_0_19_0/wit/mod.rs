@@ -1,7 +1,7 @@
 pub mod authentication_types;
 pub mod authorization_types;
 pub mod cache;
-pub mod contract_types;
+pub mod contracts_types;
 pub mod error;
 pub mod event_queue;
 pub mod event_types;

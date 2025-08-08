@@ -1,0 +1,28 @@
+interface authentication {
+    use authentication-types.{public-metadata-endpoint};
+    use headers.{headers};
+    use error.{error-response, error};
+    use token.{token};
+    use shared-context.{shared-context};
+
+    /// Authenticates a request using the provided headers.
+    ///
+    /// This function validates authentication credentials found in the request headers
+    /// and returns an authentication token if successful.
+    ///
+    /// # Parameters
+    /// - `headers`: Immutable HTTP headers
+    ///
+    /// # Returns
+    /// - `Ok(token)`: Authentication successful, returns a valid token
+    /// - `Err(error-response)`: Authentication failed, returns error details
+    authenticate: func(
+        context: shared-context,
+        headers: headers,
+    ) -> result<tuple<headers, token>, error-response>;
+
+    /// Define endpoints on the gateway that expose authentication related metadata. This can be used to implement [OAuth 2.0 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/rfc9728), for example.
+    ///
+    /// See the docs on [`public-metadata-endpoint`](public-metadata-endpoint) for details.
+    public-metadata: func() -> result<list<public-metadata-endpoint>, error>;
+}

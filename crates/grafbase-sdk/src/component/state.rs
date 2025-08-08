@@ -77,7 +77,6 @@ where
     res
 }
 
-#[allow(unused)]
 pub(crate) fn current_context() -> &'static wit::SharedContext {
     // SAFETY: We are in a single-threaded environment, this function is internal.
     unsafe { CONTEXT.as_ref().expect("Context not initialized") }

@@ -5,6 +5,7 @@ pub(crate) mod since_0_16_0;
 pub(crate) mod since_0_17_0;
 pub(crate) mod since_0_18_0;
 pub(crate) mod since_0_19_0;
+pub(crate) mod since_0_21_0;
 
 use std::sync::Arc;
 
@@ -16,11 +17,11 @@ use since_0_16_0::SdkPre0_16_0;
 use since_0_17_0::SdkPre0_17_0;
 use since_0_18_0::SdkPre0_18_0;
 use since_0_19_0::SdkPre0_19_0;
-pub use since_0_19_0::world as wit;
+use since_0_21_0::SdkPre0_21_0;
+pub use since_0_21_0::world as wit;
 
 use super::{ExtensionConfig, ExtensionInstance};
 use crate::InstanceState;
-use semver::Version;
 use wasmtime::component::{Component, Linker};
 
 pub(crate) enum SdkPre {
@@ -31,6 +32,7 @@ pub(crate) enum SdkPre {
     Since0_17_0(SdkPre0_17_0),
     Since0_18_0(SdkPre0_18_0),
     Since0_19_0(SdkPre0_19_0),
+    Since0_21_0(SdkPre0_21_0),
 }
 
 impl SdkPre {
@@ -40,29 +42,18 @@ impl SdkPre {
         component: Component,
         linker: Linker<InstanceState>,
     ) -> wasmtime::Result<SdkPre> {
-        Ok(match &config.sdk_version {
-            v if v < &Version::new(0, 10, 0) => {
+        Ok(match (config.sdk_version.major, config.sdk_version.minor) {
+            (0, ..10) => {
                 unimplemented!("SDK older than 0.10 are not supported anymore.")
             }
-            v if v < &Version::new(0, 14, 0) => {
-                SdkPre::Since0_10_0(SdkPre0_10_0::new(schema, config, component, linker)?)
-            }
-            v if v < &Version::new(0, 15, 0) => {
-                SdkPre::Since0_14_0(SdkPre0_14_0::new(schema, config, component, linker)?)
-            }
-            v if v < &Version::new(0, 16, 0) => {
-                SdkPre::Since0_15_0(SdkPre0_15_0::new(schema, config, component, linker)?)
-            }
-            v if v < &Version::new(0, 17, 0) => {
-                SdkPre::Since0_16_0(SdkPre0_16_0::new(schema, config, component, linker)?)
-            }
-            v if v < &Version::new(0, 18, 0) => {
-                SdkPre::Since0_17_0(SdkPre0_17_0::new(schema, config, component, linker)?)
-            }
-            v if v < &Version::new(0, 19, 0) => {
-                SdkPre::Since0_18_0(SdkPre0_18_0::new(schema, config, component, linker)?)
-            }
-            _ => SdkPre::Since0_19_0(SdkPre0_19_0::new(schema, config, component, linker)?),
+            (0, 10..14) => SdkPre::Since0_10_0(SdkPre0_10_0::new(schema, config, component, linker)?),
+            (0, 14) => SdkPre::Since0_14_0(SdkPre0_14_0::new(schema, config, component, linker)?),
+            (0, 15) => SdkPre::Since0_15_0(SdkPre0_15_0::new(schema, config, component, linker)?),
+            (0, 16) => SdkPre::Since0_16_0(SdkPre0_16_0::new(schema, config, component, linker)?),
+            (0, 17) => SdkPre::Since0_17_0(SdkPre0_17_0::new(schema, config, component, linker)?),
+            (0, 18) => SdkPre::Since0_18_0(SdkPre0_18_0::new(schema, config, component, linker)?),
+            (0, 19..21) => SdkPre::Since0_19_0(SdkPre0_19_0::new(schema, config, component, linker)?),
+            (0, 21) => SdkPre::Since0_21_0(SdkPre0_21_0::new(schema, config, component, linker)?),
         })
     }
 
@@ -75,6 +66,7 @@ impl SdkPre {
             SdkPre::Since0_17_0(sdk_pre) => sdk_pre.instantiate(state).await,
             SdkPre::Since0_18_0(sdk_pre) => sdk_pre.instantiate(state).await,
             SdkPre::Since0_19_0(sdk_pre) => sdk_pre.instantiate(state).await,
+            SdkPre::Since0_21_0(sdk_pre) => sdk_pre.instantiate(state).await,
         }
     }
 }
