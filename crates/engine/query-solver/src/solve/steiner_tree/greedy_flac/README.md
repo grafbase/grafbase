@@ -104,54 +104,9 @@ T1     T2        T3
   - Total: 5 units (edge capacity)
 - Root reached! Partial tree for T1 and T2 complete
 
-```
-        Root
-       /====\
-    $5/      \$8
-     /        \
-    A          B
-   /=\=         \
-$2/   \$3        \$7
- /     \          ↑
-T1     T2        T3
-                 (1/s)
-```
+**Step 5: Greed **
 
-**Step 5: Continue for T3 (t=7s)**
-
-- Edge (B→T3) saturates after 7 seconds
-- B starts flowing at 1 unit/second into (Root→B)
-
-```
-        Root
-       /====\
-    $5/      \$8
-     /        ↑
-    A        B(1/s)
-   /=\=        \=
-$2/   \$3       \$7
- /     \         \
-T1     T2        T3
-```
-
-**Step 6: Final Saturation (t=15s)**
-
-- Edge (Root→B) saturates after 8 more seconds (8 units to fill)
-- All terminals are now connected!
-
-```
-        Root
-       /====\====
-    $5/      \$8
-     /        \
-    A          B
-   /=\=         \=
-$2/   \$3        \$7
- /     \          \
-T1     T2         T3
-```
-
-**Final Tree Cost**: $5 + $2 + $3 + $8 + $7 = **$25**
+Once we found a partial tree, re-iterate with the FLAC algorithm as many times as necessary to include all terminals.
 
 ## Degenerate Flow Prevention
 
