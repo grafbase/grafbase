@@ -5,6 +5,7 @@
     cargo-make
     cargo-nextest
     cargo-insta
+    cargo-hakari
     git-cliff
 
     # TOML
