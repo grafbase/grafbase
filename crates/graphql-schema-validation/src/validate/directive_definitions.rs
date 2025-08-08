@@ -36,13 +36,13 @@ pub(crate) fn validate_directives<'a>(
 
     for directive in directives {
         let directive_name = directive.node.name.node.as_str();
-        if let Some(definition) = ctx.directive_names.get(directive_name) {
-            if !definition.node.locations.iter().any(|loc| loc.node == location) {
-                ctx.push_error(miette::miette!(
-                    "Directive @{directive_name} used at an invalid location: {:?}",
-                    location
-                ));
-            }
+        if let Some(definition) = ctx.directive_names.get(directive_name)
+            && !definition.node.locations.iter().any(|loc| loc.node == location)
+        {
+            ctx.push_error(miette::miette!(
+                "Directive @{directive_name} used at an invalid location: {:?}",
+                location
+            ));
         }
     }
 }

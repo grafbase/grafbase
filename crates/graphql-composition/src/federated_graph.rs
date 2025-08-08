@@ -297,15 +297,6 @@ pub const NO_FIELDS: Fields = Range {
     end: FieldId::const_from_usize(0),
 };
 
-pub type FieldSet = Vec<FieldSetItem>;
-
-#[derive(Clone, PartialEq, PartialOrd)]
-pub struct FieldSetItem {
-    pub field: FieldId,
-    pub arguments: Vec<(InputValueDefinitionId, Value)>,
-    pub subselection: FieldSet,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

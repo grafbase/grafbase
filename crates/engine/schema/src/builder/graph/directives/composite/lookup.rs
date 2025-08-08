@@ -176,10 +176,10 @@ fn detect_lookup_entity<'a, 'sdl>(
     };
     let mut candidates = Vec::new();
     for field in builder.graph[field_ids].iter() {
-        if let Some(entity_id) = field.ty_record.definition_id.as_entity() {
-            if possible_composite_entity_keys.contains_key(&(entity_id, subgraph_id)) {
-                candidates.push((field, entity_id));
-            }
+        if let Some(entity_id) = field.ty_record.definition_id.as_entity()
+            && possible_composite_entity_keys.contains_key(&(entity_id, subgraph_id))
+        {
+            candidates.push((field, entity_id));
         }
     }
     if let Some((namespace_field, entity_id)) = candidates.pop() {

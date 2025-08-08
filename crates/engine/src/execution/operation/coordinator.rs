@@ -200,10 +200,10 @@ where
                 Ok(response) => {
                     // Should never be None as we only wait for the futures if there is something
                     // to wait for.
-                    if let Some(response) = response {
-                        if responses.send(response).await.is_err() {
-                            return;
-                        }
+                    if let Some(response) = response
+                        && responses.send(response).await.is_err()
+                    {
+                        return;
                     }
                 }
                 Err(execution) => {

@@ -65,16 +65,6 @@ pub struct JoinUnionMemberDirective {
     pub object_id: ObjectId,
 }
 
-///```ignore,graphql
-/// directive @join__enumValue(
-///     graph: join__Graph!
-/// ) repeatable on ENUM_VALUE
-///```
-#[derive(Clone, PartialEq, PartialOrd, Debug)]
-pub struct JoinEnumValueDirective {
-    pub subgraph_id: SubgraphId,
-}
-
 /// ```ignore,graphql
 /// directive @join__graph(name: String!) on SCHEMA
 /// ```

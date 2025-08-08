@@ -103,7 +103,7 @@ impl Definition {
         }
     }
 
-    pub fn storage_type(&self) -> StorageType {
+    pub fn storage_type(&self) -> StorageType<'_> {
         match self {
             Definition::Scalar(scalar) => match scalar {
                 Scalar::Record {

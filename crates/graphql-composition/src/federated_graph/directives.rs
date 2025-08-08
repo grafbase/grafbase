@@ -66,7 +66,6 @@ pub enum Directive {
     },
     ListSize(ListSize),
 
-    #[expect(clippy::enum_variant_names)]
     ExtensionDirective(ExtensionDirective),
 }
 

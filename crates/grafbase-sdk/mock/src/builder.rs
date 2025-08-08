@@ -94,10 +94,10 @@ impl GraphqlSubgraphBuilder {
             match definition {
                 parser::Definition::Type(def) => {
                     let mut ty = convert_type(def, &mut field_resolvers);
-                    if def.name() == query_type {
-                        if let Some(entity_resolvers) = entity_resolvers.take() {
-                            ty = add_federation_fields(ty, &entities, entity_resolvers);
-                        }
+                    if def.name() == query_type
+                        && let Some(entity_resolvers) = entity_resolvers.take()
+                    {
+                        ty = add_federation_fields(ty, &entities, entity_resolvers);
                     }
                     builder = builder.register(ty);
                 }
@@ -108,8 +108,9 @@ impl GraphqlSubgraphBuilder {
             }
         }
 
-        if entity_resolvers.is_some() && !entities.is_empty() {
-            let entity_resolvers = entity_resolvers.unwrap();
+        if let Some(entity_resolvers) = entity_resolvers
+            && !entities.is_empty()
+        {
             builder = builder.register(add_federation_fields(
                 async_graphql::dynamic::Object::new("Query").into(),
                 &entities,

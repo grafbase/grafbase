@@ -186,15 +186,15 @@ impl SdlBuilder<'_> {
 
         // If we have fields, we need to include their arguments types and maybe their type
         // definitions.
-        if let Some(entity) = ty.as_entity() {
-            if self.content[&ty.id()].fields_subset.is_none() {
-                for field in entity.fields() {
-                    self.sites_by_depth[depth as usize].push(SiteTask {
-                        id: field.id.into(),
-                        score,
-                        interfaces: false,
-                    });
-                }
+        if let Some(entity) = ty.as_entity()
+            && self.content[&ty.id()].fields_subset.is_none()
+        {
+            for field in entity.fields() {
+                self.sites_by_depth[depth as usize].push(SiteTask {
+                    id: field.id.into(),
+                    score,
+                    interfaces: false,
+                });
             }
         }
     }
@@ -253,23 +253,23 @@ impl SdlBuilder<'_> {
             if let Some(entity_id) = type_id.as_entity() {
                 for field in schema.walk(entity_id).fields() {
                     let ty = field.ty().definition_id;
-                    if let Some(opt) = content.get(&ty) {
-                        if seen.insert(ty) {
+                    if let Some(opt) = content.get(&ty)
+                        && seen.insert(ty)
+                    {
+                        // We always include scalars, the agent cannot guess what they are
+                        // without their description.
+                        let score = if ty.is_scalar() { f32::INFINITY } else { opt.score };
+                        queue.push(ty, (OrderedFloat(score), ty));
+                    }
+                    for arg in field.arguments() {
+                        let ty = arg.ty().definition_id;
+                        if let Some(opt) = content.get(&ty)
+                            && seen.insert(ty)
+                        {
                             // We always include scalars, the agent cannot guess what they are
                             // without their description.
                             let score = if ty.is_scalar() { f32::INFINITY } else { opt.score };
                             queue.push(ty, (OrderedFloat(score), ty));
-                        }
-                    }
-                    for arg in field.arguments() {
-                        let ty = arg.ty().definition_id;
-                        if let Some(opt) = content.get(&ty) {
-                            if seen.insert(ty) {
-                                // We always include scalars, the agent cannot guess what they are
-                                // without their description.
-                                let score = if ty.is_scalar() { f32::INFINITY } else { opt.score };
-                                queue.push(ty, (OrderedFloat(score), ty));
-                            }
                         }
                     }
                 }
@@ -278,10 +278,10 @@ impl SdlBuilder<'_> {
             if let Some(composite_id) = type_id.as_composite_type().filter(|ty| !ty.is_object()) {
                 for id in schema.walk(composite_id).possible_type_ids() {
                     let ty = (*id).into();
-                    if let Some(opt) = content.get(&ty) {
-                        if seen.insert(ty) {
-                            queue.push(ty, (OrderedFloat(opt.score), ty));
-                        }
+                    if let Some(opt) = content.get(&ty)
+                        && seen.insert(ty)
+                    {
+                        queue.push(ty, (OrderedFloat(opt.score), ty));
                     }
                 }
             }

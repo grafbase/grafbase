@@ -118,18 +118,18 @@ where
             (status, state.into_response_part())
         };
 
-        if let Some(status) = status.filter(|s| s.is_success()) {
-            if let Some(cache_ttl) = calculate_cache_ttl(status, http_response.headers(), subgraph_default_cache_ttl) {
-                let cache = ctx.runtime().entity_cache();
-                join_all(cache_updates.into_iter().map(|(key, value)| async move {
-                    cache
-                        .put(&key, Cow::Borrowed(value.get().as_bytes()), cache_ttl)
-                        .await
-                        .inspect_err(|err| tracing::warn!("Failed to write the cache key {key}: {err}"))
-                        .ok();
-                }))
-                .await;
-            }
+        if let Some(status) = status.filter(|s| s.is_success())
+            && let Some(cache_ttl) = calculate_cache_ttl(status, http_response.headers(), subgraph_default_cache_ttl)
+        {
+            let cache = ctx.runtime().entity_cache();
+            join_all(cache_updates.into_iter().map(|(key, value)| async move {
+                cache
+                    .put(&key, Cow::Borrowed(value.get().as_bytes()), cache_ttl)
+                    .await
+                    .inspect_err(|err| tracing::warn!("Failed to write the cache key {key}: {err}"))
+                    .ok();
+            }))
+            .await;
         }
         (status, response_part)
     }

@@ -8,7 +8,6 @@ mod dev;
 mod extension;
 mod federated_graph;
 mod graph_ref;
-mod graph_ref_no_branch;
 mod introspect;
 mod lint;
 mod login;

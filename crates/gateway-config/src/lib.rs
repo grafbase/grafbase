@@ -243,10 +243,10 @@ impl Config {
         let parent = self.parent_dir_path()?.to_path_buf();
 
         for subgraph in self.subgraphs.values_mut() {
-            if let Some(schema_path) = &mut subgraph.schema_path {
-                if schema_path.is_relative() {
-                    *schema_path = parent.join(&schema_path);
-                }
+            if let Some(schema_path) = &mut subgraph.schema_path
+                && schema_path.is_relative()
+            {
+                *schema_path = parent.join(&schema_path);
             }
         }
 
@@ -254,19 +254,18 @@ impl Config {
             let ExtensionConfig::Structured(ext) = extension else {
                 continue;
             };
-            if let Some(path) = &mut ext.path {
-                if path.is_relative() {
-                    *path = parent.join(&path);
-                }
+            if let Some(path) = &mut ext.path
+                && path.is_relative()
+            {
+                *path = parent.join(&path);
             }
         }
 
-        if let Some(wasm) = &mut self.wasm {
-            if let Some(dir) = &mut wasm.cache_path {
-                if dir.is_relative() {
-                    *dir = parent.join(&dir);
-                }
-            }
+        if let Some(wasm) = &mut self.wasm
+            && let Some(dir) = &mut wasm.cache_path
+            && dir.is_relative()
+        {
+            *dir = parent.join(&dir);
         }
 
         Some(self)

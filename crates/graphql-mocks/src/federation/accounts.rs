@@ -70,13 +70,6 @@ struct User {
     joined_timestamp: u64,
 }
 
-#[derive(Clone, async_graphql::Interface)]
-#[graphql(field(name = "id", ty = "&ID"), field(name = "joined_timestamp", ty = "&u64"))]
-enum Account {
-    User(User),
-    BusinessAccount(BusinessAccount),
-}
-
 impl User {
     fn me() -> User {
         User {

@@ -37,14 +37,13 @@ pub(crate) fn generate_crude_solved_query(
                     id: query_field_id,
                     flags,
                 }) = query.graph[edge.target()]
+                    && query[query_field_id].definition_id.is_none()
                 {
-                    if query[query_field_id].definition_id.is_none() {
-                        let typename_field_ix = graph.add_node(Node::Field {
-                            id: query_field_id,
-                            flags,
-                        });
-                        graph.add_edge(root_node_ix, typename_field_ix, Edge::Field);
-                    }
+                    let typename_field_ix = graph.add_node(Node::Field {
+                        id: query_field_id,
+                        flags,
+                    });
+                    graph.add_edge(root_node_ix, typename_field_ix, Edge::Field);
                 }
             }
             _ => (),
@@ -235,14 +234,13 @@ pub(crate) fn generate_crude_solved_query(
                                 id: query_field_id,
                                 flags,
                             }) = query.graph[edge.target()]
+                                && query[query_field_id].definition_id.is_none()
                             {
-                                if query[query_field_id].definition_id.is_none() {
-                                    let typename_field_ix = graph.add_node(Node::Field {
-                                        id: query_field_id,
-                                        flags,
-                                    });
-                                    graph.add_edge(field_node_ix, typename_field_ix, Edge::Field);
-                                }
+                                let typename_field_ix = graph.add_node(Node::Field {
+                                    id: query_field_id,
+                                    flags,
+                                });
+                                graph.add_edge(field_node_ix, typename_field_ix, Edge::Field);
                             }
                         }
                         _ => (),

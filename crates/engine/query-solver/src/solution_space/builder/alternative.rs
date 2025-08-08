@@ -255,19 +255,18 @@ where
         if let Some(interface) = parent_output
             .as_interface()
             .filter(|inf| implemented_interfaces.contains(&inf.id))
+            && let Some(interface_field_definition) = interface.find_field_by_name(field_definition.name())
         {
-            if let Some(interface_field_definition) = interface.find_field_by_name(field_definition.name()) {
-                // FIXME: Should not keep field if the interface field is already present.
-                self.query[existing_query_field_id].definition_id = Some(interface_field_definition.id);
+            // FIXME: Should not keep field if the interface field is already present.
+            self.query[existing_query_field_id].definition_id = Some(interface_field_definition.id);
 
-                if self.could_provide_new_field(
-                    parent_query_field_node_ix,
-                    parent_output.id(),
-                    existing_query_field_node_ix,
-                    existing_query_field_id,
-                ) {
-                    return true;
-                }
+            if self.could_provide_new_field(
+                parent_query_field_node_ix,
+                parent_output.id(),
+                existing_query_field_node_ix,
+                existing_query_field_id,
+            ) {
+                return true;
             }
         }
 

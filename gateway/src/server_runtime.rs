@@ -13,10 +13,10 @@ impl federated_server::ServerRuntime for LambdaRuntime {
         // the next wake-up.
         //
         // read more: https://github.com/open-telemetry/opentelemetry-lambda/blob/main/docs/design_proposal.md
-        if let Some(ref tracer_provider) = self.telemetry.tracer {
-            if let Err(e) = tracer_provider.force_flush() {
-                println!("error flushing events: {e}");
-            }
+        if let Some(ref tracer_provider) = self.telemetry.tracer
+            && let Err(e) = tracer_provider.force_flush()
+        {
+            println!("error flushing events: {e}");
         }
     }
 }
