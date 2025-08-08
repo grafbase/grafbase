@@ -1,4 +1,3 @@
-
 { pkgs, ... }:
 {
   packages = with pkgs; [
@@ -6,6 +5,7 @@
     cargo-make
     cargo-nextest
     cargo-insta
+    git-cliff
 
     # TOML
     taplo
