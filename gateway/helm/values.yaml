@@ -131,6 +131,9 @@ tolerations: []
 # https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
 affinity: {}
 
+defaultAffinity:
+  enabled: false
+
 # Configmap that will be mounted as env vars
 # https://kubernetes.io/docs/concepts/configuration/configmap/
 configmap:

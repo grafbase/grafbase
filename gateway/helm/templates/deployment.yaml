@@ -114,9 +114,24 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
+      {{- if or .Values.affinity .Values.defaultAffinity.enabled }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+        {{- if .Values.affinity }}
+        {{- toYaml .Values.affinity | nindent 8 }}
+        {{- end }}
+        {{- if .Values.defaultAffinity.enabled }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ include "app.name" . }}
+                topologyKey: kubernetes.io/hostname
+        {{- end }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
