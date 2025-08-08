@@ -1,4 +1,7 @@
-use std::hash::{BuildHasher, Hash};
+use std::{
+    hash::{BuildHasher, Hash},
+    ops::ControlFlow,
+};
 
 use ::operation::Operation;
 use fixedbitset::FixedBitSet;
@@ -109,7 +112,7 @@ where
         };
 
         solver.populate_requirement_metadata()?;
-        solver.cost_fixed_point_iteration()?;
+        let _ = solver.cost_fixed_point_iteration()?;
 
         tracing::debug!("Solver populated:\n{}", solver.to_pretty_dot_graph());
 
@@ -124,9 +127,9 @@ where
     /// Solves the Steiner tree problem for the resolvers of our operation graph.
     pub fn execute(&mut self) -> crate::Result<()> {
         loop {
-            let flow = self.algorithm.continue_steiner_tree_growth();
-            let added_new_terminals = self.cost_fixed_point_iteration()?;
-            if flow.is_break() && !added_new_terminals {
+            let growth = self.algorithm.continue_steiner_tree_growth();
+            let cost_update = self.cost_fixed_point_iteration()?;
+            if growth.is_break() && cost_update.is_break() {
                 break;
             }
             tracing::trace!("Solver step:\n{}", self.to_pretty_dot_graph());
@@ -324,7 +327,7 @@ where
     /// Updates the cost of edges based on the requirements of the nodes.
     /// We iterate until cost becomes stable or we exhausted the maximum number of iterations which
     /// likely indicates a requirement cycle.
-    fn cost_fixed_point_iteration(&mut self) -> crate::Result<bool> {
+    fn cost_fixed_point_iteration(&mut self) -> crate::Result<ControlFlow<()>> {
         debug_assert!(self.tmp_extra_terminals.is_empty());
         let mut i = 0;
         loop {
@@ -352,7 +355,12 @@ where
         self.tmp_extra_terminals.sort_unstable();
         self.algorithm
             .extend_terminals(self.tmp_extra_terminals.drain(..).dedup());
-        Ok(new_terminals)
+
+        Ok(if new_terminals {
+            ControlFlow::Continue(())
+        } else {
+            ControlFlow::Break(())
+        })
     }
 
     /// For all edges with dispensable requirements, we estimate the cost of the extra requirements

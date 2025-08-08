@@ -47,13 +47,13 @@ pub(super) struct Flac {
     pub steiner_tree_edges: FixedBitSet,
     pub weights: Vec<Cost>,
     pub total_cost: Cost,
+    pub terminals: Vec<NodeIndex>,
     // Algorithm state
     saturated_edges: FixedBitSet,
     marked_or_saturated_edges: FixedBitSet,
     root_feeding_terminals: FixedBitSet,
     node_to_feeding_terminals: Vec<FixedBitSet>,
     node_to_flow_rates: Vec<FlowRate>,
-    terminals: Vec<NodeIndex>,
     // Run state, re-used across each run
     time: Time,
     heap: PriorityQueue<EdgeIndex, Priority>,
@@ -155,7 +155,11 @@ where
         // last run.
         let n_terminals = self.state.terminals.len();
         self.state.root_feeding_terminals.grow(n_terminals);
-        debug_assert!(!self.root_feeding_terminals.is_full(), "No missing terminals?");
+        // Can happen if we extend the terminals with nodes that are already part of the steiner
+        // tree.
+        if self.root_feeding_terminals.is_full() {
+            return ControlFlow::Break(());
+        }
         for ix in self.state.root_feeding_terminals.zeroes() {
             let terminal = self.state.terminals[ix];
             if let Some(edge) = self.find_next_edge_in_T_minus(terminal) {
