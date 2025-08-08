@@ -20,6 +20,7 @@ accepted = [
     # https://cdla.dev/permissive-2-0/
     "CDLA-Permissive-2.0",
 ]
+ignore-dev-dependencies = true
 
 targets = [
     "aarch64-apple-darwin",
