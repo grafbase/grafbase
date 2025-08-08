@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/abstract_types.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Product.id\", color=forestgreen ]\n    2 [ label = \"Agency.id\", color=forestgreen ]\n    3 [ label = \"Agency.companyName\", color=forestgreen ]\n    4 [ label = \"Self.email\", color=forestgreen ]\n    5 [ label = \"Agency.id\", color=forestgreen ]\n    6 [ label = \"Agency.companyName\", color=forestgreen ]\n    7 [ label = \"Self.email\", color=forestgreen ]\n    8 [ label = \"Root#products\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    9 [ label = \"products#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    10 [ label = \"id#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    11 [ label = \"publisherType#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    12 [ label = \"id#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    13 [ label = \"FedEntity#agency\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    14 [ label = \"companyName#agency\", shape=box, color=dodgerblue, color=forestgreen ]\n    15 [ label = \"email#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    16 [ label = \"publisherType#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    17 [ label = \"id#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    18 [ label = \"FedEntity#agency\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    19 [ label = \"companyName#agency\", shape=box, color=dodgerblue, color=forestgreen ]\n    20 [ label = \"email#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    21 [ label=\"\", style=dashed]\n    0 -> 8 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    8 -> 9 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    9 -> 10 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    10 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    9 -> 11 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    11 -> 12 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    12 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    11 -> 13 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    13 -> 14 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    14 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    11 -> 15 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    15 -> 4 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    9 -> 16 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    16 -> 17 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    17 -> 5 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    16 -> 18 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    18 -> 19 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    19 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    16 -> 20 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    20 -> 7 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    21 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Product.id\", color=forestgreen ]\n    2 [ label = \"Agency.id\", color=forestgreen ]\n    3 [ label = \"Agency.companyName\", color=forestgreen ]\n    4 [ label = \"Self.email\", color=forestgreen ]\n    5 [ label = \"Agency.id\", color=forestgreen ]\n    6 [ label = \"Agency.companyName\", color=forestgreen ]\n    7 [ label = \"Self.email\", color=forestgreen ]\n    8 [ label = \"Root#products\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    9 [ label = \"products#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    10 [ label = \"id#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    11 [ label = \"publisherType#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    12 [ label = \"id#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    13 [ label = \"FedEntity#agency\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    14 [ label = \"companyName#agency\", shape=box, color=dodgerblue, color=forestgreen ]\n    15 [ label = \"email#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    16 [ label = \"publisherType#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    17 [ label = \"id#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    18 [ label = \"FedEntity#agency\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    19 [ label = \"companyName#agency\", shape=box, color=dodgerblue, color=forestgreen ]\n    20 [ label = \"email#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    21 [ label=\"\", style=dashed]\n    0 -> 8 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    8 -> 9 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    9 -> 10 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    10 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    9 -> 11 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    11 -> 12 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    12 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    11 -> 13 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    13 -> 14 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    14 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    11 -> 15 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    15 -> 4 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    9 -> 16 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    16 -> 17 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    17 -> 5 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    16 -> 18 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    18 -> 19 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    19 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    16 -> 20 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    20 -> 7 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    21 -> 0 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
@@ -25,14 +25,14 @@ digraph {
     19 [ label = "companyName#agency", steiner=1 ]
     20 [ label = "email#products", steiner=1 ]
     21 [ label="", style=dashed]
-    0 -> 8 [ cost=0, steiner=1]
+    0 -> 8 [ cost=1, steiner=1]
     8 -> 9 [ cost=0, steiner=1]
     9 -> 10 [ cost=0, steiner=1]
     10 -> 1 [ cost=0, steiner=1]
     9 -> 11 [ cost=0, steiner=1]
     11 -> 12 [ cost=0, steiner=1]
     12 -> 2 [ cost=0, steiner=1]
-    11 -> 13 [ cost=0, steiner=1]
+    11 -> 13 [ cost=1, steiner=1]
     13 -> 14 [ cost=0, steiner=1]
     14 -> 3 [ cost=0, steiner=1]
     11 -> 15 [ cost=0, steiner=1]
@@ -40,10 +40,10 @@ digraph {
     9 -> 16 [ cost=0, steiner=1]
     16 -> 17 [ cost=0, steiner=1]
     17 -> 5 [ cost=0, steiner=1]
-    16 -> 18 [ cost=0, steiner=1]
+    16 -> 18 [ cost=1, steiner=1]
     18 -> 19 [ cost=0, steiner=1]
     19 -> 6 [ cost=0, steiner=1]
     16 -> 20 [ cost=0, steiner=1]
     20 -> 7 [ cost=0, steiner=1]
-    21 -> 0 [ cost=0, steiner=0]
+    21 -> 0 [ cost=0, steiner=1]
 }

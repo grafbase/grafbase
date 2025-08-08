@@ -21,7 +21,7 @@ use super::{SteinerContext, SteinerGraph};
 pub(crate) struct GreedyFlacAlgorithm<QG: GraphBase, G: Data<EdgeWeight = Cost>> {
     ctx: SteinerContext<QG, G>,
     flac: flac::Flac,
-    cost_estimerator: Option<CostEstimator<G>>,
+    cost_estimerator: Option<flac::Flac>,
     has_updated_cost: bool,
 }
 
@@ -93,8 +93,8 @@ where
         // FIXME: drop weights from the graph?
         let old = std::mem::replace(&mut self.ctx.graph[edge_ix], cost);
         self.flac.weights[edge_ix.index()] = cost;
-        if let Some(estimator) = self.cost_estimerator.as_mut() {
-            estimator.flac.weights[edge_ix.index()] = cost;
+        if let Some(flac) = self.cost_estimerator.as_mut() {
+            flac.weights[edge_ix.index()] = cost;
         }
         self.has_updated_cost |= old != cost;
     }
@@ -115,50 +115,34 @@ where
 
     pub(crate) fn estimate_extra_cost(
         &mut self,
-        zero_cost_edges: &[QG::EdgeId],
+        steiner_tree_edges: &[QG::EdgeId],
         extra_terminals: &[QG::NodeId],
     ) -> Cost {
-        let CostEstimator {
-            mut flac,
-            mut cost_backup,
-        } = match self.cost_estimerator.take() {
-            Some(mut estimator) => {
-                estimator.flac.reset();
-                estimator
-                    .flac
-                    .steiner_tree_nodes
-                    .clone_from(&self.flac.steiner_tree_nodes);
-                estimator
-                    .flac
-                    .steiner_tree_edges
-                    .clone_from(&self.flac.steiner_tree_edges);
-                estimator
+        let mut flac = match self.cost_estimerator.take() {
+            Some(mut flac) => {
+                flac.reset();
+                flac.steiner_tree_nodes.clone_from(&self.flac.steiner_tree_nodes);
+                flac.steiner_tree_edges.clone_from(&self.flac.steiner_tree_edges);
+                flac
             }
             None => {
                 let mut flac = flac::Flac::new(&self.ctx.graph, Vec::new(), self.flac.steiner_tree_nodes.clone());
                 flac.steiner_tree_edges.clone_from(&self.flac.steiner_tree_edges);
-                CostEstimator {
-                    flac,
-                    cost_backup: Vec::new(),
-                }
+                flac
             }
         };
 
-        for edge_id in zero_cost_edges {
+        for edge_id in steiner_tree_edges {
             let edge_ix = self.ctx.to_edge_ix(*edge_id);
-            let edge_cost = &mut flac.weights[edge_ix.index()];
-            cost_backup.push((edge_ix, *edge_cost));
-            *edge_cost = 0;
+            flac.steiner_tree_edges.insert(edge_ix.index());
+            let (src, dst) = self.ctx.graph.edge_endpoints(edge_ix).unwrap();
+            flac.steiner_tree_nodes.insert(dst.index());
         }
 
         flac.extend_terminals(extra_terminals.iter().map(|node| self.ctx.to_node_ix(*node)));
         let extra_cost = flac.greedy_run(&self.ctx.graph);
 
-        for (edge_ix, cost) in cost_backup.iter() {
-            flac.weights[edge_ix.index()] = *cost;
-        }
-
-        self.cost_estimerator = Some(CostEstimator { flac, cost_backup });
+        self.cost_estimerator = Some(flac);
         extra_cost
     }
 
@@ -178,9 +162,4 @@ where
     pub(crate) fn total_cost(&self) -> Cost {
         self.flac.total_cost
     }
-}
-
-struct CostEstimator<G: GraphBase> {
-    flac: flac::Flac,
-    cost_backup: Vec<(G::EdgeId, Cost)>,
 }

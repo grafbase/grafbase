@@ -292,9 +292,9 @@ where
             // This will at least include the ProvidableField & Resolver that led to the
             // parent. As we'll necessarily take them for this particular edge, they'll be set
             // to 0 cost while estimating the requirement cost.
-            let zero_cost_parent_edge_ids =
+            let unavoidable_parent_edge_ids =
                 self.dispensable_requirements_metadata
-                    .extend_zero_cost_parent_edges(std::iter::from_fn(|| {
+                    .extend_unavoidable_parent_edges(std::iter::from_fn(|| {
                         let mut grand_parents = self
                             .query_solution_space
                             .graph
@@ -315,7 +315,7 @@ where
             self.dispensable_requirements_metadata
                 .maybe_costly_requirements
                 .push(DispensableRequirements {
-                    zero_cost_parent_edge_ids,
+                    unavoidable_parent_edge_ids,
                     extra_required_node_ids,
                     incoming_edge_and_cost_ids,
                 });
@@ -386,7 +386,7 @@ where
         i = 0;
         while let Some(DispensableRequirements {
             extra_required_node_ids,
-            zero_cost_parent_edge_ids,
+            unavoidable_parent_edge_ids,
             incoming_edge_and_cost_ids,
         }) = self
             .dispensable_requirements_metadata
@@ -413,7 +413,7 @@ where
             }
 
             let extra_cost = self.algorithm.estimate_extra_cost(
-                &self.dispensable_requirements_metadata[zero_cost_parent_edge_ids],
+                &self.dispensable_requirements_metadata[unavoidable_parent_edge_ids],
                 &self.dispensable_requirements_metadata[extra_required_node_ids],
             );
 
@@ -488,7 +488,7 @@ impl std::fmt::Debug for Solver<'_, '_, '_> {
 struct ExtraRequiredNodeId(u32);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
-struct ZeroCostParentEdgeId(u32);
+struct UnavoidableParentEdgeId(u32);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
 struct IncomingEdgeAndCostId(u32);
@@ -499,8 +499,8 @@ struct DispensableRequirementsMetadata {
     maybe_costly_requirements: Vec<DispensableRequirements>,
     #[indexed_by(ExtraRequiredNodeId)]
     extra_required_nodes: Vec<NodeIndex>,
-    #[indexed_by(ZeroCostParentEdgeId)]
-    zero_cost_parent_edges: Vec<EdgeIndex>,
+    #[indexed_by(UnavoidableParentEdgeId)]
+    unavoidable_parent_edges: Vec<EdgeIndex>,
     #[indexed_by(IncomingEdgeAndCostId)]
     incoming_edges_and_cost: Vec<(EdgeIndex, Cost)>,
     independent_cost: Option<bool>,
@@ -508,7 +508,7 @@ struct DispensableRequirementsMetadata {
 
 #[derive(Clone, Copy)]
 struct DispensableRequirements {
-    zero_cost_parent_edge_ids: IdRange<ZeroCostParentEdgeId>,
+    unavoidable_parent_edge_ids: IdRange<UnavoidableParentEdgeId>,
     extra_required_node_ids: IdRange<ExtraRequiredNodeId>,
     incoming_edge_and_cost_ids: IdRange<IncomingEdgeAndCostId>,
 }
@@ -523,13 +523,13 @@ impl DispensableRequirementsMetadata {
         IdRange::from(start..self.extra_required_nodes.len())
     }
 
-    fn extend_zero_cost_parent_edges(
+    fn extend_unavoidable_parent_edges(
         &mut self,
         edges: impl IntoIterator<Item = EdgeIndex>,
-    ) -> IdRange<ZeroCostParentEdgeId> {
-        let start = self.zero_cost_parent_edges.len();
-        self.zero_cost_parent_edges.extend(edges);
-        IdRange::from(start..self.zero_cost_parent_edges.len())
+    ) -> IdRange<UnavoidableParentEdgeId> {
+        let start = self.unavoidable_parent_edges.len();
+        self.unavoidable_parent_edges.extend(edges);
+        IdRange::from(start..self.unavoidable_parent_edges.len())
     }
 
     fn extend_incoming_edges_and_cost(
