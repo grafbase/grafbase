@@ -199,11 +199,13 @@ where
                 );
 
                 self.state.root_feeding_terminals.union_with(new_feeding_terminals);
-                let is_finished = self.root_feeding_terminals.is_full();
 
                 self.total_cost += self.graph[edge];
                 self.steiner_tree_edges.insert(edge.index());
 
+                // We traverse in the opposite direction to FLAC as not all saturated edges from
+                // the terminals lead to anywhere useful. The algorithm stops at the first path
+                // that leads to an existing node of the Steiner Tree.
                 debug_assert!(self.stack.is_empty());
                 self.stack.push(v);
                 while let Some(node) = self.stack.pop() {
@@ -217,7 +219,7 @@ where
                     }
                 }
 
-                return if is_finished {
+                return if self.root_feeding_terminals.is_full() {
                     ControlFlow::Break(())
                 } else {
                     ControlFlow::Continue(())
@@ -741,7 +743,9 @@ mod tests {
         let total_cost = flac.greedy_run(&graph);
         assert_eq!(
             total_cost,
-            105, // Optimal: root->a->t2 (3), root->b->c->t1 (102), root->b->t3 (102 already counted + 2 = 2)
+            // Optimal: root->a->t2 (3), root->b->c->t1 (102), root->b->t3 (102 already counted + 2 = 2)
+            // But GreedyFLAC doesn't take the optimal path.
+            156,
             "\n{}",
             debug_graph(&graph, &mut flac)
         );
@@ -749,12 +753,12 @@ mod tests {
         // The algorithm should prefer the cheaper paths
         insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
         digraph {
-          root -> a
+          a -> c
           a -> t2
-          root -> b
-          b -> c
-          c -> t1
           b -> t3
+          c -> t1
+          root -> a
+          root -> b
         }
         ");
     }

@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/introspection.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"__Type.name\", style=dashed ]\n    2 [ label = \"Introspection\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    3 [ label = \"__schema#introspection\", shape=box, color=dodgerblue, style=dashed ]\n    4 [ label = \"queryType#introspection\", shape=box, color=dodgerblue, style=dashed ]\n    5 [ label = \"name#introspection\", shape=box, color=dodgerblue, style=dashed ]\n    6 [ label=\"\", style=dashed]\n    0 -> 2 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"__Type.name\", style=dashed ]\n    2 [ label = \"Introspection\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    3 [ label = \"__schema#introspection\", shape=box, color=dodgerblue, style=dashed ]\n    4 [ label = \"queryType#introspection\", shape=box, color=dodgerblue, style=dashed ]\n    5 [ label = \"name#introspection\", shape=box, color=dodgerblue, style=dashed ]\n    6 [ label=\"\", style=dashed]\n    0 -> 2 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 0 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
@@ -15,5 +15,5 @@ digraph {
     3 -> 4 [ cost=0, steiner=0]
     4 -> 5 [ cost=0, steiner=0]
     5 -> 1 [ cost=0, steiner=0]
-    6 -> 0 [ cost=0, steiner=0]
+    6 -> 0 [ cost=0, steiner=1]
 }
