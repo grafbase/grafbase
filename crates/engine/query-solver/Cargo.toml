@@ -36,7 +36,6 @@ ctor.workspace = true
 dot-parser.workspace = true
 extension-catalog.workspace = true
 insta.workspace = true
-petgraph = { workspace = true, features = ["dot_parser"] }
 pretty_assertions.workspace = true
 serde_json.workspace = true
 similar.workspace = true

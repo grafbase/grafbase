@@ -263,11 +263,11 @@ where
         {
             self.tmp.terminals_buffer.clear();
             return 0;
-        } else if let [terminal_ix] = self.tmp.terminals_buffer[..] {
-            if zero_cost_edges.is_empty() {
-                self.tmp.terminals_buffer.clear();
-                return self.steiner_tree.node_addition_cost(terminal_ix);
-            }
+        } else if let [terminal_ix] = self.tmp.terminals_buffer[..]
+            && zero_cost_edges.is_empty()
+        {
+            self.tmp.terminals_buffer.clear();
+            return self.steiner_tree.node_addition_cost(terminal_ix);
         }
 
         debug_assert!(self.tmp.lowered_cost_nodes.is_empty() && self.tmp.cost_backup.is_empty());
