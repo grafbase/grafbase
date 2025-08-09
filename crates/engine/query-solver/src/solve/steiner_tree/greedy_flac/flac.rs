@@ -460,33 +460,40 @@ mod tests {
     use pretty_assertions::assert_eq;
     use std::collections::HashMap;
 
-    use petgraph::{Graph, dot::dot_parser::ParseFromDot, graph::NodeIndex};
+    use petgraph::{Graph, graph::NodeIndex};
 
     use crate::Cost;
 
     fn dot_graph(dot: &'static str) -> (Graph<String, Cost>, HashMap<String, NodeIndex>) {
-        let g: Graph<_, _> = ParseFromDot::from_dot_graph(dot_parser::ast::Graph::try_from(dot).unwrap());
+        let dot_graph: dot_parser::canonical::Graph<(&'static str, &'static str)> =
+            dot_parser::ast::Graph::try_from(dot).unwrap().into();
+        let node_number = dot_graph.nodes.set.len();
+        let edge_number = dot_graph.edges.set.len();
+        let mut graph = Graph::with_capacity(node_number, edge_number);
         let mut nodes = HashMap::new();
-        let steiner_graph = g.map(
-            |idx, node| {
-                nodes.insert(node.id.to_string(), idx);
-                node.id.to_string()
-            },
-            |_, attrs| {
-                attrs
-                    .elems
-                    .iter()
-                    .find_map(|(name, value)| {
-                        if *name == "cost" {
-                            value.parse::<Cost>().ok()
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap_or_default()
-            },
-        );
-        (steiner_graph, nodes)
+        for (node, attrs) in dot_graph.nodes.set {
+            let id = graph.add_node(attrs.id);
+            nodes.insert(node, id);
+        }
+        for edge in dot_graph.edges.set {
+            let from_ni = nodes.get(&edge.from).unwrap();
+            let to_ni = nodes.get(&edge.to).unwrap();
+            let cost = edge
+                .attr
+                .elems
+                .iter()
+                .find_map(|(name, value)| {
+                    if *name == "cost" {
+                        value.parse::<Cost>().ok()
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_default();
+            graph.add_edge(*from_ni, *to_ni, cost);
+        }
+
+        (graph, nodes)
     }
 
     fn to_dot_graph(graph: &Graph<String, Cost>, flac: &Flac) -> String {

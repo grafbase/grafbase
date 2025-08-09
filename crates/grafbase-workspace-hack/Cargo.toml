@@ -46,7 +46,6 @@ cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.4", default-features = false, features = ["powerfmt", "serde", "std"] }
 digest = { version = "0.10", features = ["mac", "oid", "std"] }
-dot-parser = { version = "0.5", features = ["to_tokens"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "signing", "std", "verifying"] }
 ed25519 = { version = "2", default-features = false, features = ["pem", "std"] }
 ed25519-compact = { version = "2" }
@@ -92,7 +91,6 @@ once_cell = { version = "1" }
 p256 = { version = "0.13", features = ["jwk"] }
 p384 = { version = "0.13", features = ["jwk"] }
 percent-encoding = { version = "2" }
-petgraph = { version = "0.8", features = ["dot_parser"] }
 pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
 portable-atomic = { version = "1", features = ["require-cas"] }
@@ -180,7 +178,6 @@ cynic-parser = { version = "0.9", features = ["pretty", "report"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.4", default-features = false, features = ["powerfmt", "serde", "std"] }
 digest = { version = "0.10", features = ["mac", "oid", "std"] }
-dot-parser = { version = "0.5", features = ["to_tokens"] }
 ecdsa = { version = "0.16", default-features = false, features = ["pem", "signing", "std", "verifying"] }
 ed25519 = { version = "2", default-features = false, features = ["pem", "std"] }
 ed25519-compact = { version = "2" }
@@ -212,7 +209,6 @@ hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "ser
 indexmap = { version = "2", features = ["serde"] }
 insta = { version = "1", features = ["glob", "json", "redactions", "yaml"] }
 lazy_static = { version = "1", default-features = false, features = ["spin_no_std"] }
-litrs = { version = "0.4" }
 log = { version = "0.4", default-features = false, features = ["kv_unstable", "std"] }
 lz4_flex = { version = "0.11", default-features = false, features = ["std"] }
 memchr = { version = "2" }
@@ -227,7 +223,6 @@ once_cell = { version = "1" }
 p256 = { version = "0.13", features = ["jwk"] }
 p384 = { version = "0.13", features = ["jwk"] }
 percent-encoding = { version = "2" }
-petgraph = { version = "0.8", features = ["dot_parser"] }
 pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
 portable-atomic = { version = "1", features = ["require-cas"] }
