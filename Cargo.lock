@@ -4192,7 +4192,6 @@ dependencies = [
  "bytes",
  "cc",
  "chrono",
- "ciborium",
  "clap",
  "clap_builder",
  "combine",
@@ -4253,15 +4252,12 @@ dependencies = [
  "minicbor-serde 0.5.0",
  "miniz_oxide",
  "mio 1.0.4",
- "num-bigint-dig",
- "num-integer",
  "num-traits",
  "object",
  "once_cell",
  "p256",
  "p384",
  "percent-encoding",
- "pkcs1",
  "pkcs8",
  "portable-atomic",
  "proc-macro2",
@@ -4270,13 +4266,11 @@ dependencies = [
  "quote",
  "rand 0.8.5",
  "rand 0.9.2",
- "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "regex",
  "regex-automata 0.4.9",
  "regex-syntax 0.8.5",
  "reqwest 0.12.22",
- "rsa",
  "rustix 0.38.44",
  "rustix 1.0.8",
  "rustls 0.23.29",
@@ -12491,20 +12485,6 @@ name = "zeroize"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
-dependencies = [
- "zeroize_derive",
-]
-
-[[package]]
-name = "zeroize_derive"
-version = "1.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.104",
-]
 
 [[package]]
 name = "zerotrie"
