@@ -1,8 +1,5 @@
 use grafbase_telemetry::grafbase_client::Client;
-use runtime::{
-    authentication::LegacyToken,
-    extension::{AuthorizationExtension, EngineExtensions},
-};
+use runtime::extension::{AuthorizationExtension, EngineExtensions, Token};
 
 use crate::{
     Runtime,
@@ -29,7 +26,7 @@ pub(crate) struct RequestContext<ExtensionContext> {
     pub websocket_init_payload: Option<serde_json::Map<String, serde_json::Value>>,
     pub response_format: ResponseFormat,
     pub client: Option<Client>,
-    pub token: LegacyToken,
+    pub token: Token,
     pub subgraph_default_headers: http::HeaderMap,
     pub include_grafbase_response_extension: bool,
     pub include_mcp_response_extension: bool,

@@ -41,12 +41,6 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
             // Now we can execute the hook and propagate any errors.
             match response_modifier.rule {
-                ResponseModifierRule::AuthorizedParentEdge { .. } => {
-                    unreachable!("maybe we can delete the whole variant at some point?")
-                }
-                ResponseModifierRule::AuthorizedEdgeChild { .. } => {
-                    unreachable!("maybe we can delete the whole variant at some point?")
-                }
                 ResponseModifierRule::Extension {
                     directive_id,
                     target:

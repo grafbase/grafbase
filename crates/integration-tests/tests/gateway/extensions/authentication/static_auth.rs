@@ -6,11 +6,11 @@ use integration_tests::{
     gateway::{AuthenticationExt, AuthenticationTestExtension, Gateway},
     runtime,
 };
-use runtime::{authentication::PublicMetadataEndpoint, extension::Token};
+use runtime::extension::{PublicMetadataEndpoint, Token};
 
-pub struct StaticToken(Result<Token, ErrorResponse>);
+pub struct StaticAuth(Result<Token, ErrorResponse>);
 
-impl StaticToken {
+impl StaticAuth {
     pub fn anonymous() -> Self {
         Self(Ok(Token::Anonymous))
     }
@@ -30,7 +30,7 @@ impl StaticToken {
 }
 
 #[async_trait::async_trait]
-impl AuthenticationTestExtension for StaticToken {
+impl AuthenticationTestExtension for StaticAuth {
     async fn authenticate(&self, _headers: &http::HeaderMap) -> Result<Token, ErrorResponse> {
         self.0.clone()
     }
@@ -45,7 +45,7 @@ fn anonymous_token() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema::default())
-            .with_extension(AuthenticationExt::new(StaticToken::anonymous()))
+            .with_extension(AuthenticationExt::new(StaticAuth::anonymous()))
             .build()
             .await;
 
@@ -66,7 +66,7 @@ fn bytes_token() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema::default())
-            .with_extension(AuthenticationExt::new(StaticToken::bytes(Vec::new())))
+            .with_extension(AuthenticationExt::new(StaticAuth::bytes(Vec::new())))
             .build()
             .await;
 
@@ -87,7 +87,7 @@ fn error_response() {
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema::default())
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))

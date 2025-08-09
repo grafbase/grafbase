@@ -77,7 +77,6 @@ askama.workspace = true
 convert_case.workspace = true
 cynic-parser = { workspace = true, features = ["report"] }
 engine.workspace = true
-engine-auth.workspace = true
 extension.workspace = true
 extension-catalog.workspace = true
 federated-server.workspace = true

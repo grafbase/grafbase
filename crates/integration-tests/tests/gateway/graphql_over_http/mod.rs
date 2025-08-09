@@ -3,8 +3,9 @@ mod application_json;
 mod batch;
 mod cbor;
 
+use engine::GraphqlError;
 use graphql_mocks::{FakeGithubSchema, Stateful};
-use integration_tests::{gateway::Gateway, openid::JWKS_URI, runtime};
+use integration_tests::{gateway::Gateway, runtime};
 
 const APPLICATION_JSON: &str = "application/json";
 const APPLICATION_GRAPHQL_RESPONSE_JSON: &str = "application/graphql-response+json";
@@ -18,19 +19,15 @@ const APPLICATION_GRAPHQL_RESPONSE_JSON: &str = "application/graphql-response+js
 #[case::get_gql_json(http::Method::GET, APPLICATION_GRAPHQL_RESPONSE_JSON)]
 fn authentication_returns_401(#[case] method: http::Method, #[case] accept: &'static str) {
     runtime().block_on(async move {
-        let config = indoc::formatdoc! {r#"
-            [[authentication.providers]]
+        use integration_tests::gateway::AuthenticationExt;
 
-            [authentication.providers.jwt]
-            name = "my-jwt"
-
-            [authentication.providers.jwt.jwks]
-            url = "{JWKS_URI}"
-        "#};
+        use crate::gateway::extensions::authentication::static_auth::StaticAuth;
 
         let engine = Gateway::builder()
             .with_subgraph(FakeGithubSchema::default())
-            .with_toml_config(config)
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(
+                GraphqlError::unauthenticated(),
+            )))
             .build()
             .await;
 

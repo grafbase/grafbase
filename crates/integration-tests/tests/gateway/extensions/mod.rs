@@ -1,4 +1,4 @@
-mod authentication;
+pub mod authentication;
 pub mod authorization;
 mod basic;
 mod contracts;

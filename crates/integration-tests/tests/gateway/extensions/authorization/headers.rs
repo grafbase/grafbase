@@ -6,7 +6,7 @@ use integration_tests::{
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
 
-use crate::gateway::extensions::authentication::static_token::StaticToken;
+use crate::gateway::extensions::authentication::static_auth::StaticAuth;
 
 #[derive(Default)]
 pub struct InsertTokenAsHeader;
@@ -43,7 +43,7 @@ fn can_inject_token_into_headers() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::bytes("Hello world!")))
+            .with_extension(AuthenticationExt::new(StaticAuth::bytes("Hello world!")))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
             .build()
             .await;

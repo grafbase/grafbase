@@ -1,7 +1,6 @@
 mod cost;
 mod deprecated;
 mod list_size;
-mod requires_scopes;
 
 use id_newtypes::IdToMany;
 
@@ -26,10 +25,6 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
         for &directive in directives {
             match directive.name() {
                 "inaccessible" => inaccessible = true,
-                "authenticated" => directive_ids.push(TypeSystemDirectiveId::Authenticated),
-                "requiresScopes" => {
-                    directive_ids.push(self.create_requires_scopes_directive(def, directive)?);
-                }
                 "deprecated" => {
                     directive_ids.push(self.create_deprecated_directive(def, directive)?);
                 }

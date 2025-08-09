@@ -4,7 +4,6 @@ use graphql_mocks::{ErrorSchema, FederatedInventorySchema, FederatedProductsSche
 use integration_tests::{gateway::Gateway, runtime};
 use serde_json::json;
 
-mod directive_scopes;
 mod redis;
 mod subgraph_cache_control;
 

@@ -5,7 +5,7 @@ use integration_tests::{
     runtime,
 };
 
-use crate::gateway::extensions::{authentication::static_token::StaticToken, authorization::InsertTokenAsHeader};
+use crate::gateway::extensions::{authentication::static_auth::StaticAuth, authorization::InsertTokenAsHeader};
 
 #[test]
 fn no_extension() {
@@ -48,7 +48,7 @@ fn extension() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -119,7 +119,7 @@ fn extension_with_anonymous_default() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -199,7 +199,7 @@ fn extension_with_deny_default() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::bytes(b"Hi")))
+            .with_extension(AuthenticationExt::new(StaticAuth::bytes(b"Hi")))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
             .with_toml_config(
                 r#"
@@ -243,7 +243,7 @@ fn graphql_no_extension() {
                 enabled = true
             "#,
             )
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -287,7 +287,7 @@ fn graphql_default_override() {
                 enabled = true
             "#,
             )
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -338,7 +338,7 @@ fn graphql_extension() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -384,7 +384,7 @@ fn graphql_no_extension_with_anonymous_default() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -423,7 +423,7 @@ fn graphql_extension_with_anonymous_default() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -462,7 +462,7 @@ fn graphql_no_extension_with_deny_default() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -509,7 +509,7 @@ fn graphql_extension_with_deny_default() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::bytes(b"Hi")))
+            .with_extension(AuthenticationExt::new(StaticAuth::bytes(b"Hi")))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
             .with_toml_config(
                 r#"
@@ -554,7 +554,7 @@ fn mcp_no_extension() {
                 extensions = []
             "#,
             )
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -612,7 +612,7 @@ fn mcp_extension() {
                 extensions = ["authentication"]
             "#,
             )
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -681,7 +681,7 @@ fn mcp_default_override() {
                 enabled = true
             "#,
             )
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -690,9 +690,16 @@ fn mcp_default_override() {
             .await;
 
         let response = gateway
-            .raw_execute(http::Request::post("/mcp").body(Vec::new()).unwrap())
+            .raw_execute(
+                http::Request::post("/mcp")
+                    .header("Accept", "application/json;text/event-stream")
+                    .header("Content-Type", "application/json")
+                    .body(Vec::new())
+                    .unwrap(),
+            )
             .await;
         let (parts, body) = response.into_parts();
+        println!("BODY:\n{}", String::from_utf8_lossy(&body));
         let json = serde_json::from_slice::<serde_json::Value>(&body).unwrap();
 
         insta::assert_json_snapshot!(json, @r#"
@@ -733,7 +740,7 @@ fn mcp_no_extension_with_anonymous_default() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -792,7 +799,7 @@ fn mcp_extension_with_anonymous_default() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -851,7 +858,7 @@ fn mcp_no_extension_with_deny_default() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -921,7 +928,7 @@ fn mcp_extension_with_deny_default() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::bytes(b"Hi")))
+            .with_extension(AuthenticationExt::new(StaticAuth::bytes(b"Hi")))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
             .with_toml_config(
                 r#"

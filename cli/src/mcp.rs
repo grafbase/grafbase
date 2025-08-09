@@ -13,9 +13,7 @@ use engine::{CachedOperation, RequestExtensions};
 use gateway_config::{Config, HeaderForward, HeaderInsert, HeaderRule, NameOrPattern};
 use grafbase_telemetry::metrics::{EngineMetrics, meter_from_global_provider};
 use regex::Regex;
-use runtime::{
-    authentication::LegacyToken, entity_cache::EntityCache, rate_limiting::RateLimiter, trusted_documents_client,
-};
+use runtime::{entity_cache::EntityCache, extension::Token, rate_limiting::RateLimiter, trusted_documents_client};
 use runtime_local::{InMemoryEntityCache, InMemoryOperationCache, NativeFetcher};
 use std::io::stdout;
 use wasi_component_loader::{WasmContext, extension::EngineWasmExtensions};
@@ -108,7 +106,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
             // FIXME: Imitating the federated-server extension layer... not great
             request.extensions_mut().insert(RequestExtensions::<WasmContext> {
                 context: Default::default(),
-                token: LegacyToken::Anonymous,
+                token: Token::Anonymous,
                 contract_key: None,
             });
             request

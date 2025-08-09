@@ -4,7 +4,7 @@ use integration_tests::{
     runtime,
 };
 
-use crate::gateway::extensions::{authentication::static_token::StaticToken, authorization::InsertTokenAsHeader};
+use crate::gateway::extensions::{authentication::static_auth::StaticAuth, authorization::InsertTokenAsHeader};
 
 #[test]
 fn deny_default_no_extension_404() {
@@ -52,7 +52,7 @@ fn deny_default_with_extensions_404() {
                 }
                 "#,
             ))
-            .with_extension(AuthenticationExt::new(StaticToken::bytes(b"Hi")))
+            .with_extension(AuthenticationExt::new(StaticAuth::bytes(b"Hi")))
             .with_extension(AuthorizationExt::new(InsertTokenAsHeader))
             .with_toml_config(
                 r#"

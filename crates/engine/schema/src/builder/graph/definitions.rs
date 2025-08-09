@@ -70,8 +70,6 @@ pub(crate) fn ingest_definitions(ctx: BuildContext<'_>) -> Result<(GraphBuilder<
         resolver_definitions: Vec::new(),
         type_definitions_ordered_by_name: Vec::new(),
         input_values: Default::default(),
-        required_scopes: Vec::new(),
-        authorized_directives: Vec::new(),
         cost_directives: Vec::new(),
         list_size_directives: Vec::new(),
         extension_directives: Vec::new(),
@@ -84,7 +82,6 @@ pub(crate) fn ingest_definitions(ctx: BuildContext<'_>) -> Result<(GraphBuilder<
     let builder = GraphBuilder {
         graph,
         selections: Default::default(),
-        required_scopes: Default::default(),
         value_path: Default::default(),
         input_fields_buffer_pool: Default::default(),
         root_object_ids: Vec::new(),

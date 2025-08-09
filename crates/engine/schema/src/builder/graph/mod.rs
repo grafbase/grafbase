@@ -15,7 +15,6 @@ use crate::*;
 
 use super::{
     BuildContext, Error,
-    interner::Interner,
     sdl::{self, SdlDefinition},
     value_path_to_string,
 };
@@ -28,7 +27,6 @@ pub(crate) struct GraphBuilder<'a> {
     pub definitions: Rc<GraphDefinitions<'a>>,
     pub graph: Graph,
     pub root_object_ids: Vec<ObjectDefinitionId>,
-    pub required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
     pub selections: SelectionsBuilder,
 
     // -- used for coercion

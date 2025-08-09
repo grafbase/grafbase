@@ -133,6 +133,10 @@ impl GraphqlError {
         )
     }
 
+    pub fn unauthenticated() -> Self {
+        GraphqlError::new("Unauthenticated", ErrorCode::Unauthenticated)
+    }
+
     pub fn unauthorized() -> Self {
         GraphqlError::new("Not authorized", ErrorCode::Unauthorized)
     }

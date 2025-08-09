@@ -8,11 +8,9 @@ use std::{net::SocketAddr, sync::Arc};
 
 use axum::routing::get;
 use engine::ContractAwareEngine;
-use engine_auth::AuthenticationService;
 use extension_catalog::ExtensionCatalog;
 use gateway_config::{AuthenticationResourcesConfig, Config};
-use runtime::{extension::GatewayExtensions, kv::KvStore};
-use runtime_local::InMemoryKvStore;
+use runtime::extension::GatewayExtensions;
 use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
 use tower_http::{
@@ -58,7 +56,6 @@ where
     SR: ServerRuntime,
     E: GatewayExtensions,
 {
-    let kv = InMemoryKvStore::runtime();
     let telemetry = TelemetryLayer::new_from_global_meter_provider(listen_address);
     let common_layers = {
         let cors = match config.cors {
@@ -126,7 +123,6 @@ where
                     &config,
                     &extension_catalog,
                     &extensions,
-                    &kv,
                     &config.authentication.protected_resources.graphql,
                 )?),
         );
@@ -166,7 +162,6 @@ where
                             &config,
                             &extension_catalog,
                             &extensions,
-                            &kv,
                             &config.authentication.protected_resources.mcp,
                         )?),
                 ),
@@ -194,33 +189,43 @@ fn build_extension_layer<E: GatewayExtensions>(
     gateway_config: &Config,
     extension_catalog: &ExtensionCatalog,
     extensions: &E,
-    kv: &KvStore,
     config: &AuthenticationResourcesConfig,
-) -> crate::Result<ExtensionLayer<E, AuthenticationService<E>>> {
+) -> crate::Result<ExtensionLayer<E>> {
     let extension_ids = config
         .extensions
         .as_ref()
         .map(|keys| {
             keys.iter()
                 .map(|key| {
-                    extension_catalog
+                    let ext = extension_catalog
                         .get_id_by_config_key(key)
-                        .ok_or_else(|| "Could not find extension named {key}".into())
+                        .ok_or_else(|| format!("Could not find extension named {key}"))?;
+                    if !extension_catalog[ext].manifest.is_authentication() {
+                        Err(format!("Extension {key} is not an authentication extension"))
+                    } else {
+                        Ok(ext)
+                    }
                 })
-                .collect::<crate::Result<Vec<_>>>()
+                .collect::<Result<Vec<_>, String>>()
         })
-        .transpose()?;
-    let authentication = AuthenticationService::new(
-        gateway_config,
-        extensions.clone(),
-        extension_ids,
-        config.default.or(gateway_config.authentication.default),
-        kv,
-    );
+        .transpose()?
+        .unwrap_or_else(|| {
+            extension_catalog
+                .iter_with_id()
+                .filter_map(|(id, ext)| {
+                    if ext.manifest.is_authentication() {
+                        Some(id)
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+        });
     Ok(layers::ExtensionLayer::new(
         extensions.clone(),
-        authentication,
         gateway_config.graph.contracts.default_key.clone(),
+        extension_ids,
+        config.default.or(gateway_config.authentication.default),
     ))
 }
 

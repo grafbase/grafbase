@@ -131,25 +131,6 @@ impl<'op, R: Runtime> Builder<'op, '_, R> {
                 continue;
             }
             let (set_id, composite_type_id) = match definition.rule {
-                ResponseModifierRule::AuthorizedParentEdge { .. } => {
-                    let output_id = if let Some(parent_field) = field.parent_field() {
-                        parent_field.output_id().ok_or_else(|| {
-                            tracing::error!("Missing response object set id.");
-                            PlanError::Internal
-                        })?
-                    } else {
-                        self.cached_ctx.cached.query_plan.root_response_object_set_id
-                    };
-                    (output_id, field.definition().parent_entity_id.into())
-                }
-
-                ResponseModifierRule::AuthorizedEdgeChild { .. } => (
-                    field.output_id.ok_or_else(|| {
-                        tracing::error!("Missing response object set id.");
-                        PlanError::Internal
-                    })?,
-                    CompositeTypeId::maybe_from(field.definition().ty().definition_id).unwrap(),
-                ),
                 ResponseModifierRule::Extension { target, .. } => match target {
                     ResponseModifierRuleTarget::Field(_, _) | ResponseModifierRuleTarget::FieldParentEntity(_) => {
                         let output_id = if let Some(parent_field) = field.parent_field() {

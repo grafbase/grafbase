@@ -4,7 +4,7 @@ use integration_tests::{
     runtime,
 };
 
-use crate::gateway::extensions::authentication::static_token::StaticToken;
+use crate::gateway::extensions::authentication::static_auth::StaticAuth;
 
 #[test]
 fn can_load_authenticated_extension() {
@@ -89,7 +89,7 @@ fn can_access_token() {
                 .with_resolver("Query", "public", serde_json::Value::String("Hi!".to_owned()))
                 .into_subgraph("x"),
             )
-            .with_extension(AuthenticationExt::new(StaticToken::bytes(Vec::new())))
+            .with_extension(AuthenticationExt::new(StaticAuth::bytes(Vec::new())))
             .with_extension("authenticated-17")
             .with_toml_config(
                 r#"

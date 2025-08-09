@@ -19,7 +19,7 @@ impl Solver<'_> {
             deduplicated_query_modifier_rules: HashMap::new(),
             query_modifiers: vec![
                 QueryModifierRecord {
-                    rule: QueryModifierRule::Authenticated,
+                    rule: QueryModifierRule::Executable { directives: Vec::new() },
                     impacts_root_object: false,
                     impacted_field_ids: Vec::new(),
                 };
@@ -54,98 +54,63 @@ impl Solver<'_> {
             };
             let field_definition = self.output.query_plan[field_id].definition_id.walk(self.schema);
             for directive in field_definition.directives() {
-                let rule = match directive {
-                    TypeSystemDirective::Authenticated(_) => Rule::Query(QueryModifierRule::Authenticated),
-                    TypeSystemDirective::Authorized(dir) => {
-                        if dir.node_record.is_some() {
-                            if self.output.query_plan[field_id].output_id.is_none() {
-                                let output_id = Some(self.create_new_response_object_set_definition(node_ix));
-                                self.output.query_plan[field_id].output_id = output_id;
-                            }
-                            Rule::Resp(ResponseModifierRule::AuthorizedEdgeChild {
-                                directive_id: dir.id,
-                                definition_id: field_definition.id,
-                            })
-                        } else if dir.fields_record.is_some() {
-                            self.ensure_parent_field_ouput_is_tracked(field_id, node_ix, &node_to_field)?;
-                            Rule::Resp(ResponseModifierRule::AuthorizedParentEdge {
-                                directive_id: dir.id,
-                                definition_id: field_definition.id,
-                            })
-                        } else if !dir.arguments.is_empty() {
-                            Rule::Query(QueryModifierRule::AuthorizedFieldWithArguments {
-                                directive_id: dir.id,
-                                definition_id: field_definition.id,
-                                argument_ids: self.output.query_plan[field_id].argument_ids,
-                            })
-                        } else {
-                            Rule::Query(QueryModifierRule::AuthorizedField {
-                                directive_id: dir.id,
-                                definition_id: field_definition.id,
-                            })
-                        }
-                    }
-                    TypeSystemDirective::Extension(directive) => {
-                        let ExtensionDirectiveType::Authorization { group_by } = directive.ty else {
-                            continue;
-                        };
-                        let subgraph_id = if group_by.has_subgraph() {
-                            Some(
-                                self.output.query_plan[self.output.query_plan[field_id].query_partition_id]
-                                    .resolver_definition_id
-                                    .walk(self.schema)
-                                    .subgraph_id(),
-                            )
-                        } else {
-                            None
-                        };
-                        match directive.max_arguments_stage() {
-                            InjectionStage::Static => Rule::Query(QueryModifierRule::Extension {
-                                directive_id: directive.id,
-                                target: QueryModifierTarget::Site(field_definition.id.into(), subgraph_id),
-                            }),
-                            InjectionStage::Query => Rule::Query(QueryModifierRule::Extension {
-                                directive_id: directive.id,
-                                target: QueryModifierTarget::FieldWithArguments(
+                let TypeSystemDirective::Extension(directive) = directive else {
+                    continue;
+                };
+                let ExtensionDirectiveType::Authorization { group_by } = directive.ty else {
+                    continue;
+                };
+                let subgraph_id = if group_by.has_subgraph() {
+                    Some(
+                        self.output.query_plan[self.output.query_plan[field_id].query_partition_id]
+                            .resolver_definition_id
+                            .walk(self.schema)
+                            .subgraph_id(),
+                    )
+                } else {
+                    None
+                };
+                let rule = match directive.max_arguments_stage() {
+                    InjectionStage::Static => Rule::Query(QueryModifierRule::Extension {
+                        directive_id: directive.id,
+                        target: QueryModifierTarget::Site(field_definition.id.into(), subgraph_id),
+                    }),
+                    InjectionStage::Query => Rule::Query(QueryModifierRule::Extension {
+                        directive_id: directive.id,
+                        target: QueryModifierTarget::FieldWithArguments(
+                            field_definition.id,
+                            self.output.query_plan[field_id].argument_ids,
+                            subgraph_id,
+                        ),
+                    }),
+                    InjectionStage::Response => {
+                        self.ensure_parent_field_ouput_is_tracked(field_id, node_ix, &node_to_field)?;
+                        let query_rule = Rule::Query(QueryModifierRule::Extension {
+                            directive_id: directive.id,
+                            target: if directive
+                                .argument_records()
+                                .iter()
+                                .any(|arg| arg.injection_stage.is_query())
+                            {
+                                QueryModifierTarget::FieldWithArguments(
                                     field_definition.id,
                                     self.output.query_plan[field_id].argument_ids,
                                     subgraph_id,
-                                ),
-                            }),
-                            InjectionStage::Response => {
-                                self.ensure_parent_field_ouput_is_tracked(field_id, node_ix, &node_to_field)?;
-                                let query_rule = Rule::Query(QueryModifierRule::Extension {
-                                    directive_id: directive.id,
-                                    target: if directive
-                                        .argument_records()
-                                        .iter()
-                                        .any(|arg| arg.injection_stage.is_query())
-                                    {
-                                        QueryModifierTarget::FieldWithArguments(
-                                            field_definition.id,
-                                            self.output.query_plan[field_id].argument_ids,
-                                            subgraph_id,
-                                        )
-                                    } else {
-                                        QueryModifierTarget::Site(field_definition.id.into(), subgraph_id)
-                                    },
-                                });
-                                accumulator.insert(query_rule, Some(field_id));
+                                )
+                            } else {
+                                QueryModifierTarget::Site(field_definition.id.into(), subgraph_id)
+                            },
+                        });
+                        accumulator.insert(query_rule, Some(field_id));
 
-                                Rule::Resp(ResponseModifierRule::Extension {
-                                    directive_id: directive.id,
-                                    target: ResponseModifierRuleTarget::Field(
-                                        field_definition.id,
-                                        self.output.query_plan[field_id].argument_ids,
-                                    ),
-                                })
-                            }
-                        }
+                        Rule::Resp(ResponseModifierRule::Extension {
+                            directive_id: directive.id,
+                            target: ResponseModifierRuleTarget::Field(
+                                field_definition.id,
+                                self.output.query_plan[field_id].argument_ids,
+                            ),
+                        })
                     }
-                    TypeSystemDirective::RequiresScopes(dir) => Rule::Query(QueryModifierRule::RequiresScopes(dir.id)),
-                    TypeSystemDirective::Cost(_)
-                    | TypeSystemDirective::Deprecated(_)
-                    | TypeSystemDirective::ListSize(_) => continue,
                 };
                 accumulator.insert(rule, Some(field_id));
             }
@@ -172,53 +137,44 @@ impl Solver<'_> {
             {
                 let definition_id = TypeDefinitionId::from(field_definition.parent_entity_id);
                 for directive in field_definition.parent_entity().directives() {
-                    let rule = match directive {
-                        TypeSystemDirective::Authenticated(_) => Rule::Query(QueryModifierRule::Authenticated),
-                        TypeSystemDirective::RequiresScopes(dir) => {
-                            Rule::Query(QueryModifierRule::RequiresScopes(dir.id))
+                    let TypeSystemDirective::Extension(directive) = directive else {
+                        continue;
+                    };
+                    let ExtensionDirectiveType::Authorization { group_by } = directive.ty else {
+                        continue;
+                    };
+                    let subgraph_id = if group_by.has_subgraph() {
+                        Some(
+                            self.output.query_plan[parent_field_query_partition_id]
+                                .resolver_definition_id
+                                .walk(self.schema)
+                                .subgraph_id(),
+                        )
+                    } else {
+                        None
+                    };
+                    let rule = match directive.max_arguments_stage() {
+                        InjectionStage::Static => Rule::Query(QueryModifierRule::Extension {
+                            directive_id: directive.id,
+                            target: QueryModifierTarget::Site(definition_id.into(), subgraph_id),
+                        }),
+                        InjectionStage::Query => {
+                            unreachable!("Cannot depend on query arguments, it's not a field.")
                         }
-                        TypeSystemDirective::Extension(directive) => {
-                            let ExtensionDirectiveType::Authorization { group_by } = directive.ty else {
-                                continue;
-                            };
-                            let subgraph_id = if group_by.has_subgraph() {
-                                Some(
-                                    self.output.query_plan[parent_field_query_partition_id]
-                                        .resolver_definition_id
-                                        .walk(self.schema)
-                                        .subgraph_id(),
-                                )
-                            } else {
-                                None
-                            };
-                            match directive.max_arguments_stage() {
-                                InjectionStage::Static => Rule::Query(QueryModifierRule::Extension {
-                                    directive_id: directive.id,
-                                    target: QueryModifierTarget::Site(definition_id.into(), subgraph_id),
-                                }),
-                                InjectionStage::Query => {
-                                    unreachable!("Cannot depend on query arguments, it's not a field.")
-                                }
-                                InjectionStage::Response => {
-                                    self.ensure_parent_field_ouput_is_tracked(field_id, node_ix, &node_to_field)?;
-                                    let query_rule = Rule::Query(QueryModifierRule::Extension {
-                                        directive_id: directive.id,
-                                        target: QueryModifierTarget::Site(definition_id.into(), subgraph_id),
-                                    });
-                                    accumulator.insert(query_rule, Some(field_id));
-                                    Rule::Resp(ResponseModifierRule::Extension {
-                                        directive_id: directive.id,
-                                        target: ResponseModifierRuleTarget::FieldParentEntity(
-                                            field_definition.parent_entity_id,
-                                        ),
-                                    })
-                                }
-                            }
+                        InjectionStage::Response => {
+                            self.ensure_parent_field_ouput_is_tracked(field_id, node_ix, &node_to_field)?;
+                            let query_rule = Rule::Query(QueryModifierRule::Extension {
+                                directive_id: directive.id,
+                                target: QueryModifierTarget::Site(definition_id.into(), subgraph_id),
+                            });
+                            accumulator.insert(query_rule, Some(field_id));
+                            Rule::Resp(ResponseModifierRule::Extension {
+                                directive_id: directive.id,
+                                target: ResponseModifierRuleTarget::FieldParentEntity(
+                                    field_definition.parent_entity_id,
+                                ),
+                            })
                         }
-                        TypeSystemDirective::Cost(_)
-                        | TypeSystemDirective::Deprecated(_)
-                        | TypeSystemDirective::ListSize(_)
-                        | TypeSystemDirective::Authorized(_) => continue,
                     };
                     accumulator.insert(rule, Some(field_id));
                 }
@@ -226,124 +182,87 @@ impl Solver<'_> {
 
             let output_definition = field_definition.ty().definition();
             for directive in output_definition.directives() {
-                let rule = match directive {
-                    TypeSystemDirective::Authenticated(_) => Rule::Query(QueryModifierRule::Authenticated),
-                    TypeSystemDirective::Authorized(dir) => {
-                        if dir.fields_record.is_some() {
-                            Rule::Resp(ResponseModifierRule::AuthorizedEdgeChild {
-                                directive_id: dir.id,
-                                definition_id: field_definition.id,
-                            })
-                        } else {
-                            Rule::Query(QueryModifierRule::AuthorizedDefinition {
-                                directive_id: dir.id,
-                                definition_id: output_definition.id(),
-                            })
-                        }
+                let TypeSystemDirective::Extension(directive) = directive else {
+                    continue;
+                };
+                let ExtensionDirectiveType::Authorization { group_by } = directive.ty else {
+                    continue;
+                };
+                let subgraph_id = if group_by.has_subgraph() {
+                    Some(
+                        self.output.query_plan[self.output.query_plan[field_id].query_partition_id]
+                            .resolver_definition_id
+                            .walk(self.schema)
+                            .subgraph_id(),
+                    )
+                } else {
+                    None
+                };
+                let rule = match directive.max_arguments_stage() {
+                    InjectionStage::Static => Rule::Query(QueryModifierRule::Extension {
+                        directive_id: directive.id,
+                        target: QueryModifierTarget::Site(output_definition.id().into(), subgraph_id),
+                    }),
+                    InjectionStage::Query => {
+                        unreachable!("Cannot depend on query arguments, it's not a field.")
                     }
-                    TypeSystemDirective::RequiresScopes(dir) => Rule::Query(QueryModifierRule::RequiresScopes(dir.id)),
-                    TypeSystemDirective::Extension(directive) => {
-                        let ExtensionDirectiveType::Authorization { group_by } = directive.ty else {
-                            continue;
-                        };
-                        let subgraph_id = if group_by.has_subgraph() {
-                            Some(
-                                self.output.query_plan[self.output.query_plan[field_id].query_partition_id]
-                                    .resolver_definition_id
-                                    .walk(self.schema)
-                                    .subgraph_id(),
-                            )
-                        } else {
-                            None
-                        };
-                        match directive.max_arguments_stage() {
-                            InjectionStage::Static => Rule::Query(QueryModifierRule::Extension {
-                                directive_id: directive.id,
-                                target: QueryModifierTarget::Site(output_definition.id().into(), subgraph_id),
-                            }),
-                            InjectionStage::Query => {
-                                unreachable!("Cannot depend on query arguments, it's not a field.")
-                            }
-                            InjectionStage::Response => {
-                                if self.output.query_plan[field_id].output_id.is_none() {
-                                    let output_id = Some(self.create_new_response_object_set_definition(node_ix));
-                                    self.output.query_plan[field_id].output_id = output_id;
-                                }
-                                let query_rule = Rule::Query(QueryModifierRule::Extension {
-                                    directive_id: directive.id,
-                                    target: QueryModifierTarget::Site(output_definition.id().into(), subgraph_id),
-                                });
-                                accumulator.insert(query_rule, Some(field_id));
-                                Rule::Resp(ResponseModifierRule::Extension {
-                                    directive_id: directive.id,
-                                    target: ResponseModifierRuleTarget::FieldOutput(output_definition.id()),
-                                })
-                            }
+                    InjectionStage::Response => {
+                        if self.output.query_plan[field_id].output_id.is_none() {
+                            let output_id = Some(self.create_new_response_object_set_definition(node_ix));
+                            self.output.query_plan[field_id].output_id = output_id;
                         }
+                        let query_rule = Rule::Query(QueryModifierRule::Extension {
+                            directive_id: directive.id,
+                            target: QueryModifierTarget::Site(output_definition.id().into(), subgraph_id),
+                        });
+                        accumulator.insert(query_rule, Some(field_id));
+                        Rule::Resp(ResponseModifierRule::Extension {
+                            directive_id: directive.id,
+                            target: ResponseModifierRuleTarget::FieldOutput(output_definition.id()),
+                        })
                     }
-                    TypeSystemDirective::Cost(_)
-                    | TypeSystemDirective::Deprecated(_)
-                    | TypeSystemDirective::ListSize(_) => continue,
                 };
                 accumulator.insert(rule, Some(field_id));
             }
         }
 
         for directive in self.output.operation.root_object_id.walk(self.schema).directives() {
-            match directive {
-                TypeSystemDirective::Authenticated(_) => {
-                    accumulator.insert(Rule::Query(QueryModifierRule::Authenticated), None)
-                }
-                TypeSystemDirective::Authorized(dir) => accumulator.insert(
-                    Rule::Query(QueryModifierRule::AuthorizedDefinition {
-                        directive_id: dir.id,
-                        definition_id: self.output.operation.root_object_id.into(),
-                    }),
-                    None,
-                ),
-                TypeSystemDirective::Extension(directive) => {
-                    let ExtensionDirectiveType::Authorization { group_by } = directive.ty else {
-                        continue;
-                    };
-                    if group_by.has_subgraph() {
-                        let mut subgraph_ids = Vec::new();
-                        for query_partition in &self.output.query_plan.partitions {
-                            if query_partition.input_id == self.output.query_plan.root_response_object_set_id {
-                                subgraph_ids
-                                    .push(query_partition.resolver_definition_id.walk(self.schema).subgraph_id());
-                            }
-                        }
-                        subgraph_ids.sort_unstable();
-                        subgraph_ids.dedup();
-                        for subgraph_id in subgraph_ids {
-                            accumulator.insert(
-                                Rule::Query(QueryModifierRule::Extension {
-                                    directive_id: directive.id,
-                                    target: QueryModifierTarget::Site(
-                                        self.output.operation.root_object_id.into(),
-                                        Some(subgraph_id),
-                                    ),
-                                }),
-                                None,
-                            );
-                        }
-                    } else {
-                        accumulator.insert(
-                            Rule::Query(QueryModifierRule::Extension {
-                                directive_id: directive.id,
-                                target: QueryModifierTarget::Site(self.output.operation.root_object_id.into(), None),
-                            }),
-                            None,
-                        )
+            let TypeSystemDirective::Extension(directive) = directive else {
+                continue;
+            };
+            let ExtensionDirectiveType::Authorization { group_by } = directive.ty else {
+                continue;
+            };
+            if group_by.has_subgraph() {
+                let mut subgraph_ids = Vec::new();
+                for query_partition in &self.output.query_plan.partitions {
+                    if query_partition.input_id == self.output.query_plan.root_response_object_set_id {
+                        subgraph_ids.push(query_partition.resolver_definition_id.walk(self.schema).subgraph_id());
                     }
                 }
-                TypeSystemDirective::RequiresScopes(dir) => {
-                    accumulator.insert(Rule::Query(QueryModifierRule::RequiresScopes(dir.id)), None)
+                subgraph_ids.sort_unstable();
+                subgraph_ids.dedup();
+                for subgraph_id in subgraph_ids {
+                    accumulator.insert(
+                        Rule::Query(QueryModifierRule::Extension {
+                            directive_id: directive.id,
+                            target: QueryModifierTarget::Site(
+                                self.output.operation.root_object_id.into(),
+                                Some(subgraph_id),
+                            ),
+                        }),
+                        None,
+                    );
                 }
-                TypeSystemDirective::Cost(_)
-                | TypeSystemDirective::Deprecated(_)
-                | TypeSystemDirective::ListSize(_) => {}
-            };
+            } else {
+                accumulator.insert(
+                    Rule::Query(QueryModifierRule::Extension {
+                        directive_id: directive.id,
+                        target: QueryModifierTarget::Site(self.output.operation.root_object_id.into(), None),
+                    }),
+                    None,
+                )
+            }
         }
 
         self.node_to_field = node_to_field;
