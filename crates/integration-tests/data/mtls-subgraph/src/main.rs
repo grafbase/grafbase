@@ -7,8 +7,8 @@ use async_graphql::{EmptyMutation, EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{routing::post, Router};
 use axum_server::tls_rustls::RustlsConfig;
-use rustls::{RootCertStore, ServerConfig};
 use rustls::server::WebPkiClientVerifier;
+use rustls::{RootCertStore, ServerConfig};
 use rustls_pemfile::{certs, pkcs8_private_keys};
 
 // Define the GraphQL schema root query type
@@ -43,8 +43,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = SocketAddr::from(([0, 0, 0, 0], 3001));
     println!("GraphQL server with mTLS starting on https://{}/graphql", addr);
 
+    let handle = axum_server::Handle::new();
+
+    // Spawn a task to gracefully shutdown server.
+    tokio::spawn(graceful_shutdown(handle.clone()));
+
     // Start the server with TLS
     axum_server::bind_rustls(addr, tls_config)
+        .handle(handle)
         .serve(app.into_make_service())
         .await?;
 
@@ -63,9 +69,8 @@ fn configure_tls() -> Result<RustlsConfig, Box<dyn std::error::Error>> {
     let mut ca_file = BufReader::new(File::open("certs/ca-cert.pem")?);
 
     // Collect certificates into a Vec and add them to the root store
-    let ca_certs = certs(&mut ca_file)
-        .collect::<Result<Vec<_>, _>>()?;
-    
+    let ca_certs = certs(&mut ca_file).collect::<Result<Vec<_>, _>>()?;
+
     for cert in ca_certs {
         root_store
             .add(cert)
@@ -79,15 +84,12 @@ fn configure_tls() -> Result<RustlsConfig, Box<dyn std::error::Error>> {
 
     // Load server certificates
     let mut cert_file = BufReader::new(File::open("certs/server-cert.pem")?);
-    let server_certs = certs(&mut cert_file)
-        .collect::<Result<Vec<_>, _>>()?;
+    let server_certs = certs(&mut cert_file).collect::<Result<Vec<_>, _>>()?;
 
     // Load server private key
     let mut key_file = BufReader::new(File::open("certs/server-key.pem")?);
-    let keys = pkcs8_private_keys(&mut key_file)
-        .collect::<Result<Vec<_>, _>>()?;
-    let key = keys.into_iter().next()
-        .ok_or("No private key found")?;
+    let keys = pkcs8_private_keys(&mut key_file).collect::<Result<Vec<_>, _>>()?;
+    let key = keys.into_iter().next().ok_or("No private key found")?;
 
     // Create server config with client certificate verification
     let config = ServerConfig::builder()
@@ -96,4 +98,31 @@ fn configure_tls() -> Result<RustlsConfig, Box<dyn std::error::Error>> {
         .map_err(|e| format!("TLS error: {:?}", e))?;
 
     Ok(RustlsConfig::from_config(Arc::new(config)))
+}
+
+async fn graceful_shutdown(handle: axum_server::Handle) {
+    use tokio::signal;
+
+    let ctrl_c = async {
+        signal::ctrl_c().await.expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    println!("Shutting down gracefully...");
+    handle.graceful_shutdown(Some(std::time::Duration::from_secs(3)));
 }

@@ -10,7 +10,7 @@ axum = "0.8.4"
 axum-server = { version = "0.7.2", features = ["tls-rustls"] }
 rustls = "0.23.27"
 rustls-pemfile = "2.2.0"
-tokio = { version = "1.45.0", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.45.0", features = ["signal", "macros", "rt-multi-thread"] }
 tokio-rustls = "0.26.2"
 
 [dev-dependencies]
