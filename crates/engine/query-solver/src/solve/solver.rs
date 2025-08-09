@@ -1,4 +1,7 @@
-use std::hash::{BuildHasher, Hash};
+use std::{
+    hash::{BuildHasher, Hash},
+    ops::ControlFlow,
+};
 
 use ::operation::Operation;
 use fixedbitset::FixedBitSet;
@@ -41,7 +44,7 @@ pub(crate) struct Solver<'schema, 'op, 'q> {
     schema: &'schema Schema,
     operation: &'op Operation,
     query_solution_space: &'q QuerySolutionSpace<'schema>,
-    algorithm: steiner_tree::ShortestPathAlgorithm<&'q StableGraph<SpaceNode<'schema>, SpaceEdge>, SteinerGraph>,
+    algorithm: steiner_tree::GreedyFlacAlgorithm<&'q StableGraph<SpaceNode<'schema>, SpaceEdge>, SteinerGraph>,
     /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
     /// them.
     dispensable_requirements_metadata: DispensableRequirementsMetadata,
@@ -89,7 +92,7 @@ where
             SpaceEdge::Field | SpaceEdge::HasChildResolver | SpaceEdge::Requires => None,
         };
 
-        let algorithm = steiner_tree::ShortestPathAlgorithm::initialize(
+        let algorithm = steiner_tree::GreedyFlacAlgorithm::initialize(
             SteinerContext::build(
                 &query_solution_space.graph,
                 query_solution_space.root_node_ix,
@@ -109,7 +112,7 @@ where
         };
 
         solver.populate_requirement_metadata()?;
-        solver.cost_fixed_point_iteration()?;
+        let _ = solver.cost_fixed_point_iteration()?;
 
         tracing::debug!("Solver populated:\n{}", solver.to_pretty_dot_graph());
 
@@ -124,9 +127,9 @@ where
     /// Solves the Steiner tree problem for the resolvers of our operation graph.
     pub fn execute(&mut self) -> crate::Result<()> {
         loop {
-            let has_terminals_left = self.algorithm.continue_steiner_tree_growth();
-            let added_new_terminals = self.cost_fixed_point_iteration()?;
-            if !has_terminals_left && !added_new_terminals {
+            let growth = self.algorithm.continue_steiner_tree_growth();
+            let cost_update = self.cost_fixed_point_iteration()?;
+            if growth.is_break() && cost_update.is_break() {
                 break;
             }
             tracing::trace!("Solver step:\n{}", self.to_pretty_dot_graph());
@@ -138,7 +141,7 @@ where
 
     pub fn into_solution(self) -> SteinerTreeSolution {
         SteinerTreeSolution {
-            node_bitset: self.algorithm.query_graph_nodes_bitset(),
+            node_bitset: self.algorithm.into_query_graph_nodes_bitset(),
         }
     }
 
@@ -289,9 +292,9 @@ where
             // This will at least include the ProvidableField & Resolver that led to the
             // parent. As we'll necessarily take them for this particular edge, they'll be set
             // to 0 cost while estimating the requirement cost.
-            let zero_cost_parent_edge_ids =
+            let unavoidable_parent_edge_ids =
                 self.dispensable_requirements_metadata
-                    .extend_zero_cost_parent_edges(std::iter::from_fn(|| {
+                    .extend_unavoidable_parent_edges(std::iter::from_fn(|| {
                         let mut grand_parents = self
                             .query_solution_space
                             .graph
@@ -312,7 +315,7 @@ where
             self.dispensable_requirements_metadata
                 .maybe_costly_requirements
                 .push(DispensableRequirements {
-                    zero_cost_parent_edge_ids,
+                    unavoidable_parent_edge_ids,
                     extra_required_node_ids,
                     incoming_edge_and_cost_ids,
                 });
@@ -324,7 +327,7 @@ where
     /// Updates the cost of edges based on the requirements of the nodes.
     /// We iterate until cost becomes stable or we exhausted the maximum number of iterations which
     /// likely indicates a requirement cycle.
-    fn cost_fixed_point_iteration(&mut self) -> crate::Result<bool> {
+    fn cost_fixed_point_iteration(&mut self) -> crate::Result<ControlFlow<()>> {
         debug_assert!(self.tmp_extra_terminals.is_empty());
         let mut i = 0;
         loop {
@@ -352,7 +355,12 @@ where
         self.tmp_extra_terminals.sort_unstable();
         self.algorithm
             .extend_terminals(self.tmp_extra_terminals.drain(..).dedup());
-        Ok(new_terminals)
+
+        Ok(if new_terminals {
+            ControlFlow::Continue(())
+        } else {
+            ControlFlow::Break(())
+        })
     }
 
     /// For all edges with dispensable requirements, we estimate the cost of the extra requirements
@@ -378,7 +386,7 @@ where
         i = 0;
         while let Some(DispensableRequirements {
             extra_required_node_ids,
-            zero_cost_parent_edge_ids,
+            unavoidable_parent_edge_ids,
             incoming_edge_and_cost_ids,
         }) = self
             .dispensable_requirements_metadata
@@ -405,7 +413,7 @@ where
             }
 
             let extra_cost = self.algorithm.estimate_extra_cost(
-                &self.dispensable_requirements_metadata[zero_cost_parent_edge_ids],
+                &self.dispensable_requirements_metadata[unavoidable_parent_edge_ids],
                 &self.dispensable_requirements_metadata[extra_required_node_ids],
             );
 
@@ -480,7 +488,7 @@ impl std::fmt::Debug for Solver<'_, '_, '_> {
 struct ExtraRequiredNodeId(u32);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
-struct ZeroCostParentEdgeId(u32);
+struct UnavoidableParentEdgeId(u32);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
 struct IncomingEdgeAndCostId(u32);
@@ -491,8 +499,8 @@ struct DispensableRequirementsMetadata {
     maybe_costly_requirements: Vec<DispensableRequirements>,
     #[indexed_by(ExtraRequiredNodeId)]
     extra_required_nodes: Vec<NodeIndex>,
-    #[indexed_by(ZeroCostParentEdgeId)]
-    zero_cost_parent_edges: Vec<EdgeIndex>,
+    #[indexed_by(UnavoidableParentEdgeId)]
+    unavoidable_parent_edges: Vec<EdgeIndex>,
     #[indexed_by(IncomingEdgeAndCostId)]
     incoming_edges_and_cost: Vec<(EdgeIndex, Cost)>,
     independent_cost: Option<bool>,
@@ -500,7 +508,7 @@ struct DispensableRequirementsMetadata {
 
 #[derive(Clone, Copy)]
 struct DispensableRequirements {
-    zero_cost_parent_edge_ids: IdRange<ZeroCostParentEdgeId>,
+    unavoidable_parent_edge_ids: IdRange<UnavoidableParentEdgeId>,
     extra_required_node_ids: IdRange<ExtraRequiredNodeId>,
     incoming_edge_and_cost_ids: IdRange<IncomingEdgeAndCostId>,
 }
@@ -515,13 +523,13 @@ impl DispensableRequirementsMetadata {
         IdRange::from(start..self.extra_required_nodes.len())
     }
 
-    fn extend_zero_cost_parent_edges(
+    fn extend_unavoidable_parent_edges(
         &mut self,
         edges: impl IntoIterator<Item = EdgeIndex>,
-    ) -> IdRange<ZeroCostParentEdgeId> {
-        let start = self.zero_cost_parent_edges.len();
-        self.zero_cost_parent_edges.extend(edges);
-        IdRange::from(start..self.zero_cost_parent_edges.len())
+    ) -> IdRange<UnavoidableParentEdgeId> {
+        let start = self.unavoidable_parent_edges.len();
+        self.unavoidable_parent_edges.extend(edges);
+        IdRange::from(start..self.unavoidable_parent_edges.len())
     }
 
     fn extend_incoming_edges_and_cost(

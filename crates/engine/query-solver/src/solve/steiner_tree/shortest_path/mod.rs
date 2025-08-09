@@ -1,4 +1,8 @@
+#![allow(unused)]
+
 mod tree;
+
+use std::ops::ControlFlow;
 
 use fixedbitset::FixedBitSet;
 use petgraph::{
@@ -53,6 +57,7 @@ where
     QG::EdgeWeight: std::fmt::Debug,
     QG::NodeWeight: std::fmt::Debug,
 {
+    #[allow(unused)]
     pub(crate) fn initialize(
         ctx: SteinerContext<QG, SteinerGraph>,
         terminals: impl IntoIterator<Item = QG::NodeId>,
@@ -179,7 +184,7 @@ where
     /// one new terminal with a non-zero cost.
     /// The control is given back to the caller allowing for any edge cost updates as the cost of requirements might have changed.
     /// The return value indicates whether we still have any missing terminals left.
-    pub(crate) fn continue_steiner_tree_growth(&mut self) -> bool {
+    pub(crate) fn continue_steiner_tree_growth(&mut self) -> ControlFlow<()> {
         // Ensure we start from a clean state.
         self.apply_all_cost_updates();
 
@@ -226,7 +231,11 @@ where
                 .grow_with_some_terminals(&mut self.ctx, &mut all_zero_cost_terminals, &mut self.tmp);
         }
 
-        !self.missing_terminals.is_empty()
+        if self.missing_terminals.is_empty() {
+            ControlFlow::Break(())
+        } else {
+            ControlFlow::Continue(())
+        }
     }
 
     // Estimate the extra cost of retrieving additional terminals with the current Steiner tree and
@@ -297,7 +306,7 @@ where
         self.steiner_tree.contains(self.ctx.to_node_ix(node_id))
     }
 
-    pub(crate) fn query_graph_nodes_bitset(&self) -> FixedBitSet {
+    pub(crate) fn into_query_graph_nodes_bitset(self) -> FixedBitSet {
         let mut bitset = FixedBitSet::with_capacity(self.ctx.query_graph_node_id_to_node_ix.len());
         for (i, ix) in self.ctx.query_graph_node_id_to_node_ix.iter().copied().enumerate() {
             bitset.set(i, self.steiner_tree.contains(ix));

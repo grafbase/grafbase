@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/mutation.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"User.id\", style=dashed ]\n    2 [ label = \"User.id\", style=dashed ]\n    3 [ label = \"Root#accounts\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    4 [ label = \"createUser#accounts\", shape=box, color=dodgerblue, style=dashed ]\n    5 [ label = \"id#accounts\", shape=box, color=dodgerblue, style=dashed ]\n    6 [ label = \"updateUser#accounts\", shape=box, color=dodgerblue, style=dashed ]\n    7 [ label = \"id#accounts\", shape=box, color=dodgerblue, style=dashed ]\n    8 [ label=\"\", style=dashed]\n    0 -> 3 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 2 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    8 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"User.id\", style=dashed ]\n    2 [ label = \"User.id\", style=dashed ]\n    3 [ label = \"Root#accounts\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    4 [ label = \"createUser#accounts\", shape=box, color=dodgerblue, style=dashed ]\n    5 [ label = \"id#accounts\", shape=box, color=dodgerblue, style=dashed ]\n    6 [ label = \"updateUser#accounts\", shape=box, color=dodgerblue, style=dashed ]\n    7 [ label = \"id#accounts\", shape=box, color=dodgerblue, style=dashed ]\n    8 [ label=\"\", style=dashed]\n    0 -> 3 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 2 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    8 -> 0 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
@@ -19,5 +19,5 @@ digraph {
     3 -> 6 [ cost=0, steiner=0]
     6 -> 7 [ cost=0, steiner=0]
     7 -> 2 [ cost=0, steiner=0]
-    8 -> 0 [ cost=0, steiner=0]
+    8 -> 0 [ cost=0, steiner=1]
 }
