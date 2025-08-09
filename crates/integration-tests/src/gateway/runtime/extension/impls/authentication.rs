@@ -3,10 +3,7 @@ use std::sync::Arc;
 use engine::ErrorResponse;
 use extension_catalog::{ExtensionId, Id};
 use futures::{StreamExt as _, stream::FuturesUnordered};
-use runtime::{
-    authentication::PublicMetadataEndpoint,
-    extension::{AuthenticationExtension, Token},
-};
+use runtime::extension::{AuthenticationExtension, PublicMetadataEndpoint, Token};
 
 use crate::gateway::{
     DispatchRule, ExtContext, ExtensionsBuilder, GatewayTestExtensions, TestExtensions, TestManifest,
@@ -17,40 +14,41 @@ impl AuthenticationExtension<ExtContext> for GatewayTestExtensions {
     async fn authenticate(
         &self,
         ctx: &ExtContext,
-        gateway_headers: http::HeaderMap,
-        ids: Option<&[ExtensionId]>,
-    ) -> (http::HeaderMap, Option<Result<Token, ErrorResponse>>) {
-        let (wasm_extensions, test_extensions) = if let Some(ids) = ids {
-            let mut wasm_extensions = Vec::new();
-            let mut test_extensions = Vec::new();
+        headers: http::HeaderMap,
+        ids: &[ExtensionId],
+    ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
+        let mut wasm_extensions = Vec::new();
+        let mut test_extensions = Vec::new();
 
-            for id in ids {
-                match self.dispatch[id] {
-                    DispatchRule::Wasm => wasm_extensions.push(*id),
-                    DispatchRule::Test => test_extensions.push(*id),
-                }
+        for id in ids {
+            match self.dispatch[id] {
+                DispatchRule::Wasm => wasm_extensions.push(*id),
+                DispatchRule::Test => test_extensions.push(*id),
             }
-            (Some(wasm_extensions), Some(test_extensions))
+        }
+
+        let (headers, wasm_error) = if wasm_extensions.is_empty() {
+            (headers, None)
         } else {
-            (None, None)
+            let (headers, result) = self.wasm.authenticate(&ctx.wasm, headers, &wasm_extensions).await;
+            match result {
+                Ok(token) => return (headers, Ok(token)),
+                Err(err) => (headers, Some(err)),
+            }
         };
 
-        let (headers, result) = self
-            .wasm
-            .authenticate(&ctx.wasm, gateway_headers, wasm_extensions.as_deref())
-            .await;
-        let error = match result {
-            None => None,
-            Some(Ok(token)) => return (headers, Some(Ok(token))),
-            Some(Err(err)) => Some(err),
+        let (headers, test_error) = if test_extensions.is_empty() {
+            (headers, None)
+        } else {
+            let (headers, result) = self.test.authenticate(ctx, headers, &test_extensions).await;
+            match result {
+                Ok(token) => return (headers, Ok(token)),
+                Err(err) => (headers, Some(err)),
+            }
         };
-        let (headers, result) = self.test.authenticate(ctx, headers, test_extensions.as_deref()).await;
-        match (result, error) {
-            (Some(Ok(token)), _) => (headers, Some(Ok(token))),
-            (None, None) => (headers, None),
-            (None, Some(err)) | (Some(Err(_)), Some(err)) => (headers, Some(Err(err))),
-            (Some(Err(err)), _) => (headers, Some(Err(err))),
-        }
+
+        let err = wasm_error.or(test_error).expect("Missing auth extensions");
+        (headers, Err(err))
     }
 
     async fn public_metadata_endpoints(&self) -> Result<Vec<PublicMetadataEndpoint>, String> {
@@ -65,18 +63,18 @@ impl AuthenticationExtension<ExtContext> for GatewayTestExtensions {
     }
 }
 
-impl AuthenticationExtension<ExtContext> for TestExtensions {
+impl TestExtensions {
     async fn authenticate(
         &self,
         _ctx: &ExtContext,
         headers: http::HeaderMap,
-        ids: Option<&[ExtensionId]>,
-    ) -> (http::HeaderMap, Option<Result<Token, ErrorResponse>>) {
+        ids: &[ExtensionId],
+    ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
         let guard = self.state.lock().await;
         let mut futures = guard
             .authentication
             .iter()
-            .filter(|(id, _)| ids.is_none_or(|ids| ids.contains(id)))
+            .filter(|(id, _)| ids.contains(id))
             .map(|(_, instance)| instance.authenticate(&headers))
             .collect::<FuturesUnordered<_>>();
 
@@ -85,7 +83,7 @@ impl AuthenticationExtension<ExtContext> for TestExtensions {
             match result {
                 Ok(token) => {
                     drop(futures);
-                    return (headers, Some(Ok(token)));
+                    return (headers, Ok(token));
                 }
                 Err(err) => {
                     last_error = Some(err);
@@ -95,10 +93,10 @@ impl AuthenticationExtension<ExtContext> for TestExtensions {
 
         drop(futures);
 
-        match last_error {
-            None => (headers, None),
-            Some(err) => (headers, Some(Err(err))),
-        }
+        (
+            headers,
+            Err(last_error.expect("At least one authentication extension should be present.")),
+        )
     }
 
     async fn public_metadata_endpoints(&self) -> Result<Vec<PublicMetadataEndpoint>, String> {

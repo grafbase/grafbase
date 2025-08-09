@@ -8,7 +8,7 @@ use engine::{Body, RequestExtensions};
 use event_queue::SubgraphResponseBuilder;
 use futures::{StreamExt, TryStreamExt};
 use runtime::{
-    authentication::LegacyToken,
+    extension::Token,
     fetch::{FetchRequest, FetchResult, dynamic::DynFetcher},
 };
 use runtime_local::InMemoryOperationCache;
@@ -76,7 +76,7 @@ impl DeterministicEngineBuilder<'_> {
                 )
                 .extension(RequestExtensions {
                     context: ExtContext::default(),
-                    token: LegacyToken::Anonymous,
+                    token: Token::Anonymous,
                     contract_key: None,
                 })
                 .body(())

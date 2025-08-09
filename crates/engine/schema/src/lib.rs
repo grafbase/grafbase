@@ -7,7 +7,6 @@ mod builder;
 mod composite_type;
 mod config;
 mod definition;
-mod directive;
 mod directive_site;
 mod entity;
 mod enum_def;
@@ -38,7 +37,6 @@ mod tests;
 
 pub use builder::mutable::MutableSchema;
 pub use config::*;
-pub use directive::*;
 pub use extension::*;
 use extension_catalog::ExtensionId;
 pub use field::*;
@@ -166,11 +164,6 @@ pub struct Graph {
 
     /// Default input values & directive arguments
     pub input_values: SchemaInputValues,
-
-    #[indexed_by(RequiresScopesDirectiveId)]
-    required_scopes: Vec<RequiresScopesDirectiveRecord>,
-    #[indexed_by(AuthorizedDirectiveId)]
-    authorized_directives: Vec<AuthorizedDirectiveRecord>,
 
     // Complexity control stuff
     #[indexed_by(CostDirectiveId)]

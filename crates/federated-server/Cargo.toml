@@ -22,7 +22,6 @@ blake3.workspace = true
 cfg-if.workspace = true
 either.workspace = true
 engine.workspace = true
-engine-auth.workspace = true
 engine-schema.workspace = true
 event-queue.workspace = true
 extension-catalog.workspace = true

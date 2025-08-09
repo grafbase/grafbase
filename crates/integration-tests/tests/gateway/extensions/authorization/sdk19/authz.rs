@@ -4,7 +4,7 @@ use integration_tests::{
     runtime,
 };
 
-use crate::gateway::extensions::authentication::static_token::StaticToken;
+use crate::gateway::extensions::authentication::static_auth::StaticAuth;
 
 #[test]
 fn query_and_response_auth_with_headers_modifications() {
@@ -43,7 +43,7 @@ fn query_and_response_auth_with_headers_modifications() {
                 )
                 .into_subgraph("x"),
             )
-            .with_extension(AuthenticationExt::new(StaticToken::bytes("Hello world!")))
+            .with_extension(AuthenticationExt::new(StaticAuth::bytes("Hello world!")))
             .with_extension("authz-19")
             .build()
             .await;

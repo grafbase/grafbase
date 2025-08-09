@@ -7,7 +7,7 @@ use integration_tests::{
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
 use serde::Deserialize;
 
-use crate::gateway::extensions::authentication::static_token::StaticToken;
+use crate::gateway::extensions::authentication::static_auth::StaticAuth;
 
 #[derive(Default)]
 struct RequiresScopes;
@@ -80,7 +80,7 @@ fn anonymous() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
-            .with_extension(AuthenticationExt::new(StaticToken::anonymous()))
+            .with_extension(AuthenticationExt::new(StaticAuth::anonymous()))
             .build()
             .await;
 
@@ -145,7 +145,7 @@ fn missing_claim() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
-            .with_extension(AuthenticationExt::new(StaticToken::claims(&[("dummy", "claim")])))
+            .with_extension(AuthenticationExt::new(StaticAuth::claims(&[("dummy", "claim")])))
             .build()
             .await;
 
@@ -210,7 +210,7 @@ fn missing_scope() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
-            .with_extension(AuthenticationExt::new(StaticToken::claims(&[("scopes", "group")])))
+            .with_extension(AuthenticationExt::new(StaticAuth::claims(&[("scopes", "group")])))
             .build()
             .await;
 
@@ -293,7 +293,7 @@ fn valid_scope() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
-            .with_extension(AuthenticationExt::new(StaticToken::claims(&[("scopes", "user")])))
+            .with_extension(AuthenticationExt::new(StaticAuth::claims(&[("scopes", "user")])))
             .build()
             .await;
 

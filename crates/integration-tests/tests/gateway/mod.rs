@@ -1,5 +1,4 @@
 mod apq;
-mod auth;
 mod basic;
 mod complexity_control;
 mod composite;

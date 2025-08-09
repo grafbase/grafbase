@@ -3,7 +3,7 @@ use std::sync::Arc;
 use event_queue::EventQueue;
 use grafbase_telemetry::metrics::EngineMetrics;
 use operation::{InputValueContext, Variables};
-use runtime::{authentication::LegacyToken, extension::ExtensionContext as _};
+use runtime::extension::ExtensionContext as _;
 use schema::{HeaderRule, Schema};
 
 use crate::{
@@ -30,11 +30,6 @@ impl<R: Runtime> Clone for ExecutionContext<'_, R> {
 impl<R: Runtime> std::marker::Copy for ExecutionContext<'_, R> {}
 
 impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
-    #[allow(unused)]
-    pub fn access_token(&self) -> &'ctx LegacyToken {
-        &self.request_context.token
-    }
-
     pub fn event_queue(&self) -> &'ctx EventQueue {
         self.request_context.extension_context.event_queue()
     }

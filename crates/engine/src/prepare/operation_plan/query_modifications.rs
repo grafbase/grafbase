@@ -14,9 +14,9 @@ use crate::{
     Runtime,
     execution::{GraphqlRequestContext, find_matching_denied_header},
     prepare::{
-        CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, Derive, ErrorCode, FieldShapeId,
-        GraphqlError, PartitionField, PrepareContext, QueryModifierId, QueryModifierRecord, QueryModifierRule,
-        QueryModifierTarget, QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord, TypenameFieldId,
+        CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, Derive, FieldShapeId, GraphqlError,
+        PartitionField, PrepareContext, QueryModifierId, QueryModifierRecord, QueryModifierRule, QueryModifierTarget,
+        QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord, TypenameFieldId,
         create_extension_directive_query_view,
     },
 };
@@ -222,62 +222,26 @@ where
     }
 
     async fn handle_native_modifiers(&mut self, query_modifiers: &'op [QueryModifierRecord]) -> PlanResult<()> {
-        let mut scope_jwt_claim = None;
-
         for modifier in query_modifiers {
-            match &modifier.rule {
-                QueryModifierRule::Extension { .. } => unreachable!("Not a native modifier"),
-                QueryModifierRule::Authenticated => {
-                    if self.ctx.access_token().is_anonymous() {
-                        let error_id =
-                            self.push_error(GraphqlError::new("Unauthenticated", ErrorCode::Unauthenticated));
-                        self.deny_field(modifier, error_id);
+            if let QueryModifierRule::Executable { directives } = &modifier.rule {
+                // GraphQL spec:
+                //   Stated conversely, the field or fragment must not be queried if either the @skip condition is true or the @include condition is false.
+                let is_skipped = directives.iter().any(|directive| match directive {
+                    operation::ExecutableDirectiveId::Include(directive) => {
+                        !bool::deserialize(directive.condition.walk(self.input_value_ctx))
+                            .expect("at this point we've already checked the argument type")
                     }
-                }
-                QueryModifierRule::RequiresScopes(id) => {
-                    let scope_jwt_claim = scope_jwt_claim.get_or_insert_with(|| {
-                        self.ctx
-                            .access_token()
-                            .get_claim("scope")
-                            .and_then(|value| value.as_str())
-                            .map(|scope| scope.split(' ').collect::<Vec<_>>())
-                            .unwrap_or_default()
-                    });
-
-                    if id.walk(self.ctx.schema()).matches(scope_jwt_claim).is_none() {
-                        let error_id =
-                            self.push_error(GraphqlError::new("Insufficient scopes", ErrorCode::Unauthorized));
-                        self.deny_field(modifier, error_id);
-                        continue;
-                    };
-                }
-                QueryModifierRule::AuthorizedField { .. } => {
-                    unreachable!("maybe it's time to let go of this variant?")
-                }
-                QueryModifierRule::AuthorizedFieldWithArguments { .. } => {
-                    unreachable!("maybe it's time to let go of this variant?")
-                }
-                QueryModifierRule::AuthorizedDefinition { .. } => {
-                    unreachable!("maybe it's time to let go of this variant?")
-                }
-                QueryModifierRule::Executable { directives } => {
-                    // GraphQL spec:
-                    //   Stated conversely, the field or fragment must not be queried if either the @skip condition is true or the @include condition is false.
-                    let is_skipped = directives.iter().any(|directive| match directive {
-                        operation::ExecutableDirectiveId::Include(directive) => {
-                            !bool::deserialize(directive.condition.walk(self.input_value_ctx))
-                                .expect("at this point we've already checked the argument type")
-                        }
-                        operation::ExecutableDirectiveId::Skip(directive) => {
-                            bool::deserialize(directive.condition.walk(self.input_value_ctx))
-                                .expect("at this point we've already checked the argument type")
-                        }
-                    });
-
-                    if is_skipped {
-                        self.skip_field(modifier)
+                    operation::ExecutableDirectiveId::Skip(directive) => {
+                        bool::deserialize(directive.condition.walk(self.input_value_ctx))
+                            .expect("at this point we've already checked the argument type")
                     }
+                });
+
+                if is_skipped {
+                    self.skip_field(modifier)
                 }
+            } else {
+                unreachable!("Not a native modifier")
             }
         }
 
