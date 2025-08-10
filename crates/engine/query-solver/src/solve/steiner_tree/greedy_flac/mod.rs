@@ -25,7 +25,6 @@ pub(crate) struct GreedyFlacAlgorithm<QG: GraphBase, G: Data<EdgeWeight = Cost>>
     has_updated_cost: bool,
 }
 
-#[allow(unused)]
 impl<QG: GraphBase> GreedyFlacAlgorithm<QG, SteinerGraph>
 where
     QG: NodeIndexable + IntoNodeReferences + IntoEdgeReferences + EdgeCount + NodeCount + EdgeIndexable + DataMap,
@@ -135,7 +134,7 @@ where
         for edge_id in steiner_tree_edges {
             let edge_ix = self.ctx.to_edge_ix(*edge_id);
             flac.steiner_tree_edges.insert(edge_ix.index());
-            let (src, dst) = self.ctx.graph.edge_endpoints(edge_ix).unwrap();
+            let (_, dst) = self.ctx.graph.edge_endpoints(edge_ix).unwrap();
             flac.steiner_tree_nodes.insert(dst.index());
         }
 
