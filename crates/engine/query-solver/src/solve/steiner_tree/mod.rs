@@ -5,17 +5,30 @@ mod tests;
 use fixedbitset::FixedBitSet;
 pub(crate) use greedy_flac::*;
 use petgraph::{
-    graph::{Graph, NodeIndex},
+    graph::{EdgeIndex, Graph, NodeIndex},
     visit::NodeIndexable as _,
 };
 
 use crate::Cost;
 
-#[derive(Clone)]
 pub(crate) struct SteinerTree {
     pub nodes: FixedBitSet,
     pub edges: FixedBitSet,
     pub total_weight: Cost,
+}
+
+impl std::ops::Index<NodeIndex> for SteinerTree {
+    type Output = bool;
+    fn index(&self, index: NodeIndex) -> &Self::Output {
+        &self.nodes[index.index()]
+    }
+}
+
+impl std::ops::Index<EdgeIndex> for SteinerTree {
+    type Output = bool;
+    fn index(&self, index: EdgeIndex) -> &Self::Output {
+        &self.edges[index.index()]
+    }
 }
 
 impl SteinerTree {

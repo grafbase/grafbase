@@ -41,6 +41,16 @@ pub(crate) struct DispensableRequirements {
 }
 
 impl DispensableRequirementsMetadata {
+    /// For each node with dispensable requirements, we need its incoming edge's cost to reflect
+    /// the requirements cost if we were to chose that edge. Those dispensable requirements would then become
+    /// indispensable and added to the list of terminals we must find in the Steiner tree.
+    ///
+    /// A node may have multiple incoming edges being potentially resolved by different resolvers.
+    /// This may have implications on the requirements, so we recursively consider any parent incoming edge to
+    /// be free as long as there is only one parent. We had to take that path after all. This
+    /// allow us to more appropriately reflect cost differences.
+    ///
+    /// This method populates all the necessary metadata used to compute the extra requirements cost.
     pub fn ingest(&mut self, graph: &SolutionSpaceGraph<'_>) -> crate::Result<()> {
         struct IncomingEdgeWithDispensableRequirements {
             parent: NodeIndex,
