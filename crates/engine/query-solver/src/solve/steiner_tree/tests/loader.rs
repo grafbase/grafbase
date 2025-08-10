@@ -17,7 +17,7 @@ pub(super) struct GeneGraph {
     pub terminals: Vec<NodeIndex>,
 }
 
-pub(super) fn load_dataset() -> impl Iterator<Item = GeneGraph> {
+pub(super) fn load_gene_dataset() -> impl Iterator<Item = GeneGraph> {
     let cases = vec![
         ("gene42.stp", 126),
         ("gene61a.stp", 205),
