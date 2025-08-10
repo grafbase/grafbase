@@ -18,7 +18,6 @@ pub(crate) struct SteinerContext<QueryGraph: GraphBase, G: GraphBase> {
     pub(super) query_graph: QueryGraph,
     pub(super) graph: G,
     pub(super) root_ix: G::NodeId,
-    pub(super) incoming_root_edge: G::EdgeId,
     // Mapping between the operation graph and the steiner graph.
     node_ix_to_query_graph_node_id: Vec<QueryGraph::NodeId>,
     pub(super) query_graph_node_id_to_node_ix: Vec<G::NodeId>,
@@ -60,14 +59,11 @@ impl<QG: GraphBase> SteinerContext<QG, SteinerGraph> {
             query_graph_edge_id_to_edge_ix[id.index()] = edge_ix;
         }
 
-        let root_of_root = graph.add_node(());
         let root_ix = query_graph_node_id_to_node_ix[root_ix.index()];
-        let incoming_root_edge = graph.add_edge(root_of_root, root_ix, 0);
         Self {
             query_graph,
             graph,
             root_ix,
-            incoming_root_edge,
             node_ix_to_query_graph_node_id,
             query_graph_node_id_to_node_ix,
             query_graph_edge_id_to_edge_ix,

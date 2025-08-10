@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/interface.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"User.age\", style=dashed ]\n    2 [ label = \"NodeWithName.username\", style=dashed ]\n    3 [ label = \"Root#a\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    4 [ label = \"users#a\", shape=box, color=dodgerblue, style=dashed ]\n    5 [ label = \"age#a\", shape=box, color=dodgerblue, style=dashed ]\n    6 [ label = \"FedEntity#b\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    7 [ label = \"username#b\", shape=box, color=dodgerblue, style=dashed ]\n    8 [ label = \"*NodeWithName.id\", style=dashed ]\n    9 [ label = \"id#a\", shape=box, color=dodgerblue, style=dashed ]\n    10 [ label=\"\", style=dashed]\n    0 -> 3 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 6 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 2 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    9 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    10 -> 0 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"User.age\", style=dashed ]\n    2 [ label = \"NodeWithName.username\", style=dashed ]\n    3 [ label = \"Root#a\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    4 [ label = \"users#a\", shape=box, color=dodgerblue, style=dashed ]\n    5 [ label = \"age#a\", shape=box, color=dodgerblue, style=dashed ]\n    6 [ label = \"FedEntity#b\", shape=parallelogram, color=dodgerblue, style=dashed ]\n    7 [ label = \"username#b\", shape=box, color=dodgerblue, style=dashed ]\n    8 [ label = \"*NodeWithName.id\", style=dashed ]\n    9 [ label = \"id#a\", shape=box, color=dodgerblue, style=dashed ]\n    0 -> 3 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 6 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    6 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    7 -> 2 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    9 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
@@ -13,7 +13,6 @@ digraph {
     7 [ label = "username#b", steiner=0 ]
     8 [ label = "*NodeWithName.id", steiner=0 ]
     9 [ label = "id#a", steiner=0 ]
-    10 [ label="", style=dashed]
     0 -> 3 [ cost=1, steiner=0]
     3 -> 4 [ cost=0, steiner=0]
     4 -> 5 [ cost=0, steiner=0]
@@ -23,5 +22,4 @@ digraph {
     7 -> 2 [ cost=0, steiner=0]
     4 -> 9 [ cost=0, steiner=0]
     9 -> 8 [ cost=0, steiner=0]
-    10 -> 0 [ cost=0, steiner=1]
 }

@@ -46,8 +46,6 @@ where
             let mut nodes = FixedBitSet::with_capacity(ctx.graph.node_bound());
             // Include both the root and the root of root
             nodes.insert(ctx.root_ix.index());
-            let root_of_root = ctx.graph.edge_endpoints(ctx.incoming_root_edge).unwrap().0;
-            nodes.insert(root_of_root.index());
             nodes
         };
 

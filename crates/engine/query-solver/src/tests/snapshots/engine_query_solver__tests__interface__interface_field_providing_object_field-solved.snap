@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/interface.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"User.age\", color=forestgreen ]\n    2 [ label = \"Root#b\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    3 [ label = \"anotherUsers#b\", shape=box, color=dodgerblue, color=forestgreen ]\n    4 [ label = \"FedEntity#a\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    5 [ label = \"age#a\", shape=box, color=dodgerblue, color=forestgreen ]\n    6 [ label = \"*NodeWithName.id\", color=forestgreen ]\n    7 [ label = \"id#b\", shape=box, color=dodgerblue, color=forestgreen ]\n    8 [ label=\"\", style=dashed]\n    0 -> 2 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    2 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    3 -> 4 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    4 -> 5 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    5 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    3 -> 7 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    8 -> 0 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"User.age\", color=forestgreen ]\n    2 [ label = \"Root#b\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    3 [ label = \"anotherUsers#b\", shape=box, color=dodgerblue, color=forestgreen ]\n    4 [ label = \"FedEntity#a\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    5 [ label = \"age#a\", shape=box, color=dodgerblue, color=forestgreen ]\n    6 [ label = \"*NodeWithName.id\", color=forestgreen ]\n    7 [ label = \"id#b\", shape=box, color=dodgerblue, color=forestgreen ]\n    0 -> 2 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    2 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    3 -> 4 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    4 -> 5 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    5 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    3 -> 7 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
@@ -11,7 +11,6 @@ digraph {
     5 [ label = "age#a", steiner=1 ]
     6 [ label = "*NodeWithName.id", steiner=1 ]
     7 [ label = "id#b", steiner=1 ]
-    8 [ label="", style=dashed]
     0 -> 2 [ cost=1, steiner=1]
     2 -> 3 [ cost=0, steiner=1]
     3 -> 4 [ cost=1, steiner=1]
@@ -19,5 +18,4 @@ digraph {
     5 -> 1 [ cost=0, steiner=1]
     3 -> 7 [ cost=0, steiner=1]
     7 -> 6 [ cost=0, steiner=1]
-    8 -> 0 [ cost=0, steiner=1]
 }
