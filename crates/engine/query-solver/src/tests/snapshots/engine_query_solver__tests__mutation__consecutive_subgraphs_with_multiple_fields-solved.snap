@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/mutation.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"User.id\", color=forestgreen ]\n    2 [ label = \"User.id\", color=forestgreen ]\n    3 [ label = \"Product.upc\", color=forestgreen ]\n    4 [ label = \"Product.upc\", color=forestgreen ]\n    5 [ label = \"Review.id\", color=forestgreen ]\n    6 [ label = \"Review.id\", color=forestgreen ]\n    7 [ label = \"Root#accounts\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    8 [ label = \"createUser#accounts\", shape=box, color=dodgerblue, color=forestgreen ]\n    9 [ label = \"id#accounts\", shape=box, color=dodgerblue, color=forestgreen ]\n    10 [ label = \"updateUser#accounts\", shape=box, color=dodgerblue, color=forestgreen ]\n    11 [ label = \"id#accounts\", shape=box, color=dodgerblue, color=forestgreen ]\n    12 [ label = \"Root#products\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    13 [ label = \"createProduct#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    14 [ label = \"upc#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    15 [ label = \"updateProduct#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    16 [ label = \"upc#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    17 [ label = \"Root#reviews\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    18 [ label = \"createReview#reviews\", shape=box, color=dodgerblue, color=forestgreen ]\n    19 [ label = \"id#reviews\", shape=box, color=dodgerblue, color=forestgreen ]\n    20 [ label = \"updateReview#reviews\", shape=box, color=dodgerblue, color=forestgreen ]\n    21 [ label = \"id#reviews\", shape=box, color=dodgerblue, color=forestgreen ]\n    22 [ label=\"\", style=dashed]\n    0 -> 7 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 8 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    8 -> 9 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    9 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 10 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    10 -> 11 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    11 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    0 -> 12 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    12 -> 13 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    13 -> 14 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    14 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    12 -> 15 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    15 -> 16 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    16 -> 4 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    0 -> 17 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    17 -> 18 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    18 -> 19 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    19 -> 5 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    17 -> 20 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    20 -> 21 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    21 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    22 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"User.id\", color=forestgreen ]\n    2 [ label = \"User.id\", color=forestgreen ]\n    3 [ label = \"Product.upc\", color=forestgreen ]\n    4 [ label = \"Product.upc\", color=forestgreen ]\n    5 [ label = \"Review.id\", color=forestgreen ]\n    6 [ label = \"Review.id\", color=forestgreen ]\n    7 [ label = \"Root#accounts\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    8 [ label = \"createUser#accounts\", shape=box, color=dodgerblue, color=forestgreen ]\n    9 [ label = \"id#accounts\", shape=box, color=dodgerblue, color=forestgreen ]\n    10 [ label = \"updateUser#accounts\", shape=box, color=dodgerblue, color=forestgreen ]\n    11 [ label = \"id#accounts\", shape=box, color=dodgerblue, color=forestgreen ]\n    12 [ label = \"Root#products\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    13 [ label = \"createProduct#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    14 [ label = \"upc#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    15 [ label = \"updateProduct#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    16 [ label = \"upc#products\", shape=box, color=dodgerblue, color=forestgreen ]\n    17 [ label = \"Root#reviews\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    18 [ label = \"createReview#reviews\", shape=box, color=dodgerblue, color=forestgreen ]\n    19 [ label = \"id#reviews\", shape=box, color=dodgerblue, color=forestgreen ]\n    20 [ label = \"updateReview#reviews\", shape=box, color=dodgerblue, color=forestgreen ]\n    21 [ label = \"id#reviews\", shape=box, color=dodgerblue, color=forestgreen ]\n    0 -> 7 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    7 -> 8 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    8 -> 9 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    9 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 10 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    10 -> 11 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    11 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    0 -> 12 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    12 -> 13 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    13 -> 14 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    14 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    12 -> 15 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    15 -> 16 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    16 -> 4 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    0 -> 17 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    17 -> 18 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    18 -> 19 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    19 -> 5 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    17 -> 20 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    20 -> 21 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    21 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
@@ -25,27 +25,25 @@ digraph {
     19 [ label = "id#reviews", steiner=1 ]
     20 [ label = "updateReview#reviews", steiner=1 ]
     21 [ label = "id#reviews", steiner=1 ]
-    22 [ label="", style=dashed]
-    0 -> 7 [ cost=0, steiner=1]
+    0 -> 7 [ cost=1, steiner=1]
     7 -> 8 [ cost=0, steiner=1]
     8 -> 9 [ cost=0, steiner=1]
     9 -> 1 [ cost=0, steiner=1]
     7 -> 10 [ cost=0, steiner=1]
     10 -> 11 [ cost=0, steiner=1]
     11 -> 2 [ cost=0, steiner=1]
-    0 -> 12 [ cost=0, steiner=1]
+    0 -> 12 [ cost=1, steiner=1]
     12 -> 13 [ cost=0, steiner=1]
     13 -> 14 [ cost=0, steiner=1]
     14 -> 3 [ cost=0, steiner=1]
     12 -> 15 [ cost=0, steiner=1]
     15 -> 16 [ cost=0, steiner=1]
     16 -> 4 [ cost=0, steiner=1]
-    0 -> 17 [ cost=0, steiner=1]
+    0 -> 17 [ cost=1, steiner=1]
     17 -> 18 [ cost=0, steiner=1]
     18 -> 19 [ cost=0, steiner=1]
     19 -> 5 [ cost=0, steiner=1]
     17 -> 20 [ cost=0, steiner=1]
     20 -> 21 [ cost=0, steiner=1]
     21 -> 6 [ cost=0, steiner=1]
-    22 -> 0 [ cost=0, steiner=0]
 }

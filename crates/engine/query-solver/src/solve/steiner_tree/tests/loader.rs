@@ -1,11 +1,11 @@
 use std::path::Path;
 
 use itertools::Itertools;
-use petgraph::{graph::NodeIndex, stable_graph::StableGraph};
+use petgraph::{graph::Graph, graph::NodeIndex};
 
 use crate::Cost;
 
-type SteinLibGraph = StableGraph<(), Cost>;
+type SteinLibGraph = Graph<(), Cost>;
 
 /// https://steinlib.zib.de/showset.php?GENE
 /// Directed acyclic graphs
@@ -17,7 +17,7 @@ pub(super) struct GeneGraph {
     pub terminals: Vec<NodeIndex>,
 }
 
-pub(super) fn load_dataset() -> impl Iterator<Item = GeneGraph> {
+pub(super) fn load_gene_dataset() -> impl Iterator<Item = GeneGraph> {
     let cases = vec![
         ("gene42.stp", 126),
         ("gene61a.stp", 205),

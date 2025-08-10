@@ -1,5 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 .grafbase
+ignore.md
 
 # dependencies
 node_modules
@@ -73,3 +74,4 @@ devenv.local.nix
 
 # pre-commit
 .pre-commit-config.yaml
+directed-steiner-tree
