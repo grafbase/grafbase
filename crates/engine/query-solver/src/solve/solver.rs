@@ -22,10 +22,13 @@ use crate::{
     Cost, FieldFlags, QuerySolutionSpace,
     dot_graph::Attrs,
     solution_space::{SpaceEdge, SpaceNode},
-    solve::steiner_tree::SteinerTree,
+    solve::{
+        context::{SteinerContext, SteinerGraph},
+        steiner_tree::SteinerTree,
+    },
 };
 
-use super::steiner_tree::{GreedyFlac, SteinerContext, SteinerGraph};
+use super::steiner_tree::GreedyFlac;
 
 /// The solver is responsible for finding the optimal path from the root to the query fields.
 /// There are two cores aspects to this, expressing the problem as a Steiner tree problem and

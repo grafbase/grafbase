@@ -1,11 +1,11 @@
 use std::path::Path;
 
 use itertools::Itertools;
-use petgraph::{graph::NodeIndex, stable_graph::StableGraph};
+use petgraph::{graph::Graph, graph::NodeIndex};
 
 use crate::Cost;
 
-type SteinLibGraph = StableGraph<(), Cost>;
+type SteinLibGraph = Graph<(), Cost>;
 
 /// https://steinlib.zib.de/showset.php?GENE
 /// Directed acyclic graphs
