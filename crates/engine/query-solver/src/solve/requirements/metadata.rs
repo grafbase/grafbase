@@ -68,6 +68,7 @@ impl DispensableRequirements {
         let hasher = FxBuildHasher::default();
         let mut requirements_interner =
             hashbrown::HashTable::<IdRange<RequiredNodeId>>::with_capacity(ctx.space_graph.node_count() >> 4);
+        let mut space_required_node_ids = Vec::new();
 
         for (space_node_ix, space_node) in ctx.space_graph.node_references() {
             if !matches!(space_node, SpaceNode::Resolver(_) | SpaceNode::ProvidableField(_)) {
@@ -75,6 +76,7 @@ impl DispensableRequirements {
             }
 
             // Retrieve all the node ids on which we depend.
+            space_required_node_ids.clear();
             let required_node_ids = self.extend_extra_required_nodes(
                 ctx.space_graph
                     .edges_directed(space_node_ix, Direction::Outgoing)
@@ -85,7 +87,10 @@ impl DispensableRequirements {
                                 .map(|field| !field.is_indispensable() && field.is_leaf())
                                 .unwrap_or_default()
                     })
-                    .map(|edge| ctx.to_node_ix(edge.target())),
+                    .map(|edge| {
+                        space_required_node_ids.push(edge.target());
+                        ctx.to_node_ix(edge.target())
+                    }),
             );
             if required_node_ids.is_empty() {
                 continue;
@@ -120,7 +125,7 @@ impl DispensableRequirements {
                 .filter(|edge| matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide))
                 .all(|incoming_edge| {
                     let parent = incoming_edge.source();
-                    self[required_node_ids].iter().all(|required| {
+                    space_required_node_ids.iter().all(|required| {
                         ctx.space_graph
                             .edges_directed(parent, Direction::Outgoing)
                             .filter(|neighbor| matches!(neighbor.weight(), SpaceEdge::CanProvide))

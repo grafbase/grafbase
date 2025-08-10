@@ -98,13 +98,8 @@ where
             if !update.new_terminals.is_empty() {
                 update.new_terminals.sort_unstable();
                 self.flac.extend_terminals(update.new_terminals.drain(..).dedup());
-            } else {
-                if growth.is_break() {
-                    break;
-                }
-                if update.has_updated_cost {
-                    self.flac.reset_flow();
-                }
+            } else if growth.is_break() {
+                break;
             }
 
             tracing::trace!("Solver step:\n{}", self.to_pretty_dot_graph());

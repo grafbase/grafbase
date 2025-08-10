@@ -74,6 +74,7 @@ impl std::ops::DerefMut for FixedPointCostAlgorithm<'_, '_, '_> {
 
 pub(crate) struct Update<'a> {
     pub new_terminals: &'a mut Vec<NodeIndex>,
+    #[allow(unused)]
     pub has_updated_cost: bool,
 }
 
