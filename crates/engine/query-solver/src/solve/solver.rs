@@ -1,20 +1,13 @@
-use std::{
-    hash::{BuildHasher, Hash},
-    ops::ControlFlow,
-};
+use std::ops::ControlFlow;
 
 use ::operation::Operation;
 use fixedbitset::FixedBitSet;
-use fxhash::FxBuildHasher;
-use hashbrown::hash_table::Entry;
-use id_newtypes::IdRange;
 use itertools::Itertools;
 use operation::OperationContext;
 use petgraph::{
-    Direction,
     prelude::StableGraph,
     stable_graph::{EdgeIndex, NodeIndex},
-    visit::{EdgeRef, IntoNodeReferences},
+    visit::EdgeRef,
 };
 use schema::Schema;
 
@@ -24,6 +17,7 @@ use crate::{
     solution_space::{SpaceEdge, SpaceNode},
     solve::{
         context::{SteinerContext, SteinerGraph},
+        requirements::{DispensableRequirements, DispensableRequirementsMetadata},
         steiner_tree::SteinerTree,
     },
 };
@@ -55,6 +49,7 @@ pub(crate) struct Solver<'schema, 'op, 'q> {
     /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
     /// them.
     dispensable_requirements_metadata: DispensableRequirementsMetadata,
+    independent_requirements: Option<bool>,
     /// Temporary storage for extra terminals to be added to the algorithm.
     tmp_extra_terminals: Vec<NodeIndex>,
 }
@@ -92,6 +87,7 @@ where
             cost_estimator: None,
             has_updated_cost: false,
             dispensable_requirements_metadata: DispensableRequirementsMetadata::default(),
+            independent_requirements: None,
             tmp_extra_terminals: Vec::new(),
         };
 
@@ -142,172 +138,8 @@ where
     ///
     /// This method populates all the necessary metadata used to compute the extra requirements cost.
     fn populate_requirement_metadata(&mut self) -> crate::Result<()> {
-        struct IncomingEdgeWithDispensableRequirements {
-            parent: NodeIndex,
-            extra_required_node_ids: IdRange<ExtraRequiredNodeId>,
-            incoming_edge_ix: EdgeIndex,
-            edge_cost: Cost,
-        }
-        let mut buffer = Vec::with_capacity(self.query_solution_space.graph.node_count() >> 4);
-
-        // Used to intern required node id ranges
-        let hasher = FxBuildHasher::default();
-        let mut requirements_interner = hashbrown::HashTable::<IdRange<ExtraRequiredNodeId>>::with_capacity(
-            self.query_solution_space.graph.node_count() >> 4,
-        );
-
-        for (node_ix, node) in self.query_solution_space.graph.node_references() {
-            if !matches!(node, SpaceNode::Resolver(_) | SpaceNode::ProvidableField(_)) {
-                continue;
-            }
-
-            // Retrieve all the node ids on which we depend.
-            let extra_required_node_ids = self.dispensable_requirements_metadata.extend_extra_required_nodes(
-                self.query_solution_space
-                    .graph
-                    .edges_directed(node_ix, Direction::Outgoing)
-                    .filter(|edge| {
-                        matches!(edge.weight(), SpaceEdge::Requires)
-                            && self.query_solution_space.graph[edge.target()]
-                                .as_query_field()
-                                .map(|field| !field.is_indispensable() && field.is_leaf())
-                                .unwrap_or_default()
-                    })
-                    .map(|edge| edge.target()),
-            );
-            if extra_required_node_ids.is_empty() {
-                continue;
-            }
-
-            // De-duplicate the requirements
-            let key = &self.dispensable_requirements_metadata[extra_required_node_ids];
-            let extra_required_node_ids = match requirements_interner.entry(
-                hasher.hash_one(key),
-                |id| &self.dispensable_requirements_metadata[*id] == key,
-                |id| hasher.hash_one(&self.dispensable_requirements_metadata[*id]),
-            ) {
-                Entry::Occupied(entry) => {
-                    self.dispensable_requirements_metadata
-                        .extra_required_nodes
-                        .truncate(extra_required_node_ids.start.into());
-
-                    *entry.get()
-                }
-                Entry::Vacant(entry) => {
-                    entry.insert(extra_required_node_ids);
-                    extra_required_node_ids
-                }
-            };
-
-            // Given a parent node, if there is a ProvidableField neighbor that provides our field
-            // without any requirements, there is no cost associated with it.
-            // If for each parent all the requirements have no cost, there is no extra cost at all
-            // for this field.
-            if self
-                .query_solution_space
-                .graph
-                .edges_directed(node_ix, Direction::Incoming)
-                .filter(|edge| matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide))
-                .all(|incoming_edge| {
-                    let parent = incoming_edge.source();
-                    self.dispensable_requirements_metadata[extra_required_node_ids]
-                        .iter()
-                        .all(|required| {
-                            self.query_solution_space
-                                .graph
-                                .edges_directed(parent, Direction::Outgoing)
-                                .filter(|neighbor| matches!(neighbor.weight(), SpaceEdge::CanProvide))
-                                .any(|neighbor| {
-                                    let mut found_requirement = false;
-                                    for edge in self
-                                        .query_solution_space
-                                        .graph
-                                        .edges_directed(neighbor.target(), Direction::Outgoing)
-                                    {
-                                        if matches!(edge.weight(), SpaceEdge::Requires) {
-                                            return false;
-                                        }
-                                        found_requirement |=
-                                            matches!(edge.weight(), SpaceEdge::Provides) & (edge.target() == *required);
-                                    }
-                                    found_requirement
-                                })
-                        })
-                })
-            {
-                self.dispensable_requirements_metadata
-                    .free_requirements
-                    .push((node_ix, extra_required_node_ids));
-                continue;
-            }
-
-            for incoming_edge in self
-                .query_solution_space
-                .graph
-                .edges_directed(node_ix, Direction::Incoming)
-            {
-                let edge_cost = match incoming_edge.weight() {
-                    SpaceEdge::CreateChildResolver => 1,
-                    SpaceEdge::CanProvide => 0,
-                    _ => continue,
-                };
-                buffer.push(IncomingEdgeWithDispensableRequirements {
-                    parent: incoming_edge.source(),
-                    extra_required_node_ids,
-                    incoming_edge_ix: incoming_edge.id(),
-                    edge_cost,
-                });
-            }
-        }
-
-        buffer.sort_unstable_by(|a, b| {
-            a.parent
-                .cmp(&b.parent)
-                .then(a.extra_required_node_ids.cmp(&b.extra_required_node_ids))
-        });
-
-        for ((mut parent, extra_required_node_ids), chunk) in buffer
-            .into_iter()
-            .chunk_by(|item| (item.parent, item.extra_required_node_ids))
-            .into_iter()
-        {
-            let incoming_edge_and_cost_ids = self
-                .dispensable_requirements_metadata
-                .extend_incoming_edges_and_cost(chunk.into_iter().map(|item| (item.incoming_edge_ix, item.edge_cost)));
-
-            // This will at least include the ProvidableField & Resolver that led to the
-            // parent. As we'll necessarily take them for this particular edge, they'll be set
-            // to 0 cost while estimating the requirement cost.
-            let unavoidable_parent_edge_ids =
-                self.dispensable_requirements_metadata
-                    .extend_unavoidable_parent_edges(std::iter::from_fn(|| {
-                        let mut grand_parents = self
-                            .query_solution_space
-                            .graph
-                            .edges_directed(parent, Direction::Incoming)
-                            .filter(|edge| {
-                                matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide)
-                            });
-
-                        let first = grand_parents.next()?;
-                        if grand_parents.next().is_none() {
-                            parent = first.source();
-                            Some(first.id())
-                        } else {
-                            None
-                        }
-                    }));
-
-            self.dispensable_requirements_metadata
-                .maybe_costly_requirements
-                .push(DispensableRequirements {
-                    unavoidable_parent_edge_ids,
-                    extra_required_node_ids,
-                    incoming_edge_and_cost_ids,
-                });
-        }
-
-        Ok(())
+        self.dispensable_requirements_metadata
+            .ingest(&self.query_solution_space.graph)
     }
 
     /// Updates the cost of edges based on the requirements of the nodes.
@@ -320,12 +152,7 @@ where
             i += 1;
             self.generate_cost_updates_based_on_requirements();
             let has_updates = std::mem::take(&mut self.has_updated_cost);
-            if !has_updates
-                || self
-                    .dispensable_requirements_metadata
-                    .independent_cost
-                    .unwrap_or_default()
-            {
+            if !has_updates || self.independent_requirements.unwrap_or_default() {
                 break;
             }
             if i > 100 {
@@ -335,9 +162,7 @@ where
         // If it's the first time we do the fixed point iteration and we didn't do more than 2
         // iterations (one for updating, one for checking nothing changed). It means there is no
         // dependency between requirements cost. So we can skip it in the next iterations.
-        self.dispensable_requirements_metadata
-            .independent_cost
-            .get_or_insert(i == 2);
+        self.independent_requirements.get_or_insert(i == 2);
         let new_terminals = !self.tmp_extra_terminals.is_empty();
         self.tmp_extra_terminals.sort_unstable();
         self.flac.extend_terminals(
@@ -542,63 +367,5 @@ where
 impl std::fmt::Debug for Solver<'_, '_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Solver").finish_non_exhaustive()
-    }
-}
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
-struct ExtraRequiredNodeId(u32);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
-struct UnavoidableParentEdgeId(u32);
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
-struct IncomingEdgeAndCostId(u32);
-
-#[derive(Default, id_derives::IndexedFields)]
-struct DispensableRequirementsMetadata {
-    free_requirements: Vec<(NodeIndex, IdRange<ExtraRequiredNodeId>)>,
-    maybe_costly_requirements: Vec<DispensableRequirements>,
-    #[indexed_by(ExtraRequiredNodeId)]
-    extra_required_nodes: Vec<NodeIndex>,
-    #[indexed_by(UnavoidableParentEdgeId)]
-    unavoidable_parent_edges: Vec<EdgeIndex>,
-    #[indexed_by(IncomingEdgeAndCostId)]
-    incoming_edges_and_cost: Vec<(EdgeIndex, Cost)>,
-    independent_cost: Option<bool>,
-}
-
-#[derive(Clone, Copy)]
-struct DispensableRequirements {
-    unavoidable_parent_edge_ids: IdRange<UnavoidableParentEdgeId>,
-    extra_required_node_ids: IdRange<ExtraRequiredNodeId>,
-    incoming_edge_and_cost_ids: IdRange<IncomingEdgeAndCostId>,
-}
-
-impl DispensableRequirementsMetadata {
-    fn extend_extra_required_nodes(
-        &mut self,
-        nodes: impl IntoIterator<Item = NodeIndex>,
-    ) -> IdRange<ExtraRequiredNodeId> {
-        let start = self.extra_required_nodes.len();
-        self.extra_required_nodes.extend(nodes);
-        IdRange::from(start..self.extra_required_nodes.len())
-    }
-
-    fn extend_unavoidable_parent_edges(
-        &mut self,
-        edges: impl IntoIterator<Item = EdgeIndex>,
-    ) -> IdRange<UnavoidableParentEdgeId> {
-        let start = self.unavoidable_parent_edges.len();
-        self.unavoidable_parent_edges.extend(edges);
-        IdRange::from(start..self.unavoidable_parent_edges.len())
-    }
-
-    fn extend_incoming_edges_and_cost(
-        &mut self,
-        edges_and_cost: impl IntoIterator<Item = (EdgeIndex, Cost)>,
-    ) -> IdRange<IncomingEdgeAndCostId> {
-        let start = self.incoming_edges_and_cost.len();
-        self.incoming_edges_and_cost.extend(edges_and_cost);
-        IdRange::from(start..self.incoming_edges_and_cost.len())
     }
 }
