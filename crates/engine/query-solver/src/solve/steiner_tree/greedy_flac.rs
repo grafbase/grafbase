@@ -1,5 +1,6 @@
 use crate::{Cost, dot_graph::Attrs};
 use fixedbitset::FixedBitSet;
+use fxhash::FxBuildHasher;
 use itertools::Itertools as _;
 use petgraph::{
     Graph,
@@ -56,7 +57,7 @@ pub(crate) struct GreedyFlac {
     flow: Flow,
     // Run state, re-used across each run
     time: Time,
-    heap: PriorityQueue<EdgeIndex, Priority>,
+    heap: PriorityQueue<EdgeIndex, Priority, FxBuildHasher>,
     stack: Vec<NodeIndex>,
 }
 
@@ -72,14 +73,13 @@ impl GreedyFlac {
                 terminals,
             },
             time: 0.0,
-            heap: PriorityQueue::new(),
+            heap: PriorityQueue::default(),
             stack: Vec::new(),
         }
     }
 
     pub fn extend_terminals(&mut self, terminals: impl IntoIterator<Item = NodeIndex>) {
         self.flow.terminals.extend(terminals);
-        self.reset_flow();
     }
 
     pub fn run_once<N>(&mut self, graph: &Graph<N, Cost>, steiner_tree: &mut SteinerTree) -> ControlFlow<()>
@@ -108,18 +108,6 @@ impl GreedyFlac {
                 return;
             }
         }
-    }
-
-    pub fn reset_flow(&mut self) {
-        // self.time = 0.0;
-        // self.heap.clear();
-        // self.flow.saturated_edges.clear();
-        // self.flow.marked_or_saturated_edges.clear();
-        // self.flow
-        //     .node_to_feeding_terminals
-        //     .iter_mut()
-        //     .for_each(|set| set.clear());
-        // self.flow.node_to_flow_rates.fill(0);
     }
 
     pub fn reset_terminals(&mut self) {
@@ -311,7 +299,7 @@ where
 
                 // Update all the next saturating edges in T_u
                 let v_feeding_terminals = std::mem::take(&mut self.flow.node_to_feeding_terminals[v.index()]);
-                let extra_flow_rate = v_feeding_terminals.count_ones(..) as FlowRate;
+                let extra_flow_rate = self.flow.node_to_flow_rates[v.index()];
                 for edge in next_saturating_edges_in_T_u {
                     let node = edge.target().index();
 
