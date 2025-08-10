@@ -41,13 +41,13 @@ impl PartialOrd for Priority {
 
 impl Eq for Priority {}
 
-pub(super) struct Flac {
+pub(crate) struct Flac {
     // Graph state
-    pub steiner_tree_nodes: FixedBitSet,
-    pub steiner_tree_edges: FixedBitSet,
-    pub weights: Vec<Cost>,
-    pub total_cost: Cost,
-    pub terminals: Vec<NodeIndex>,
+    pub(crate) steiner_tree_nodes: FixedBitSet,
+    pub(crate) steiner_tree_edges: FixedBitSet,
+    pub(crate) weights: Vec<Cost>,
+    pub(crate) total_cost: Cost,
+    pub(crate) terminals: Vec<NodeIndex>,
     // Algorithm state
     saturated_edges: FixedBitSet,
     marked_or_saturated_edges: FixedBitSet,

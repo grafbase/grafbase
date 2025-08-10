@@ -14,7 +14,7 @@ use petgraph::{
     Direction,
     prelude::StableGraph,
     stable_graph::{EdgeIndex, EdgeReference, NodeIndex},
-    visit::{EdgeRef, IntoNodeReferences},
+    visit::{EdgeRef, IntoNodeReferences, NodeIndexable},
 };
 use schema::Schema;
 
@@ -22,10 +22,9 @@ use crate::{
     Cost, FieldFlags, QuerySolutionSpace,
     dot_graph::Attrs,
     solution_space::{SpaceEdge, SpaceNode},
-    solve::steiner_tree::SteinerContext,
 };
 
-use super::steiner_tree::{self, SteinerGraph};
+use super::steiner_tree::{flac, SteinerContext, SteinerGraph};
 
 /// The solver is responsible for finding the optimal path from the root to the query fields.
 /// There are two cores aspects to this, expressing the problem as a Steiner tree problem and
@@ -44,7 +43,10 @@ pub(crate) struct Solver<'schema, 'op, 'q> {
     schema: &'schema Schema,
     operation: &'op Operation,
     query_solution_space: &'q QuerySolutionSpace<'schema>,
-    algorithm: steiner_tree::GreedyFlacAlgorithm<&'q StableGraph<SpaceNode<'schema>, SpaceEdge>, SteinerGraph>,
+    ctx: SteinerContext<&'q StableGraph<SpaceNode<'schema>, SpaceEdge>, SteinerGraph>,
+    flac: flac::Flac,
+    cost_estimator: Option<flac::Flac>,
+    has_updated_cost: bool,
     /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
     /// them.
     dispensable_requirements_metadata: DispensableRequirementsMetadata,
@@ -92,21 +94,31 @@ where
             SpaceEdge::Field | SpaceEdge::HasChildResolver | SpaceEdge::Requires => None,
         };
 
-        let algorithm = steiner_tree::GreedyFlacAlgorithm::initialize(
-            SteinerContext::build(
-                &query_solution_space.graph,
-                query_solution_space.root_node_ix,
-                node_filter,
-                edge_filter,
-            ),
-            terminals,
+        let ctx = SteinerContext::build(
+            &query_solution_space.graph,
+            query_solution_space.root_node_ix,
+            node_filter,
+            edge_filter,
         );
+
+        let terminals = terminals
+            .into_iter()
+            .map(|node| ctx.to_node_ix(node))
+            .collect::<Vec<_>>();
+
+        let mut steiner_tree_nodes = FixedBitSet::with_capacity(ctx.graph.node_bound());
+        steiner_tree_nodes.insert(ctx.root_ix.index());
+
+        let flac = flac::Flac::new(&ctx.graph, terminals, steiner_tree_nodes);
 
         let mut solver = Self {
             schema,
             operation,
             query_solution_space,
-            algorithm,
+            ctx,
+            flac,
+            cost_estimator: None,
+            has_updated_cost: false,
             dispensable_requirements_metadata: DispensableRequirementsMetadata::default(),
             tmp_extra_terminals: Vec::new(),
         };
@@ -127,7 +139,7 @@ where
     /// Solves the Steiner tree problem for the resolvers of our operation graph.
     pub fn execute(&mut self) -> crate::Result<()> {
         loop {
-            let growth = self.algorithm.continue_steiner_tree_growth();
+            let growth = self.flac.run(&self.ctx.graph);
             let cost_update = self.cost_fixed_point_iteration()?;
             if growth.is_break() && cost_update.is_break() {
                 break;
@@ -140,8 +152,12 @@ where
     }
 
     pub fn into_solution(self) -> SteinerTreeSolution {
+        let mut bitset = FixedBitSet::with_capacity(self.ctx.query_graph_node_id_to_node_ix.len());
+        for (i, ix) in self.ctx.query_graph_node_id_to_node_ix.iter().copied().enumerate() {
+            bitset.set(i, self.flac.steiner_tree_nodes[ix.index()]);
+        }
         SteinerTreeSolution {
-            node_bitset: self.algorithm.into_query_graph_nodes_bitset(),
+            node_bitset: bitset,
         }
     }
 
@@ -333,7 +349,8 @@ where
         loop {
             i += 1;
             self.generate_cost_updates_based_on_requirements();
-            if !self.algorithm.apply_all_cost_updates()
+            let has_updates = std::mem::take(&mut self.has_updated_cost);
+            if !has_updates
                 || self
                     .dispensable_requirements_metadata
                     .independent_cost
@@ -353,14 +370,61 @@ where
             .get_or_insert(i == 2);
         let new_terminals = !self.tmp_extra_terminals.is_empty();
         self.tmp_extra_terminals.sort_unstable();
-        self.algorithm
-            .extend_terminals(self.tmp_extra_terminals.drain(..).dedup());
+        self.flac.extend_terminals(
+            self.tmp_extra_terminals
+                .drain(..)
+                .dedup()
+                .map(|node| self.ctx.to_node_ix(node)),
+        );
 
         Ok(if new_terminals {
             ControlFlow::Continue(())
         } else {
             ControlFlow::Break(())
         })
+    }
+
+    fn insert_edge_cost_update(&mut self, _source_id: NodeIndex, edge_id: EdgeIndex, cost: Cost) {
+        let edge_ix = self.ctx.to_edge_ix(edge_id);
+        let old = std::mem::replace(&mut self.ctx.graph[edge_ix], cost);
+        self.flac.weights[edge_ix.index()] = cost;
+        if let Some(flac) = self.cost_estimator.as_mut() {
+            flac.weights[edge_ix.index()] = cost;
+        }
+        self.has_updated_cost |= old != cost;
+    }
+
+    fn estimate_extra_cost(
+        &mut self,
+        steiner_tree_edges: &[EdgeIndex],
+        extra_terminals: &[NodeIndex],
+    ) -> Cost {
+        let mut flac = match self.cost_estimator.take() {
+            Some(mut flac) => {
+                flac.reset();
+                flac.steiner_tree_nodes.clone_from(&self.flac.steiner_tree_nodes);
+                flac.steiner_tree_edges.clone_from(&self.flac.steiner_tree_edges);
+                flac
+            }
+            None => {
+                let mut flac = flac::Flac::new(&self.ctx.graph, Vec::new(), self.flac.steiner_tree_nodes.clone());
+                flac.steiner_tree_edges.clone_from(&self.flac.steiner_tree_edges);
+                flac
+            }
+        };
+
+        for edge_id in steiner_tree_edges {
+            let edge_ix = self.ctx.to_edge_ix(*edge_id);
+            flac.steiner_tree_edges.insert(edge_ix.index());
+            let (_, dst) = self.ctx.graph.edge_endpoints(edge_ix).unwrap();
+            flac.steiner_tree_nodes.insert(dst.index());
+        }
+
+        flac.extend_terminals(extra_terminals.iter().map(|node| self.ctx.to_node_ix(*node)));
+        let extra_cost = flac.greedy_run(&self.ctx.graph);
+
+        self.cost_estimator = Some(flac);
+        extra_cost
     }
 
     /// For all edges with dispensable requirements, we estimate the cost of the extra requirements
@@ -371,7 +435,7 @@ where
         while let Some((node_id, extra_required_node_ids)) =
             self.dispensable_requirements_metadata.free_requirements.get(i).copied()
         {
-            if self.algorithm.contains_node(node_id) {
+            if self.flac.steiner_tree_nodes[self.ctx.to_node_ix(node_id).index()] {
                 self.tmp_extra_terminals.extend(
                     self.dispensable_requirements_metadata[extra_required_node_ids]
                         .iter()
@@ -398,7 +462,7 @@ where
                 .iter()
                 .any(|(incoming_edge, _)| {
                     let (_, target_ix) = self.query_solution_space.graph.edge_endpoints(*incoming_edge).unwrap();
-                    self.algorithm.contains_node(target_ix)
+                    self.flac.steiner_tree_nodes[self.ctx.to_node_ix(target_ix).index()]
                 })
             {
                 self.tmp_extra_terminals.extend(
@@ -412,15 +476,17 @@ where
                 continue;
             }
 
-            let extra_cost = self.algorithm.estimate_extra_cost(
-                &self.dispensable_requirements_metadata[unavoidable_parent_edge_ids],
-                &self.dispensable_requirements_metadata[extra_required_node_ids],
-            );
+            let unavoidable_edges = self.dispensable_requirements_metadata[unavoidable_parent_edge_ids]
+                .to_vec();
+            let extra_terminals = self.dispensable_requirements_metadata[extra_required_node_ids]
+                .to_vec();
+            let extra_cost = self.estimate_extra_cost(&unavoidable_edges, &extra_terminals);
 
-            for (incoming_edge, cost) in &self.dispensable_requirements_metadata[incoming_edge_and_cost_ids] {
-                let (source_ix, _) = self.query_solution_space.graph.edge_endpoints(*incoming_edge).unwrap();
-                self.algorithm
-                    .insert_edge_cost_update(source_ix, *incoming_edge, cost + extra_cost);
+            let edges_and_costs = self.dispensable_requirements_metadata[incoming_edge_and_cost_ids]
+                .to_vec();
+            for (incoming_edge, cost) in edges_and_costs {
+                let (source_ix, _) = self.query_solution_space.graph.edge_endpoints(incoming_edge).unwrap();
+                self.insert_edge_cost_update(source_ix, incoming_edge, cost + extra_cost);
             }
 
             i += 1;
@@ -428,28 +494,42 @@ where
     }
 
     pub fn to_pretty_dot_graph(&self) -> String {
+        use petgraph::dot::{Config, Dot};
         let ctx = OperationContext {
             schema: self.schema,
             operation: self.operation,
         };
-        self.algorithm.to_dot_graph(
-            |cost, is_in_steiner_tree| {
-                Attrs::label_if(cost > 0, cost.to_string())
-                    .bold()
-                    .with_if(is_in_steiner_tree, "color=forestgreen,fontcolor=forestgreen")
-                    .with_if(!is_in_steiner_tree, "color=royalblue,fontcolor=royalblue,style=dashed")
-                    .to_string()
-            },
-            |node_id, is_in_steiner_tree| {
-                self.query_solution_space
-                    .graph
-                    .node_weight(node_id)
-                    .unwrap()
-                    .pretty_label(self.query_solution_space, ctx)
-                    .with_if(!is_in_steiner_tree, "style=dashed")
-                    .with_if(is_in_steiner_tree, "color=forestgreen")
-                    .to_string()
-            },
+        format!(
+            "{:?}",
+            Dot::with_attr_getters(
+                &self.ctx.graph,
+                &[Config::EdgeNoLabel, Config::NodeNoLabel],
+                &|_, edge| {
+                    let is_in_steiner_tree = self.flac.steiner_tree_nodes[edge.source().index()]
+                        && self.flac.steiner_tree_nodes[edge.target().index()];
+                    let cost = *edge.weight();
+                    Attrs::label_if(cost > 0, cost.to_string())
+                        .bold()
+                        .with_if(is_in_steiner_tree, "color=forestgreen,fontcolor=forestgreen")
+                        .with_if(!is_in_steiner_tree, "color=royalblue,fontcolor=royalblue,style=dashed")
+                        .to_string()
+                },
+                &|_, (node_ix, _)| {
+                    let is_in_steiner_tree = self.flac.steiner_tree_nodes[node_ix.index()];
+                    if let Some(node_id) = self.ctx.to_query_graph_node_id(node_ix) {
+                        self.query_solution_space
+                            .graph
+                            .node_weight(node_id)
+                            .unwrap()
+                            .pretty_label(self.query_solution_space, ctx)
+                            .with_if(!is_in_steiner_tree, "style=dashed")
+                            .with_if(is_in_steiner_tree, "color=forestgreen")
+                            .to_string()
+                    } else {
+                        "label=\"\", style=dashed".to_string()
+                    }
+                }
+            )
         )
     }
 
@@ -457,23 +537,39 @@ where
     /// or `echo '..." | dot -Tsvg` from graphviz
     #[cfg(test)]
     pub fn to_dot_graph(&self) -> String {
+        use petgraph::dot::{Config, Dot};
         let ctx = OperationContext {
             schema: self.schema,
             operation: self.operation,
         };
-        self.algorithm.to_dot_graph(
-            |cost, is_in_steiner_tree| format!("cost={cost}, steiner={}", is_in_steiner_tree as usize),
-            |node_id, is_in_steiner_tree| {
-                Attrs::label(
-                    self.query_solution_space
-                        .graph
-                        .node_weight(node_id)
-                        .unwrap()
-                        .label(self.query_solution_space, ctx),
-                )
-                .with(format!("steiner={}", is_in_steiner_tree as usize))
-                .to_string()
-            },
+        format!(
+            "{:?}",
+            Dot::with_attr_getters(
+                &self.ctx.graph,
+                &[Config::EdgeNoLabel, Config::NodeNoLabel],
+                &|_, edge| {
+                    let is_in_steiner_tree = self.flac.steiner_tree_nodes[edge.source().index()]
+                        && self.flac.steiner_tree_nodes[edge.target().index()];
+                    let cost = *edge.weight();
+                    format!("cost={cost}, steiner={}", is_in_steiner_tree as usize)
+                },
+                &|_, (node_ix, _)| {
+                    let is_in_steiner_tree = self.flac.steiner_tree_nodes[node_ix.index()];
+                    if let Some(node_id) = self.ctx.to_query_graph_node_id(node_ix) {
+                        Attrs::label(
+                            self.query_solution_space
+                                .graph
+                                .node_weight(node_id)
+                                .unwrap()
+                                .label(self.query_solution_space, ctx),
+                        )
+                        .with(format!("steiner={}", is_in_steiner_tree as usize))
+                        .to_string()
+                    } else {
+                        "label=\"\", style=dashed".to_string()
+                    }
+                }
+            )
         )
     }
 }

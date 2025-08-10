@@ -4,4 +4,4 @@ mod greedy_flac;
 mod tests;
 
 pub(crate) use context::*;
-pub(crate) use greedy_flac::GreedyFlacAlgorithm;
+pub(crate) use greedy_flac::flac;

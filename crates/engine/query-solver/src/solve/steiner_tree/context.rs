@@ -15,12 +15,12 @@ use crate::Cost;
 /// The Steiner graph is agnostic of the actual implementation of the operation graph. We
 /// create a new one adapted to the algorithm's needs and keep a mapping between the two.
 pub(crate) struct SteinerContext<QueryGraph: GraphBase, G: GraphBase> {
-    pub(super) query_graph: QueryGraph,
-    pub(super) graph: G,
-    pub(super) root_ix: G::NodeId,
+    pub(crate) query_graph: QueryGraph,
+    pub(crate) graph: G,
+    pub(crate) root_ix: G::NodeId,
     // Mapping between the operation graph and the steiner graph.
     node_ix_to_query_graph_node_id: Vec<QueryGraph::NodeId>,
-    pub(super) query_graph_node_id_to_node_ix: Vec<G::NodeId>,
+    pub(crate) query_graph_node_id_to_node_ix: Vec<G::NodeId>,
     query_graph_edge_id_to_edge_ix: Vec<G::EdgeId>,
 }
 
@@ -72,7 +72,7 @@ impl<QG: GraphBase> SteinerContext<QG, SteinerGraph> {
 }
 
 impl<QG: GraphBase, G: GraphBase> SteinerContext<QG, G> {
-    pub(super) fn to_edge_ix(&self, edge_id: QG::EdgeId) -> G::EdgeId
+    pub(crate) fn to_edge_ix(&self, edge_id: QG::EdgeId) -> G::EdgeId
     where
         G::EdgeId: GraphIndex,
         QG::EdgeId: GraphIndex,
@@ -99,7 +99,7 @@ impl<QG: GraphBase, G: GraphBase> SteinerContext<QG, G> {
         ix
     }
 
-    pub(super) fn to_node_ix(&self, node_id: QG::NodeId) -> G::NodeId
+    pub(crate) fn to_node_ix(&self, node_id: QG::NodeId) -> G::NodeId
     where
         G::NodeId: GraphIndex,
         QG::NodeId: GraphIndex,
@@ -116,7 +116,7 @@ impl<QG: GraphBase, G: GraphBase> SteinerContext<QG, G> {
         ix
     }
 
-    pub(super) fn to_query_graph_node_id(&self, node_ix: G::NodeId) -> Option<QG::NodeId>
+    pub(crate) fn to_query_graph_node_id(&self, node_ix: G::NodeId) -> Option<QG::NodeId>
     where
         G::NodeId: GraphIndex,
     {

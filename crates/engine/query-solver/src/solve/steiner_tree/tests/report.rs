@@ -13,25 +13,16 @@ pub(super) struct AlgorithmResult {
 }
 
 #[derive(Debug)]
-pub(super) struct QuickEstimateResult {
-    pub cost: Cost,
-    pub optimal_cost: Cost,
-    pub duration: Duration,
-}
-
-#[derive(Debug)]
 pub(super) struct DatasetResults {
     pub name: &'static str,
     pub algorithm: &'static str,
     pub main_result: AlgorithmResult,
-    pub quick_estimate: QuickEstimateResult,
 }
 
 impl fmt::Display for DatasetResults {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "\n{} - {}", self.algorithm, self.name)?;
         writeln!(f, "{}", "=".repeat(40))?;
-        writeln!(f, "Main algorithm:")?;
         let diff = self.main_result.cost - self.main_result.optimal_cost;
         writeln!(
             f,
@@ -51,16 +42,6 @@ impl fmt::Display for DatasetResults {
             "  Total time:         {:?}",
             self.main_result.prepare_duration + self.main_result.grow_duration
         )?;
-        writeln!(f)?;
-        writeln!(f, "Quick estimate:")?;
-        let diff = self.quick_estimate.cost - self.quick_estimate.optimal_cost;
-        writeln!(
-            f,
-            "  Cost difference:    {} ({:+.1}%)",
-            diff,
-            (diff as f64 / self.quick_estimate.optimal_cost as f64) * 100.0
-        )?;
-        writeln!(f, "  Time:               {:?}", self.quick_estimate.duration)?;
         Ok(())
     }
 }

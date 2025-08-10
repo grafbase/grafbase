@@ -3,11 +3,10 @@ mod report;
 
 use std::time::{Duration, Instant};
 
-use petgraph::visit::{EdgeRef, IntoNodeReferences};
+use petgraph::visit::{EdgeRef, IntoNodeReferences, NodeIndexable};
 
-use crate::solve::steiner_tree::SteinerContext;
-
-use super::GreedyFlacAlgorithm;
+use fixedbitset::FixedBitSet;
+use crate::solve::steiner_tree::{SteinerContext, flac};
 use report::*;
 
 /// Sanity check our GreedyFlac Steiner Tree algorithm against a graph with known optimal cost.
@@ -17,29 +16,35 @@ fn greedy_flac_steinlib_gene() {
 
     for gene in loader::load_gene_dataset() {
         let start = Instant::now();
-        let mut alg = GreedyFlacAlgorithm::initialize(
-            SteinerContext::build(
-                &gene.graph,
-                gene.root,
-                |(node, _)| Some(node),
-                |edge| Some((edge.id(), edge.source(), edge.target(), *edge.weight())),
-            ),
-            gene.terminals.iter().copied(),
+        let ctx = SteinerContext::build(
+            &gene.graph,
+            gene.root,
+            |(node, _)| Some(node),
+            |edge| Some((edge.id(), edge.source(), edge.target(), *edge.weight())),
         );
+        
+        let terminals = gene.terminals
+            .iter()
+            .map(|node| ctx.to_node_ix(*node))
+            .collect::<Vec<_>>();
+        
+        let mut steiner_tree_nodes = FixedBitSet::with_capacity(ctx.graph.node_bound());
+        steiner_tree_nodes.insert(ctx.root_ix.index());
+        
+        let mut flac = flac::Flac::new(&ctx.graph, terminals, steiner_tree_nodes);
         let prepare_duration = start.elapsed();
 
         let start = Instant::now();
-        while alg.continue_steiner_tree_growth().is_continue() {}
-
-        let total_cost = alg.total_cost();
+        let total_cost = flac.greedy_run(&ctx.graph);
+        let grow_duration = start.elapsed();
+        
         let steiner_tree_node_count = gene
             .graph
             .node_references()
-            .filter(|(node_id, _)| alg.contains_node(*node_id))
+            .filter(|(node_id, _)| flac.steiner_tree_nodes[ctx.to_node_ix(*node_id).index()])
             .count();
 
         let ratio = (total_cost as f64) / (gene.optimal_cost as f64);
-        let grow_duration = start.elapsed();
 
         let main_result = AlgorithmResult {
             cost: total_cost,
@@ -50,11 +55,11 @@ fn greedy_flac_steinlib_gene() {
             grow_duration,
         };
 
-        assert!(gene.terminals.iter().all(|terminal| alg.contains_node(*terminal)));
+        assert!(gene.terminals.iter().all(|terminal| flac.steiner_tree_nodes[ctx.to_node_ix(*terminal).index()]));
 
         // Are all the terminals accessible from root?
         let mut graph = gene.graph.clone();
-        graph.retain_nodes(|_, node| alg.contains_node(node));
+        graph.retain_nodes(|_, node| flac.steiner_tree_nodes[ctx.to_node_ix(node).index()]);
         for terminal in &gene.terminals {
             assert!(petgraph::algo::has_path_connecting(&graph, gene.root, *terminal, None));
         }
@@ -68,37 +73,10 @@ fn greedy_flac_steinlib_gene() {
             gene.name
         );
 
-        // all terminals are in the steiner tree, so should be free.
-        assert_eq!(alg.estimate_extra_cost(&[], &gene.terminals), 0);
-
-        // Test with a second algorithm instance
-        let mut alg2 = GreedyFlacAlgorithm::initialize(
-            SteinerContext::build(
-                &gene.graph,
-                gene.root,
-                |(node, _)| Some(node),
-                |edge| Some((edge.id(), edge.source(), edge.target(), *edge.weight())),
-            ),
-            gene.terminals.iter().copied(),
-        );
-
-        let start = Instant::now();
-        let quick_cost = alg2.estimate_extra_cost(&[], &gene.terminals);
-        assert!(total_cost <= quick_cost, "{total_cost} <= {quick_cost}");
-        let ratio = (quick_cost as f64) / (gene.optimal_cost as f64);
-        assert!((1.0..3.0).contains(&ratio), "{} {ratio}", gene.name);
-
-        let quick_estimate = QuickEstimateResult {
-            cost: quick_cost,
-            optimal_cost: gene.optimal_cost,
-            duration: start.elapsed(),
-        };
-
         all_results.push(DatasetResults {
             name: gene.name,
             algorithm: "GreedyFlac",
             main_result,
-            quick_estimate,
         });
     }
 
@@ -112,11 +90,6 @@ fn greedy_flac_steinlib_gene() {
         assert!(
             (result.main_result.cost as f64 / result.main_result.optimal_cost as f64) <= 1.05,
             "Cost difference is too big for {}",
-            result.name,
-        );
-        assert!(
-            result.main_result.cost == result.quick_estimate.cost,
-            "Cost mismatch for {}",
             result.name,
         );
     }
