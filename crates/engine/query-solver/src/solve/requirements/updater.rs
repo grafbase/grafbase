@@ -27,10 +27,10 @@ pub(crate) struct RequirementAndCostUpdater {
 
 impl RequirementAndCostUpdater {
     pub fn new(ctx: &SteinerContext<&SolutionSpaceGraph<'_>, SteinerGraph>) -> crate::Result<Self> {
-        let mut dispensable_requirements_metadata = DispensableRequirements::default();
-        dispensable_requirements_metadata.ingest(ctx)?;
+        let mut dispensable_requirements = DispensableRequirements::default();
+        dispensable_requirements.ingest(ctx)?;
         Ok(Self {
-            dispensable_requirements: dispensable_requirements_metadata,
+            dispensable_requirements,
             independent_requirements: None,
             tmp_extra_terminals: Vec::new(),
             tmp_steiner_tree: SteinerTree::new(&ctx.graph, ctx.root_ix),
@@ -128,10 +128,17 @@ impl<'state> FixedPointCostAlgorithm<'state, '_, '_> {
                 .iter()
                 .any(|(edge_id, _)| self.steiner_tree[*edge_id])
             {
-                // for &(edge_id, cost) in &self.state.dispensable_requirements[dependent_edge_with_inherent_cost_ids] {
-                //     let old = std::mem::replace(&mut self.graph[edge_id], cost);
-                //     self.state.has_updated_cost |= old != cost;
-                // }
+                // One of the dependent edge is part of the steiner tree, so the requirements
+                // aren't optional anymore. Every edge that isn't part of the steiner tree is set back
+                // to its inherent cost.
+                for &(edge_id, inherent_cost) in
+                    &self.state.dispensable_requirements[dependent_edge_with_inherent_cost_ids]
+                {
+                    if !self.steiner_tree[edge_id] {
+                        let old = std::mem::replace(&mut self.graph[edge_id], inherent_cost);
+                        self.state.has_updated_cost |= old != inherent_cost;
+                    }
+                }
                 self.state
                     .tmp_extra_terminals
                     .extend(self.state.dispensable_requirements[required_node_ids].iter().copied());
@@ -139,7 +146,7 @@ impl<'state> FixedPointCostAlgorithm<'state, '_, '_> {
                 continue;
             }
 
-            let extra_cost = self.state.estimate_extra_cost(
+            let requirements_cost = self.state.estimate_requirements_cost(
                 self.graph,
                 self.steiner_tree,
                 unavoidable_parent_edge_ids,
@@ -147,8 +154,8 @@ impl<'state> FixedPointCostAlgorithm<'state, '_, '_> {
             );
 
             let edges_and_costs = self.dispensable_requirements[dependent_edge_with_inherent_cost_ids].to_vec();
-            for (edge_id, cost) in edges_and_costs {
-                let cost = cost + extra_cost;
+            for (edge_id, inherent_cost) in edges_and_costs {
+                let cost = inherent_cost + requirements_cost;
                 let old = std::mem::replace(&mut self.graph[edge_id], cost);
                 self.has_updated_cost |= old != cost;
             }
@@ -159,26 +166,26 @@ impl<'state> FixedPointCostAlgorithm<'state, '_, '_> {
 }
 
 impl RequirementAndCostUpdater {
-    fn estimate_extra_cost(
+    fn estimate_requirements_cost(
         &mut self,
         graph: &SteinerGraph,
         steiner_tree: &SteinerTree,
-        steiner_tree_edges: IdRange<UnavoidableParentEdgeId>,
-        extra_terminals: IdRange<RequiredNodeId>,
+        unavoidable_parent_edge_ids: IdRange<UnavoidableParentEdgeId>,
+        required_node_ids: IdRange<RequiredNodeId>,
     ) -> Cost {
         self.tmp_flac.reset();
         self.tmp_steiner_tree.nodes.clone_from(&steiner_tree.nodes);
         self.tmp_steiner_tree.edges.clone_from(&steiner_tree.edges);
         self.tmp_steiner_tree.total_weight = 0;
 
-        for &edge_id in &self.dispensable_requirements[steiner_tree_edges] {
+        for &edge_id in &self.dispensable_requirements[unavoidable_parent_edge_ids] {
             self.tmp_steiner_tree.edges.insert(edge_id.index());
             let (_, dst) = graph.edge_endpoints(edge_id).unwrap();
             self.tmp_steiner_tree.nodes.insert(dst.index());
         }
 
         self.tmp_flac
-            .extend_terminals(self.dispensable_requirements[extra_terminals].iter().copied());
+            .extend_terminals(self.dispensable_requirements[required_node_ids].iter().copied());
         self.tmp_flac.run(graph, &mut self.tmp_steiner_tree);
 
         self.tmp_steiner_tree.total_weight
