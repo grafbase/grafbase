@@ -15,14 +15,14 @@ use crate::{Cost, FieldFlags, QuerySolutionSpace, SolutionSpaceGraph, SpaceEdge,
 ///
 /// The Steiner graph is agnostic of the actual implementation of the operation graph. We
 /// create a new one adapted to the algorithm's needs and keep a mapping between the two.
-pub(crate) struct SteinerContext<QueryGraph: GraphBase, G: GraphBase> {
-    pub(crate) query_graph: QueryGraph,
+pub(crate) struct SteinerContext<SpaceGraph: GraphBase, G: GraphBase> {
+    pub(crate) space_graph: SpaceGraph,
     pub(crate) graph: G,
     pub(crate) root_ix: G::NodeId,
     // Mapping between the operation graph and the steiner graph.
-    node_ix_to_query_graph_node_id: Vec<QueryGraph::NodeId>,
-    pub(crate) query_graph_node_id_to_node_ix: Vec<G::NodeId>,
-    query_graph_edge_id_to_edge_ix: Vec<G::EdgeId>,
+    node_ix_to_space_graph_node_id: Vec<SpaceGraph::NodeId>,
+    pub(crate) space_graph_node_id_to_node_ix: Vec<G::NodeId>,
+    space_graph_edge_id_to_edge_ix: Vec<G::EdgeId>,
 }
 
 pub(in crate::solve) type SteinerGraph = Graph<(), Cost>;
@@ -71,7 +71,7 @@ impl<'g, 'schema> SteinerContext<&'g SolutionSpaceGraph<'schema>, SteinerGraph> 
 
 impl<QG: GraphBase> SteinerContext<QG, SteinerGraph> {
     pub(crate) fn build(
-        query_graph: QG,
+        space_graph: QG,
         root_ix: QG::NodeId,
         node_filter: impl Fn(QG::NodeRef) -> Option<QG::NodeId>,
         edge_filter: impl Fn(QG::EdgeRef) -> Option<(QG::EdgeId, QG::NodeId, QG::NodeId, Cost)>,
@@ -81,35 +81,35 @@ impl<QG: GraphBase> SteinerContext<QG, SteinerGraph> {
         QG::EdgeId: GraphIndex + Ord,
         QG::NodeId: GraphIndex,
     {
-        let mut graph = Graph::with_capacity(query_graph.node_count() / 2, query_graph.edge_count() / 2);
+        let mut graph = Graph::with_capacity(space_graph.node_count() / 2, space_graph.edge_count() / 2);
 
-        let mut node_ix_to_query_graph_node_id = Vec::new();
-        let mut query_graph_node_id_to_node_ix = vec![NodeIndex::new(u32::MAX as usize); query_graph.node_bound()];
-        for node_id in query_graph.node_references().filter_map(node_filter) {
-            query_graph_node_id_to_node_ix[node_id.index()] = graph.add_node(());
-            node_ix_to_query_graph_node_id.push(node_id);
+        let mut node_ix_to_space_graph_node_id = Vec::new();
+        let mut space_graph_node_id_to_node_ix = vec![NodeIndex::new(u32::MAX as usize); space_graph.node_bound()];
+        for node_id in space_graph.node_references().filter_map(node_filter) {
+            space_graph_node_id_to_node_ix[node_id.index()] = graph.add_node(());
+            node_ix_to_space_graph_node_id.push(node_id);
         }
 
-        let mut query_graph_edge_id_to_edge_ix = vec![EdgeIndex::new(u32::MAX as usize); query_graph.edge_bound()];
-        for (id, source, target, cost) in query_graph.edge_references().filter_map(edge_filter) {
-            let source_ix = query_graph_node_id_to_node_ix[source.index()];
-            let target_ix = query_graph_node_id_to_node_ix[target.index()];
+        let mut space_graph_edge_id_to_edge_ix = vec![EdgeIndex::new(u32::MAX as usize); space_graph.edge_bound()];
+        for (id, source, target, cost) in space_graph.edge_references().filter_map(edge_filter) {
+            let source_ix = space_graph_node_id_to_node_ix[source.index()];
+            let target_ix = space_graph_node_id_to_node_ix[target.index()];
             if source_ix.index() as u32 == u32::MAX || target_ix.index() as u32 == u32::MAX {
                 continue;
             }
 
             let edge_ix = graph.add_edge(source_ix, target_ix, cost);
-            query_graph_edge_id_to_edge_ix[id.index()] = edge_ix;
+            space_graph_edge_id_to_edge_ix[id.index()] = edge_ix;
         }
 
-        let root_ix = query_graph_node_id_to_node_ix[root_ix.index()];
+        let root_ix = space_graph_node_id_to_node_ix[root_ix.index()];
         Self {
-            query_graph,
+            space_graph,
             graph,
             root_ix,
-            node_ix_to_query_graph_node_id,
-            query_graph_node_id_to_node_ix,
-            query_graph_edge_id_to_edge_ix,
+            node_ix_to_space_graph_node_id,
+            space_graph_node_id_to_node_ix,
+            space_graph_edge_id_to_edge_ix,
         }
     }
 }
@@ -123,18 +123,18 @@ impl<QG: GraphBase, G: GraphBase> SteinerContext<QG, G> {
         QG::EdgeWeight: std::fmt::Debug,
         QG::NodeWeight: std::fmt::Debug,
     {
-        let ix = self.query_graph_edge_id_to_edge_ix[edge_id.index()];
+        let ix = self.space_graph_edge_id_to_edge_ix[edge_id.index()];
         debug_assert!(ix.index() as u32 != u32::MAX, "{}", {
             let edge_ref = self
-                .query_graph
+                .space_graph
                 .edge_references()
                 .find(|edge| edge.id() == edge_id)
                 .unwrap();
             format!(
                 "{:?}",
                 (
-                    self.query_graph.node_weight(edge_ref.source()),
-                    self.query_graph.node_weight(edge_ref.target()),
+                    self.space_graph.node_weight(edge_ref.source()),
+                    self.space_graph.node_weight(edge_ref.target()),
                     edge_ref.weight(),
                 )
             )
@@ -150,19 +150,19 @@ impl<QG: GraphBase, G: GraphBase> SteinerContext<QG, G> {
         QG::EdgeId: Ord,
         QG::NodeWeight: std::fmt::Debug,
     {
-        let ix = self.query_graph_node_id_to_node_ix[node_id.index()];
+        let ix = self.space_graph_node_id_to_node_ix[node_id.index()];
         debug_assert!(
             ix.index() as u32 != u32::MAX,
             "{:?}",
-            self.query_graph.node_weight(node_id)
+            self.space_graph.node_weight(node_id)
         );
         ix
     }
 
-    pub(crate) fn to_query_graph_node_id(&self, node_ix: G::NodeId) -> Option<QG::NodeId>
+    pub(crate) fn to_space_graph_node_id(&self, node_ix: G::NodeId) -> Option<QG::NodeId>
     where
         G::NodeId: GraphIndex,
     {
-        self.node_ix_to_query_graph_node_id.get(node_ix.index()).copied()
+        self.node_ix_to_space_graph_node_id.get(node_ix.index()).copied()
     }
 }

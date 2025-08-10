@@ -71,7 +71,7 @@ where
 
         let new_terminals = solver
             .requirements_and_cost_updater
-            .run_fixed_point_cost(&mut solver.ctx, &solver.steiner_tree)?;
+            .run_fixed_point_cost(&mut solver.ctx.graph, &solver.steiner_tree)?;
         debug_assert!(
             new_terminals.is_empty(),
             "Fixed point cost algorithm should not return new terminals at initialization"
@@ -93,20 +93,16 @@ where
             let growth = self.flac.run_once(&self.ctx.graph, &mut self.steiner_tree);
             let new_terminals = self
                 .requirements_and_cost_updater
-                .run_fixed_point_cost(&mut self.ctx, &self.steiner_tree)?;
+                .run_fixed_point_cost(&mut self.ctx.graph, &self.steiner_tree)?;
 
+            println!("NEW TERMINALS: {}", new_terminals.len());
             if growth.is_break() && new_terminals.is_empty() {
                 break;
             }
 
             new_terminals.sort_unstable();
-            self.flac.extend_terminals(
-                new_terminals
-                    .drain(..)
-                    .dedup()
-                    .map(|node| self.ctx.to_node_ix(node))
-                    .filter(|idx| !self.steiner_tree.nodes[idx.index()]),
-            );
+            self.flac
+                .extend_terminals(new_terminals.drain(..).dedup().filter(|idx| !self.steiner_tree[*idx]));
 
             tracing::trace!("Solver step:\n{}", self.to_pretty_dot_graph());
         }
@@ -116,9 +112,9 @@ where
     }
 
     pub fn into_solution(self) -> SteinerTreeSolution {
-        let mut bitset = FixedBitSet::with_capacity(self.ctx.query_graph_node_id_to_node_ix.len());
-        for (i, ix) in self.ctx.query_graph_node_id_to_node_ix.iter().copied().enumerate() {
-            bitset.set(i, self.steiner_tree.nodes[ix.index()]);
+        let mut bitset = FixedBitSet::with_capacity(self.ctx.space_graph_node_id_to_node_ix.len());
+        for (i, ix) in self.ctx.space_graph_node_id_to_node_ix.iter().copied().enumerate() {
+            bitset.set(i, self.steiner_tree[ix]);
         }
         SteinerTreeSolution { node_bitset: bitset }
     }
@@ -135,8 +131,7 @@ where
                 &self.ctx.graph,
                 &[Config::EdgeNoLabel, Config::NodeNoLabel],
                 &|_, edge| {
-                    let is_in_steiner_tree = self.steiner_tree.nodes[edge.source().index()]
-                        && self.steiner_tree.nodes[edge.target().index()];
+                    let is_in_steiner_tree = self.steiner_tree[edge.id()];
                     let cost = *edge.weight();
                     Attrs::label_if(cost > 0, cost.to_string())
                         .bold()
@@ -145,8 +140,8 @@ where
                         .to_string()
                 },
                 &|_, (node_ix, _)| {
-                    let is_in_steiner_tree = self.steiner_tree.nodes[node_ix.index()];
-                    if let Some(node_id) = self.ctx.to_query_graph_node_id(node_ix) {
+                    let is_in_steiner_tree = self.steiner_tree[node_ix];
+                    if let Some(node_id) = self.ctx.to_space_graph_node_id(node_ix) {
                         self.query_solution_space
                             .graph
                             .node_weight(node_id)
@@ -178,14 +173,13 @@ where
                 &self.ctx.graph,
                 &[Config::EdgeNoLabel, Config::NodeNoLabel],
                 &|_, edge| {
-                    let is_in_steiner_tree = self.steiner_tree.nodes[edge.source().index()]
-                        && self.steiner_tree.nodes[edge.target().index()];
+                    let is_in_steiner_tree = self.steiner_tree[edge.id()];
                     let cost = *edge.weight();
                     format!("cost={cost}, steiner={}", is_in_steiner_tree as usize)
                 },
                 &|_, (node_ix, _)| {
-                    let is_in_steiner_tree = self.steiner_tree.nodes[node_ix.index()];
-                    if let Some(node_id) = self.ctx.to_query_graph_node_id(node_ix) {
+                    let is_in_steiner_tree = self.steiner_tree[node_ix];
+                    if let Some(node_id) = self.ctx.to_space_graph_node_id(node_ix) {
                         Attrs::label(
                             self.query_solution_space
                                 .graph
