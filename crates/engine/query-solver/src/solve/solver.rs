@@ -24,7 +24,7 @@ use crate::{
     solution_space::{SpaceEdge, SpaceNode},
 };
 
-use super::steiner_tree::{flac, SteinerContext, SteinerGraph};
+use super::steiner_tree::{GreedyFlac, SteinerContext, SteinerGraph};
 
 /// The solver is responsible for finding the optimal path from the root to the query fields.
 /// There are two cores aspects to this, expressing the problem as a Steiner tree problem and
@@ -44,8 +44,8 @@ pub(crate) struct Solver<'schema, 'op, 'q> {
     operation: &'op Operation,
     query_solution_space: &'q QuerySolutionSpace<'schema>,
     ctx: SteinerContext<&'q StableGraph<SpaceNode<'schema>, SpaceEdge>, SteinerGraph>,
-    flac: flac::Flac,
-    cost_estimator: Option<flac::Flac>,
+    flac: GreedyFlac,
+    cost_estimator: Option<GreedyFlac>,
     has_updated_cost: bool,
     /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
     /// them.
@@ -109,7 +109,7 @@ where
         let mut steiner_tree_nodes = FixedBitSet::with_capacity(ctx.graph.node_bound());
         steiner_tree_nodes.insert(ctx.root_ix.index());
 
-        let flac = flac::Flac::new(&ctx.graph, terminals, steiner_tree_nodes);
+        let flac = GreedyFlac::new(&ctx.graph, terminals, steiner_tree_nodes);
 
         let mut solver = Self {
             schema,
@@ -139,7 +139,7 @@ where
     /// Solves the Steiner tree problem for the resolvers of our operation graph.
     pub fn execute(&mut self) -> crate::Result<()> {
         loop {
-            let growth = self.flac.run(&self.ctx.graph);
+            let growth = self.flac.run_once(&self.ctx.graph);
             let cost_update = self.cost_fixed_point_iteration()?;
             if growth.is_break() && cost_update.is_break() {
                 break;
@@ -154,11 +154,9 @@ where
     pub fn into_solution(self) -> SteinerTreeSolution {
         let mut bitset = FixedBitSet::with_capacity(self.ctx.query_graph_node_id_to_node_ix.len());
         for (i, ix) in self.ctx.query_graph_node_id_to_node_ix.iter().copied().enumerate() {
-            bitset.set(i, self.flac.steiner_tree_nodes[ix.index()]);
+            bitset.set(i, self.flac.steiner_tree.nodes[ix.index()]);
         }
-        SteinerTreeSolution {
-            node_bitset: bitset,
-        }
+        SteinerTreeSolution { node_bitset: bitset }
     }
 
     /// For each node with dispensable requirements, we need its incoming edge's cost to reflect
@@ -387,41 +385,37 @@ where
     fn insert_edge_cost_update(&mut self, _source_id: NodeIndex, edge_id: EdgeIndex, cost: Cost) {
         let edge_ix = self.ctx.to_edge_ix(edge_id);
         let old = std::mem::replace(&mut self.ctx.graph[edge_ix], cost);
-        self.flac.weights[edge_ix.index()] = cost;
+        self.flac.steiner_tree.weights[edge_ix.index()] = cost;
         if let Some(flac) = self.cost_estimator.as_mut() {
-            flac.weights[edge_ix.index()] = cost;
+            flac.steiner_tree.weights[edge_ix.index()] = cost;
         }
         self.has_updated_cost |= old != cost;
     }
 
-    fn estimate_extra_cost(
-        &mut self,
-        steiner_tree_edges: &[EdgeIndex],
-        extra_terminals: &[NodeIndex],
-    ) -> Cost {
+    fn estimate_extra_cost(&mut self, steiner_tree_edges: &[EdgeIndex], extra_terminals: &[NodeIndex]) -> Cost {
         let mut flac = match self.cost_estimator.take() {
             Some(mut flac) => {
                 flac.reset();
-                flac.steiner_tree_nodes.clone_from(&self.flac.steiner_tree_nodes);
-                flac.steiner_tree_edges.clone_from(&self.flac.steiner_tree_edges);
+                flac.steiner_tree.nodes.clone_from(&self.flac.steiner_tree.nodes);
+                flac.steiner_tree.edges.clone_from(&self.flac.steiner_tree.edges);
                 flac
             }
             None => {
-                let mut flac = flac::Flac::new(&self.ctx.graph, Vec::new(), self.flac.steiner_tree_nodes.clone());
-                flac.steiner_tree_edges.clone_from(&self.flac.steiner_tree_edges);
+                let mut flac = GreedyFlac::new(&self.ctx.graph, Vec::new(), self.flac.steiner_tree.nodes.clone());
+                flac.steiner_tree.edges.clone_from(&self.flac.steiner_tree.edges);
                 flac
             }
         };
 
         for edge_id in steiner_tree_edges {
             let edge_ix = self.ctx.to_edge_ix(*edge_id);
-            flac.steiner_tree_edges.insert(edge_ix.index());
+            flac.steiner_tree.edges.insert(edge_ix.index());
             let (_, dst) = self.ctx.graph.edge_endpoints(edge_ix).unwrap();
-            flac.steiner_tree_nodes.insert(dst.index());
+            flac.steiner_tree.nodes.insert(dst.index());
         }
 
         flac.extend_terminals(extra_terminals.iter().map(|node| self.ctx.to_node_ix(*node)));
-        let extra_cost = flac.greedy_run(&self.ctx.graph);
+        let extra_cost = flac.run(&self.ctx.graph);
 
         self.cost_estimator = Some(flac);
         extra_cost
@@ -435,7 +429,7 @@ where
         while let Some((node_id, extra_required_node_ids)) =
             self.dispensable_requirements_metadata.free_requirements.get(i).copied()
         {
-            if self.flac.steiner_tree_nodes[self.ctx.to_node_ix(node_id).index()] {
+            if self.flac.steiner_tree.nodes[self.ctx.to_node_ix(node_id).index()] {
                 self.tmp_extra_terminals.extend(
                     self.dispensable_requirements_metadata[extra_required_node_ids]
                         .iter()
@@ -462,7 +456,7 @@ where
                 .iter()
                 .any(|(incoming_edge, _)| {
                     let (_, target_ix) = self.query_solution_space.graph.edge_endpoints(*incoming_edge).unwrap();
-                    self.flac.steiner_tree_nodes[self.ctx.to_node_ix(target_ix).index()]
+                    self.flac.steiner_tree.nodes[self.ctx.to_node_ix(target_ix).index()]
                 })
             {
                 self.tmp_extra_terminals.extend(
@@ -476,14 +470,11 @@ where
                 continue;
             }
 
-            let unavoidable_edges = self.dispensable_requirements_metadata[unavoidable_parent_edge_ids]
-                .to_vec();
-            let extra_terminals = self.dispensable_requirements_metadata[extra_required_node_ids]
-                .to_vec();
+            let unavoidable_edges = self.dispensable_requirements_metadata[unavoidable_parent_edge_ids].to_vec();
+            let extra_terminals = self.dispensable_requirements_metadata[extra_required_node_ids].to_vec();
             let extra_cost = self.estimate_extra_cost(&unavoidable_edges, &extra_terminals);
 
-            let edges_and_costs = self.dispensable_requirements_metadata[incoming_edge_and_cost_ids]
-                .to_vec();
+            let edges_and_costs = self.dispensable_requirements_metadata[incoming_edge_and_cost_ids].to_vec();
             for (incoming_edge, cost) in edges_and_costs {
                 let (source_ix, _) = self.query_solution_space.graph.edge_endpoints(incoming_edge).unwrap();
                 self.insert_edge_cost_update(source_ix, incoming_edge, cost + extra_cost);
@@ -505,8 +496,8 @@ where
                 &self.ctx.graph,
                 &[Config::EdgeNoLabel, Config::NodeNoLabel],
                 &|_, edge| {
-                    let is_in_steiner_tree = self.flac.steiner_tree_nodes[edge.source().index()]
-                        && self.flac.steiner_tree_nodes[edge.target().index()];
+                    let is_in_steiner_tree = self.flac.steiner_tree.nodes[edge.source().index()]
+                        && self.flac.steiner_tree.nodes[edge.target().index()];
                     let cost = *edge.weight();
                     Attrs::label_if(cost > 0, cost.to_string())
                         .bold()
@@ -515,7 +506,7 @@ where
                         .to_string()
                 },
                 &|_, (node_ix, _)| {
-                    let is_in_steiner_tree = self.flac.steiner_tree_nodes[node_ix.index()];
+                    let is_in_steiner_tree = self.flac.steiner_tree.nodes[node_ix.index()];
                     if let Some(node_id) = self.ctx.to_query_graph_node_id(node_ix) {
                         self.query_solution_space
                             .graph
@@ -548,13 +539,13 @@ where
                 &self.ctx.graph,
                 &[Config::EdgeNoLabel, Config::NodeNoLabel],
                 &|_, edge| {
-                    let is_in_steiner_tree = self.flac.steiner_tree_nodes[edge.source().index()]
-                        && self.flac.steiner_tree_nodes[edge.target().index()];
+                    let is_in_steiner_tree = self.flac.steiner_tree.nodes[edge.source().index()]
+                        && self.flac.steiner_tree.nodes[edge.target().index()];
                     let cost = *edge.weight();
                     format!("cost={cost}, steiner={}", is_in_steiner_tree as usize)
                 },
                 &|_, (node_ix, _)| {
-                    let is_in_steiner_tree = self.flac.steiner_tree_nodes[node_ix.index()];
+                    let is_in_steiner_tree = self.flac.steiner_tree.nodes[node_ix.index()];
                     if let Some(node_id) = self.ctx.to_query_graph_node_id(node_ix) {
                         Attrs::label(
                             self.query_solution_space

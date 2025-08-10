@@ -41,103 +41,113 @@ impl PartialOrd for Priority {
 
 impl Eq for Priority {}
 
-pub(crate) struct Flac {
-    // Graph state
-    pub(crate) steiner_tree_nodes: FixedBitSet,
-    pub(crate) steiner_tree_edges: FixedBitSet,
-    pub(crate) weights: Vec<Cost>,
-    pub(crate) total_cost: Cost,
-    pub(crate) terminals: Vec<NodeIndex>,
-    // Algorithm state
+pub(crate) struct SteinerTree {
+    pub nodes: FixedBitSet,
+    pub edges: FixedBitSet,
+    pub weights: Vec<Cost>,
+    pub total_weight: Cost,
+    pub terminals: Vec<NodeIndex>,
+}
+
+struct Flow {
     saturated_edges: FixedBitSet,
     marked_or_saturated_edges: FixedBitSet,
     root_feeding_terminals: FixedBitSet,
     node_to_feeding_terminals: Vec<FixedBitSet>,
     node_to_flow_rates: Vec<FlowRate>,
+}
+
+pub(crate) struct GreedyFlac {
+    pub(crate) steiner_tree: SteinerTree,
+    flow: Flow,
     // Run state, re-used across each run
     time: Time,
     heap: PriorityQueue<EdgeIndex, Priority>,
     stack: Vec<NodeIndex>,
 }
 
-impl Flac {
+impl GreedyFlac {
     pub fn new<N>(graph: &Graph<N, Cost>, terminals: Vec<NodeIndex>, steiner_tree_nodes: FixedBitSet) -> Self {
         debug_assert!(!steiner_tree_nodes.is_empty(), "Root must be part of the steiner tree.");
         Self {
+            steiner_tree: SteinerTree {
+                nodes: steiner_tree_nodes,
+                edges: FixedBitSet::with_capacity(graph.edge_count()),
+                weights: graph.edge_weights().cloned().collect(),
+                total_weight: 0,
+                terminals,
+            },
+            flow: Flow {
+                saturated_edges: FixedBitSet::with_capacity(graph.edge_count()),
+                marked_or_saturated_edges: FixedBitSet::with_capacity(graph.edge_count()),
+                root_feeding_terminals: FixedBitSet::new(),
+                node_to_feeding_terminals: vec![FixedBitSet::new(); graph.node_bound()],
+                node_to_flow_rates: vec![0; graph.node_bound()],
+            },
             time: 0.0,
             heap: PriorityQueue::new(),
-            steiner_tree_nodes,
-            steiner_tree_edges: FixedBitSet::with_capacity(graph.edge_count()),
-            total_cost: 0,
-            saturated_edges: FixedBitSet::with_capacity(graph.edge_count()),
-            marked_or_saturated_edges: FixedBitSet::with_capacity(graph.edge_count()),
-            root_feeding_terminals: FixedBitSet::new(),
-            node_to_feeding_terminals: vec![FixedBitSet::new(); graph.node_bound()],
-            node_to_flow_rates: vec![0; graph.node_bound()],
-            terminals,
-            weights: graph.edge_weights().cloned().collect(),
             stack: Vec::new(),
         }
     }
 
     pub fn extend_terminals(&mut self, terminals: impl IntoIterator<Item = NodeIndex>) {
-        self.terminals.extend(
+        self.steiner_tree.terminals.extend(
             terminals
                 .into_iter()
-                .filter(|idx| !self.steiner_tree_nodes[idx.index()]),
+                .filter(|idx| !self.steiner_tree.nodes[idx.index()]),
         );
     }
 
-    pub fn run<N>(&mut self, graph: &Graph<N, Cost>) -> ControlFlow<()>
+    pub fn run_once<N>(&mut self, graph: &Graph<N, Cost>) -> ControlFlow<()>
     where
         N: std::fmt::Debug,
     {
-        Runner { state: self, graph }.run()
+        Flac { state: self, graph }.run()
     }
 
-    pub fn greedy_run<N>(&mut self, graph: &Graph<N, Cost>) -> Cost
+    pub fn run<N>(&mut self, graph: &Graph<N, Cost>) -> Cost
     where
         N: std::fmt::Debug,
     {
-        let mut runner = Runner { state: self, graph };
+        let mut runner = Flac { state: self, graph };
         loop {
             if runner.run().is_break() {
-                return self.total_cost;
+                return self.steiner_tree.total_weight;
             }
         }
     }
 
     pub fn reset(&mut self) {
-        self.total_cost = 0;
-        self.root_feeding_terminals.clear();
-        self.terminals.clear();
+        self.steiner_tree.total_weight = 0;
+        self.flow.root_feeding_terminals.clear();
+        self.steiner_tree.terminals.clear();
     }
 }
 
-struct Runner<'s, 'g, N> {
-    state: &'s mut Flac,
+struct Flac<'s, 'g, N> {
+    state: &'s mut GreedyFlac,
     graph: &'g Graph<N, Cost>,
 }
 
-impl<N> std::ops::Deref for Runner<'_, '_, N> {
-    type Target = Flac;
+impl<N> std::ops::Deref for Flac<'_, '_, N> {
+    type Target = GreedyFlac;
     fn deref(&self) -> &Self::Target {
         self.state
     }
 }
 
-impl<N> std::ops::DerefMut for Runner<'_, '_, N> {
+impl<N> std::ops::DerefMut for Flac<'_, '_, N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.state
     }
 }
 
-impl<'g, N> Runner<'_, 'g, N>
+impl<'g, N> Flac<'_, 'g, N>
 where
     N: std::fmt::Debug,
 {
     fn run(&mut self) -> ControlFlow<()> {
-        if self.terminals.is_empty() {
+        if self.steiner_tree.terminals.is_empty() {
             // No terminals to process, nothing to do
             return ControlFlow::Break(());
         }
@@ -146,29 +156,32 @@ where
         debug_assert!(self.stack.is_empty());
         self.time = 0.0;
         self.heap.clear();
-        self.saturated_edges.clear();
-        self.marked_or_saturated_edges.clear();
-        self.node_to_feeding_terminals.iter_mut().for_each(|set| set.clear());
-        self.node_to_flow_rates.fill(0);
+        self.flow.saturated_edges.clear();
+        self.flow.marked_or_saturated_edges.clear();
+        self.flow
+            .node_to_feeding_terminals
+            .iter_mut()
+            .for_each(|set| set.clear());
+        self.flow.node_to_flow_rates.fill(0);
 
         // Initialize the state with the current terminals. New ones may have been added since the
         // last run.
-        let n_terminals = self.state.terminals.len();
-        self.state.root_feeding_terminals.grow(n_terminals);
+        let n_terminals = self.state.steiner_tree.terminals.len();
+        self.state.flow.root_feeding_terminals.grow(n_terminals);
         // Can happen if we extend the terminals with nodes that are already part of the steiner
         // tree.
-        if self.root_feeding_terminals.is_full() {
+        if self.flow.root_feeding_terminals.is_full() {
             return ControlFlow::Break(());
         }
-        for ix in self.state.root_feeding_terminals.zeroes() {
-            let terminal = self.state.terminals[ix];
+        for ix in self.state.flow.root_feeding_terminals.zeroes() {
+            let terminal = self.state.steiner_tree.terminals[ix];
             if let Some(edge) = self.find_next_edge_in_T_minus(terminal) {
                 let saturate_time = self.time + *edge.weight() as Time;
                 self.state.heap.push(edge.id(), saturate_time.into());
-                let feeding = &mut self.state.node_to_feeding_terminals[terminal.index()];
+                let feeding = &mut self.state.flow.node_to_feeding_terminals[terminal.index()];
                 feeding.grow(n_terminals);
                 feeding.insert(ix);
-                self.state.node_to_flow_rates[terminal.index()] = 1;
+                self.state.flow.node_to_flow_rates[terminal.index()] = 1;
             }
         }
 
@@ -180,28 +193,29 @@ where
 
             // The new update_flow_rates handles degenerate flow checking internally
             if let ControlFlow::Break((_, v)) = self.update_flow_rates(edge) {
-                let new_feeding_terminals = &self.state.node_to_feeding_terminals[v.index()];
+                let new_feeding_terminals = &self.state.flow.node_to_feeding_terminals[v.index()];
                 debug_assert!(
                     !new_feeding_terminals.is_clear(),
                     "No new terminals?\n{}",
                     self.debug_dot_graph()
                 );
                 debug_assert!(
-                    (new_feeding_terminals & (&self.root_feeding_terminals)).is_clear(),
+                    (new_feeding_terminals & (&self.flow.root_feeding_terminals)).is_clear(),
                     "New feeding terminals weren't distinct from the current ones\n{}\n{:b}\n{:b}\n{}",
-                    self.terminals
+                    self.steiner_tree
+                        .terminals
                         .iter()
                         .map(|idx| &self.graph[*idx])
                         .format_with(",", |node, f| f(&format_args!("{node:?}"))),
                     &new_feeding_terminals,
-                    &self.root_feeding_terminals,
+                    &self.flow.root_feeding_terminals,
                     self.debug_dot_graph()
                 );
 
-                self.state.root_feeding_terminals.union_with(new_feeding_terminals);
+                self.state.flow.root_feeding_terminals.union_with(new_feeding_terminals);
 
-                self.total_cost += self.graph[edge];
-                self.steiner_tree_edges.insert(edge.index());
+                self.steiner_tree.total_weight += self.graph[edge];
+                self.steiner_tree.edges.insert(edge.index());
 
                 // We traverse in the opposite direction to FLAC as not all saturated edges from
                 // the terminals lead to anywhere useful. The algorithm stops at the first path
@@ -209,17 +223,17 @@ where
                 debug_assert!(self.stack.is_empty());
                 self.stack.push(v);
                 while let Some(node) = self.stack.pop() {
-                    self.steiner_tree_nodes.insert(node.index());
+                    self.steiner_tree.nodes.insert(node.index());
                     for edge in self.graph.edges_directed(node, petgraph::Direction::Outgoing) {
-                        if self.saturated_edges[edge.id().index()] {
-                            self.steiner_tree_edges.insert(edge.id().index());
-                            self.total_cost += *edge.weight();
+                        if self.flow.saturated_edges[edge.id().index()] {
+                            self.steiner_tree.edges.insert(edge.id().index());
+                            self.steiner_tree.total_weight += *edge.weight();
                             self.stack.push(edge.target());
                         }
                     }
                 }
 
-                return if self.root_feeding_terminals.is_full() {
+                return if self.flow.root_feeding_terminals.is_full() {
                     ControlFlow::Break(())
                 } else {
                     ControlFlow::Continue(())
@@ -240,7 +254,7 @@ where
         let mut min_cost = Cost::MAX;
 
         for edge in self.graph.edges_directed(node, petgraph::Direction::Incoming) {
-            if !self.marked_or_saturated_edges.contains(edge.id().index()) {
+            if !self.flow.marked_or_saturated_edges.contains(edge.id().index()) {
                 let cost = *edge.weight();
                 if cost < min_cost {
                     min_cost = cost;
@@ -264,11 +278,11 @@ where
         let (u, v) = self.graph.edge_endpoints(saturating_edge).unwrap();
 
         // The current edge will be either saturated or marked
-        self.marked_or_saturated_edges.insert(saturating_edge.index());
+        self.flow.marked_or_saturated_edges.insert(saturating_edge.index());
 
         // When the algorithm reaches a node of the Steiner Tree, which starts with only the root node,
         // we don't need to go further.
-        if self.steiner_tree_nodes[u.index()] {
+        if self.steiner_tree.nodes[u.index()] {
             return ControlFlow::Break((u, v));
         }
 
@@ -284,20 +298,20 @@ where
                 //     "No further edges found, but still haven't reached the steiner tree?\n{}",
                 //     self.debug_dot_graph()
                 // );
-                self.saturated_edges.insert(saturating_edge.index());
+                self.flow.saturated_edges.insert(saturating_edge.index());
 
                 // Update all the next saturating edges in T_u
-                let v_feeding_terminals = std::mem::take(&mut self.node_to_feeding_terminals[v.index()]);
+                let v_feeding_terminals = std::mem::take(&mut self.flow.node_to_feeding_terminals[v.index()]);
                 let extra_flow_rate = v_feeding_terminals.count_ones(..) as FlowRate;
                 for edge in next_saturating_edges_in_T_u {
                     let node = edge.target().index();
 
                     // Algorithm 5
-                    self.node_to_feeding_terminals[node].union_with(&v_feeding_terminals);
+                    self.flow.node_to_feeding_terminals[node].union_with(&v_feeding_terminals);
 
-                    let old_flow_rate = self.node_to_flow_rates[node];
+                    let old_flow_rate = self.flow.node_to_flow_rates[node];
                     let new_flow_rate = old_flow_rate + extra_flow_rate;
-                    self.node_to_flow_rates[node] = new_flow_rate;
+                    self.flow.node_to_flow_rates[node] = new_flow_rate;
 
                     // Algorithm 7
                     if old_flow_rate == 0 {
@@ -311,13 +325,13 @@ where
                         self.heap.push_decrease(edge.id(), next_saturate_time.into());
                     }
                 }
-                self.node_to_feeding_terminals[v.index()] = v_feeding_terminals;
+                self.flow.node_to_feeding_terminals[v.index()] = v_feeding_terminals;
             }
         }
 
         // Algorithm 8
         if let Some(edge) = self.find_next_edge_in_T_minus(v) {
-            let flow_rate = self.node_to_flow_rates[v.index()];
+            let flow_rate = self.flow.node_to_flow_rates[v.index()];
             debug_assert!(
                 flow_rate > 0,
                 "Flow rate must be positive, how could it be saturated otherwise?\n{}",
@@ -339,11 +353,11 @@ where
 
         debug_assert!(self.stack.is_empty());
         self.stack.push(u);
-        let new_feeding = &self.state.node_to_feeding_terminals[v.index()];
+        let new_feeding = &self.state.flow.node_to_feeding_terminals[v.index()];
 
         while let Some(current) = self.state.stack.pop() {
             // Check for degenerate flow
-            let current_feeding = &self.node_to_feeding_terminals[current.index()];
+            let current_feeding = &self.flow.node_to_feeding_terminals[current.index()];
             if !(new_feeding & current_feeding).is_clear() {
                 self.stack.clear();
                 return DegenerateFlow::Yes; // Degenerate flow detected
@@ -355,7 +369,7 @@ where
 
             // Add neighbors reachable through saturated edges
             for edge in self.graph.edges_directed(current, petgraph::Direction::Incoming) {
-                if self.saturated_edges[edge.id().index()] {
+                if self.flow.saturated_edges[edge.id().index()] {
                     let src = edge.source();
                     self.state.stack.push(src);
                 }
@@ -387,9 +401,9 @@ where
                 &self.graph,
                 &[Config::EdgeNoLabel, Config::NodeNoLabel, Config::GraphContentOnly],
                 &|_, edge| {
-                    let is_in_steiner_tree = self.steiner_tree_edges[edge.id().index()];
-                    let is_saturated = self.saturated_edges[edge.id().index()];
-                    let is_marked = self.marked_or_saturated_edges[edge.id().index()] && !is_saturated;
+                    let is_in_steiner_tree = self.steiner_tree.edges[edge.id().index()];
+                    let is_saturated = self.flow.saturated_edges[edge.id().index()];
+                    let is_marked = self.flow.marked_or_saturated_edges[edge.id().index()] && !is_saturated;
                     let attr = match (is_in_steiner_tree, is_saturated, is_marked) {
                         (true, _, _) => "color=forestgreen,fontcolor=forestgreen",
                         (_, true, _) => "color=royalblue,fontcolor=royalblue",
@@ -410,8 +424,8 @@ where
                     Attrs::label(label).with(attr).to_string()
                 },
                 &|_, (node_ix, _)| {
-                    let flow_rate = self.node_to_flow_rates[node_ix.index()];
-                    let is_in_steiner_tree = self.steiner_tree_nodes[node_ix.index()];
+                    let flow_rate = self.flow.node_to_flow_rates[node_ix.index()];
+                    let is_in_steiner_tree = self.steiner_tree.nodes[node_ix.index()];
                     let n = self
                         .graph
                         .edges_directed(node_ix, petgraph::Direction::Incoming)
@@ -420,12 +434,12 @@ where
                         && self
                             .graph
                             .edges_directed(node_ix, petgraph::Direction::Incoming)
-                            .all(|edge| self.saturated_edges[edge.id().index()]);
+                            .all(|edge| self.flow.saturated_edges[edge.id().index()]);
                     let all_edges_saturated_or_marked = n > 0
                         && self
                             .graph
                             .edges_directed(node_ix, petgraph::Direction::Incoming)
-                            .all(|edge| self.marked_or_saturated_edges[edge.id().index()]);
+                            .all(|edge| self.flow.marked_or_saturated_edges[edge.id().index()]);
                     let attr = match (is_in_steiner_tree, all_edges_saturated, all_edges_saturated_or_marked) {
                         (true, _, _) => "color=forestgreen",
                         (_, true, true) => "color=royalblue",
@@ -436,7 +450,7 @@ where
                         "<{:?} {}&#128167;<br/>{:b}>",
                         &self.graph[node_ix],
                         flow_rate,
-                        &self.node_to_feeding_terminals[node_ix.index()],
+                        &self.flow.node_to_feeding_terminals[node_ix.index()],
                     ))
                     .with(attr)
                     .to_string()
@@ -496,13 +510,13 @@ mod tests {
         (graph, nodes)
     }
 
-    fn to_dot_graph(graph: &Graph<String, Cost>, flac: &Flac) -> String {
+    fn to_dot_graph(graph: &Graph<String, Cost>, flac: &GreedyFlac) -> String {
         use std::fmt::Write as _;
 
         let mut out = String::from("digraph {\n");
         let mut steiner_edges = Vec::new();
         for edge in graph.edge_references() {
-            if flac.steiner_tree_edges[edge.id().index()] {
+            if flac.steiner_tree.edges[edge.id().index()] {
                 steiner_edges.push(edge);
             }
         }
@@ -519,18 +533,18 @@ mod tests {
         nodes: &HashMap<String, NodeIndex>,
         root: &'a str,
         terminals: impl IntoIterator<Item = &'a str>,
-    ) -> Flac {
+    ) -> GreedyFlac {
         let mut steiner_tree_nodes = FixedBitSet::with_capacity(graph.node_bound());
         steiner_tree_nodes.insert(nodes[root].index());
-        Flac::new(
+        GreedyFlac::new(
             graph,
             terminals.into_iter().map(|label| nodes[label]).collect(),
             steiner_tree_nodes,
         )
     }
 
-    fn debug_graph(graph: &Graph<String, Cost>, flac: &mut Flac) -> String {
-        Runner { state: flac, graph }.debug_dot_graph()
+    fn debug_graph(graph: &Graph<String, Cost>, flac: &mut GreedyFlac) -> String {
+        Flac { state: flac, graph }.debug_dot_graph()
     }
 
     #[test]
@@ -544,7 +558,7 @@ mod tests {
         );
         let mut flac = build(&graph, &nodes, "root", ["b", "c"]);
 
-        let outcome = flac.run(&graph);
+        let outcome = flac.run_once(&graph);
         assert!(outcome.is_continue(), "\n{}", debug_graph(&graph, &mut flac));
         insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
         digraph {
@@ -553,7 +567,7 @@ mod tests {
         }
         ");
 
-        let outcome = flac.run(&graph);
+        let outcome = flac.run_once(&graph);
         assert!(outcome.is_break(), "\n{}", debug_graph(&graph, &mut flac));
         insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
         digraph {
@@ -573,7 +587,7 @@ mod tests {
         );
         let mut flac = build(&graph, &nodes, "root", ["terminal"]);
 
-        let total_cost = flac.greedy_run(&graph);
+        let total_cost = flac.run(&graph);
         assert_eq!(total_cost, 5, "\n{}", debug_graph(&graph, &mut flac));
         insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
         digraph {
@@ -594,7 +608,7 @@ mod tests {
         );
         let mut flac = build(&graph, &nodes, "root", ["t1", "t2", "t3"]);
 
-        let total_cost = flac.greedy_run(&graph);
+        let total_cost = flac.run(&graph);
         assert_eq!(
             total_cost,
             20, // 10 + 3 + 5 + 2
@@ -625,7 +639,7 @@ mod tests {
         );
         let mut flac = build(&graph, &nodes, "root", ["t1"]);
 
-        let total_cost = flac.greedy_run(&graph);
+        let total_cost = flac.run(&graph);
         assert_eq!(
             total_cost,
             13, // Should pick one path: root -> a -> b -> t1 (10 + 2 + 1)
@@ -658,7 +672,7 @@ mod tests {
         );
         let mut flac = build(&graph, &nodes, "root", ["t1", "t2", "t3"]);
 
-        let total_cost = flac.greedy_run(&graph);
+        let total_cost = flac.run(&graph);
         assert_eq!(
             total_cost,
             // root -> a -> c -> t1,t2: 5 + 3 + 6 + 4 = 18
@@ -693,7 +707,7 @@ mod tests {
         let mut flac = build(&graph, &nodes, "root", ["t1"]);
 
         // First run with only t1
-        let total_cost = flac.greedy_run(&graph);
+        let total_cost = flac.run(&graph);
         assert_eq!(
             total_cost,
             6, // root -> a -> t1: 4 + 2
@@ -703,7 +717,7 @@ mod tests {
 
         // Add t2 as a new terminal
         flac.extend_terminals(vec![nodes["t2"]]);
-        let total_cost = flac.greedy_run(&graph);
+        let total_cost = flac.run(&graph);
         assert_eq!(
             total_cost,
             6 + 9, // root -> b -> t2: 6 + 3
@@ -713,7 +727,7 @@ mod tests {
 
         // Add t3 as another terminal
         flac.extend_terminals(vec![nodes["t3"]]);
-        let total_cost = flac.greedy_run(&graph);
+        let total_cost = flac.run(&graph);
         assert_eq!(
             total_cost,
             6 + 9 + 5, // a -> t3: 5 (root -> a already in tree)
@@ -747,7 +761,7 @@ mod tests {
         );
         let mut flac = build(&graph, &nodes, "root", ["t1", "t2", "t3"]);
 
-        let total_cost = flac.greedy_run(&graph);
+        let total_cost = flac.run(&graph);
         assert_eq!(
             total_cost,
             // Optimal: root->a->t2 (3), root->b->c->t1 (102), root->b->t3 (102 already counted + 2 = 2)
@@ -786,7 +800,7 @@ mod tests {
         );
         let mut flac = build(&graph, &nodes, "root", ["t1", "t2", "t3"]);
 
-        let total_cost = flac.greedy_run(&graph);
+        let total_cost = flac.run(&graph);
         assert_eq!(
             total_cost,
             30, // root->top->left->t2 (5+3+8=16) + top->right->bottom->t1 (4+2+1=7) + right->t3 (7-already have right)
@@ -822,7 +836,7 @@ mod tests {
         );
         let mut flac = build(&graph, &nodes, "root", ["t1", "t2", "t3"]);
 
-        let total_cost = flac.greedy_run(&graph);
+        let total_cost = flac.run(&graph);
         assert_eq!(
             total_cost,
             38, // root->n1->n2->n3->n4->t1 (2+3+4+5+6=20) + n2->t2 (10) + n3->t3 (8)

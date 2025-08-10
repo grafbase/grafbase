@@ -127,3 +127,244 @@ Summary for ShortestPath:
 Datasets tested: 5
 Average cost difference: 4.2 (+2.3%)
 Total time: 2.544921ms
+
+1. Separate Concerns in Solver
+
+The Solver currently mixes several responsibilities. Consider splitting it:
+
+// Instead of one large Solver, have:
+
+pub(crate) struct Solver<'schema, 'op, 'q> {
+schema: &'schema Schema,
+operation: &'op Operation,
+query_solution_space: &'q QuerySolutionSpace<'schema>,
+steiner_tree: SteinerTreeSolver, // Core algorithm
+requirements: RequirementsManager, // Dispensable requirements logic
+}
+
+// Move Steiner tree logic to its own struct
+struct SteinerTreeSolver {
+ctx: SteinerContext<...>,
+flac: flac::Flac,
+cost_estimator: Option<flac::Flac>,
+}
+
+// Move requirements management to its own struct  
+ struct RequirementsManager {
+metadata: DispensableRequirementsMetadata,
+tmp_extra_terminals: Vec<NodeIndex>,
+has_updated_cost: bool,
+}
+
+2. Clearer Module Organization
+
+Current structure mixes algorithm implementation with problem modeling:
+
+solve/
+├── solver.rs # Main solver + requirements logic
+└── steiner_tree/
+├── context.rs # Graph transformation
+├── greedy_flac/
+│ ├── mod.rs # Empty wrapper
+│ └── flac.rs # FLAC algorithm
+└── tests/
+
+Suggested structure:
+
+solve/
+├── solver.rs # High-level solver orchestration
+├── requirements/ # Dispensable requirements handling
+│ ├── mod.rs
+│ ├── metadata.rs # DispensableRequirementsMetadata
+│ └── cost_updater.rs # Cost update logic
+└── algorithms/ # Steiner tree algorithms
+├── mod.rs
+├── context.rs # Graph transformation (shared)
+└── flac/ # FLAC implementation
+├── mod.rs
+├── algorithm.rs # Core FLAC algorithm
+└── state.rs # FLAC state management
+
+3. Simplify the FLAC State Management
+
+The current Flac struct has many fields. Consider grouping them:
+
+pub(crate) struct Flac {
+tree: SteinerTree, // Tree structure (nodes, edges, cost)
+flow: FlowState, // Flow algorithm state
+runtime: RuntimeState, // Temporary state for runs
+}
+
+struct SteinerTree {
+nodes: FixedBitSet,
+edges: FixedBitSet,
+total_cost: Cost,
+}
+
+struct FlowState {
+terminals: Vec<NodeIndex>,
+saturated_edges: FixedBitSet,
+marked_or_saturated_edges: FixedBitSet,
+root_feeding_terminals: FixedBitSet,
+node_to_feeding_terminals: Vec<FixedBitSet>,
+node_to_flow_rates: Vec<FlowRate>,
+weights: Vec<Cost>,
+}
+
+struct RuntimeState {
+time: Time,
+heap: PriorityQueue<EdgeIndex, Priority>,
+stack: Vec<NodeIndex>,
+}
+
+4. Cleaner Interface Between Solver and Algorithm
+
+Define a trait for Steiner tree algorithms:
+
+trait SteinerTreeAlgorithm {
+/// Run one iteration of growth
+fn grow(&mut self, graph: &Graph<(), Cost>) -> ControlFlow<()>;
+
+      /// Check if a node is in the current tree
+      fn contains_node(&self, node: NodeIndex) -> bool;
+
+      /// Add new terminals
+      fn add_terminals(&mut self, terminals: impl Iterator<Item = NodeIndex>);
+
+      /// Estimate cost of adding extra terminals
+      fn estimate_cost(&mut self,
+          fixed_edges: &[EdgeIndex],
+          terminals: &[NodeIndex]
+      ) -> Cost;
+
+      /// Get the final solution
+      fn into_solution(self) -> FixedBitSet;
+
+}
+
+5. Simplify Cost Updates
+
+The cost update logic is complex. Consider making it more explicit:
+
+impl Solver {
+fn update_edge_costs(&mut self) -> Result<bool> {
+let updates = self.calculate_cost_updates()?;
+
+          if updates.is_empty() {
+              return Ok(false);
+          }
+
+          for update in updates {
+              self.apply_cost_update(update);
+          }
+
+          Ok(true)
+      }
+
+      fn calculate_cost_updates(&mut self) -> Result<Vec<CostUpdate>> {
+          let mut updates = Vec::new();
+
+          // Calculate updates for free requirements
+          updates.extend(self.calculate_free_requirement_updates());
+
+          // Calculate updates for costly requirements
+          updates.extend(self.calculate_costly_requirement_updates()?);
+
+          Ok(updates)
+      }
+
+}
+
+struct CostUpdate {
+edge: EdgeIndex,
+new_cost: Cost,
+reason: UpdateReason,
+}
+
+enum UpdateReason {
+FreeRequirement,
+CostlyRequirement { extra_cost: Cost },
+}
+
+6. Better Separation of Graph Spaces
+
+The relationship between the query graph and Steiner graph could be clearer:
+
+// Make the transformation more explicit
+struct GraphTransformer {
+/// Transform query graph to Steiner graph
+fn transform(query_graph: &QueryGraph) -> (SteinerGraph, GraphMapping);
+
+      /// Map between the two graph spaces
+      fn map_node_to_steiner(&self, node: QueryNodeId) -> SteinerNodeId;
+      fn map_node_to_query(&self, node: SteinerNodeId) -> Option<QueryNodeId>;
+      fn map_edge_to_steiner(&self, edge: QueryEdgeId) -> SteinerEdgeId;
+
+}
+
+7. Improve Test Organization
+
+The test that uses the GENE dataset could be moved to integration tests or benchmarks:
+
+// benches/steiner_tree.rs #[bench]
+fn bench_flac_gene_dataset(b: &mut Bencher) {
+// Current test logic as benchmark
+}
+
+// tests/integration/steiner_tree.rs  
+ #[test]
+fn test_flac_correctness() {
+// Simplified correctness tests
+}
+
+These changes would make the code:
+
+- More modular: Each component has a single responsibility
+- Easier to test: Components can be tested in isolation
+- More extensible: Easy to add new algorithms or requirements strategies
+- Clearer: The flow of data and control is more explicit
+
+Would you like me to implement any of these suggestions?
+
+     1. Reorganize Module Structure
+
+     - Create new directory structure under solve/:
+       - requirements/ - for dispensable requirements handling
+       - algorithms/ - for Steiner tree algorithms
+     - Move and refactor files accordingly
+
+     2. Separate Concerns in Solver
+
+     - Extract SteinerTreeSolver struct to handle core algorithm logic
+     - Extract RequirementsManager struct for requirements management
+     - Keep main Solver as orchestrator
+
+     3. Refactor FLAC State Management
+
+     - Split Flac struct into logical groups:
+       - SteinerTree - tree structure
+       - FlowState - flow algorithm state
+       - RuntimeState - temporary run state
+
+     4. Create Algorithm Trait
+
+     - Define SteinerTreeAlgorithm trait
+     - Implement it for FLAC
+     - Update Solver to use trait interface
+
+     5. Simplify Cost Updates
+
+     - Create CostUpdate struct with reason tracking
+     - Split cost calculation from application
+     - Make update flow more explicit
+
+     6. Improve Graph Transformation
+
+     - Create GraphTransformer for clearer mapping
+     - Make query-to-steiner graph transformation explicit
+
+     7. Reorganize Tests
+
+     - Move GENE dataset test to benchmarks
+     - Create simpler unit tests
+     - Add integration tests
