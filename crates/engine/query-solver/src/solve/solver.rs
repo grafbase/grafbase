@@ -10,8 +10,7 @@ use crate::{
     dot_graph::Attrs,
     solve::{
         context::{SteinerContext, SteinerGraph},
-        cost_updater::{CostUpdater, FixedPointCostAlgorithm},
-        requirements::DispensableRequirementsMetadata,
+        requirements::RequirementAndCostUpdater,
         steiner_tree::SteinerTree,
     },
 };
@@ -38,7 +37,7 @@ pub(crate) struct Solver<'schema, 'op, 'q> {
     ctx: SteinerContext<&'q SolutionSpaceGraph<'schema>, SteinerGraph>,
     flac: GreedyFlac,
     steiner_tree: SteinerTree,
-    cost_updater: CostUpdater,
+    requirements_and_cost_updater: RequirementAndCostUpdater,
 }
 
 pub(crate) struct SteinerTreeSolution {
@@ -58,7 +57,7 @@ where
 
         let steiner_tree = SteinerTree::new(&ctx.graph, ctx.root_ix);
         let flac = GreedyFlac::new(&ctx.graph, terminals);
-        let cost_updater = CostUpdater::new(&ctx)?;
+        let cost_updater = RequirementAndCostUpdater::new(&ctx)?;
 
         let mut solver = Self {
             schema,
@@ -67,11 +66,11 @@ where
             ctx,
             flac,
             steiner_tree,
-            cost_updater,
+            requirements_and_cost_updater: cost_updater,
         };
 
         let new_terminals = solver
-            .cost_updater
+            .requirements_and_cost_updater
             .run_fixed_point_cost(&mut solver.ctx, &solver.steiner_tree)?;
         debug_assert!(
             new_terminals.is_empty(),
@@ -93,7 +92,7 @@ where
         loop {
             let growth = self.flac.run_once(&self.ctx.graph, &mut self.steiner_tree);
             let new_terminals = self
-                .cost_updater
+                .requirements_and_cost_updater
                 .run_fixed_point_cost(&mut self.ctx, &self.steiner_tree)?;
 
             if growth.is_break() && new_terminals.is_empty() {

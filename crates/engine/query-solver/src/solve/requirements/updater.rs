@@ -1,6 +1,3 @@
-use std::ops::ControlFlow;
-
-use itertools::Itertools as _;
 use petgraph::graph::{EdgeIndex, NodeIndex};
 
 use crate::{
@@ -12,7 +9,7 @@ use crate::{
     },
 };
 
-pub(crate) struct CostUpdater {
+pub(crate) struct RequirementAndCostUpdater {
     /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
     /// them.
     dispensable_requirements_metadata: DispensableRequirementsMetadata,
@@ -24,7 +21,7 @@ pub(crate) struct CostUpdater {
     has_updated_cost: bool,
 }
 
-impl CostUpdater {
+impl RequirementAndCostUpdater {
     pub fn new(ctx: &SteinerContext<&SolutionSpaceGraph<'_>, SteinerGraph>) -> crate::Result<Self> {
         let mut dispensable_requirements_metadata = DispensableRequirementsMetadata::default();
         dispensable_requirements_metadata.ingest(ctx.query_graph)?;
@@ -53,13 +50,13 @@ impl CostUpdater {
 }
 
 pub(crate) struct FixedPointCostAlgorithm<'state, 'tree, 'ctx, 'q, 'schema> {
-    pub state: &'state mut CostUpdater,
+    pub state: &'state mut RequirementAndCostUpdater,
     pub steiner_tree: &'tree SteinerTree,
     pub ctx: &'ctx mut SteinerContext<&'q SolutionSpaceGraph<'schema>, SteinerGraph>,
 }
 
 impl std::ops::Deref for FixedPointCostAlgorithm<'_, '_, '_, '_, '_> {
-    type Target = CostUpdater;
+    type Target = RequirementAndCostUpdater;
     fn deref(&self) -> &Self::Target {
         self.state
     }
