@@ -22,7 +22,6 @@ pub(crate) struct RequirementAndCostUpdater {
     tmp_extra_terminals: Vec<NodeIndex>,
     tmp_steiner_tree: SteinerTree,
     tmp_flac: GreedyFlac,
-    has_updated_cost: bool,
 }
 
 impl RequirementAndCostUpdater {
@@ -35,7 +34,6 @@ impl RequirementAndCostUpdater {
             tmp_extra_terminals: Vec::new(),
             tmp_steiner_tree: SteinerTree::new(&ctx.graph, ctx.root_ix),
             tmp_flac: GreedyFlac::new(&ctx.graph, Vec::new()),
-            has_updated_cost: false,
         })
     }
 
@@ -43,11 +41,12 @@ impl RequirementAndCostUpdater {
         &'s mut self,
         graph: &mut SteinerGraph,
         steiner_tree: &SteinerTree,
-    ) -> crate::Result<&'s mut Vec<NodeIndex>> {
+    ) -> crate::Result<Update<'s>> {
         FixedPointCostAlgorithm {
             state: self,
             steiner_tree,
             graph,
+            has_updated_cost: false,
         }
         .run()
     }
@@ -57,6 +56,7 @@ pub(crate) struct FixedPointCostAlgorithm<'s, 't, 'g> {
     pub state: &'s mut RequirementAndCostUpdater,
     pub steiner_tree: &'t SteinerTree,
     pub graph: &'g mut SteinerGraph,
+    has_updated_cost: bool,
 }
 
 impl std::ops::Deref for FixedPointCostAlgorithm<'_, '_, '_> {
@@ -72,18 +72,25 @@ impl std::ops::DerefMut for FixedPointCostAlgorithm<'_, '_, '_> {
     }
 }
 
+pub(crate) struct Update<'a> {
+    pub new_terminals: &'a mut Vec<NodeIndex>,
+    pub has_updated_cost: bool,
+}
+
 impl<'state> FixedPointCostAlgorithm<'state, '_, '_> {
     /// Updates the cost of edges based on the requirements of the nodes.
     /// We iterate until cost becomes stable or we exhausted the maximum number of iterations which
     /// likely indicates a requirement cycle.
-    pub fn run(mut self) -> crate::Result<&'state mut Vec<NodeIndex>> {
+    pub fn run(mut self) -> crate::Result<Update<'state>> {
         debug_assert!(self.tmp_extra_terminals.is_empty());
+        let mut has_updated_cost = false;
         let mut i = 0;
         loop {
             i += 1;
             self.generate_cost_updates_based_on_requirements();
-            let has_updates = std::mem::take(&mut self.has_updated_cost);
-            if !has_updates || self.independent_requirements.unwrap_or_default() {
+            let has_updated_cost_this_iteration = std::mem::take(&mut self.has_updated_cost);
+            has_updated_cost |= has_updated_cost_this_iteration;
+            if !has_updated_cost_this_iteration || self.independent_requirements.unwrap_or_default() {
                 break;
             }
             if i > 100 {
@@ -94,7 +101,10 @@ impl<'state> FixedPointCostAlgorithm<'state, '_, '_> {
         // iterations (one for updating, one for checking nothing changed). It means there is no
         // dependency between requirements cost. So we can skip it in the next iterations.
         self.independent_requirements.get_or_insert(i == 2);
-        Ok(&mut self.state.tmp_extra_terminals)
+        Ok(Update {
+            new_terminals: &mut self.state.tmp_extra_terminals,
+            has_updated_cost,
+        })
     }
 
     /// For all edges with dispensable requirements, we estimate the cost of the extra requirements
@@ -109,7 +119,8 @@ impl<'state> FixedPointCostAlgorithm<'state, '_, '_> {
                 self.state.tmp_extra_terminals.extend(
                     self.state.dispensable_requirements[extra_required_node_ids]
                         .iter()
-                        .copied(),
+                        .copied()
+                        .filter(|&n| !self.steiner_tree[n]),
                 );
                 self.dispensable_requirements.free_requirements.swap_remove(i);
             } else {
@@ -136,12 +147,15 @@ impl<'state> FixedPointCostAlgorithm<'state, '_, '_> {
                 {
                     if !self.steiner_tree[edge_id] {
                         let old = std::mem::replace(&mut self.graph[edge_id], inherent_cost);
-                        self.state.has_updated_cost |= old != inherent_cost;
+                        self.has_updated_cost |= old != inherent_cost;
                     }
                 }
-                self.state
-                    .tmp_extra_terminals
-                    .extend(self.state.dispensable_requirements[required_node_ids].iter().copied());
+                self.state.tmp_extra_terminals.extend(
+                    self.state.dispensable_requirements[required_node_ids]
+                        .iter()
+                        .copied()
+                        .filter(|&n| !self.steiner_tree[n]),
+                );
                 self.dispensable_requirements.groups.swap_remove(i);
                 continue;
             }
@@ -173,7 +187,7 @@ impl RequirementAndCostUpdater {
         unavoidable_parent_edge_ids: IdRange<UnavoidableParentEdgeId>,
         required_node_ids: IdRange<RequiredNodeId>,
     ) -> Cost {
-        self.tmp_flac.reset();
+        self.tmp_flac.reset_terminals();
         self.tmp_steiner_tree.nodes.clone_from(&steiner_tree.nodes);
         self.tmp_steiner_tree.edges.clone_from(&steiner_tree.edges);
         self.tmp_steiner_tree.total_weight = 0;

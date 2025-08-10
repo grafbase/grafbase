@@ -57,7 +57,7 @@ where
 
         let steiner_tree = SteinerTree::new(&ctx.graph, ctx.root_ix);
         let flac = GreedyFlac::new(&ctx.graph, terminals);
-        let cost_updater = RequirementAndCostUpdater::new(&ctx)?;
+        let requirements_and_cost_updater = RequirementAndCostUpdater::new(&ctx)?;
 
         let mut solver = Self {
             schema,
@@ -66,14 +66,14 @@ where
             ctx,
             flac,
             steiner_tree,
-            requirements_and_cost_updater: cost_updater,
+            requirements_and_cost_updater,
         };
 
-        let new_terminals = solver
+        let update = solver
             .requirements_and_cost_updater
             .run_fixed_point_cost(&mut solver.ctx.graph, &solver.steiner_tree)?;
         debug_assert!(
-            new_terminals.is_empty(),
+            update.new_terminals.is_empty(),
             "Fixed point cost algorithm should not return new terminals at initialization"
         );
 
@@ -91,18 +91,21 @@ where
     pub fn execute(&mut self) -> crate::Result<()> {
         loop {
             let growth = self.flac.run_once(&self.ctx.graph, &mut self.steiner_tree);
-            let new_terminals = self
+            let update = self
                 .requirements_and_cost_updater
                 .run_fixed_point_cost(&mut self.ctx.graph, &self.steiner_tree)?;
 
-            println!("NEW TERMINALS: {}", new_terminals.len());
-            if growth.is_break() && new_terminals.is_empty() {
-                break;
+            if !update.new_terminals.is_empty() {
+                update.new_terminals.sort_unstable();
+                self.flac.extend_terminals(update.new_terminals.drain(..).dedup());
+            } else {
+                if growth.is_break() {
+                    break;
+                }
+                if update.has_updated_cost {
+                    self.flac.reset_flow();
+                }
             }
-
-            new_terminals.sort_unstable();
-            self.flac
-                .extend_terminals(new_terminals.drain(..).dedup().filter(|idx| !self.steiner_tree[*idx]));
 
             tracing::trace!("Solver step:\n{}", self.to_pretty_dot_graph());
         }

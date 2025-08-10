@@ -79,6 +79,7 @@ impl GreedyFlac {
 
     pub fn extend_terminals(&mut self, terminals: impl IntoIterator<Item = NodeIndex>) {
         self.flow.terminals.extend(terminals);
+        self.reset_flow();
     }
 
     pub fn run_once<N>(&mut self, graph: &Graph<N, Cost>, steiner_tree: &mut SteinerTree) -> ControlFlow<()>
@@ -109,7 +110,19 @@ impl GreedyFlac {
         }
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset_flow(&mut self) {
+        // self.time = 0.0;
+        // self.heap.clear();
+        // self.flow.saturated_edges.clear();
+        // self.flow.marked_or_saturated_edges.clear();
+        // self.flow
+        //     .node_to_feeding_terminals
+        //     .iter_mut()
+        //     .for_each(|set| set.clear());
+        // self.flow.node_to_flow_rates.fill(0);
+    }
+
+    pub fn reset_terminals(&mut self) {
         self.flow.root_feeding_terminals.clear();
         self.flow.terminals.clear();
     }
@@ -143,13 +156,6 @@ where
             // No terminals to process, nothing to do
             return ControlFlow::Break(());
         }
-
-        // Prepare the initial state
-        debug_assert!(
-            !self.steiner_tree.nodes.is_empty(),
-            "Root must be part of the steiner tree."
-        );
-        debug_assert!(self.stack.is_empty());
         self.time = 0.0;
         self.heap.clear();
         self.flow.saturated_edges.clear();
@@ -159,6 +165,13 @@ where
             .iter_mut()
             .for_each(|set| set.clear());
         self.flow.node_to_flow_rates.fill(0);
+
+        // Prepare the initial state
+        debug_assert!(
+            !self.steiner_tree.nodes.is_empty(),
+            "Root must be part of the steiner tree."
+        );
+        debug_assert!(self.stack.is_empty());
 
         // Initialize the state with the current terminals. New ones may have been added since the
         // last run.
@@ -197,7 +210,7 @@ where
                 );
                 debug_assert!(
                     (new_feeding_terminals & (&self.flow.root_feeding_terminals)).is_clear(),
-                    "New feeding terminals weren't distinct from the current ones\n{}\n{:b}\n{:b}\n{}",
+                    "New feeding terminals weren't distinct from the current ones. This means older ones were still flowing.\n{}\n{:b}\n{:b}\n{}",
                     self.flow
                         .terminals
                         .iter()
