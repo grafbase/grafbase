@@ -9,6 +9,8 @@ use petgraph::{
 use priority_queue::PriorityQueue;
 use std::{cmp::Ordering, ops::ControlFlow};
 
+use super::SteinerTree;
+
 type Time = f64;
 type FlowRate = u16;
 
@@ -41,24 +43,16 @@ impl PartialOrd for Priority {
 
 impl Eq for Priority {}
 
-pub(crate) struct SteinerTree {
-    pub nodes: FixedBitSet,
-    pub edges: FixedBitSet,
-    pub weights: Vec<Cost>,
-    pub total_weight: Cost,
-    pub terminals: Vec<NodeIndex>,
-}
-
 struct Flow {
     saturated_edges: FixedBitSet,
     marked_or_saturated_edges: FixedBitSet,
     root_feeding_terminals: FixedBitSet,
     node_to_feeding_terminals: Vec<FixedBitSet>,
     node_to_flow_rates: Vec<FlowRate>,
+    terminals: Vec<NodeIndex>,
 }
 
 pub(crate) struct GreedyFlac {
-    pub(crate) steiner_tree: SteinerTree,
     flow: Flow,
     // Run state, re-used across each run
     time: Time,
@@ -67,22 +61,15 @@ pub(crate) struct GreedyFlac {
 }
 
 impl GreedyFlac {
-    pub fn new<N>(graph: &Graph<N, Cost>, terminals: Vec<NodeIndex>, steiner_tree_nodes: FixedBitSet) -> Self {
-        debug_assert!(!steiner_tree_nodes.is_empty(), "Root must be part of the steiner tree.");
+    pub fn new<N>(graph: &Graph<N, Cost>, terminals: Vec<NodeIndex>) -> Self {
         Self {
-            steiner_tree: SteinerTree {
-                nodes: steiner_tree_nodes,
-                edges: FixedBitSet::with_capacity(graph.edge_count()),
-                weights: graph.edge_weights().cloned().collect(),
-                total_weight: 0,
-                terminals,
-            },
             flow: Flow {
                 saturated_edges: FixedBitSet::with_capacity(graph.edge_count()),
                 marked_or_saturated_edges: FixedBitSet::with_capacity(graph.edge_count()),
                 root_feeding_terminals: FixedBitSet::new(),
                 node_to_feeding_terminals: vec![FixedBitSet::new(); graph.node_bound()],
                 node_to_flow_rates: vec![0; graph.node_bound()],
+                terminals,
             },
             time: 0.0,
             heap: PriorityQueue::new(),
@@ -91,68 +78,77 @@ impl GreedyFlac {
     }
 
     pub fn extend_terminals(&mut self, terminals: impl IntoIterator<Item = NodeIndex>) {
-        self.steiner_tree.terminals.extend(
-            terminals
-                .into_iter()
-                .filter(|idx| !self.steiner_tree.nodes[idx.index()]),
-        );
+        self.flow.terminals.extend(terminals);
     }
 
-    pub fn run_once<N>(&mut self, graph: &Graph<N, Cost>) -> ControlFlow<()>
+    pub fn run_once<N>(&mut self, graph: &Graph<N, Cost>, steiner_tree: &mut SteinerTree) -> ControlFlow<()>
     where
         N: std::fmt::Debug,
     {
-        Flac { state: self, graph }.run()
+        Flac {
+            state: self,
+            graph,
+            steiner_tree,
+        }
+        .run()
     }
 
-    pub fn run<N>(&mut self, graph: &Graph<N, Cost>) -> Cost
+    pub fn run<N>(&mut self, graph: &Graph<N, Cost>, steiner_tree: &mut SteinerTree)
     where
         N: std::fmt::Debug,
     {
-        let mut runner = Flac { state: self, graph };
+        let mut runner = Flac {
+            state: self,
+            graph,
+            steiner_tree,
+        };
         loop {
             if runner.run().is_break() {
-                return self.steiner_tree.total_weight;
+                return;
             }
         }
     }
 
     pub fn reset(&mut self) {
-        self.steiner_tree.total_weight = 0;
         self.flow.root_feeding_terminals.clear();
-        self.steiner_tree.terminals.clear();
+        self.flow.terminals.clear();
     }
 }
 
-struct Flac<'s, 'g, N> {
+struct Flac<'s, 'g, 't, N> {
     state: &'s mut GreedyFlac,
     graph: &'g Graph<N, Cost>,
+    steiner_tree: &'t mut SteinerTree,
 }
 
-impl<N> std::ops::Deref for Flac<'_, '_, N> {
+impl<N> std::ops::Deref for Flac<'_, '_, '_, N> {
     type Target = GreedyFlac;
     fn deref(&self) -> &Self::Target {
         self.state
     }
 }
 
-impl<N> std::ops::DerefMut for Flac<'_, '_, N> {
+impl<N> std::ops::DerefMut for Flac<'_, '_, '_, N> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.state
     }
 }
 
-impl<'g, N> Flac<'_, 'g, N>
+impl<'g, N> Flac<'_, 'g, '_, N>
 where
     N: std::fmt::Debug,
 {
     fn run(&mut self) -> ControlFlow<()> {
-        if self.steiner_tree.terminals.is_empty() {
+        if self.flow.terminals.is_empty() {
             // No terminals to process, nothing to do
             return ControlFlow::Break(());
         }
 
         // Prepare the initial state
+        debug_assert!(
+            !self.steiner_tree.nodes.is_empty(),
+            "Root must be part of the steiner tree."
+        );
         debug_assert!(self.stack.is_empty());
         self.time = 0.0;
         self.heap.clear();
@@ -166,7 +162,7 @@ where
 
         // Initialize the state with the current terminals. New ones may have been added since the
         // last run.
-        let n_terminals = self.state.steiner_tree.terminals.len();
+        let n_terminals = self.state.flow.terminals.len();
         self.state.flow.root_feeding_terminals.grow(n_terminals);
         // Can happen if we extend the terminals with nodes that are already part of the steiner
         // tree.
@@ -174,7 +170,7 @@ where
             return ControlFlow::Break(());
         }
         for ix in self.state.flow.root_feeding_terminals.zeroes() {
-            let terminal = self.state.steiner_tree.terminals[ix];
+            let terminal = self.state.flow.terminals[ix];
             if let Some(edge) = self.find_next_edge_in_T_minus(terminal) {
                 let saturate_time = self.time + *edge.weight() as Time;
                 self.state.heap.push(edge.id(), saturate_time.into());
@@ -202,7 +198,7 @@ where
                 debug_assert!(
                     (new_feeding_terminals & (&self.flow.root_feeding_terminals)).is_clear(),
                     "New feeding terminals weren't distinct from the current ones\n{}\n{:b}\n{:b}\n{}",
-                    self.steiner_tree
+                    self.flow
                         .terminals
                         .iter()
                         .map(|idx| &self.graph[*idx])
@@ -510,13 +506,13 @@ mod tests {
         (graph, nodes)
     }
 
-    fn to_dot_graph(graph: &Graph<String, Cost>, flac: &GreedyFlac) -> String {
+    fn to_steiner_tree_graph(graph: &Graph<String, Cost>, steiner_tree: &SteinerTree) -> String {
         use std::fmt::Write as _;
 
         let mut out = String::from("digraph {\n");
         let mut steiner_edges = Vec::new();
         for edge in graph.edge_references() {
-            if flac.steiner_tree.edges[edge.id().index()] {
+            if steiner_tree.edges[edge.id().index()] {
                 steiner_edges.push(edge);
             }
         }
@@ -528,51 +524,91 @@ mod tests {
         out
     }
 
-    fn build<'a>(
-        graph: &Graph<String, Cost>,
-        nodes: &HashMap<String, NodeIndex>,
-        root: &'a str,
-        terminals: impl IntoIterator<Item = &'a str>,
-    ) -> GreedyFlac {
-        let mut steiner_tree_nodes = FixedBitSet::with_capacity(graph.node_bound());
-        steiner_tree_nodes.insert(nodes[root].index());
-        GreedyFlac::new(
-            graph,
-            terminals.into_iter().map(|label| nodes[label]).collect(),
-            steiner_tree_nodes,
-        )
+    struct Runner {
+        graph: Graph<String, Cost>,
+        nodes: HashMap<String, NodeIndex>,
+        greedy_flac: GreedyFlac,
+        steiner_tree: SteinerTree,
     }
 
-    fn debug_graph(graph: &Graph<String, Cost>, flac: &mut GreedyFlac) -> String {
-        Flac { state: flac, graph }.debug_dot_graph()
+    impl Runner {
+        fn from_dot_graph(dot: &'static str) -> Self {
+            let (graph, nodes) = dot_graph(dot);
+            let steiner_tree = SteinerTree::new(&graph, nodes["root"]);
+            // Collect terminals: nodes starting with 't' (t1, t2, terminal, etc.) but not "top"
+            let terminals = nodes
+                .iter()
+                .filter_map(|(k, v)| {
+                    let mut chars = k.chars();
+                    if chars.next() == Some('t') && chars.all(|c| c.is_ascii_digit()) {
+                        Some(*v)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            let greedy_flac = GreedyFlac::new(&graph, terminals);
+            Self {
+                graph,
+                nodes,
+                greedy_flac,
+                steiner_tree,
+            }
+        }
+
+        fn run_once(&mut self) -> ControlFlow<()> {
+            self.greedy_flac.run_once(&self.graph, &mut self.steiner_tree)
+        }
+
+        fn run(&mut self) -> Cost {
+            self.greedy_flac.run(&self.graph, &mut self.steiner_tree);
+            self.steiner_tree.total_weight
+        }
+
+        fn debug_graph(&mut self) -> String {
+            Flac {
+                state: &mut self.greedy_flac,
+                graph: &self.graph,
+                steiner_tree: &mut self.steiner_tree,
+            }
+            .debug_dot_graph()
+        }
+
+        fn steiner_graph(&self) -> String {
+            to_steiner_tree_graph(&self.graph, &self.steiner_tree)
+        }
+
+        fn extend_terminals(&mut self, terminal_names: &[&str]) {
+            let terminals: Vec<NodeIndex> = terminal_names.iter().map(|name| self.nodes[*name]).collect();
+            self.greedy_flac.extend_terminals(terminals);
+        }
     }
 
     #[test]
     fn step_by_step() {
-        let (graph, nodes) = dot_graph(
+        let mut runner = Runner::from_dot_graph(
             r#"digraph {
             root -> a;
-            a -> b [cost=1];
-            a -> c [cost=2];
+            a -> t1 [cost=1];
+            a -> t2 [cost=2];
             }"#,
         );
-        let mut flac = build(&graph, &nodes, "root", ["b", "c"]);
 
-        let outcome = flac.run_once(&graph);
-        assert!(outcome.is_continue(), "\n{}", debug_graph(&graph, &mut flac));
-        insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
+        let outcome = runner.run_once();
+        assert!(outcome.is_continue(), "\n{}", runner.debug_graph());
+        insta::assert_snapshot!(runner.steiner_graph(), @r"
         digraph {
-          a -> b
+          a -> t1
           root -> a
         }
         ");
 
-        let outcome = flac.run_once(&graph);
-        assert!(outcome.is_break(), "\n{}", debug_graph(&graph, &mut flac));
-        insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
+        let outcome = runner.run_once();
+        assert!(outcome.is_break(), "\n{}", runner.debug_graph());
+        insta::assert_snapshot!(runner.steiner_graph(), @r"
         digraph {
-          a -> b
-          a -> c
+          a -> t1
+          a -> t2
           root -> a
         }
         ");
@@ -580,25 +616,24 @@ mod tests {
 
     #[test]
     fn single_terminal_direct_path() {
-        let (graph, nodes) = dot_graph(
+        let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> terminal [cost=5];
+            root -> t1 [cost=5];
             }"#,
         );
-        let mut flac = build(&graph, &nodes, "root", ["terminal"]);
 
-        let total_cost = flac.run(&graph);
-        assert_eq!(total_cost, 5, "\n{}", debug_graph(&graph, &mut flac));
-        insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
+        let total_cost = runner.run();
+        assert_eq!(total_cost, 5, "\n{}", runner.debug_graph());
+        insta::assert_snapshot!(runner.steiner_graph(), @r"
         digraph {
-          root -> terminal
+          root -> t1
         }
         ");
     }
 
     #[test]
     fn multiple_terminals_shared_edges() {
-        let (graph, nodes) = dot_graph(
+        let mut runner = Runner::from_dot_graph(
             r#"digraph {
             root -> shared [cost=10];
             shared -> t1 [cost=3];
@@ -606,16 +641,15 @@ mod tests {
             shared -> t3 [cost=2];
             }"#,
         );
-        let mut flac = build(&graph, &nodes, "root", ["t1", "t2", "t3"]);
 
-        let total_cost = flac.run(&graph);
+        let total_cost = runner.run();
         assert_eq!(
             total_cost,
             20, // 10 + 3 + 5 + 2
             "\n{}",
-            debug_graph(&graph, &mut flac)
+            runner.debug_graph()
         );
-        insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
+        insta::assert_snapshot!(runner.steiner_graph(), @r"
         digraph {
           root -> shared
           shared -> t1
@@ -628,7 +662,7 @@ mod tests {
     #[test]
     fn degenerate_flow_detection() {
         // Graph where t1 can reach a through two paths, which would create degenerate flow
-        let (graph, nodes) = dot_graph(
+        let mut runner = Runner::from_dot_graph(
             r#"digraph {
             root -> a [cost=10];
             a -> b [cost=2];
@@ -637,17 +671,16 @@ mod tests {
             c -> t1 [cost=1];
             }"#,
         );
-        let mut flac = build(&graph, &nodes, "root", ["t1"]);
 
-        let total_cost = flac.run(&graph);
+        let total_cost = runner.run();
         assert_eq!(
             total_cost,
             13, // Should pick one path: root -> a -> b -> t1 (10 + 2 + 1)
             "\n{}",
-            debug_graph(&graph, &mut flac)
+            runner.debug_graph()
         );
         // The algorithm should mark one edge to avoid degenerate flow
-        insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
+        insta::assert_snapshot!(runner.steiner_graph(), @r"
         digraph {
           a -> b
           b -> t1
@@ -658,7 +691,7 @@ mod tests {
 
     #[test]
     fn complex_graph_multiple_paths() {
-        let (graph, nodes) = dot_graph(
+        let mut runner = Runner::from_dot_graph(
             r#"digraph {
             root -> a [cost=5];
             root -> b [cost=8];
@@ -670,18 +703,17 @@ mod tests {
             b -> t3 [cost=7];
             }"#,
         );
-        let mut flac = build(&graph, &nodes, "root", ["t1", "t2", "t3"]);
 
-        let total_cost = flac.run(&graph);
+        let total_cost = runner.run();
         assert_eq!(
             total_cost,
             // root -> a -> c -> t1,t2: 5 + 3 + 6 + 4 = 18
             // root -> b -> t3: 8 + 7 = 15
             33,
             "\n{}",
-            debug_graph(&graph, &mut flac)
+            runner.debug_graph()
         );
-        insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
+        insta::assert_snapshot!(runner.steiner_graph(), @r"
         digraph {
           a -> c
           b -> t3
@@ -695,6 +727,7 @@ mod tests {
 
     #[test]
     fn incremental_terminal_addition() {
+        // Start with only t1 terminal by creating custom runner
         let (graph, nodes) = dot_graph(
             r#"digraph {
             root -> a [cost=4];
@@ -704,38 +737,45 @@ mod tests {
             a -> t3 [cost=5];
             }"#,
         );
-        let mut flac = build(&graph, &nodes, "root", ["t1"]);
+        let steiner_tree = SteinerTree::new(&graph, nodes["root"]);
+        let greedy_flac = GreedyFlac::new(&graph, vec![nodes["t1"]]);
+        let mut runner = Runner {
+            graph,
+            nodes,
+            greedy_flac,
+            steiner_tree,
+        };
 
         // First run with only t1
-        let total_cost = flac.run(&graph);
+        let total_cost = runner.run();
         assert_eq!(
             total_cost,
             6, // root -> a -> t1: 4 + 2
             "\n{}",
-            debug_graph(&graph, &mut flac)
+            runner.debug_graph()
         );
 
         // Add t2 as a new terminal
-        flac.extend_terminals(vec![nodes["t2"]]);
-        let total_cost = flac.run(&graph);
+        runner.extend_terminals(&["t2"]);
+        let total_cost = runner.run();
         assert_eq!(
             total_cost,
             6 + 9, // root -> b -> t2: 6 + 3
             "\n{}",
-            debug_graph(&graph, &mut flac)
+            runner.debug_graph()
         );
 
         // Add t3 as another terminal
-        flac.extend_terminals(vec![nodes["t3"]]);
-        let total_cost = flac.run(&graph);
+        runner.extend_terminals(&["t3"]);
+        let total_cost = runner.run();
         assert_eq!(
             total_cost,
             6 + 9 + 5, // a -> t3: 5 (root -> a already in tree)
             "\n{}",
-            debug_graph(&graph, &mut flac)
+            runner.debug_graph()
         );
 
-        insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
+        insta::assert_snapshot!(runner.steiner_graph(), @r"
         digraph {
           a -> t1
           a -> t3
@@ -748,7 +788,7 @@ mod tests {
 
     #[test]
     fn weighted_edges_different_costs() {
-        let (graph, nodes) = dot_graph(
+        let mut runner = Runner::from_dot_graph(
             r#"digraph {
             root -> a [cost=1];
             root -> b [cost=100];
@@ -759,20 +799,19 @@ mod tests {
             b -> t3 [cost=2];
             }"#,
         );
-        let mut flac = build(&graph, &nodes, "root", ["t1", "t2", "t3"]);
 
-        let total_cost = flac.run(&graph);
+        let total_cost = runner.run();
         assert_eq!(
             total_cost,
             // Optimal: root->a->t2 (3), root->b->c->t1 (102), root->b->t3 (102 already counted + 2 = 2)
             // But GreedyFLAC doesn't take the optimal path.
             156,
             "\n{}",
-            debug_graph(&graph, &mut flac)
+            runner.debug_graph()
         );
 
         // The algorithm should prefer the cheaper paths
-        insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
+        insta::assert_snapshot!(runner.steiner_graph(), @r"
         digraph {
           a -> c
           a -> t2
@@ -786,7 +825,7 @@ mod tests {
 
     #[test]
     fn diamond_shaped_graph() {
-        let (graph, nodes) = dot_graph(
+        let mut runner = Runner::from_dot_graph(
             r#"digraph {
             root -> top [cost=5];
             top -> left [cost=3];
@@ -798,17 +837,16 @@ mod tests {
             right -> t3 [cost=7];
             }"#,
         );
-        let mut flac = build(&graph, &nodes, "root", ["t1", "t2", "t3"]);
 
-        let total_cost = flac.run(&graph);
+        let total_cost = runner.run();
         assert_eq!(
             total_cost,
             30, // root->top->left->t2 (5+3+8=16) + top->right->bottom->t1 (4+2+1=7) + right->t3 (7-already have right)
             "\n{}",
-            debug_graph(&graph, &mut flac)
+            runner.debug_graph()
         );
 
-        insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
+        insta::assert_snapshot!(runner.steiner_graph(), @r"
         digraph {
           bottom -> t1
           left -> t2
@@ -823,7 +861,7 @@ mod tests {
 
     #[test]
     fn linear_chain_graph() {
-        let (graph, nodes) = dot_graph(
+        let mut runner = Runner::from_dot_graph(
             r#"digraph {
             root -> n1 [cost=2];
             n1 -> n2 [cost=3];
@@ -834,17 +872,16 @@ mod tests {
             n3 -> t3 [cost=8];
             }"#,
         );
-        let mut flac = build(&graph, &nodes, "root", ["t1", "t2", "t3"]);
 
-        let total_cost = flac.run(&graph);
+        let total_cost = runner.run();
         assert_eq!(
             total_cost,
             38, // root->n1->n2->n3->n4->t1 (2+3+4+5+6=20) + n2->t2 (10) + n3->t3 (8)
             "\n{}",
-            debug_graph(&graph, &mut flac)
+            runner.debug_graph()
         );
 
-        insta::assert_snapshot!(to_dot_graph(&graph, &flac), @r"
+        insta::assert_snapshot!(runner.steiner_graph(), @r"
         digraph {
           n1 -> n2
           n2 -> n3

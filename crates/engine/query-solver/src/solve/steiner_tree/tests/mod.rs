@@ -3,10 +3,9 @@ mod report;
 
 use std::time::{Duration, Instant};
 
-use petgraph::visit::{EdgeRef, IntoNodeReferences, NodeIndexable};
+use petgraph::visit::{EdgeRef, IntoNodeReferences};
 
-use crate::solve::steiner_tree::{GreedyFlac, SteinerContext};
-use fixedbitset::FixedBitSet;
+use crate::solve::steiner_tree::{GreedyFlac, SteinerContext, SteinerTree};
 use report::*;
 
 /// Sanity check our GreedyFlac Steiner Tree algorithm against a graph with known optimal cost.
@@ -29,20 +28,19 @@ fn greedy_flac_steinlib_gene() {
             .map(|node| ctx.to_node_ix(*node))
             .collect::<Vec<_>>();
 
-        let mut steiner_tree_nodes = FixedBitSet::with_capacity(ctx.graph.node_bound());
-        steiner_tree_nodes.insert(ctx.root_ix.index());
-
-        let mut flac = GreedyFlac::new(&ctx.graph, terminals, steiner_tree_nodes);
+        let mut steiner_tree = SteinerTree::new(&ctx.graph, ctx.root_ix);
+        let mut flac = GreedyFlac::new(&ctx.graph, terminals);
         let prepare_duration = start.elapsed();
 
         let start = Instant::now();
-        let total_cost = flac.run(&ctx.graph);
+        flac.run(&ctx.graph, &mut steiner_tree);
+        let total_cost = steiner_tree.total_weight;
         let grow_duration = start.elapsed();
 
         let steiner_tree_node_count = gene
             .graph
             .node_references()
-            .filter(|(node_id, _)| flac.steiner_tree.nodes[ctx.to_node_ix(*node_id).index()])
+            .filter(|(node_id, _)| steiner_tree.nodes[ctx.to_node_ix(*node_id).index()])
             .count();
 
         let ratio = (total_cost as f64) / (gene.optimal_cost as f64);
@@ -59,12 +57,12 @@ fn greedy_flac_steinlib_gene() {
         assert!(
             gene.terminals
                 .iter()
-                .all(|terminal| flac.steiner_tree.nodes[ctx.to_node_ix(*terminal).index()])
+                .all(|terminal| steiner_tree.nodes[ctx.to_node_ix(*terminal).index()])
         );
 
         // Are all the terminals accessible from root?
         let mut graph = gene.graph.clone();
-        graph.retain_nodes(|_, node| flac.steiner_tree.nodes[ctx.to_node_ix(node).index()]);
+        graph.retain_nodes(|_, node| steiner_tree.nodes[ctx.to_node_ix(node).index()]);
         for terminal in &gene.terminals {
             assert!(petgraph::algo::has_path_connecting(&graph, gene.root, *terminal, None));
         }
