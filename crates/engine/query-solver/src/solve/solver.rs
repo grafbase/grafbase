@@ -13,13 +13,13 @@ use operation::OperationContext;
 use petgraph::{
     Direction,
     prelude::StableGraph,
-    stable_graph::{EdgeIndex, EdgeReference, NodeIndex},
+    stable_graph::{EdgeIndex, NodeIndex},
     visit::{EdgeRef, IntoNodeReferences},
 };
 use schema::Schema;
 
 use crate::{
-    Cost, FieldFlags, QuerySolutionSpace,
+    Cost, QuerySolutionSpace,
     dot_graph::Attrs,
     solution_space::{SpaceEdge, SpaceNode},
     solve::{
@@ -77,44 +77,7 @@ where
         operation: &'op Operation,
         query_solution_space: &'q QuerySolutionSpace<'schema>,
     ) -> crate::Result<Self> {
-        let mut terminals = Vec::new();
-        for (node_ix, node) in query_solution_space.graph.node_references() {
-            if let SpaceNode::QueryField(field) = node
-                && field.flags.contains(FieldFlags::LEAF_NODE | FieldFlags::INDISPENSABLE)
-            {
-                terminals.push(node_ix);
-            }
-        }
-        let node_filter = |(node_ix, node): (NodeIndex, &SpaceNode<'schema>)| match node {
-            SpaceNode::Root | SpaceNode::Resolver(_) | SpaceNode::ProvidableField(_) => Some(node_ix),
-            SpaceNode::QueryField(field) => {
-                if field.is_leaf() {
-                    Some(node_ix)
-                } else {
-                    None
-                }
-            }
-        };
-        let edge_filter = |edge: EdgeReference<'_, SpaceEdge, _>| match edge.weight() {
-            // Resolvers have an inherent cost of 1.
-            SpaceEdge::CreateChildResolver => Some((edge.id(), edge.source(), edge.target(), 1)),
-            SpaceEdge::CanProvide | SpaceEdge::Provides | SpaceEdge::TypenameField => {
-                Some((edge.id(), edge.source(), edge.target(), 0))
-            }
-            SpaceEdge::Field | SpaceEdge::HasChildResolver | SpaceEdge::Requires => None,
-        };
-
-        let ctx = SteinerContext::build(
-            &query_solution_space.graph,
-            query_solution_space.root_node_ix,
-            node_filter,
-            edge_filter,
-        );
-
-        let terminals = terminals
-            .into_iter()
-            .map(|node| ctx.to_node_ix(node))
-            .collect::<Vec<_>>();
+        let (ctx, terminals) = SteinerContext::from_query_solution_space(query_solution_space);
 
         let steiner_tree = SteinerTree::new(&ctx.graph, ctx.root_ix);
         let flac = GreedyFlac::new(&ctx.graph, terminals);

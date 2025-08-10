@@ -1,12 +1,13 @@
 use petgraph::{
     data::DataMap,
     graph::{EdgeIndex, Graph, GraphIndex, NodeIndex},
+    stable_graph::EdgeReference,
     visit::{
         EdgeCount, EdgeIndexable, EdgeRef, GraphBase, IntoEdgeReferences, IntoNodeReferences, NodeCount, NodeIndexable,
     },
 };
 
-use crate::Cost;
+use crate::{Cost, FieldFlags, QuerySolutionSpace, SolutionSpaceGraph, SpaceEdge, SpaceNode};
 
 /// The Steiner Tree algorithm doesn't work directly on the operation graph. We only keep resolver
 /// related nodes/edges and build a DAG from it. We call the latter the "Steiner graph" which doesn't
@@ -25,6 +26,48 @@ pub(crate) struct SteinerContext<QueryGraph: GraphBase, G: GraphBase> {
 }
 
 pub(in crate::solve) type SteinerGraph = Graph<(), Cost>;
+
+impl<'g, 'schema> SteinerContext<&'g SolutionSpaceGraph<'schema>, SteinerGraph> {
+    pub(crate) fn from_query_solution_space(
+        query_solution_space: &'g QuerySolutionSpace<'schema>,
+    ) -> (Self, Vec<NodeIndex>) {
+        let node_filter = |(node_ix, node): (NodeIndex, &SpaceNode<'schema>)| match node {
+            SpaceNode::Root | SpaceNode::Resolver(_) | SpaceNode::ProvidableField(_) => Some(node_ix),
+            SpaceNode::QueryField(field) => {
+                if field.is_leaf() {
+                    Some(node_ix)
+                } else {
+                    None
+                }
+            }
+        };
+        let edge_filter = |edge: EdgeReference<'_, SpaceEdge, _>| match edge.weight() {
+            // Resolvers have an inherent cost of 1.
+            SpaceEdge::CreateChildResolver => Some((edge.id(), edge.source(), edge.target(), 1)),
+            SpaceEdge::CanProvide | SpaceEdge::Provides | SpaceEdge::TypenameField => {
+                Some((edge.id(), edge.source(), edge.target(), 0))
+            }
+            SpaceEdge::Field | SpaceEdge::HasChildResolver | SpaceEdge::Requires => None,
+        };
+        let ctx = Self::build(
+            &query_solution_space.graph,
+            query_solution_space.root_node_ix,
+            node_filter,
+            edge_filter,
+        );
+
+        let mut terminals = Vec::new();
+        for (node_ix, node) in query_solution_space.graph.node_references() {
+            if let SpaceNode::QueryField(field) = node
+                && field.flags.contains(FieldFlags::LEAF_NODE | FieldFlags::INDISPENSABLE)
+            {
+                terminals.push(ctx.to_node_ix(node_ix));
+            }
+        }
+
+        (ctx, terminals)
+    }
+}
 
 impl<QG: GraphBase> SteinerContext<QG, SteinerGraph> {
     pub(crate) fn build(
