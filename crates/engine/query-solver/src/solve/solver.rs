@@ -1,5 +1,6 @@
 use ::operation::Operation;
 use fixedbitset::FixedBitSet;
+use itertools::Itertools as _;
 use operation::OperationContext;
 use petgraph::visit::EdgeRef;
 use schema::Schema;
@@ -9,7 +10,7 @@ use crate::{
     dot_graph::Attrs,
     solve::{
         context::{SteinerContext, SteinerGraph},
-        cost_updater::{CostUpdater, CostUpdaterState},
+        cost_updater::{CostUpdater, FixedPointCostAlgorithm},
         requirements::DispensableRequirementsMetadata,
         steiner_tree::SteinerTree,
     },
@@ -37,10 +38,7 @@ pub(crate) struct Solver<'schema, 'op, 'q> {
     ctx: SteinerContext<&'q SolutionSpaceGraph<'schema>, SteinerGraph>,
     flac: GreedyFlac,
     steiner_tree: SteinerTree,
-    /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
-    /// them.
-    dispensable_requirements_metadata: DispensableRequirementsMetadata,
-    cost_updater_state: CostUpdaterState,
+    cost_updater: CostUpdater,
 }
 
 pub(crate) struct SteinerTreeSolution {
@@ -60,9 +58,7 @@ where
 
         let steiner_tree = SteinerTree::new(&ctx.graph, ctx.root_ix);
         let flac = GreedyFlac::new(&ctx.graph, terminals);
-        let mut dispensable_requirements_metadata = DispensableRequirementsMetadata::default();
-        dispensable_requirements_metadata.ingest(ctx.query_graph)?;
-        let cost_updater_state = CostUpdaterState::new(&ctx);
+        let cost_updater = CostUpdater::new(&ctx)?;
 
         let mut solver = Self {
             schema,
@@ -71,18 +67,16 @@ where
             ctx,
             flac,
             steiner_tree,
-            dispensable_requirements_metadata,
-            cost_updater_state,
+            cost_updater,
         };
 
-        let _ = CostUpdater {
-            state: &mut solver.cost_updater_state,
-            steiner_tree: &solver.steiner_tree,
-            flac: &mut solver.flac,
-            dispensable_requirements_metadata: &mut solver.dispensable_requirements_metadata,
-            ctx: &mut solver.ctx,
-        }
-        .cost_fixed_point_iteration()?;
+        let new_terminals = solver
+            .cost_updater
+            .run_fixed_point_cost(&mut solver.ctx, &solver.steiner_tree)?;
+        debug_assert!(
+            new_terminals.is_empty(),
+            "Fixed point cost algorithm should not return new terminals at initialization"
+        );
 
         tracing::debug!("Solver populated:\n{}", solver.to_pretty_dot_graph());
 
@@ -98,17 +92,23 @@ where
     pub fn execute(&mut self) -> crate::Result<()> {
         loop {
             let growth = self.flac.run_once(&self.ctx.graph, &mut self.steiner_tree);
-            let cost_update = CostUpdater {
-                state: &mut self.cost_updater_state,
-                steiner_tree: &self.steiner_tree,
-                flac: &mut self.flac,
-                dispensable_requirements_metadata: &mut self.dispensable_requirements_metadata,
-                ctx: &mut self.ctx,
-            }
-            .cost_fixed_point_iteration()?;
-            if growth.is_break() && cost_update.is_break() {
+            let new_terminals = self
+                .cost_updater
+                .run_fixed_point_cost(&mut self.ctx, &self.steiner_tree)?;
+
+            if growth.is_break() && new_terminals.is_empty() {
                 break;
             }
+
+            new_terminals.sort_unstable();
+            self.flac.extend_terminals(
+                new_terminals
+                    .drain(..)
+                    .dedup()
+                    .map(|node| self.ctx.to_node_ix(node))
+                    .filter(|idx| !self.steiner_tree.nodes[idx.index()]),
+            );
+
             tracing::trace!("Solver step:\n{}", self.to_pretty_dot_graph());
         }
         tracing::debug!("Solver finished:\n{}", self.to_pretty_dot_graph());

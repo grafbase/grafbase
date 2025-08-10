@@ -12,7 +12,10 @@ use crate::{
     },
 };
 
-pub(crate) struct CostUpdaterState {
+pub(crate) struct CostUpdater {
+    /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
+    /// them.
+    dispensable_requirements_metadata: DispensableRequirementsMetadata,
     independent_requirements: Option<bool>,
     /// Temporary storage for extra terminals to be added to the algorithm.
     tmp_extra_terminals: Vec<NodeIndex>,
@@ -21,44 +24,58 @@ pub(crate) struct CostUpdaterState {
     has_updated_cost: bool,
 }
 
-impl CostUpdaterState {
-    pub(crate) fn new(ctx: &SteinerContext<&SolutionSpaceGraph<'_>, SteinerGraph>) -> Self {
-        Self {
+impl CostUpdater {
+    pub fn new(ctx: &SteinerContext<&SolutionSpaceGraph<'_>, SteinerGraph>) -> crate::Result<Self> {
+        let mut dispensable_requirements_metadata = DispensableRequirementsMetadata::default();
+        dispensable_requirements_metadata.ingest(ctx.query_graph)?;
+        Ok(Self {
+            dispensable_requirements_metadata,
             independent_requirements: None,
             tmp_extra_terminals: Vec::new(),
             tmp_steiner_tree: SteinerTree::new(&ctx.graph, ctx.root_ix),
             tmp_flac: GreedyFlac::new(&ctx.graph, Vec::new()),
             has_updated_cost: false,
+        })
+    }
+
+    pub fn run_fixed_point_cost<'s>(
+        &'s mut self,
+        ctx: &mut SteinerContext<&SolutionSpaceGraph<'_>, SteinerGraph>,
+        steiner_tree: &SteinerTree,
+    ) -> crate::Result<&'s mut Vec<NodeIndex>> {
+        FixedPointCostAlgorithm {
+            state: self,
+            steiner_tree,
+            ctx,
         }
+        .run()
     }
 }
 
-pub(crate) struct CostUpdater<'a, 'q, 'schema> {
-    pub state: &'a mut CostUpdaterState,
-    pub flac: &'a mut GreedyFlac,
-    pub steiner_tree: &'a SteinerTree,
-    pub dispensable_requirements_metadata: &'a mut DispensableRequirementsMetadata,
-    pub ctx: &'a mut SteinerContext<&'q SolutionSpaceGraph<'schema>, SteinerGraph>,
+pub(crate) struct FixedPointCostAlgorithm<'state, 'tree, 'ctx, 'q, 'schema> {
+    pub state: &'state mut CostUpdater,
+    pub steiner_tree: &'tree SteinerTree,
+    pub ctx: &'ctx mut SteinerContext<&'q SolutionSpaceGraph<'schema>, SteinerGraph>,
 }
 
-impl std::ops::Deref for CostUpdater<'_, '_, '_> {
-    type Target = CostUpdaterState;
+impl std::ops::Deref for FixedPointCostAlgorithm<'_, '_, '_, '_, '_> {
+    type Target = CostUpdater;
     fn deref(&self) -> &Self::Target {
         self.state
     }
 }
 
-impl std::ops::DerefMut for CostUpdater<'_, '_, '_> {
+impl std::ops::DerefMut for FixedPointCostAlgorithm<'_, '_, '_, '_, '_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.state
     }
 }
 
-impl CostUpdater<'_, '_, '_> {
+impl<'state> FixedPointCostAlgorithm<'state, '_, '_, '_, '_> {
     /// Updates the cost of edges based on the requirements of the nodes.
     /// We iterate until cost becomes stable or we exhausted the maximum number of iterations which
     /// likely indicates a requirement cycle.
-    pub fn cost_fixed_point_iteration(&mut self) -> crate::Result<ControlFlow<()>> {
+    pub fn run(mut self) -> crate::Result<&'state mut Vec<NodeIndex>> {
         debug_assert!(self.tmp_extra_terminals.is_empty());
         let mut i = 0;
         loop {
@@ -76,22 +93,7 @@ impl CostUpdater<'_, '_, '_> {
         // iterations (one for updating, one for checking nothing changed). It means there is no
         // dependency between requirements cost. So we can skip it in the next iterations.
         self.independent_requirements.get_or_insert(i == 2);
-        let new_terminals = !self.tmp_extra_terminals.is_empty();
-        self.tmp_extra_terminals.sort_unstable();
-        self.flac.extend_terminals(
-            self.state
-                .tmp_extra_terminals
-                .drain(..)
-                .dedup()
-                .map(|node| self.ctx.to_node_ix(node))
-                .filter(|idx| !self.steiner_tree.nodes[idx.index()]),
-        );
-
-        Ok(if new_terminals {
-            ControlFlow::Continue(())
-        } else {
-            ControlFlow::Break(())
-        })
+        Ok(&mut self.state.tmp_extra_terminals)
     }
 
     /// For all edges with dispensable requirements, we estimate the cost of the extra requirements
@@ -104,7 +106,7 @@ impl CostUpdater<'_, '_, '_> {
         {
             if self.steiner_tree.nodes[self.ctx.to_node_ix(node_id).index()] {
                 self.state.tmp_extra_terminals.extend(
-                    self.dispensable_requirements_metadata[extra_required_node_ids]
+                    self.state.dispensable_requirements_metadata[extra_required_node_ids]
                         .iter()
                         .copied(),
                 );
@@ -133,7 +135,7 @@ impl CostUpdater<'_, '_, '_> {
                 })
             {
                 self.state.tmp_extra_terminals.extend(
-                    self.dispensable_requirements_metadata[extra_required_node_ids]
+                    self.state.dispensable_requirements_metadata[extra_required_node_ids]
                         .iter()
                         .copied(),
                 );
