@@ -19,7 +19,7 @@ pub(super) fn ensure_mutation_execution_order(query: &mut CrudeSolvedQuery) -> V
     }
 
     let mut selection_set = Vec::new();
-    for partition_node_ix in query.graph.neighbors(query.root_node_ix) {
+    for partition_node_ix in query.graph.neighbors(query.root_node_id) {
         if let Node::QueryPartition {
             resolver_definition_id, ..
         } = query.graph[partition_node_ix]
@@ -72,7 +72,7 @@ pub(super) fn ensure_mutation_execution_order(query: &mut CrudeSolvedQuery) -> V
             let new_partition_ix = query.graph.add_node(weight);
             query
                 .graph
-                .add_edge(query.root_node_ix, new_partition_ix, Edge::QueryPartition);
+                .add_edge(query.root_node_id, new_partition_ix, Edge::QueryPartition);
             partitions.push((new_partition_ix, resolver_definition_id));
 
             if let Some(id) = query.graph.find_edge(original_partition_node_ix, field_node_ix) {

@@ -9,7 +9,7 @@ use petgraph::{
     visit::NodeIndexable as _,
 };
 
-use crate::Cost;
+use crate::{Cost, solve::context::SteinerNodeId};
 
 pub(crate) struct SteinerTree {
     pub nodes: FixedBitSet,
@@ -32,14 +32,14 @@ impl std::ops::Index<EdgeIndex> for SteinerTree {
 }
 
 impl SteinerTree {
-    pub fn new<N, E>(graph: &Graph<N, E>, root_ix: NodeIndex) -> Self {
+    pub fn new<N, E>(graph: &Graph<N, E>, root_node_id: SteinerNodeId) -> Self {
         let mut tree = Self {
             nodes: FixedBitSet::with_capacity(graph.node_bound()),
             edges: FixedBitSet::with_capacity(graph.edge_count()),
             total_weight: 0,
         };
 
-        tree.nodes.insert(root_ix.index());
+        tree.nodes.insert(root_node_id.index());
         tree
     }
 }

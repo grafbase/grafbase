@@ -44,7 +44,7 @@ impl<'schema> QuerySolutionSpace<'schema> {
                 step: SolutionSpace {
                     indispensable_leaf_nodes: Vec::new(),
                 },
-                root_node_ix: root_ix,
+                root_node_id: root_ix,
                 graph,
                 fields: Vec::with_capacity(n),
                 shared_type_conditions: Vec::new(),
@@ -67,8 +67,8 @@ where
         self.ingest_operation_fields()?;
 
         self.create_providable_fields_tasks_for_subselection(providable_fields::Parent {
-            query_field_node_ix: self.query.root_node_ix,
-            providable_field_or_root_ix: self.query.root_node_ix,
+            query_field_node_ix: self.query.root_node_id,
+            providable_field_or_root_ix: self.query.root_node_id,
             output_type: CompositeTypeId::Object(self.operation.root_object_id),
         });
 

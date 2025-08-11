@@ -92,7 +92,7 @@ async fn requirements_cycle() {
         &query.to_pretty_dot_graph(ctx)
     );
 
-    let err = Solver::initialize(&schema, &operation, &query).unwrap_err();
+    let err = Solver::initialize(&schema, &operation, query).unwrap_err();
     assert!(matches!(err, crate::Error::RequirementCycleDetected));
 }
 

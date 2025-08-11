@@ -23,8 +23,8 @@ pub(crate) type Cost = u16;
 
 pub fn solve(schema: &Schema, operation: &mut Operation) -> Result<SolvedQuery> {
     let query_solution_space = Query::generate_solution_space(schema, operation)?;
-    let solution = solve::Solver::initialize(schema, operation, &query_solution_space)?.solve()?;
-    let crude_solved_query = solve::generate_crude_solved_query(schema, operation, query_solution_space, solution)?;
+    let solution = solve::Solver::initialize(schema, operation, query_solution_space)?.solve()?;
+    let crude_solved_query = solution.into_query(schema, operation)?;
     let solved_query = post_process::post_process(schema, operation, crude_solved_query);
     Ok(solved_query)
 }
