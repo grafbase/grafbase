@@ -9,9 +9,11 @@ option go_package = "github.com/grafbase/grafbase/examples/protobuf-services/pro
 message Product {
   option (grafbase.graphql.object_directives) = "@key(fields: \"id\") @key(fields: \"sku\")";
   option (grafbase.graphql.derive) = { entity: "locations_Location", field: "warehouse", is: "{ id: warehouse_id }" };
-  option (grafbase.graphql.object_extra_field) = "parts("
-    "input: products_GetProductPartsRequestInput @require(field: \"{ product_id: id }\")): products_GetProductPartsResponse @grpcMethod(service: \"products.ProductService\", method: \"GetProductParts\""
-  ")";
+  option (grafbase.graphql.object_extra_field) =
+    "parts("
+    "  input: products_GetProductPartsRequestInput @require(field: \"{ product_id: id }\")"
+    "): products_GetProductPartsResponse"
+    "@grpcMethod(service: \"products.ProductService\", method: \"GetProductParts\")";
 
   string id = 1;
   string sku = 2;

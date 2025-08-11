@@ -11,8 +11,7 @@ schema_path = "./gen/graphql/parts.graphql"
 schema_path = "./gen/graphql/products.graphql"
 
 [extensions]
-grpc.path = "/home/tom/src/gh/grafbase/extensions/extensions/grpc/build"
-# grpc.version = "0.2"
+grpc.version = "0.2"
 
 [[extensions.grpc.config.services]]
 name = "parts.PartService"

@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  products:
+    build:
+      context: .
+      dockerfile: services/products-ts/Dockerfile
+    ports:
+      - "50051:50051"
+    environment:
+      - PORT=50051
+    networks:
+      - services-network
+
+  parts:
+    build:
+      context: .
+      dockerfile: services/parts-go/Dockerfile
+    ports:
+      - "50052:50052"
+    environment:
+      - PORT=50052
+    networks:
+      - services-network
+
+  locations:
+    build:
+      context: .
+      dockerfile: services/locations-rust/Dockerfile
+    ports:
+      - "50053:50053"
+    environment:
+      - PORT=50053
+    networks:
+      - services-network
+
+  gateway:
+    restart: unless-stopped
+    build:
+      dockerfile: ./Dockerfile.gateway
+    container_name: gateway
+    ports:
+      - "5000:5000"
+    networks:
+      - services-network
+    depends_on:
+      - products
+      - parts
+      - locations
+
+networks:
+  services-network:
+    driver: bridge
