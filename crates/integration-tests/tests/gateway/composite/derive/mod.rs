@@ -2,6 +2,7 @@ mod composite_key;
 mod composite_list;
 mod is;
 mod null;
+mod same_subgraph;
 mod scalar_key;
 mod scalar_list;
 mod validation;

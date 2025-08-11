@@ -104,13 +104,13 @@ pub(super) fn ingest<'sdl>(
     }?;
 
     if let DeriveMappingRecord::Object(DeriveObjectRecord { field_records }) = &definition.mapping_record {
-        for id in target_field_ids {
-            if field_records.iter().any(|record| record.to_id == id) {
+        for target_field_id in target_field_ids {
+            if field_records.iter().any(|record| record.to_id == target_field_id) {
                 continue;
             }
-            let field = &ingester.graph[id];
-            if field.exists_in_subgraph_ids.contains(&subgraph_id)
-                && !field
+            let target_field = &ingester.graph[target_field_id];
+            if target_field.exists_in_subgraph_ids.contains(&subgraph_id)
+                && !target_field
                     .resolver_ids
                     .iter()
                     .any(|id| ingester.get_subgraph_id(*id) == subgraph_id)
@@ -118,8 +118,8 @@ pub(super) fn ingest<'sdl>(
                 return Err((
                     format!(
                         "Field {}.{} is unprovidable for this @derive",
-                        ingester[ingester.definition_name_id(source_id.into())],
-                        ingester[field.name_id]
+                        ingester[ingester.definition_name_id(target_entity_id.into())],
+                        ingester[target_field.name_id]
                     ),
                     directive.name_span(),
                 )

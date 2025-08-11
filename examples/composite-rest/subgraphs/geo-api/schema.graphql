@@ -1,8 +1,5 @@
 extend schema
-  @link(
-    url: "file:///var/lib/grafbase/extensions/geo/build"
-    import: ["@geo"]
-  )
+  @link(url: "./extensions/geo/build", import: ["@geo"])
   @link(
     url: "https://specs.grafbase.com/composite-schemas/v1"
     import: ["@lookup", "@key", "@is", "@inaccessible", "@derive", "@require"]
