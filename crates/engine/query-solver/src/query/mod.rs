@@ -1,6 +1,6 @@
 pub(crate) mod dot_graph;
 
-use std::{collections::HashMap, marker::PhantomData};
+use std::collections::HashMap;
 
 use bitflags::bitflags;
 use id_newtypes::IdRange;
@@ -65,7 +65,6 @@ pub enum Edge {
 }
 
 pub mod steps {
-    pub(crate) struct SolutionSpace;
     pub(crate) struct SteinerTreeSolution;
     pub struct Solution;
 }
@@ -76,7 +75,7 @@ pub type SolutionGraph = Graph<Node, Edge>;
 
 #[derive(id_derives::IndexedFields)]
 pub struct Query<G: GraphBase, Step> {
-    pub(crate) step: PhantomData<Step>,
+    pub(crate) step: Step,
     pub root_node_ix: G::NodeId,
     pub graph: G,
     #[indexed_by(QueryFieldId)]

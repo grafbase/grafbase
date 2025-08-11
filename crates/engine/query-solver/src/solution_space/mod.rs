@@ -11,13 +11,20 @@ use tracing::{Level, instrument};
 
 use petgraph::{
     dot::{Config, Dot},
-    stable_graph::StableGraph,
+    stable_graph::{NodeIndex, StableGraph},
+    visit::GraphBase,
 };
 
 use crate::Query;
 
+pub(crate) struct SolutionSpace {
+    pub indispensable_leaf_nodes: Vec<NodeIndex>,
+}
+
 pub(crate) type SolutionSpaceGraph<'schema> = StableGraph<SpaceNode<'schema>, SpaceEdge>;
-pub(crate) type QuerySolutionSpace<'schema> = Query<SolutionSpaceGraph<'schema>, crate::query::steps::SolutionSpace>;
+pub(crate) type SpaceNodeId = <SolutionSpaceGraph<'static> as GraphBase>::NodeId;
+pub(crate) type SpaceEdgeId = <SolutionSpaceGraph<'static> as GraphBase>::EdgeId;
+pub(crate) type QuerySolutionSpace<'schema> = Query<SolutionSpaceGraph<'schema>, SolutionSpace>;
 
 impl<'schema> QuerySolutionSpace<'schema> {
     #[instrument(skip_all, level = Level::DEBUG)]

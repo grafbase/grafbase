@@ -7,7 +7,7 @@ use crate::{
         context::{SteinerContext, SteinerGraph},
         requirements::{
             DispensableRequirements, RequirementsGroup,
-            metadata::{RequiredNodeId, UnavoidableParentEdgeId},
+            metadata::{RequiredSteinerNodeId, UnavoidableParentSteinerEdgeId},
         },
         steiner_tree::{GreedyFlac, SteinerTree},
     },
@@ -185,8 +185,8 @@ impl RequirementAndCostUpdater {
         &mut self,
         graph: &SteinerGraph,
         steiner_tree: &SteinerTree,
-        unavoidable_parent_edge_ids: IdRange<UnavoidableParentEdgeId>,
-        required_node_ids: IdRange<RequiredNodeId>,
+        unavoidable_parent_edge_ids: IdRange<UnavoidableParentSteinerEdgeId>,
+        required_node_ids: IdRange<RequiredSteinerNodeId>,
     ) -> Cost {
         self.tmp_flac.reset_terminals();
         self.tmp_steiner_tree.nodes.clone_from(&steiner_tree.nodes);

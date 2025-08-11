@@ -3,8 +3,6 @@ mod operation_fields;
 mod providable_fields;
 mod prune;
 
-use std::marker::PhantomData;
-
 use id_newtypes::BitSet;
 use petgraph::stable_graph::NodeIndex;
 use providable_fields::{CreateProvidableFieldsTask, CreateRequirementTask, UnplannableField};
@@ -43,7 +41,9 @@ impl<'schema> QuerySolutionSpace<'schema> {
             schema,
             operation,
             query: Query {
-                step: PhantomData,
+                step: SolutionSpace {
+                    indispensable_leaf_nodes: Vec::new(),
+                },
                 root_node_ix: root_ix,
                 graph,
                 fields: Vec::with_capacity(n),
@@ -117,7 +117,12 @@ where
         }
 
         let query_field = SpaceNode::QueryField(QueryFieldNode { id, flags });
-        self.query.graph.add_node(query_field)
+        let id = self.query.graph.add_node(query_field);
+        if flags.contains(FieldFlags::LEAF_NODE) {
+            // FIXME: is this really indispensable?
+            self.query.step.indispensable_leaf_nodes.push(id);
+        }
+        id
     }
 
     fn ctx(&self) -> OperationContext<'op> {

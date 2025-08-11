@@ -3,8 +3,6 @@ mod partition_cycles;
 mod response_key;
 mod root_typename;
 
-use std::marker::PhantomData;
-
 use operation::{Operation, OperationContext};
 use schema::Schema;
 
@@ -27,7 +25,7 @@ pub(crate) fn post_process(schema: &Schema, operation: &mut Operation, mut query
     root_typename::assign_root_typename_fields(schema, operation, &mut query);
 
     let query = SolvedQuery {
-        step: PhantomData,
+        step: crate::query::steps::Solution,
         graph: query.graph,
         root_node_ix: query.root_node_ix,
         fields: query.fields,

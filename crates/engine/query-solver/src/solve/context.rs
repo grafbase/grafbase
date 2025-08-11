@@ -26,6 +26,8 @@ pub(crate) struct SteinerContext<SpaceGraph: GraphBase, G: GraphBase> {
 }
 
 pub(in crate::solve) type SteinerGraph = Graph<(), Cost>;
+pub(in crate::solve) type SteinerNodeId = <SteinerGraph as GraphBase>::NodeId;
+pub(in crate::solve) type SteinerEdgeId = <SteinerGraph as GraphBase>::EdgeId;
 
 impl<'g, 'schema> SteinerContext<&'g SolutionSpaceGraph<'schema>, SteinerGraph> {
     pub(crate) fn from_query_solution_space(
