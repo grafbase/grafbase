@@ -15,8 +15,8 @@ interface authorization-types {
     record authorization-output {
         decisions: authorization-decisions,
         state: list<u8>,
-        original-headers: headers,
-        extra-headers: option<headers>
+        subgraph-headers: headers,
+        additional-headers: option<headers>
     }
 
     variant authorization-decisions {

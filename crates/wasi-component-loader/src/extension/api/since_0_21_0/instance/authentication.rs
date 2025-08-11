@@ -1,6 +1,6 @@
 use engine_error::{ErrorCode, ErrorResponse};
 use futures::future::BoxFuture;
-use runtime::{authentication::PublicMetadataEndpoint, extension::Token};
+use runtime::extension::{PublicMetadataEndpoint, Token};
 
 use crate::{WasmContext, extension::AuthenticationExtensionInstance, resources::Headers};
 

@@ -114,7 +114,7 @@ id_newtypes::forward_with_range! {
     impl Index<SchemaInputValueId, Output = SchemaInputValueRecord> for Schema.graph.input_values,
     impl Index<SchemaInputObjectFieldValueId, Output = (InputValueDefinitionId, SchemaInputValueRecord)> for Schema.graph.input_values,
     impl Index<SchemaInputKeyValueId, Output = (StringId, SchemaInputValueRecord)> for Schema.graph.input_values,
-    impl Index<GraphqlEndpointId, Output = GraphqlEndpointRecord> for Schema.subgraphs,
+    impl Index<GraphqlSubgraphId, Output = GraphqlSubgraphRecord> for Schema.subgraphs,
     impl Index<VirtualSubgraphId, Output = VirtualSubgraphRecord> for Schema.subgraphs,
     impl Index<HeaderRuleId, Output = HeaderRuleRecord> for Schema.subgraphs,
     impl Index<SchemaFieldId, Output = SchemaFieldRecord> for Schema.selections,
@@ -195,8 +195,8 @@ pub struct Inaccessible {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
 pub struct SubGraphs {
-    #[indexed_by(GraphqlEndpointId)]
-    graphql_endpoints: Vec<GraphqlEndpointRecord>,
+    #[indexed_by(GraphqlSubgraphId)]
+    graphql_endpoints: Vec<GraphqlSubgraphRecord>,
     #[indexed_by(VirtualSubgraphId)]
     virtual_subgraphs: Vec<VirtualSubgraphRecord>,
     pub introspection: introspection::IntrospectionSubgraph,
@@ -253,9 +253,9 @@ impl Schema {
         self.graph.root_operation_types_record.subscription_id.walk(self)
     }
 
-    pub fn graphql_endpoints(&self) -> impl ExactSizeIterator<Item = GraphqlEndpoint<'_>> {
+    pub fn graphql_endpoints(&self) -> impl ExactSizeIterator<Item = GraphqlSubgraph<'_>> {
         (0..self.subgraphs.graphql_endpoints.len()).map(move |i| {
-            let id = GraphqlEndpointId::from(i);
+            let id = GraphqlSubgraphId::from(i);
             id.walk(self)
         })
     }

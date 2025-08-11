@@ -53,8 +53,8 @@ impl MutableSchema {
         let Some(id) = self
             .0
             .subgraphs()
-            .filter_map(|sg| sg.as_graphql_endpoint())
-            .find(|gql| gql.subgraph_name() == name)
+            .filter_map(|sg| sg.as_graphql())
+            .find(|gql| gql.name() == name)
             .filter(|gql| gql.url() == &url)
             .map(|gql| gql.id)
         else {

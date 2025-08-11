@@ -265,11 +265,11 @@ scalar SubgraphConfig
 scalar SubscriptionProtocol @copy
 
 union Subgraph @id @meta(module: "subgraph") @variants(empty: ["Introspection"], remove_suffix: "Subgraph") =
-  | GraphqlEndpoint
+  | GraphqlSubgraph
   | VirtualSubgraph
 
-type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") {
-  subgraph_name: String!
+type GraphqlSubgraph @meta(module: "subgraph/graphql") @indexed(id_size: "u16") {
+  name: String!
   url: Url!
   websocket_url: Url
   header_rules: [HeaderRule!]!
@@ -282,7 +282,7 @@ type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") 
 
 "Virtual subgraphs have no dedicated support on the engine side, everything is resolved through extensions."
 type VirtualSubgraph @meta(module: "subgraph/virtual_") @indexed(id_size: "u16") {
-  subgraph_name: String!
+  name: String!
   "Schema directives applied by the given subgraph"
   schema_directives: [ExtensionDirective!]! @vec
   header_rules: [HeaderRule!]!
@@ -346,11 +346,11 @@ union ResolverDefinition
   | LookupResolverDefinition
 
 type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy {
-  endpoint: GraphqlEndpoint!
+  subgraph: GraphqlSubgraph!
 }
 
 type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql") {
-  endpoint: GraphqlEndpoint!
+  subgraph: GraphqlSubgraph!
   key_fields: FieldSet!
 }
 

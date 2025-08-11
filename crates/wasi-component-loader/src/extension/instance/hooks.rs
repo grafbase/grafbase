@@ -1,4 +1,5 @@
 use engine_error::{ErrorResponse, GraphqlError};
+use engine_schema::{GraphqlSubgraph, VirtualSubgraph};
 use futures::future::BoxFuture;
 use runtime::extension::{OnRequest, ReqwestParts};
 
@@ -15,6 +16,7 @@ pub(crate) trait HooksExtensionInstance {
             context,
             parts,
             contract_key: None,
+            state: Default::default(),
         }))))
     }
 
@@ -26,11 +28,21 @@ pub(crate) trait HooksExtensionInstance {
         Box::pin(std::future::ready(Ok(Ok(parts))))
     }
 
-    fn on_subgraph_request<'a>(
+    fn on_graphql_subgraph_request<'a>(
         &'a mut self,
         context: &'a WasmContext,
+        subgraph: GraphqlSubgraph<'a>,
         parts: ReqwestParts,
     ) -> BoxFuture<'a, wasmtime::Result<Result<ReqwestParts, GraphqlError>>> {
         Box::pin(std::future::ready(Ok(Ok(parts))))
+    }
+
+    fn on_virtual_subgraph_request<'a>(
+        &'a mut self,
+        context: &'a WasmContext,
+        subgraph: VirtualSubgraph<'a>,
+        headers: http::HeaderMap,
+    ) -> BoxFuture<'a, wasmtime::Result<Result<http::HeaderMap, GraphqlError>>> {
+        Box::pin(std::future::ready(Ok(Ok(headers))))
     }
 }

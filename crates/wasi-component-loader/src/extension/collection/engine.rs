@@ -35,6 +35,7 @@ pub struct EngineWasmExtensionsInner {
     pools: HashMap<ExtensionId, Pool, BuildHasherDefault<FxHasher32>>,
     contracts: Option<Pool>,
     subscriptions: Subscriptions,
+    pub(crate) use_mutable_headers_in_authorize_query: bool,
     pub(crate) gateway_extensions: GatewayWasmExtensions,
 }
 
@@ -61,6 +62,9 @@ impl EngineWasmExtensions {
             .iter()
             .position(|ext| matches!(ext.r#type, TypeDiscriminants::Contracts))
             .map(|i| extensions.swap_remove(i));
+        let use_mutable_headers_in_authorize_query = extensions.iter().any(|ext| {
+            matches!(ext.r#type, TypeDiscriminants::Authorization) && ext.sdk_version < semver::Version::new(0, 21, 0)
+        });
 
         if extensions
             .iter()
@@ -84,6 +88,7 @@ impl EngineWasmExtensions {
                 ),
                 None => None,
             },
+            use_mutable_headers_in_authorize_query,
             subscriptions: Default::default(),
             gateway_extensions,
         })))
@@ -132,6 +137,7 @@ impl EngineWasmExtensions {
             pools,
             contracts: None,
             subscriptions: Default::default(),
+            use_mutable_headers_in_authorize_query: self.use_mutable_headers_in_authorize_query,
             gateway_extensions: self.gateway_extensions.clone(),
         })))
     }

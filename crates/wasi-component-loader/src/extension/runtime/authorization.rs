@@ -1,4 +1,9 @@
-use crate::{WasmContext, cbor, extension::api::wit, resources::OwnedOrShared, wasmsafe};
+use crate::{
+    WasmContext, cbor,
+    extension::{AuthorizeQueryOutput, api::wit},
+    resources::OwnedOrShared,
+    wasmsafe,
+};
 
 use super::EngineWasmExtensions;
 
@@ -6,6 +11,7 @@ use engine_error::{ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use extension_catalog::ExtensionId;
 use futures::{TryStreamExt, stream::FuturesUnordered};
+use itertools::Itertools as _;
 use runtime::extension::{
     Anything, AuthorizationDecisions, AuthorizationExtension, QueryAuthorizationDecisions, QueryElement, TokenRef,
 };
@@ -82,13 +88,17 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
             }
         }
 
-        let headers = Arc::new(tokio::sync::RwLock::new(headers));
+        let headers = if self.use_mutable_headers_in_authorize_query {
+            OwnedOrShared::LegacySharedMut(Arc::new(tokio::sync::RwLock::new(headers)))
+        } else {
+            OwnedOrShared::from(Arc::new(headers))
+        };
 
         async move {
             let headers_ref = &headers;
             let directive_names = &directive_names;
             let elements = &elements;
-            let (decisions, state): (Vec<_>, Vec<_>) = extensions
+            let (decisions, state, additional_headers): (Vec<_>, Vec<_>, Vec<_>) = extensions
                 .into_iter()
                 .map(
                     move |(extension_id, directive_range, query_elements_range)| async move {
@@ -97,7 +107,7 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
                             instance
                                 .authorize_query(
                                     ctx,
-                                    OwnedOrShared::SharedMut(headers_ref.clone()),
+                                    headers_ref.clone_shared().unwrap(),
                                     token,
                                     wit::QueryElements {
                                         directive_names: &directive_names[directive_range],
@@ -106,25 +116,36 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
                                 )
                                 .await
                         )
-                        .map(|(_, decisions, state)| {
-                            (
-                                QueryAuthorizationDecisions {
-                                    extension_id,
-                                    query_elements_range,
-                                    decisions,
-                                },
-                                (extension_id, state),
-                            )
-                        })
+                        .map(
+                            |AuthorizeQueryOutput {
+                                 subgraph_headers: _,
+                                 additional_headers,
+                                 decisions,
+                                 state,
+                             }| {
+                                (
+                                    QueryAuthorizationDecisions {
+                                        extension_id,
+                                        query_elements_range,
+                                        decisions,
+                                    },
+                                    (extension_id, state),
+                                    additional_headers,
+                                )
+                            },
+                        )
                     },
                 )
                 .collect::<FuturesUnordered<_>>()
                 .try_collect::<Vec<_>>()
                 .await?
                 .into_iter()
-                .unzip();
+                .multiunzip();
 
-            let headers = Arc::into_inner(headers).unwrap().into_inner();
+            let mut headers = headers.into_inner().unwrap();
+            for additional_headers in additional_headers.into_iter().flatten() {
+                headers.extend(additional_headers);
+            }
             Ok((state, headers, decisions))
         }
     }

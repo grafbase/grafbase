@@ -1,4 +1,5 @@
 use engine_error::{ErrorResponse, GraphqlError};
+use engine_schema::{GraphqlSubgraph, VirtualSubgraph};
 use event_queue::EventQueue;
 use http::{request, response};
 use runtime::extension::{EngineHooksExtension, GatewayHooksExtension, OnRequest, ReqwestParts};
@@ -17,6 +18,7 @@ impl GatewayHooksExtension<WasmContext> for GatewayWasmExtensions {
                 context,
                 parts,
                 contract_key: None,
+                state: Default::default(),
             });
         };
 
@@ -39,9 +41,10 @@ impl GatewayHooksExtension<WasmContext> for GatewayWasmExtensions {
 }
 
 impl EngineHooksExtension<WasmContext> for EngineWasmExtensions {
-    async fn on_subgraph_request(
+    async fn on_graphql_subgraph_request(
         &self,
         context: &WasmContext,
+        subgraph: GraphqlSubgraph<'_>,
         parts: ReqwestParts,
     ) -> Result<ReqwestParts, GraphqlError> {
         let Some(pool) = self.gateway_extensions.hooks.as_ref() else {
@@ -52,6 +55,23 @@ impl EngineHooksExtension<WasmContext> for EngineWasmExtensions {
             GraphqlError::internal_extension_error()
         })?;
 
-        wasmsafe!(instance.on_subgraph_request(context, parts).await)
+        wasmsafe!(instance.on_graphql_subgraph_request(context, subgraph, parts).await)
+    }
+
+    async fn on_virtual_subgraph_request(
+        &self,
+        context: &WasmContext,
+        subgraph: VirtualSubgraph<'_>,
+        headers: http::HeaderMap,
+    ) -> Result<http::HeaderMap, GraphqlError> {
+        let Some(pool) = self.gateway_extensions.hooks.as_ref() else {
+            return Ok(headers);
+        };
+        let mut instance = pool.get().await.map_err(|e| {
+            tracing::error!("Failed to get instance from pool: {e}");
+            GraphqlError::internal_extension_error()
+        })?;
+
+        wasmsafe!(instance.on_virtual_subgraph_request(context, subgraph, headers).await)
     }
 }

@@ -109,7 +109,7 @@ pub trait HooksExtension: Sized + 'static {
         url: &str,
         method: http::Method,
         headers: &mut GatewayHeaders,
-    ) -> Result<impl into_on_request_output::IntoOnRequestOutput, ErrorResponse> {
+    ) -> Result<impl IntoOnRequestOutput, ErrorResponse> {
         Ok(())
     }
 
@@ -147,29 +147,19 @@ pub trait HooksExtension: Sized + 'static {
     }
 }
 
-mod into_on_request_output {
-    use crate::types::OnRequestOutput;
+pub trait IntoOnRequestOutput {
+    fn into_on_request_output(self) -> OnRequestOutput;
+}
 
-    pub trait IntoOnRequestOutput: Sealed {}
-
-    pub trait Sealed {
-        fn into_on_request_output(self) -> OnRequestOutput;
+impl IntoOnRequestOutput for OnRequestOutput {
+    fn into_on_request_output(self) -> OnRequestOutput {
+        self
     }
+}
 
-    impl IntoOnRequestOutput for OnRequestOutput {}
-
-    impl Sealed for OnRequestOutput {
-        fn into_on_request_output(self) -> OnRequestOutput {
-            self
-        }
-    }
-
-    impl IntoOnRequestOutput for () {}
-
-    impl Sealed for () {
-        fn into_on_request_output(self) -> OnRequestOutput {
-            OnRequestOutput::default()
-        }
+impl IntoOnRequestOutput for () {
+    fn into_on_request_output(self) -> OnRequestOutput {
+        OnRequestOutput::default()
     }
 }
 
@@ -184,7 +174,6 @@ pub fn register<T: HooksExtension>() {
             method: http::Method,
             headers: &mut Headers,
         ) -> Result<OnRequestOutput, ErrorResponse> {
-            use into_on_request_output::Sealed;
             self.0
                 .on_request(url, method, headers)
                 .map(|output| output.into_on_request_output())

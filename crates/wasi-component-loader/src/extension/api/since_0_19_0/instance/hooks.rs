@@ -1,4 +1,5 @@
 use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
+use engine_schema::GraphqlSubgraph;
 use futures::future::BoxFuture;
 use http::{request, response};
 use runtime::extension::{OnRequest, ReqwestParts};
@@ -6,10 +7,7 @@ use url::Url;
 
 use crate::{
     WasmContext,
-    extension::{
-        HooksExtensionInstance,
-        api::wit::{self, HttpMethod, HttpRequestPartsParam},
-    },
+    extension::{HooksExtensionInstance, api::since_0_19_0::world as wit19, api::wit::HttpMethod},
     resources::{EventQueueProxy, Headers},
 };
 
@@ -35,7 +33,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                 .call_on_request(
                     &mut self.store,
                     ctx,
-                    HttpRequestPartsParam {
+                    wit19::HttpRequestPartsParam {
                         url: url.as_str(),
                         method,
                         headers,
@@ -44,12 +42,13 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                 .await?;
 
             let output = match result {
-                Ok(wit::OnRequestOutput { headers, contract_key }) => {
+                Ok(wit19::OnRequestOutput { headers, contract_key }) => {
                     parts.headers = self.store.data_mut().resources.delete(headers)?.into_inner().unwrap();
                     Ok(OnRequest {
                         context,
                         parts,
                         contract_key,
+                        state: Default::default(),
                     })
                 }
                 Err(err) => Err(self
@@ -93,9 +92,10 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
         })
     }
 
-    fn on_subgraph_request<'a>(
+    fn on_graphql_subgraph_request<'a>(
         &'a mut self,
         context: &'a WasmContext,
+        _subgraph: GraphqlSubgraph<'a>,
         ReqwestParts { url, method, headers }: ReqwestParts,
     ) -> BoxFuture<'a, wasmtime::Result<Result<ReqwestParts, GraphqlError>>> {
         Box::pin(async move {
@@ -108,7 +108,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                 .call_on_subgraph_request(
                     &mut self.store,
                     context,
-                    HttpRequestPartsParam {
+                    wit19::HttpRequestPartsParam {
                         url: url.as_str(),
                         method,
                         headers,

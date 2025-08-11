@@ -50,8 +50,9 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
             mut headers,
         } = ctx
             .extensions()
-            .on_subgraph_request(
+            .on_graphql_subgraph_request(
                 &ctx.request_context.extension_context,
+                ctx.endpoint,
                 ReqwestParts {
                     url: endpoint.url().clone(),
                     method: http::Method::POST,
@@ -74,7 +75,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
 
         let request = FetchRequest {
             websocket_init_payload: None,
-            subgraph_name: endpoint.subgraph_name(),
+            subgraph_name: endpoint.name(),
             url: Cow::Owned(url),
             headers,
             method,
@@ -88,7 +89,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
 
         let fetch_result = retrying_fetch(ctx, || {
             let mut request = request.clone();
-            let subgraph_name = endpoint.subgraph_name().to_string();
+            let subgraph_name = endpoint.name().to_string();
 
             async move {
                 let http_span = SubgraphHttpRequestSpan::new(&request.url, &http::Method::POST);
@@ -264,7 +265,7 @@ where
     ctx.engine()
         .runtime
         .rate_limiter()
-        .limit(&RateLimitKey::Subgraph(ctx.endpoint().subgraph_name().into()))
+        .limit(&RateLimitKey::Subgraph(ctx.endpoint().name().into()))
         .await
         .inspect_err(|_| {
             ctx.push_request_execution(RequestExecution::RateLimited);
@@ -281,7 +282,7 @@ where
     }
 
     result.map_err(|error| ExecutionError::Fetch {
-        subgraph_name: ctx.endpoint().subgraph_name().to_string(),
+        subgraph_name: ctx.endpoint().name().to_string(),
         error,
     })
 }

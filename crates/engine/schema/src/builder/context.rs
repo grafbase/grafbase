@@ -31,7 +31,7 @@ id_newtypes::forward! {
     impl Index<RegexId, Output = Regex> for BuildContext<'a>.interners.regexps,
     impl Index<UrlId, Output = Url> for BuildContext<'a>.interners.urls,
     impl Index<VirtualSubgraphId, Output = VirtualSubgraphRecord> for BuildContext<'a>.subgraphs,
-    impl Index<GraphqlEndpointId, Output = GraphqlEndpointRecord> for BuildContext<'a>.subgraphs,
+    impl Index<GraphqlSubgraphId, Output = GraphqlSubgraphRecord> for BuildContext<'a>.subgraphs,
     impl Index<ExtensionId, Output = Extension> for BuildContext<'a>.extensions.catalog,
 }
 

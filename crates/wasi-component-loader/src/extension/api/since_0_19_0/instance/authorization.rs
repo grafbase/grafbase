@@ -1,14 +1,14 @@
-use engine_error::{ErrorCode, GraphqlError};
+use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
 use crate::{
     WasmContext,
     extension::{
-        AuthorizationExtensionInstance, QueryAuthorizationResult,
+        AuthorizationExtensionInstance, AuthorizeQueryOutput,
         api::{
-            since_0_19_0::wit::exports::grafbase::sdk::authorization::AuthorizationOutput,
-            wit::{Headers, QueryElements, ResponseElements, TokenParam},
+            since_0_19_0::{wit::exports::grafbase::sdk::authorization::AuthorizationOutput, world as wit19},
+            wit::{Headers, QueryElements, ResponseElements},
         },
     },
 };
@@ -20,12 +20,15 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_19_0 {
         headers: Headers,
         token: TokenRef<'a>,
         elements: QueryElements<'a>,
-    ) -> BoxFuture<'a, QueryAuthorizationResult> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizeQueryOutput, ErrorResponse>>> {
         Box::pin(async move {
             let context = self.store.data_mut().resources.push(context.clone())?;
             let headers = self.store.data_mut().resources.push(headers)?;
 
-            let token_param = token.as_bytes().map(TokenParam::Bytes).unwrap_or(TokenParam::Anonymous);
+            let token_param = token
+                .as_bytes()
+                .map(wit19::TokenParam::Bytes)
+                .unwrap_or(wit19::TokenParam::Anonymous);
 
             let result = self
                 .inner
@@ -40,7 +43,12 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                     headers,
                 }) => {
                     let headers = self.store.data_mut().resources.delete(headers)?;
-                    Ok((headers, decisions.into(), state))
+                    Ok(AuthorizeQueryOutput {
+                        subgraph_headers: headers,
+                        additional_headers: None,
+                        decisions: decisions.into(),
+                        state,
+                    })
                 }
                 Err(err) => Err(self
                     .store

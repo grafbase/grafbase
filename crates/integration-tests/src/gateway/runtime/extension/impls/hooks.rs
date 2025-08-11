@@ -31,11 +31,22 @@ impl GatewayHooksExtension<ExtContext> for GatewayTestExtensions {
 }
 
 impl EngineHooksExtension<ExtContext> for EngineTestExtensions {
-    async fn on_subgraph_request(
+    async fn on_graphql_subgraph_request(
         &self,
         context: &ExtContext,
         parts: ReqwestParts,
     ) -> Result<ReqwestParts, GraphqlError> {
-        self.wasm.on_subgraph_request(&context.wasm, parts).await
+        self.wasm.on_graphql_subgraph_request(&context.wasm, parts).await
+    }
+
+    fn on_virtual_subgraph_request(
+        &self,
+        context: &ExtContext,
+        subgraph: engine_schema::VirtualSubgraph<'_>,
+        headers: http::HeaderMap,
+    ) -> impl Future<Output = Result<http::HeaderMap, GraphqlError>> + Send {
+        self.wasm
+            .on_virtual_subgraph_request(&context.wasm, subgraph, headers)
+            .await
     }
 }

@@ -23,8 +23,8 @@ impl wit::AuthorizationGuest for Component {
                      }| wit::AuthorizationOutput {
                         decisions: decisions.into(),
                         state,
-                        original_headers: headers.into(),
-                        extra_headers: extra_headers.map(Into::into),
+                        subgraph_headers: headers.into(),
+                        additional_headers: extra_headers.map(Into::into),
                     },
                 )
                 .map_err(Into::into)

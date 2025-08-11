@@ -22,7 +22,7 @@ pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>)
                 )
                 .map_err(|txt| (txt, *span))?;
             match subgraph_id {
-                SubgraphId::GraphqlEndpoint(subgraph_id) => {
+                SubgraphId::Graphql(subgraph_id) => {
                     builder.subgraphs[subgraph_id].schema_directive_ids.push(id);
                 }
                 SubgraphId::Virtual(subgraph_id) => {
@@ -82,12 +82,12 @@ impl<'a> GraphBuilder<'a> {
             let id = match subgraph_id {
                 SubgraphId::Virtual(id) => id,
                 SubgraphId::Introspection => unreachable!(),
-                SubgraphId::GraphqlEndpoint(id) => {
+                SubgraphId::Graphql(id) => {
                     return Err(format!(
                         "At site {}, resolver extension {}' directive @{name} can only be used on virtual graphs, '{}' isn't one.",
                         current_definition.to_site_string(self),
                         extension.manifest.id,
-                        &self.ctx[self.ctx[id].subgraph_name_id]
+                        &self.ctx[self.ctx[id].name_id]
                     ));
                 }
             };
@@ -99,7 +99,7 @@ impl<'a> GraphBuilder<'a> {
                     "At site {}, Selection Set Resolver extension {} cannot be mixed with other resolvers in subgraph '{}', found {}",
                     current_definition.to_site_string(self),
                     extension.manifest.id,
-                    self.ctx[self.ctx[id].subgraph_name_id].clone(),
+                    self.ctx[self.ctx[id].name_id].clone(),
                     self.ctx[other_id].manifest.id.clone(),
                 ));
             }

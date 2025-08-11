@@ -411,7 +411,7 @@ where
 
         // Either it's a GraphQL endpoint and anything we can reach (within the subgraph) is necessarily provideable or it's a virtual
         // one and we need to ensure there isn't any extension resolver defined for this field.
-        let doesnt_require_dedicated_resolver = parent_subgraph_id.is_graphql_endpoint()
+        let doesnt_require_dedicated_resolver = parent_subgraph_id.is_graphql()
             || field_definition.resolvers().all(|r| {
                 r.subgraph_id() != parent_subgraph_id
                     || !matches!(

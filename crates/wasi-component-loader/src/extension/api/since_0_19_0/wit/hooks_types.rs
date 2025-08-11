@@ -4,8 +4,8 @@ pub use super::grafbase::sdk::hooks_types::*;
 
 impl Host for InstanceState {}
 
-impl From<wit::HttpRequestPartsParam> for HttpRequestPartsParam {
-    fn from(param: wit::HttpRequestPartsParam) -> Self {
+impl<'a> From<wit::HttpRequestPartsParam<'a>> for HttpRequestPartsParam<'a> {
+    fn from(param: wit::HttpRequestPartsParam<'a>) -> Self {
         HttpRequestPartsParam {
             method: param.method,
             url: param.url,

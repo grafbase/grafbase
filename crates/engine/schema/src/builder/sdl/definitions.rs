@@ -38,9 +38,9 @@ impl<'a> SdlDefinition<'a> {
             Self::EnumValue(def) => def.to_site_string(builder),
             Self::SchemaDirective(id) => {
                 let name = match id {
-                    SubgraphId::GraphqlEndpoint(id) => &builder.ctx[builder.ctx[id].subgraph_name_id],
+                    SubgraphId::Graphql(id) => &builder.ctx[builder.ctx[id].name_id],
                     SubgraphId::Introspection => "Introspection",
-                    SubgraphId::Virtual(id) => &builder.ctx[builder.ctx[id].subgraph_name_id],
+                    SubgraphId::Virtual(id) => &builder.ctx[builder.ctx[id].name_id],
                 };
                 format!("subgraph named '{name}'")
             }

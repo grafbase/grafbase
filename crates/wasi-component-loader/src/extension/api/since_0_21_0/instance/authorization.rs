@@ -1,14 +1,14 @@
-use engine_error::{ErrorCode, GraphqlError};
+use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
 use crate::{
     WasmContext,
     extension::{
-        AuthorizationExtensionInstance, QueryAuthorizationResult,
+        AuthorizationExtensionInstance, AuthorizeQueryOutput,
         api::{
             since_0_21_0::wit::exports::grafbase::sdk::authorization::AuthorizationOutput,
-            wit::{Headers, QueryElements, ResponseElements, TokenParam},
+            wit::{Headers, QueryElements, ResponseElements},
         },
     },
 };
@@ -20,27 +20,36 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_21_0 {
         headers: Headers,
         token: TokenRef<'a>,
         elements: QueryElements<'a>,
-    ) -> BoxFuture<'a, QueryAuthorizationResult> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizeQueryOutput, ErrorResponse>>> {
         Box::pin(async move {
             let context = self.store.data_mut().resources.push(context.clone())?;
             let headers = self.store.data_mut().resources.push(headers)?;
 
-            let token_param = token.as_bytes().map(TokenParam::Bytes).unwrap_or(TokenParam::Anonymous);
-
             let result = self
                 .inner
                 .grafbase_sdk_authorization()
-                .call_authorize_query(&mut self.store, context, headers, token_param, elements)
+                .call_authorize_query(&mut self.store, context, headers, elements)
                 .await?;
 
             let result = match result {
                 Ok(AuthorizationOutput {
                     decisions,
                     state,
-                    headers,
+                    subgraph_headers,
+                    additional_headers,
                 }) => {
-                    let headers = self.store.data_mut().resources.delete(headers)?;
-                    Ok((headers, decisions.into(), state))
+                    let resources = &mut self.store.data_mut().resources;
+                    let subgraph_headers = resources.delete(subgraph_headers)?;
+                    let additional_headers = additional_headers
+                        .map(|headers| resources.delete(headers))
+                        .transpose()?
+                        .map(|headers| headers.into_inner().unwrap());
+                    Ok(AuthorizeQueryOutput {
+                        subgraph_headers,
+                        additional_headers,
+                        decisions: decisions.into(),
+                        state,
+                    })
                 }
                 Err(err) => Err(self
                     .store

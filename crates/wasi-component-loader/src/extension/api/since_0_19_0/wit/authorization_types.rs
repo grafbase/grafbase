@@ -4,7 +4,7 @@ pub use crate::extension::api::since_0_17_0::wit::authorization_types::{
     self as wit17, AuthorizationDecisions, AuthorizationDecisionsDenySome, Host, ResponseElement, ResponseElements,
     add_to_linker,
 };
-use crate::extension::api::{since_0_19_0::world::Headers, wit::DirectiveSite};
+use crate::extension::api::{since_0_19_0::world::Headers, wit};
 
 #[derive(ComponentType, Lift)]
 #[component(record)]
@@ -18,7 +18,7 @@ pub struct AuthorizationOutput {
 #[component(record)]
 pub struct QueryElement<'a> {
     pub id: u32,
-    pub site: DirectiveSite<'a>,
+    pub site: wit::DirectiveSite<'a>,
     pub arguments: Vec<u8>,
     #[component(name = "subgraph-name")]
     pub subgraph_name: Option<&'a str>,

@@ -4,9 +4,6 @@ use runtime::extension::{AuthorizationDecisions, TokenRef};
 
 use crate::{WasmContext, extension::api::wit, resources::Headers};
 
-pub(crate) type QueryAuthorizationResult =
-    wasmtime::Result<Result<(Headers, AuthorizationDecisions, Vec<u8>), ErrorResponse>>;
-
 pub(crate) trait AuthorizationExtensionInstance {
     fn authorize_query<'a>(
         &'a mut self,
@@ -14,7 +11,7 @@ pub(crate) trait AuthorizationExtensionInstance {
         headers: Headers,
         token: TokenRef<'a>,
         elements: wit::QueryElements<'a>,
-    ) -> BoxFuture<'a, QueryAuthorizationResult>;
+    ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizeQueryOutput, ErrorResponse>>>;
 
     fn authorize_response<'a>(
         &'a mut self,
@@ -22,4 +19,11 @@ pub(crate) trait AuthorizationExtensionInstance {
         state: &'a [u8],
         elements: wit::ResponseElements<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizationDecisions, GraphqlError>>>;
+}
+
+pub(crate) struct AuthorizeQueryOutput {
+    pub subgraph_headers: Headers,
+    pub additional_headers: Option<http::HeaderMap>,
+    pub decisions: AuthorizationDecisions,
+    pub state: Vec<u8>,
 }

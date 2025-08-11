@@ -24,5 +24,5 @@ pub mod world {
         Directive, DirectiveSite, EnumDirectiveSite, FieldDefinitionDirective, FieldDefinitionDirectiveSite,
         InterfaceDirectiveSite, ObjectDirectiveSite, ScalarDirectiveSite, UnionDirectiveSite,
     };
-    pub use sdk::token::{TokenParam, TokenResult as Token};
+    pub use sdk::token::Token;
 }

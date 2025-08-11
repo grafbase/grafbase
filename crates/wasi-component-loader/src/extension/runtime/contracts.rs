@@ -34,9 +34,9 @@ impl ContractsExtension<WasmContext> for EngineWasmExtensions {
         let n_directives = directives.len();
         let subgraphs = schema
             .subgraphs()
-            .filter_map(|sg| sg.as_graphql_endpoint())
+            .filter_map(|sg| sg.as_graphql())
             .map(|gql| wit::GraphqlSubgraphParam {
-                name: gql.subgraph_name(),
+                name: gql.name(),
                 url: gql.url().as_str(),
             })
             .collect();

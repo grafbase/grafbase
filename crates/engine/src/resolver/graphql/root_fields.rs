@@ -3,7 +3,7 @@ use std::{borrow::Cow, time::Duration};
 use bytes::Bytes;
 use grafbase_telemetry::{graphql::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpanBuilder};
 use operation::OperationContext;
-use schema::{GraphqlEndpointId, GraphqlRootFieldResolverDefinition};
+use schema::{GraphqlRootFieldResolverDefinition, GraphqlSubgraphId};
 use tracing::Instrument;
 use walker::Walk;
 
@@ -23,7 +23,7 @@ use crate::{
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct GraphqlResolver {
-    pub endpoint_id: GraphqlEndpointId,
+    pub subgraph_id: GraphqlSubgraphId,
     pub subgraph_operation: PreparedGraphqlOperation,
 }
 
@@ -42,25 +42,25 @@ impl GraphqlResolver {
             .unwrap_or_else(|| ctx.schema.query());
 
         let subgraph_operation =
-            PreparedGraphqlOperation::build(ctx, definition.endpoint_id, parent_object, selection_set).map_err(
+            PreparedGraphqlOperation::build(ctx, definition.subgraph_id, parent_object, selection_set).map_err(
                 |err| {
                     tracing::error!("Failed to build query: {err}");
                     PlanError::Internal
                 },
             )?;
         Ok(Self {
-            endpoint_id: definition.endpoint().id,
+            subgraph_id: definition.subgraph().id,
             subgraph_operation,
         })
     }
 
     pub fn build_subgraph_context<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> SubgraphContext<'ctx, R> {
-        let endpoint = self.endpoint_id.walk(ctx.schema());
+        let endpoint = self.subgraph_id.walk(ctx.schema());
         SubgraphContext::new(
             ctx,
             endpoint,
             SubgraphRequestSpanBuilder {
-                subgraph_name: endpoint.subgraph_name(),
+                subgraph_name: endpoint.name(),
                 operation_type: self.subgraph_operation.ty.as_str(),
                 sanitized_query: &self.subgraph_operation.query,
             },
@@ -83,7 +83,7 @@ impl GraphqlResolver {
 
         tracing::debug!(
             "Executing request to subgraph named '{}' with query and variables:\n{}\n{}",
-            ctx.endpoint().subgraph_name(),
+            ctx.endpoint().name(),
             self.subgraph_operation.query,
             sonic_rs::to_string_pretty(&variables).unwrap_or_default()
         );

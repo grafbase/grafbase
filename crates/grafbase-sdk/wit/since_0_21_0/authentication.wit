@@ -18,7 +18,7 @@ interface authentication {
     /// - `Err(error-response)`: Authentication failed, returns error details
     authenticate: func(
         context: shared-context,
-        headers: headers,
+        gateway-headers: headers,
     ) -> result<tuple<headers, token>, error-response>;
 
     /// Define endpoints on the gateway that expose authentication related metadata. This can be used to implement [OAuth 2.0 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/rfc9728), for example.

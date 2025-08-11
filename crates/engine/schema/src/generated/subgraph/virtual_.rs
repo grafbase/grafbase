@@ -18,7 +18,7 @@ use walker::{Iter, Walk};
 ///
 /// ```custom,{.language-graphql}
 /// type VirtualSubgraph @meta(module: "subgraph/virtual_") @indexed(id_size: "u16") {
-///   subgraph_name: String!
+///   name: String!
 ///   "Schema directives applied by the given subgraph"
 ///   schema_directives: [ExtensionDirective!]! @vec
 ///   header_rules: [HeaderRule!]!
@@ -26,7 +26,7 @@ use walker::{Iter, Walk};
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct VirtualSubgraphRecord {
-    pub subgraph_name_id: StringId,
+    pub name_id: StringId,
     /// Schema directives applied by the given subgraph
     pub schema_directive_ids: Vec<ExtensionDirectiveId>,
     pub header_rule_ids: IdRange<HeaderRuleId>,
@@ -55,8 +55,8 @@ impl<'a> VirtualSubgraph<'a> {
     pub fn as_ref(&self) -> &'a VirtualSubgraphRecord {
         &self.schema[self.id]
     }
-    pub fn subgraph_name(&self) -> &'a str {
-        self.subgraph_name_id.walk(self.schema)
+    pub fn name(&self) -> &'a str {
+        self.name_id.walk(self.schema)
     }
     /// Schema directives applied by the given subgraph
     pub fn schema_directives(&self) -> impl Iter<Item = ExtensionDirective<'a>> + 'a {
@@ -87,7 +87,7 @@ impl<'a> Walk<&'a Schema> for VirtualSubgraphId {
 impl std::fmt::Debug for VirtualSubgraph<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("VirtualSubgraph")
-            .field("subgraph_name", &self.subgraph_name())
+            .field("name", &self.name())
             .field("schema_directives", &self.schema_directives())
             .field("header_rules", &self.header_rules())
             .finish()
