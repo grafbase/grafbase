@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use operation::{Operation, OperationContext};
 use petgraph::{Direction, Graph, visit::EdgeRef};
 use schema::Schema;
@@ -312,7 +310,7 @@ pub(crate) fn generate_crude_solved_query(
         }
     }
     let query = CrudeSolvedQuery {
-        step: PhantomData,
+        step: crate::query::steps::SteinerTreeSolution,
         root_node_ix,
         graph,
         fields: query.fields,
