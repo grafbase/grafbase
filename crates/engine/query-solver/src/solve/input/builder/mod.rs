@@ -10,15 +10,13 @@ use crate::{
     Cost, QuerySolutionSpace, SpaceEdge, SpaceEdgeId, SpaceNodeId,
     solve::{
         context::{SteinerGraph, SteinerNodeId},
-        input::builder::requirements::DispensableRequirementsBuilder,
+        input::{InputMap, builder::requirements::DispensableRequirementsBuilder},
     },
 };
-pub(crate) struct SteinerInputBuilder {
+pub(super) struct SteinerInputBuilder {
     pub graph: SteinerGraph,
     pub root_node_id: SteinerNodeId,
-    pub node_id_to_space_node_id: Vec<SpaceNodeId>,
-    pub edge_id_to_space_edge_id: Vec<SpaceEdgeId>,
-    pub space_node_id_to_node_id: Vec<NodeIndex>,
+    pub map: InputMap,
     pub terminals_to_process: Vec<SpaceNodeId>,
     pub nodes_to_process: Vec<NodeToProcess>,
 }
@@ -44,43 +42,47 @@ impl NodeToProcess {
 }
 
 impl SteinerInputBuilder {
-    pub fn build<'schema>(mut space: QuerySolutionSpace<'schema>) -> super::SteinerInput<'schema> {
+    pub fn build<'schema>(
+        mut space: QuerySolutionSpace<'schema>,
+    ) -> (super::SteinerInput<'schema>, Vec<SteinerNodeId>) {
         let mut graph = Graph::with_capacity(space.graph.node_bound() >> 3, space.graph.edge_count() >> 3);
-        let mut node_id_to_space_node_id = Vec::with_capacity(graph.node_bound());
-        let edge_id_to_space_edge_id = Vec::with_capacity(graph.edge_count());
-        let mut space_node_id_to_node_id = vec![NodeIndex::new(u32::MAX as usize); space.graph.node_bound()];
+        let mut mapping = InputMap {
+            node_id_to_space_node_id: Vec::with_capacity(space.graph.node_bound() >> 3),
+            edge_id_to_space_edge_id: Vec::with_capacity(space.graph.edge_count() >> 3),
+            space_node_id_to_node_id: vec![SteinerNodeId::new(u32::MAX as usize); space.graph.node_bound()],
+        };
 
-        node_id_to_space_node_id.push(space.root_node_ix);
+        mapping.node_id_to_space_node_id.push(space.root_node_id);
         let root_node_id = graph.add_node(());
-        space_node_id_to_node_id[space.root_node_ix.index()] = root_node_id;
+        mapping.space_node_id_to_node_id[space.root_node_id.index()] = root_node_id;
         let mut builder = Self {
             terminals_to_process: std::mem::take(&mut space.step.indispensable_leaf_nodes),
             graph,
             root_node_id,
-            node_id_to_space_node_id,
-            edge_id_to_space_edge_id,
-            space_node_id_to_node_id,
+            map: mapping,
             nodes_to_process: Vec::new(),
         };
         let mut requirements = DispensableRequirementsBuilder::new(&space.graph);
 
+        let mut terminals = Vec::with_capacity(builder.terminals_to_process.len());
         while let Some(space_terminal) = builder.terminals_to_process.pop() {
             debug_assert!(builder.nodes_to_process.is_empty());
             builder.nodes_to_process.push(NodeToProcess::terminal(space_terminal));
             builder.ingest_nodes_from_indispensable_terminal(&space, &mut requirements);
+            terminals.push(builder.map.space_node_id_to_node_id[space_terminal.index()]);
         }
 
-        super::SteinerInput {
+        let input = super::SteinerInput {
             space,
             graph: builder.graph,
-            node_id_to_space_node_id: builder.node_id_to_space_node_id,
-            edge_id_to_space_edge_id: builder.edge_id_to_space_edge_id,
-            space_node_id_to_node_id: builder.space_node_id_to_node_id,
+            root_node_id: builder.root_node_id,
+            map: builder.map,
             requirements: requirements.build(),
-        }
+        };
+        (input, terminals)
     }
 
-    pub fn ingest_nodes_from_indispensable_terminal(
+    fn ingest_nodes_from_indispensable_terminal(
         &mut self,
         space: &QuerySolutionSpace<'_>,
         requirements: &mut DispensableRequirementsBuilder,
@@ -94,13 +96,13 @@ impl SteinerInputBuilder {
             maybe_child_edge_cost,
         }) = self.nodes_to_process.pop()
         {
-            let maybe_existing = self.space_node_id_to_node_id[space_node_id.index()];
+            let maybe_existing = self.map.space_node_id_to_node_id[space_node_id.index()];
             if maybe_existing.index() != u32::MAX as usize {
                 // Already processed, just add the edge.
                 if maybe_child_node_id.index() != u32::MAX as usize {
                     self.graph
                         .add_edge(maybe_existing, maybe_child_node_id, maybe_child_edge_cost);
-                    self.edge_id_to_space_edge_id.push(maybe_child_space_edge_id);
+                    self.map.edge_id_to_space_edge_id.push(maybe_child_space_edge_id);
                 }
                 continue;
             }
@@ -123,11 +125,11 @@ impl SteinerInputBuilder {
                 indispensable = false;
 
                 let node_id = self.graph.add_node(());
-                self.node_id_to_space_node_id.push(space_node_id);
-                self.space_node_id_to_node_id[space_node_id.index()] = node_id;
+                self.map.node_id_to_space_node_id.push(space_node_id);
+                self.map.space_node_id_to_node_id[space_node_id.index()] = node_id;
                 if maybe_child_node_id.index() != u32::MAX as usize {
                     self.graph.add_edge(node_id, maybe_child_node_id, maybe_child_edge_cost);
-                    self.edge_id_to_space_edge_id.push(maybe_child_space_edge_id);
+                    self.map.edge_id_to_space_edge_id.push(maybe_child_space_edge_id);
                 }
 
                 let _ = requirements
@@ -171,11 +173,11 @@ impl SteinerInputBuilder {
                     });
                 } else if !requires.is_empty() || first_edge_cost > 0 {
                     let node_id = self.graph.add_node(());
-                    self.node_id_to_space_node_id.push(space_node_id);
-                    self.space_node_id_to_node_id[space_node_id.index()] = node_id;
+                    self.map.node_id_to_space_node_id.push(space_node_id);
+                    self.map.space_node_id_to_node_id[space_node_id.index()] = node_id;
                     if maybe_child_node_id.index() != u32::MAX as usize {
                         self.graph.add_edge(node_id, maybe_child_node_id, maybe_child_edge_cost);
-                        self.edge_id_to_space_edge_id.push(maybe_child_space_edge_id);
+                        self.map.edge_id_to_space_edge_id.push(maybe_child_space_edge_id);
                     }
 
                     let _ = requirements
@@ -202,14 +204,14 @@ impl SteinerInputBuilder {
         }
     }
 
-    pub fn get_or_insert_node(&mut self, space_node_id: SpaceNodeId) -> NodeIndex {
-        let maybe_existing = self.space_node_id_to_node_id[space_node_id.index()];
+    fn get_or_insert_node(&mut self, space_node_id: SpaceNodeId) -> NodeIndex {
+        let maybe_existing = self.map.space_node_id_to_node_id[space_node_id.index()];
         if maybe_existing.index() != u32::MAX as usize {
             return maybe_existing;
         }
         let node_ix = self.graph.add_node(());
-        self.node_id_to_space_node_id.push(space_node_id);
-        self.space_node_id_to_node_id[space_node_id.index()] = node_ix;
+        self.map.node_id_to_space_node_id.push(space_node_id);
+        self.map.space_node_id_to_node_id[space_node_id.index()] = node_ix;
         node_ix
     }
 }

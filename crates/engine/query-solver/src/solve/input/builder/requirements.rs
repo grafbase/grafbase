@@ -172,7 +172,7 @@ impl DispensableRequirementsBuilder {
                 })
             })
         {
-            self.out.free_requirements.push((node_id, required_node_ids));
+            self.out.free.push((node_id, required_node_ids));
         } else {
             for dependent_space_edge in space_graph.edges_directed(space_node_id, Direction::Incoming) {
                 let inherent_cost = match dependent_space_edge.weight() {

@@ -76,7 +76,7 @@ pub type SolutionGraph = Graph<Node, Edge>;
 #[derive(id_derives::IndexedFields)]
 pub struct Query<G: GraphBase, Step> {
     pub(crate) step: Step,
-    pub root_node_ix: G::NodeId,
+    pub root_node_id: G::NodeId,
     pub graph: G,
     #[indexed_by(QueryFieldId)]
     pub fields: Vec<QueryField>,

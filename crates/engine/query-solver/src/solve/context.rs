@@ -53,7 +53,7 @@ impl<'g, 'schema> SteinerContext<&'g SolutionSpaceGraph<'schema>, SteinerGraph> 
         };
         let ctx = Self::build(
             &query_solution_space.graph,
-            query_solution_space.root_node_ix,
+            query_solution_space.root_node_id,
             node_filter,
             edge_filter,
         );

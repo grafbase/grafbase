@@ -1,17 +1,17 @@
 use ::operation::Operation;
-use fixedbitset::FixedBitSet;
 use itertools::Itertools as _;
 use operation::OperationContext;
 use petgraph::visit::EdgeRef;
 use schema::Schema;
 
 use crate::{
-    QuerySolutionSpace, SolutionSpaceGraph,
+    QuerySolutionSpace,
     dot_graph::Attrs,
     solve::{
-        context::{SteinerContext, SteinerGraph},
-        requirements::RequirementAndCostUpdater,
+        Solution,
+        input::{SteinerInput, build_input_and_terminals},
         steiner_tree::SteinerTree,
+        updater::RequirementAndCostUpdater,
     },
 };
 
@@ -30,40 +30,34 @@ use super::steiner_tree::GreedyFlac;
 ///
 /// As this extra cost changes every time we change the Steiner tree, we have to adjust those while
 /// constructing it.
-pub(crate) struct Solver<'schema, 'op, 'q> {
+pub(crate) struct Solver<'schema, 'op> {
     schema: &'schema Schema,
     operation: &'op Operation,
-    query_solution_space: &'q QuerySolutionSpace<'schema>,
-    ctx: SteinerContext<&'q SolutionSpaceGraph<'schema>, SteinerGraph>,
+    input: SteinerInput<'schema>,
     flac: GreedyFlac,
     steiner_tree: SteinerTree,
     requirements_and_cost_updater: RequirementAndCostUpdater,
 }
 
-pub(crate) struct SteinerTreeSolution {
-    pub node_bitset: FixedBitSet,
-}
-
-impl<'schema, 'op, 'q> Solver<'schema, 'op, 'q>
+impl<'schema, 'op> Solver<'schema, 'op>
 where
     'schema: 'op,
 {
     pub(crate) fn initialize(
         schema: &'schema Schema,
         operation: &'op Operation,
-        query_solution_space: &'q QuerySolutionSpace<'schema>,
+        query_solution_space: QuerySolutionSpace<'schema>,
     ) -> crate::Result<Self> {
-        let (ctx, terminals) = SteinerContext::from_query_solution_space(query_solution_space);
+        let (input, terminals) = build_input_and_terminals(query_solution_space);
 
-        let steiner_tree = SteinerTree::new(&ctx.graph, ctx.root_ix);
-        let flac = GreedyFlac::new(&ctx.graph, terminals);
-        let requirements_and_cost_updater = RequirementAndCostUpdater::new(&ctx)?;
+        let steiner_tree = SteinerTree::new(&input.graph, input.root_node_id);
+        let flac = GreedyFlac::new(&input.graph, terminals);
+        let requirements_and_cost_updater = RequirementAndCostUpdater::new(&input)?;
 
         let mut solver = Self {
             schema,
             operation,
-            query_solution_space,
-            ctx,
+            input,
             flac,
             steiner_tree,
             requirements_and_cost_updater,
@@ -71,7 +65,7 @@ where
 
         let update = solver
             .requirements_and_cost_updater
-            .run_fixed_point_cost(&mut solver.ctx.graph, &solver.steiner_tree)?;
+            .run_fixed_point_cost(&mut solver.input, &solver.steiner_tree)?;
         debug_assert!(
             update.new_terminals.is_empty(),
             "Fixed point cost algorithm should not return new terminals at initialization"
@@ -82,7 +76,7 @@ where
         Ok(solver)
     }
 
-    pub(crate) fn solve(mut self) -> crate::Result<SteinerTreeSolution> {
+    pub(crate) fn solve(mut self) -> crate::Result<Solution<'schema>> {
         self.execute()?;
         Ok(self.into_solution())
     }
@@ -90,10 +84,10 @@ where
     /// Solves the Steiner tree problem for the resolvers of our operation graph.
     pub fn execute(&mut self) -> crate::Result<()> {
         loop {
-            let growth = self.flac.run_once(&self.ctx.graph, &mut self.steiner_tree);
+            let growth = self.flac.run_once(&self.input.graph, &mut self.steiner_tree);
             let update = self
                 .requirements_and_cost_updater
-                .run_fixed_point_cost(&mut self.ctx.graph, &self.steiner_tree)?;
+                .run_fixed_point_cost(&mut self.input, &self.steiner_tree)?;
 
             if !update.new_terminals.is_empty() {
                 update.new_terminals.sort_unstable();
@@ -109,12 +103,11 @@ where
         Ok(())
     }
 
-    pub fn into_solution(self) -> SteinerTreeSolution {
-        let mut bitset = FixedBitSet::with_capacity(self.ctx.space_graph_node_id_to_node_ix.len());
-        for (i, ix) in self.ctx.space_graph_node_id_to_node_ix.iter().copied().enumerate() {
-            bitset.set(i, self.steiner_tree[ix]);
+    pub fn into_solution(self) -> Solution<'schema> {
+        Solution {
+            input: self.input,
+            steiner_tree: self.steiner_tree,
         }
-        SteinerTreeSolution { node_bitset: bitset }
     }
 
     pub fn to_pretty_dot_graph(&self) -> String {
@@ -126,7 +119,7 @@ where
         format!(
             "{:?}",
             Dot::with_attr_getters(
-                &self.ctx.graph,
+                &self.input.graph,
                 &[Config::EdgeNoLabel, Config::NodeNoLabel],
                 &|_, edge| {
                     let is_in_steiner_tree = self.steiner_tree[edge.id()];
@@ -139,18 +132,16 @@ where
                 },
                 &|_, (node_ix, _)| {
                     let is_in_steiner_tree = self.steiner_tree[node_ix];
-                    if let Some(node_id) = self.ctx.to_space_graph_node_id(node_ix) {
-                        self.query_solution_space
-                            .graph
-                            .node_weight(node_id)
-                            .unwrap()
-                            .pretty_label(self.query_solution_space, ctx)
-                            .with_if(!is_in_steiner_tree, "style=dashed")
-                            .with_if(is_in_steiner_tree, "color=forestgreen")
-                            .to_string()
-                    } else {
-                        "label=\"\", style=dashed".to_string()
-                    }
+                    let space_node_id = self.input.to_space_node_id(node_ix);
+                    self.input
+                        .space
+                        .graph
+                        .node_weight(space_node_id)
+                        .unwrap()
+                        .pretty_label(&self.input.space, ctx)
+                        .with_if(!is_in_steiner_tree, "style=dashed")
+                        .with_if(is_in_steiner_tree, "color=forestgreen")
+                        .to_string()
                 }
             )
         )
@@ -168,7 +159,7 @@ where
         format!(
             "{:?}",
             Dot::with_attr_getters(
-                &self.ctx.graph,
+                &self.input.graph,
                 &[Config::EdgeNoLabel, Config::NodeNoLabel],
                 &|_, edge| {
                     let is_in_steiner_tree = self.steiner_tree[edge.id()];
@@ -177,26 +168,24 @@ where
                 },
                 &|_, (node_ix, _)| {
                     let is_in_steiner_tree = self.steiner_tree[node_ix];
-                    if let Some(node_id) = self.ctx.to_space_graph_node_id(node_ix) {
-                        Attrs::label(
-                            self.query_solution_space
-                                .graph
-                                .node_weight(node_id)
-                                .unwrap()
-                                .label(self.query_solution_space, ctx),
-                        )
-                        .with(format!("steiner={}", is_in_steiner_tree as usize))
-                        .to_string()
-                    } else {
-                        "label=\"\", style=dashed".to_string()
-                    }
+                    let space_node_id = self.input.to_space_node_id(node_ix);
+                    Attrs::label(
+                        self.input
+                            .space
+                            .graph
+                            .node_weight(space_node_id)
+                            .unwrap()
+                            .label(&self.input.space, ctx),
+                    )
+                    .with(format!("steiner={}", is_in_steiner_tree as usize))
+                    .to_string()
                 }
             )
         )
     }
 }
 
-impl std::fmt::Debug for Solver<'_, '_, '_> {
+impl std::fmt::Debug for Solver<'_, '_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Solver").finish_non_exhaustive()
     }

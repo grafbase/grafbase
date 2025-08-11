@@ -54,7 +54,7 @@ macro_rules! assert_solving_snapshots {
             &query_solution_space.to_pretty_dot_graph(ctx)
         );
 
-        let mut solver = $crate::solve::Solver::initialize(&schema, &operation, &query_solution_space).unwrap();
+        let mut solver = $crate::solve::Solver::initialize(&schema, &operation, query_solution_space).unwrap();
         insta::assert_snapshot!(
             format!("{name}-solver"),
             solver.to_dot_graph(),
@@ -69,9 +69,7 @@ macro_rules! assert_solving_snapshots {
         );
 
         let solution = solver.into_solution();
-        let crude_solved_query =
-            $crate::solve::generate_crude_solved_query(&schema, &mut operation, query_solution_space, solution)
-                .unwrap();
+        let crude_solved_query = solution.into_query(&schema, &mut operation).unwrap();
         let ctx = ::operation::OperationContext {
             schema: &schema,
             operation: &operation,

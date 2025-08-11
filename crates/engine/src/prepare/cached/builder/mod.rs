@@ -97,9 +97,9 @@ impl<'a> Solver<'a> {
     pub(super) fn solve(mut self) -> SolveResult<CachedOperation> {
         let root_input_id = self.output.query_plan.root_response_object_set_id;
         self.query_field_node_to_response_object_set
-            .insert(self.solution.root_node_ix, root_input_id);
+            .insert(self.solution.root_node_id, root_input_id);
 
-        for edge in self.solution.graph.edges(self.solution.root_node_ix) {
+        for edge in self.solution.graph.edges(self.solution.root_node_id) {
             if let Edge::QueryPartition = edge.weight()
                 && let Node::QueryPartition {
                     entity_definition_id,
@@ -452,7 +452,7 @@ impl<'a> Solver<'a> {
         }
         let mut partition_to_next_in_order = Vec::new();
         let mut initial_partition = None;
-        for neighbor in self.solution.graph.neighbors(self.solution.root_node_ix) {
+        for neighbor in self.solution.graph.neighbors(self.solution.root_node_id) {
             if let Node::QueryPartition { .. } = self.solution.graph[neighbor] {
                 if let Some(prev) = self
                     .solution
