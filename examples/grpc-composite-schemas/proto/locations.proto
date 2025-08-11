@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+package locations;
+
+import "grafbase/options.proto";
+
+option go_package = "github.com/grafbase/grafbase/examples/grpc-composite-schemas/locations";
+
+// Location represents a warehouse or storage location in the system
+message Location {
+  option (grafbase.graphql.key) = { fields: "id" };
+
+  string id = 1;
+  string name = 2;
+  string address = 3;
+  string city = 4;
+  string state = 5;
+  string country = 6;
+  string postal_code = 7;
+  int32 capacity = 8;
+  string manager_name = 9;
+  string contact_phone = 10;
+  bool is_active = 11;
+}
+
+// Request message for getting a single location
+message GetLocationRequest {
+  string id = 1;
+}
+
+// Response message for getting a single location
+message GetLocationResponse {
+  Location location = 1;
+}
+
+// Request message for batch getting locations
+message BatchGetLocationsRequest {
+  repeated string ids = 1;
+}
+
+// Response message for batch getting locations
+message BatchGetLocationsResponse {
+  repeated Location locations = 1;
+}
+
+// Request message for searching locations with filters
+message SearchLocationsRequest {
+  // Filter by name (partial match)
+  string name = 1;
+  // Filter by city
+  string city = 2;
+  // Filter by state
+  string state = 3;
+  // Filter by country
+  string country = 4;
+  // Filter by minimum capacity
+  int32 min_capacity = 5;
+  // Filter by is_active flag
+  bool is_active = 6;
+  // Filter by postal code (partial match)
+  string postal_code = 7;
+  // Filter by manager name (partial match)
+  string manager_name = 8;
+}
+
+// Response message for searching locations
+message SearchLocationsResponse {
+  repeated Location locations = 1;
+}
+
+// LocationService provides operations for managing warehouse locations
+service LocationService {
+  option (grafbase.graphql.default_to_query_fields) = true;
+  option (grafbase.graphql.subgraph_name) = "locations";
+
+  // Get a single location by ID
+  rpc GetLocation(GetLocationRequest) returns (GetLocationResponse);
+
+  // Batch get locations by IDs
+  rpc BatchGetLocations(BatchGetLocationsRequest) returns (BatchGetLocationsResponse) {
+    option (grafbase.graphql.lookup) = {};
+    option (grafbase.graphql.argument_is) = "{ ids: [id] }";
+  }
+
+  // Search locations with optional filters
+  rpc SearchLocations(SearchLocationsRequest) returns (SearchLocationsResponse);
+}

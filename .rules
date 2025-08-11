@@ -1,8 +1,0 @@
-## Documentation
-
-- Do not write organizational or comments that summarize the code. Comments should only be written in order to explain "why" the code is written in some way in the case there is a reason that is tricky / non-obvious.
-- Do not write new READMEs or example scripts without being prompted to do so.
-
-## Markdown conventions
-
-- Always use an empty line after a heading and before starting a list.
