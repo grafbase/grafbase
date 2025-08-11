@@ -1,10 +1,10 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   packages = with pkgs; [
     rustup
     cargo-make
     cargo-nextest
     cargo-insta
+    cargo-hakari
     git-cliff
 
     # TOML

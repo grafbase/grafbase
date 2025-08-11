@@ -3,7 +3,7 @@ use std::sync::Arc;
 use event_queue::{ExecutedOperation, ExecutedOperationBuilder};
 use futures::future::BoxFuture;
 use grafbase_telemetry::metrics::EngineMetrics;
-use runtime::authentication::LegacyToken;
+use runtime::extension::Token;
 use schema::Schema;
 
 use crate::{
@@ -47,7 +47,7 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
         &self.engine.runtime
     }
 
-    pub fn access_token(&self) -> &'ctx LegacyToken {
+    pub fn access_token(&self) -> &'ctx Token {
         &self.request_context.token
     }
 

@@ -221,13 +221,8 @@ type InputValueDefinition @meta(module: "input_value", debug: false) @indexed(id
 # - Directives -
 # --------------
 
-union TypeSystemDirective
-  @id
-  @meta(module: "directive")
-  @variants(empty: ["Authenticated"], remove_suffix: "Directive") =
+union TypeSystemDirective @id @meta(module: "directive") @variants(remove_suffix: "Directive") =
   | DeprecatedDirective
-  | RequiresScopesDirective
-  | AuthorizedDirective
   | CostDirective
   | ListSizeDirective
   | ExtensionDirective
@@ -236,15 +231,6 @@ type DeprecatedDirective
   @meta(module: "directive/deprecated", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash"])
   @copy {
   reason: String
-}
-
-scalar RequiresScopesDirective @indexed @record
-
-type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32") {
-  arguments: InputValueSet!
-  fields: FieldSet
-  node: FieldSet
-  metadata: SchemaInputValue
 }
 
 type CostDirective @meta(module: "directive/complexity_control") @indexed(id_size: "u32") {

@@ -99,11 +99,6 @@ pub struct ListSizeDirective<'a> {
 }
 
 #[derive(ValueDeserialize)]
-pub struct RequiresScopesDirective<'a> {
-    pub scopes: Vec<Vec<&'a str>>,
-}
-
-#[derive(ValueDeserialize)]
 pub struct DeprecatedDirective<'a> {
     pub reason: Option<&'a str>,
 }

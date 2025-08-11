@@ -4,7 +4,7 @@ use integration_tests::{
     runtime,
 };
 
-use crate::gateway::extensions::authentication::static_token::StaticToken;
+use crate::gateway::extensions::authentication::static_auth::StaticAuth;
 
 #[test]
 fn simple() {
@@ -29,7 +29,7 @@ fn simple() {
                 enabled = true
             "#,
             )
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -84,7 +84,7 @@ fn mcp_is_not_authenticated_but_graphql_is() {
                 enabled = true
             "#,
             )
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -150,7 +150,7 @@ fn mcp_is_authenticated_but_graphql_isnt() {
                 enabled = true
             "#,
             )
-            .with_extension(AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+            .with_extension(AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                 "My error message",
                 ErrorCode::Unauthenticated,
             ))))
@@ -216,14 +216,14 @@ fn different_authentication() {
             "#,
             )
             .with_extension(
-                AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+                AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                     "Auth1",
                     ErrorCode::Unauthenticated,
                 )))
                 .with_name("auth1"),
             )
             .with_extension(
-                AuthenticationExt::new(StaticToken::error_response(GraphqlError::new(
+                AuthenticationExt::new(StaticAuth::error_response(GraphqlError::new(
                     "Auth2",
                     ErrorCode::Unauthenticated,
                 )))

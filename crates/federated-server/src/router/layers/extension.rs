@@ -1,47 +1,51 @@
 use std::{fmt::Display, future::Future, pin::Pin, sync::Arc};
 
 use axum::body::Body;
-use engine::RequestExtensions;
+use engine::{ErrorResponse, GraphqlError, RequestExtensions};
 use event_queue::ExecutedHttpRequest;
+use extension_catalog::ExtensionId;
+use gateway_config::DefaultAuthenticationBehavior;
 use http::{Request, Response};
-use runtime::{
-    authentication::Authenticate,
-    extension::{ExtensionContext, GatewayExtensions, OnRequest},
-};
+use runtime::extension::{ExtensionContext, GatewayExtensions, OnRequest, Token};
 use tower::Layer;
 
 use crate::engine::into_axum_response;
 
 #[derive(Clone)]
-pub struct ExtensionLayer<Ext, A>(Arc<ExtensionLayerInner<Ext, A>>);
+pub struct ExtensionLayer<Ext>(Arc<ExtensionLayerInner<Ext>>);
 
-struct ExtensionLayerInner<Ext, A> {
+struct ExtensionLayerInner<Ext> {
     extensions: Ext,
-    auth: A,
     default_contract_key: Option<String>,
+    authentication_extension_ids: Vec<ExtensionId>,
+    default_authentication_behavior: Option<DefaultAuthenticationBehavior>,
 }
 
-impl<Ext, A> ExtensionLayer<Ext, A>
+impl<Ext> ExtensionLayer<Ext>
 where
     Ext: GatewayExtensions,
-    A: Authenticate<<Ext as GatewayExtensions>::Context>,
 {
-    pub fn new(extensions: Ext, auth: A, default_contract_key: Option<String>) -> Self {
+    pub fn new(
+        extensions: Ext,
+        default_contract_key: Option<String>,
+        authentication_extension_ids: Vec<ExtensionId>,
+        default_authentication_behavior: Option<DefaultAuthenticationBehavior>,
+    ) -> Self {
         Self(Arc::new(ExtensionLayerInner {
             extensions,
-            auth,
             default_contract_key,
+            authentication_extension_ids,
+            default_authentication_behavior,
         }))
     }
 }
 
-impl<Service, Ext, A> Layer<Service> for ExtensionLayer<Ext, A>
+impl<Service, Ext> Layer<Service> for ExtensionLayer<Ext>
 where
     Ext: GatewayExtensions,
-    A: Authenticate<<Ext as GatewayExtensions>::Context>,
     Service: Send + Clone,
 {
-    type Service = ExtensionService<Service, Ext, A>;
+    type Service = ExtensionService<Service, Ext>;
 
     fn layer(&self, next: Service) -> Self::Service {
         ExtensionService {
@@ -52,19 +56,18 @@ where
 }
 
 #[derive(Clone)]
-pub struct ExtensionService<Service, Ext, A> {
+pub struct ExtensionService<Service, Ext> {
     next: Service,
-    layer: Arc<ExtensionLayerInner<Ext, A>>,
+    layer: Arc<ExtensionLayerInner<Ext>>,
 }
 
-impl<Service, Ext, A, ReqBody> tower::Service<Request<ReqBody>> for ExtensionService<Service, Ext, A>
+impl<Service, Ext, ReqBody> tower::Service<Request<ReqBody>> for ExtensionService<Service, Ext>
 where
     Service: tower::Service<Request<ReqBody>, Response = Response<Body>> + Send + Clone + 'static,
     Service::Future: Send,
     Service::Error: Display + 'static,
     ReqBody: http_body::Body + Send + 'static,
     Ext: GatewayExtensions,
-    A: Authenticate<<Ext as GatewayExtensions>::Context>,
 {
     type Response = http::Response<Body>;
     type Error = Service::Error;
@@ -97,10 +100,32 @@ where
                 }
             };
 
-            let headers = std::mem::take(&mut parts.headers);
-            let response = match layer.auth.authenticate(&context, headers).await {
-                Ok((headers, token)) => {
-                    parts.headers = headers;
+            let result = if layer.authentication_extension_ids.is_empty() {
+                match layer.default_authentication_behavior {
+                    Some(DefaultAuthenticationBehavior::Anonymous) | None => Ok(Token::Anonymous),
+                    Some(DefaultAuthenticationBehavior::Deny) => {
+                        Err(ErrorResponse::new(http::StatusCode::UNAUTHORIZED)
+                            .with_error(GraphqlError::unauthenticated()))
+                    }
+                }
+            } else {
+                let headers = std::mem::take(&mut parts.headers);
+                let (headers, result) = layer
+                    .extensions
+                    .authenticate(&context, headers, &layer.authentication_extension_ids)
+                    .await;
+                parts.headers = headers;
+                match result {
+                    Ok(token) => Ok(token),
+                    Err(err) => match layer.default_authentication_behavior {
+                        Some(DefaultAuthenticationBehavior::Anonymous) => Ok(Token::Anonymous),
+                        Some(DefaultAuthenticationBehavior::Deny) | None => Err(err),
+                    },
+                }
+            };
+
+            let response = match result {
+                Ok(token) => {
                     parts
                         .extensions
                         .insert(RequestExtensions::<<Ext as GatewayExtensions>::Context> {
@@ -113,7 +138,7 @@ where
                 }
                 Err(err) => {
                     let error_response = engine::http_error_response(response_format, err);
-                    into_axum_response(error_response)
+                    return Ok(into_axum_response(error_response));
                 }
             };
 
@@ -130,7 +155,7 @@ where
                 Err(err) => {
                     let error_response = engine::http_error_response(
                         response_format,
-                        engine::ErrorResponse::new(http::StatusCode::INTERNAL_SERVER_ERROR)
+                        ErrorResponse::new(http::StatusCode::INTERNAL_SERVER_ERROR)
                             .with_error(engine::GraphqlError::new(err, engine::ErrorCode::ExtensionError)),
                     );
 

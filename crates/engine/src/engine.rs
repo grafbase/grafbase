@@ -3,7 +3,10 @@ pub mod mcp;
 mod retry_budget;
 mod runtime;
 
-use ::runtime::{authentication::LegacyToken, extension::ContractsExtension as _, operation_cache::OperationCache};
+use ::runtime::{
+    extension::{ContractsExtension as _, Token},
+    operation_cache::OperationCache,
+};
 use bytes::Bytes;
 use cache::CacheKey;
 use error::{ErrorCode, ErrorResponse, GraphqlError};
@@ -34,7 +37,7 @@ pub struct ContractAwareEngine<R: Runtime> {
 #[derive(Clone)]
 pub struct RequestExtensions<C> {
     pub context: C,
-    pub token: LegacyToken,
+    pub token: Token,
     pub contract_key: Option<String>,
 }
 

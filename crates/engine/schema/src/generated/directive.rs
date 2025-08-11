@@ -3,13 +3,11 @@
 //! ===================
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/schema.graphql
-mod authorized;
 mod complexity_control;
 mod deprecated;
 mod extension;
 
-use crate::{RequiresScopesDirective, RequiresScopesDirectiveId, prelude::*};
-pub use authorized::*;
+use crate::prelude::*;
 pub use complexity_control::*;
 pub use deprecated::*;
 pub use extension::*;
@@ -19,47 +17,31 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// union TypeSystemDirective
-///   @id
-///   @meta(module: "directive")
-///   @variants(empty: ["Authenticated"], remove_suffix: "Directive") =
+/// union TypeSystemDirective @id @meta(module: "directive") @variants(remove_suffix: "Directive") =
 ///   | DeprecatedDirective
-///   | RequiresScopesDirective
-///   | AuthorizedDirective
 ///   | CostDirective
 ///   | ListSizeDirective
 ///   | ExtensionDirective
 /// ```
 #[derive(serde::Serialize, serde::Deserialize, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum TypeSystemDirectiveId {
-    Authenticated,
-    Authorized(AuthorizedDirectiveId),
     Cost(CostDirectiveId),
     Deprecated(DeprecatedDirectiveRecord),
     Extension(ExtensionDirectiveId),
     ListSize(ListSizeDirectiveId),
-    RequiresScopes(RequiresScopesDirectiveId),
 }
 
 impl std::fmt::Debug for TypeSystemDirectiveId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TypeSystemDirectiveId::Authenticated => write!(f, "Authenticated"),
-            TypeSystemDirectiveId::Authorized(variant) => variant.fmt(f),
             TypeSystemDirectiveId::Cost(variant) => variant.fmt(f),
             TypeSystemDirectiveId::Deprecated(variant) => variant.fmt(f),
             TypeSystemDirectiveId::Extension(variant) => variant.fmt(f),
             TypeSystemDirectiveId::ListSize(variant) => variant.fmt(f),
-            TypeSystemDirectiveId::RequiresScopes(variant) => variant.fmt(f),
         }
     }
 }
 
-impl From<AuthorizedDirectiveId> for TypeSystemDirectiveId {
-    fn from(value: AuthorizedDirectiveId) -> Self {
-        TypeSystemDirectiveId::Authorized(value)
-    }
-}
 impl From<CostDirectiveId> for TypeSystemDirectiveId {
     fn from(value: CostDirectiveId) -> Self {
         TypeSystemDirectiveId::Cost(value)
@@ -80,25 +62,8 @@ impl From<ListSizeDirectiveId> for TypeSystemDirectiveId {
         TypeSystemDirectiveId::ListSize(value)
     }
 }
-impl From<RequiresScopesDirectiveId> for TypeSystemDirectiveId {
-    fn from(value: RequiresScopesDirectiveId) -> Self {
-        TypeSystemDirectiveId::RequiresScopes(value)
-    }
-}
 
 impl TypeSystemDirectiveId {
-    pub fn is_authenticated(&self) -> bool {
-        matches!(self, TypeSystemDirectiveId::Authenticated)
-    }
-    pub fn is_authorized(&self) -> bool {
-        matches!(self, TypeSystemDirectiveId::Authorized(_))
-    }
-    pub fn as_authorized(&self) -> Option<AuthorizedDirectiveId> {
-        match self {
-            TypeSystemDirectiveId::Authorized(id) => Some(*id),
-            _ => None,
-        }
-    }
     pub fn is_cost(&self) -> bool {
         matches!(self, TypeSystemDirectiveId::Cost(_))
     }
@@ -135,47 +100,27 @@ impl TypeSystemDirectiveId {
             _ => None,
         }
     }
-    pub fn is_requires_scopes(&self) -> bool {
-        matches!(self, TypeSystemDirectiveId::RequiresScopes(_))
-    }
-    pub fn as_requires_scopes(&self) -> Option<RequiresScopesDirectiveId> {
-        match self {
-            TypeSystemDirectiveId::RequiresScopes(id) => Some(*id),
-            _ => None,
-        }
-    }
 }
 
 #[derive(Clone, Copy)]
 pub enum TypeSystemDirective<'a> {
-    Authenticated(&'a Schema),
-    Authorized(AuthorizedDirective<'a>),
     Cost(CostDirective<'a>),
     Deprecated(DeprecatedDirective<'a>),
     Extension(ExtensionDirective<'a>),
     ListSize(ListSizeDirective<'a>),
-    RequiresScopes(RequiresScopesDirective<'a>),
 }
 
 impl std::fmt::Debug for TypeSystemDirective<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TypeSystemDirective::Authenticated(_) => write!(f, "Authenticated"),
-            TypeSystemDirective::Authorized(variant) => variant.fmt(f),
             TypeSystemDirective::Cost(variant) => variant.fmt(f),
             TypeSystemDirective::Deprecated(variant) => variant.fmt(f),
             TypeSystemDirective::Extension(variant) => variant.fmt(f),
             TypeSystemDirective::ListSize(variant) => variant.fmt(f),
-            TypeSystemDirective::RequiresScopes(variant) => variant.fmt(f),
         }
     }
 }
 
-impl<'a> From<AuthorizedDirective<'a>> for TypeSystemDirective<'a> {
-    fn from(item: AuthorizedDirective<'a>) -> Self {
-        TypeSystemDirective::Authorized(item)
-    }
-}
 impl<'a> From<CostDirective<'a>> for TypeSystemDirective<'a> {
     fn from(item: CostDirective<'a>) -> Self {
         TypeSystemDirective::Cost(item)
@@ -209,13 +154,10 @@ impl<'a> Walk<&'a Schema> for TypeSystemDirectiveId {
     {
         let schema: &'a Schema = schema.into();
         match self {
-            TypeSystemDirectiveId::Authenticated => TypeSystemDirective::Authenticated(schema),
-            TypeSystemDirectiveId::Authorized(id) => TypeSystemDirective::Authorized(id.walk(schema)),
             TypeSystemDirectiveId::Cost(id) => TypeSystemDirective::Cost(id.walk(schema)),
             TypeSystemDirectiveId::Deprecated(item) => TypeSystemDirective::Deprecated(item.walk(schema)),
             TypeSystemDirectiveId::Extension(id) => TypeSystemDirective::Extension(id.walk(schema)),
             TypeSystemDirectiveId::ListSize(id) => TypeSystemDirective::ListSize(id.walk(schema)),
-            TypeSystemDirectiveId::RequiresScopes(id) => TypeSystemDirective::RequiresScopes(id.walk(schema)),
         }
     }
 }
@@ -223,22 +165,10 @@ impl<'a> Walk<&'a Schema> for TypeSystemDirectiveId {
 impl<'a> TypeSystemDirective<'a> {
     pub fn id(&self) -> TypeSystemDirectiveId {
         match self {
-            TypeSystemDirective::Authenticated(_) => TypeSystemDirectiveId::Authenticated,
-            TypeSystemDirective::Authorized(walker) => TypeSystemDirectiveId::Authorized(walker.id),
             TypeSystemDirective::Cost(walker) => TypeSystemDirectiveId::Cost(walker.id),
             TypeSystemDirective::Deprecated(walker) => TypeSystemDirectiveId::Deprecated(walker.item),
             TypeSystemDirective::Extension(walker) => TypeSystemDirectiveId::Extension(walker.id),
             TypeSystemDirective::ListSize(walker) => TypeSystemDirectiveId::ListSize(walker.id),
-            TypeSystemDirective::RequiresScopes(walker) => TypeSystemDirectiveId::RequiresScopes(walker.id),
-        }
-    }
-    pub fn is_authorized(&self) -> bool {
-        matches!(self, TypeSystemDirective::Authorized(_))
-    }
-    pub fn as_authorized(&self) -> Option<AuthorizedDirective<'a>> {
-        match self {
-            TypeSystemDirective::Authorized(item) => Some(*item),
-            _ => None,
         }
     }
     pub fn is_cost(&self) -> bool {
@@ -274,15 +204,6 @@ impl<'a> TypeSystemDirective<'a> {
     pub fn as_list_size(&self) -> Option<ListSizeDirective<'a>> {
         match self {
             TypeSystemDirective::ListSize(item) => Some(*item),
-            _ => None,
-        }
-    }
-    pub fn is_requires_scopes(&self) -> bool {
-        matches!(self, TypeSystemDirective::RequiresScopes(_))
-    }
-    pub fn as_requires_scopes(&self) -> Option<RequiresScopesDirective<'a>> {
-        match self {
-            TypeSystemDirective::RequiresScopes(item) => Some(*item),
             _ => None,
         }
     }
