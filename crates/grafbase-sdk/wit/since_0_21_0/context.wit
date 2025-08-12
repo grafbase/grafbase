@@ -1,11 +1,6 @@
 interface context {
     use token.{token};
 
-    resource host-context {
-        /// Pushes a new event to the end of the request event queue.
-        push-event: func(name: string, data: list<u8>);
-    }
-
     resource request-context {
         hooks-context: func() -> list<u8>;
     }

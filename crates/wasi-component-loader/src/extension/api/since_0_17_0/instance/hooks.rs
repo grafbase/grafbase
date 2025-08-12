@@ -62,7 +62,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_17_0 {
                 Ok(()) => Ok(OnRequest {
                     parts,
                     contract_key: None,
-                    context: ExtensionRequestContext {
+                    hooks_context: ExtensionRequestContext {
                         event_queue,
                         hooks_context: Default::default(),
                     },

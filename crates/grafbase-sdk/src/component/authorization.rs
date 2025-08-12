@@ -7,12 +7,12 @@ use super::{Component, state};
 
 impl wit::AuthorizationGuest for Component {
     fn authorize_query(
-        host_context: wit::HostContext,
+        event_queue: wit::EventQueue,
         ctx: wit::AuthenticatedRequestContext,
         headers: wit::Headers,
         elements: wit::QueryElements,
     ) -> Result<wit::AuthorizationOutput, wit::ErrorResponse> {
-        state::with_context(host_context, || {
+        state::with_event_queue(event_queue, || {
             let mut headers: Headers = headers.into();
             state::extension()?
                 .authorize_query(&(ctx.into()), &mut headers, (&elements).into())
@@ -35,12 +35,12 @@ impl wit::AuthorizationGuest for Component {
     }
 
     fn authorize_response(
-        host_context: wit::HostContext,
+        event_queue: wit::EventQueue,
         ctx: wit::AuthorizedOperationContext,
         state: Vec<u8>,
         elements: wit::ResponseElements,
     ) -> Result<wit::AuthorizationDecisions, wit::Error> {
-        state::with_context(host_context, || {
+        state::with_event_queue(event_queue, || {
             state::extension()?
                 .authorize_response(&(ctx.into()), state, (&elements).into())
                 .map(Into::into)

@@ -2,6 +2,8 @@ interface event-queue {
     use event-types.{event};
 
     resource event-queue {
+        /// Pushes a new event to the end
+        push: func(name: string, data: list<u8>);
         /// Returns the oldest log entry from the request event queue.
         pop: func() -> option<event>;
     }

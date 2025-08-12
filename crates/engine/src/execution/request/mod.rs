@@ -121,7 +121,8 @@ impl<R: Runtime> Engine<R> {
             subgraph_default_headers,
             include_grafbase_response_extension: ctx.include_grafbase_response_extension,
             include_mcp_response_extension: ctx.include_mcp_response_extension,
-            extension: extensions.context,
+            event_queue: extensions.event_queue,
+            hooks_context: extensions.hooks_context,
         };
 
         Ok(Arc::new(request_context))

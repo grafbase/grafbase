@@ -3,10 +3,11 @@ interface resolver {
     use schema.{definition-id, directive};
     use resolver-types.{response, field-id, field, arguments-id, subscription-item};
     use headers.{headers};
-    use context.{host-context, authorized-operation-context};
+    use context.{authorized-operation-context};
+    use event-queue.{event-queue};
 
     prepare: func(
-        host-context: host-context,
+        event-queue: event-queue,
         subgraph-name: string,
         directive: directive,
         root-field-id: field-id,
@@ -14,7 +15,7 @@ interface resolver {
     ) -> result<list<u8>, error>;
 
     resolve: func(
-        host-context: host-context,
+        event-queue: event-queue,
         context: authorized-operation-context,
         prepared: list<u8>,
         headers: headers,
@@ -22,7 +23,7 @@ interface resolver {
     ) -> response;
 
     create-subscription: func(
-        host-context: host-context,
+        event-queue: event-queue,
         context: authorized-operation-context,
         prepared: list<u8>,
         headers: headers,

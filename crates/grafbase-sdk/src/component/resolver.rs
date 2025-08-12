@@ -3,13 +3,13 @@ use crate::wit;
 
 impl wit::ResolverGuest for Component {
     fn prepare(
-        host_context: wit::HostContext,
+        event_queue: wit::EventQueue,
         subgraph_name: String,
         directive: wit::Directive,
         root_field_id: wit::FieldId,
         fields: Vec<wit::Field>,
     ) -> Result<Vec<u8>, wit::Error> {
-        state::with_context(host_context, || {
+        state::with_event_queue(event_queue, || {
             let result = state::extension()?.prepare(crate::types::ResolvedField {
                 subgraph_name: &subgraph_name,
                 directive_name: &directive.name,
@@ -23,13 +23,13 @@ impl wit::ResolverGuest for Component {
     }
 
     fn resolve(
-        host_context: wit::HostContext,
+        event_queue: wit::EventQueue,
         ctx: wit::AuthorizedOperationContext,
         prepared: Vec<u8>,
         headers: wit::Headers,
         arguments: Vec<(wit::ArgumentsId, Vec<u8>)>,
     ) -> wit::Response {
-        state::with_context(host_context, || {
+        state::with_event_queue(event_queue, || {
             state::extension()
                 .map(|ext| ext.resolve(&(ctx.into()), &prepared, headers.into(), arguments.into()))
                 .into()
@@ -37,13 +37,13 @@ impl wit::ResolverGuest for Component {
     }
 
     fn create_subscription(
-        host_context: wit::HostContext,
+        event_queue: wit::EventQueue,
         ctx: wit::AuthorizedOperationContext,
         prepared: Vec<u8>,
         headers: wit::Headers,
         arguments: Vec<(wit::ArgumentsId, Vec<u8>)>,
     ) -> Result<Option<Vec<u8>>, wit::Error> {
-        state::set_context(host_context);
+        state::set_event_queue(event_queue);
         // SAFETY: We keep prepared Vec alive with the subscription callback until it's called. We
         // also never modify the Vec at any point. Not providing a ref makes the API considerably
         // more tricky to work with.
@@ -69,6 +69,6 @@ impl wit::ResolverGuest for Component {
 
     fn drop_subscription() {
         state::drop_subscription();
-        state::drop_context();
+        state::drop_event_queue();
     }
 }

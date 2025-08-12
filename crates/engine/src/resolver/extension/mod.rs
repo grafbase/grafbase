@@ -45,7 +45,7 @@ impl ExtensionResolver {
                     .runtime()
                     .extensions()
                     .prepare(
-                        ctx.request_context.extension.event_queue.clone(),
+                        ctx.request_context.event_queue.clone(),
                         directive,
                         directive.static_arguments(),
                         field,

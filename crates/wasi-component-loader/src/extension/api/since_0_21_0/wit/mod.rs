@@ -1,6 +1,7 @@
 #![allow(unused)]
 pub mod authorization_types;
 pub mod context;
+pub mod event_queue;
 pub mod hooks_types;
 pub mod token;
 
@@ -24,7 +25,7 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/contracts-types": crate::extension::api::since_0_19_0::wit::contracts_types,
         "grafbase:sdk/event-types": crate::extension::api::since_0_19_0::wit::event_types,
         "grafbase:sdk/http-types": crate::extension::api::since_0_19_0::wit::http_types,
-        "grafbase:sdk/event-queue": crate::extension::api::since_0_19_0::wit::event_queue,
+        "grafbase:sdk/event-queue": event_queue,
         "grafbase:sdk/logger": crate::extension::api::since_0_19_0::wit::logger,
         "grafbase:sdk/context": context,
         "grafbase:sdk/token": token

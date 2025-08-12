@@ -2,7 +2,7 @@ interface hooks {
     use http-types.{http-method};
     use error.{error-response, error};
     use headers.{headers};
-    use context.{host-context, request-context, authorized-operation-context};
+    use context.{request-context, authorized-operation-context};
     use event-queue.{event-queue};
     use hooks-types.{on-request-output, http-request-parts};
 
@@ -11,7 +11,7 @@ interface hooks {
     /// This allows middleware to inspect and potentially modify the request
     /// before it continues through the processing pipeline.
     on-request: func(
-        host-context: host-context,
+        event-queue: event-queue,
         parts: http-request-parts,
     ) -> result<on-request-output, error-response>;
 
@@ -20,22 +20,21 @@ interface hooks {
     /// This allows middleware to inspect and potentially modify the response
     /// before it is sent back to the client.
     on-response: func(
-        host-context: host-context,
+        event-queue: event-queue,
         context: request-context,
         status: u16,
         headers: headers,
-        event-queue: event-queue,
     ) -> result<headers, string>;
 
     on-graphql-subgraph-request: func(
-        host-context: host-context,
+        event-queue: event-queue,
         context: authorized-operation-context,
         subgraph-name: string,
         parts: http-request-parts,
     ) -> result<http-request-parts, error>;
 
     on-virtual-subgraph-request: func(
-        host-context: host-context,
+        event-queue: event-queue,
         context: authorized-operation-context,
         subgraph-name: string,
         headers: headers,

@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use engine_error::ErrorResponse;
+use event_queue::EventQueue;
 use futures::future::BoxFuture;
-use runtime::extension::{ExtensionRequestContext, Token};
+use runtime::extension::Token;
 
 use crate::{
     extension::AuthenticationExtensionInstance,
@@ -10,7 +13,8 @@ use crate::{
 impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_10_0 {
     fn authenticate(
         &mut self,
-        _ctx: &ExtensionRequestContext,
+        _event_queue: &Arc<EventQueue>,
+        _hooks_context: &Arc<[u8]>,
         headers: OwnedOrShared<http::HeaderMap>,
     ) -> BoxFuture<'_, wasmtime::Result<Result<(OwnedOrShared<http::HeaderMap>, Token), ErrorResponse>>> {
         Box::pin(async move {

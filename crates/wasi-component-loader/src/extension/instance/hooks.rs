@@ -5,7 +5,7 @@ use engine_error::{ErrorResponse, GraphqlError};
 use engine_schema::{GraphqlSubgraph, VirtualSubgraph};
 use event_queue::EventQueue;
 use futures::future::BoxFuture;
-use runtime::extension::{ExtensionRequestContext, OnRequest, ReqwestParts};
+use runtime::extension::{OnRequest, ReqwestParts};
 
 #[allow(unused_variables)]
 pub(crate) trait HooksExtensionInstance {
@@ -17,16 +17,15 @@ pub(crate) trait HooksExtensionInstance {
         Box::pin(std::future::ready(Ok(Ok(OnRequest {
             parts,
             contract_key: None,
-            context: ExtensionRequestContext {
-                event_queue: Arc::new(event_queue),
-                hooks_context: Default::default(),
-            },
+            event_queue: Arc::new(event_queue),
+            hooks_context: Default::default(),
         }))))
     }
 
     fn on_response(
         &mut self,
-        ctx: ExtensionRequestContext,
+        event_queue: Arc<EventQueue>,
+        hooks_context: Arc<[u8]>,
         parts: http::response::Parts,
     ) -> BoxFuture<'_, wasmtime::Result<Result<http::response::Parts, String>>> {
         Box::pin(std::future::ready(Ok(Ok(parts))))

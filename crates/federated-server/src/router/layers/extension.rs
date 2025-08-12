@@ -89,7 +89,7 @@ where
             let response_format = engine::ResponseFormat::extract_from(&parts.headers).unwrap_or_default();
 
             let OnRequest {
-                context,
+                hooks_context: context,
                 mut parts,
                 contract_key,
             } = match layer.extensions.on_request(parts).await {

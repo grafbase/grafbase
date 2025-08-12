@@ -1,14 +1,14 @@
 use std::{future::Future, sync::Arc};
 
 use error::ErrorResponse;
+use event_queue::EventQueue;
 use extension_catalog::ExtensionId;
-
-use crate::extension::ExtensionRequestContext;
 
 pub trait AuthenticationExtension: Send + Sync + 'static {
     fn authenticate(
         &self,
-        ctx: &ExtensionRequestContext,
+        event_queue: &Arc<EventQueue>,
+        hooks_context: &Arc<[u8]>,
         gateway_headers: http::HeaderMap,
         ids: &[ExtensionId],
     ) -> impl Future<Output = (http::HeaderMap, Result<Token, ErrorResponse>)> + Send;

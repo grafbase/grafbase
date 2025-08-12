@@ -3,7 +3,8 @@ interface authentication {
     use headers.{headers};
     use error.{error-response, error};
     use token.{token};
-    use context.{request-context, host-context};
+    use context.{request-context};
+    use event-queue.{event-queue};
 
     /// Authenticates a request using the provided headers.
     ///
@@ -17,7 +18,7 @@ interface authentication {
     /// - `Ok(token)`: Authentication successful, returns a valid token
     /// - `Err(error-response)`: Authentication failed, returns error details
     authenticate: func(
-        host-context: host-context,
+        event-queue: event-queue,
         context: request-context,
         gateway-headers: headers,
     ) -> result<tuple<headers, token>, error-response>;

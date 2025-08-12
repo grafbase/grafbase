@@ -4,7 +4,7 @@ pub use super::grafbase::sdk::event_types::*;
 
 impl Host for InstanceState {}
 
-pub(super) fn convert_event(state: &mut InstanceState, event: event_queue::Event) -> wasmtime::Result<Event> {
+pub(crate) fn convert_event(state: &mut InstanceState, event: event_queue::Event) -> wasmtime::Result<Event> {
     let event = match event {
         event_queue::Event::Operation(op) => Event::Operation(op.into()),
         event_queue::Event::Subgraph(event) => convert_subgraph_event(state, event)?,

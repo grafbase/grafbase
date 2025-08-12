@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use engine::{EngineOperationContext, EngineRequestContext};
 use event_queue::EventQueue;
-use runtime::extension::ExtensionRequestContext;
 
 use crate::resources::EventQueueResource;
 
@@ -21,21 +20,15 @@ impl From<Arc<EventQueue>> for LegacyWasmContext {
     }
 }
 
-impl From<&ExtensionRequestContext> for LegacyWasmContext {
-    fn from(ctx: &ExtensionRequestContext) -> Self {
-        Self(ctx.event_queue.clone())
-    }
-}
-
 impl From<&EngineOperationContext> for LegacyWasmContext {
     fn from(ctx: &EngineOperationContext) -> Self {
-        Self(ctx.extension().event_queue.clone())
+        Self(ctx.event_queue().clone())
     }
 }
 
 impl From<&EngineRequestContext> for LegacyWasmContext {
     fn from(ctx: &EngineRequestContext) -> Self {
-        Self(ctx.extension().event_queue.clone())
+        Self(ctx.event_queue().clone())
     }
 }
 

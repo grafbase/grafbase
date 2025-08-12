@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
+use event_queue::EventQueue;
 use grafbase_telemetry::grafbase_client::Client;
-use runtime::extension::{ExtensionRequestContext, Token};
+use runtime::extension::Token;
 
 use crate::graphql_over_http::{ContentType, ResponseFormat};
 
@@ -27,5 +30,6 @@ pub(crate) struct RequestContext {
     pub subgraph_default_headers: http::HeaderMap,
     pub include_grafbase_response_extension: bool,
     pub include_mcp_response_extension: bool,
-    pub extension: ExtensionRequestContext,
+    pub event_queue: Arc<EventQueue>,
+    pub hooks_context: Arc<[u8]>,
 }

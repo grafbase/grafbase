@@ -58,7 +58,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                     Ok(OnRequest {
                         parts,
                         contract_key,
-                        context: ExtensionRequestContext {
+                        hooks_context: ExtensionRequestContext {
                             event_queue,
                             hooks_context: Default::default(),
                         },

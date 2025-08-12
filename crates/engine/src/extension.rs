@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
+use event_queue::EventQueue;
 use extension_catalog::ExtensionId;
-use runtime::extension::{ExtensionRequestContext, Token};
+use runtime::extension::Token;
 
 use crate::{
     Runtime,
@@ -19,8 +20,12 @@ impl From<&Arc<RequestContext>> for EngineRequestContext {
 }
 
 impl EngineRequestContext {
-    pub fn extension(&self) -> &ExtensionRequestContext {
-        &self.0.extension
+    pub fn event_queue(&self) -> &Arc<EventQueue> {
+        &self.0.event_queue
+    }
+
+    pub fn hooks_context(&self) -> &Arc<[u8]> {
+        &self.0.hooks_context
     }
 
     pub fn token(&self) -> &Token {
@@ -44,8 +49,12 @@ impl<R: Runtime> From<&ExecutionContext<'_, R>> for EngineOperationContext {
 }
 
 impl EngineOperationContext {
-    pub fn extension(&self) -> &ExtensionRequestContext {
-        &self.request.extension
+    pub fn event_queue(&self) -> &Arc<EventQueue> {
+        &self.request.event_queue
+    }
+
+    pub fn hooks_context(&self) -> &Arc<[u8]> {
+        &self.request.hooks_context
     }
 
     pub fn token(&self) -> &Token {

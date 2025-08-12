@@ -9,11 +9,6 @@ use url::Url;
 pub struct OnRequest {
     pub parts: request::Parts,
     pub contract_key: Option<String>,
-    pub context: ExtensionRequestContext,
-}
-
-#[derive(Clone, Default)]
-pub struct ExtensionRequestContext {
     pub event_queue: Arc<EventQueue>,
     // Arc for Wasmtime because we can't return an non 'static value from a function.
     pub hooks_context: Arc<[u8]>,
@@ -24,7 +19,8 @@ pub trait GatewayHooksExtension: Clone + Send + Sync + 'static {
 
     fn on_response(
         &self,
-        context: ExtensionRequestContext,
+        event_queue: Arc<EventQueue>,
+        hooks_context: Arc<[u8]>,
         parts: response::Parts,
     ) -> impl Future<Output = Result<response::Parts, String>> + Send;
 }

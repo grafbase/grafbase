@@ -5,9 +5,7 @@ use engine_error::{ErrorResponse, GraphqlError};
 use engine_schema::{GraphqlSubgraph, VirtualSubgraph};
 use event_queue::EventQueue;
 use http::{request, response};
-use runtime::extension::{
-    EngineHooksExtension, ExtensionRequestContext, GatewayHooksExtension, OnRequest, ReqwestParts,
-};
+use runtime::extension::{EngineHooksExtension, GatewayHooksExtension, OnRequest, ReqwestParts};
 
 use crate::{
     extension::{EngineWasmExtensions, GatewayWasmExtensions},
@@ -21,10 +19,8 @@ impl GatewayHooksExtension for GatewayWasmExtensions {
             return Ok(OnRequest {
                 parts,
                 contract_key: None,
-                context: ExtensionRequestContext {
-                    event_queue: Arc::new(event_queue),
-                    hooks_context: Default::default(),
-                },
+                event_queue: Arc::new(event_queue),
+                hooks_context: Default::default(),
             });
         };
 
@@ -38,7 +34,8 @@ impl GatewayHooksExtension for GatewayWasmExtensions {
 
     async fn on_response(
         &self,
-        context: ExtensionRequestContext,
+        event_queue: Arc<EventQueue>,
+        hooks_context: Arc<[u8]>,
         parts: response::Parts,
     ) -> Result<response::Parts, String> {
         let Some(pool) = self.hooks.as_ref() else {
@@ -46,7 +43,7 @@ impl GatewayHooksExtension for GatewayWasmExtensions {
         };
         let mut instance = pool.get().await.map_err(|e| e.to_string())?;
 
-        wasmsafe!(instance.on_response(context, parts).await)
+        wasmsafe!(instance.on_response(event_queue, hooks_context, parts).await)
     }
 }
 

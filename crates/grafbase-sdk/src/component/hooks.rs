@@ -6,10 +6,10 @@ use crate::{
 
 impl wit::HooksGuest for Component {
     fn on_request(
-        host_context: wit::HostContext,
+        event_queue: wit::EventQueue,
         parts: wit::HttpRequestParts,
     ) -> Result<wit::OnRequestOutput, wit::ErrorResponse> {
-        state::with_context(host_context, || {
+        state::with_event_queue(event_queue, || {
             let mut parts: HttpRequestParts = parts.into();
 
             state::extension()?
@@ -24,33 +24,30 @@ impl wit::HooksGuest for Component {
     }
 
     fn on_response(
-        host_context: wit::HostContext,
+        event_queue: wit::EventQueue,
         ctx: wit::RequestContext,
         status: u16,
         headers: wit::Headers,
-        event_queue: wit::EventQueue,
     ) -> Result<wit::Headers, String> {
-        state::with_context(host_context, || {
-            let status = http::StatusCode::from_u16(status)
-                .expect("we converted this from http::StatusCode in the host, this cannot be invalid");
+        let status = http::StatusCode::from_u16(status)
+            .expect("we converted this from http::StatusCode in the host, this cannot be invalid");
 
-            let mut headers: Headers = headers.into();
+        let mut headers: Headers = headers.into();
 
-            state::extension()
-                .map_err(|err| err.message)?
-                .on_response(&(ctx.into()), status, &mut headers, event_queue.into())
-                .map(|_| headers.into())
-                .map_err(|err| err.0.message)
-        })
+        state::extension()
+            .map_err(|err| err.message)?
+            .on_response(&(ctx.into()), status, &mut headers, event_queue.into())
+            .map(|_| headers.into())
+            .map_err(|err| err.0.message)
     }
 
     fn on_virtual_subgraph_request(
-        host_context: wit::HostContext,
+        event_queue: wit::EventQueue,
         ctx: wit::AuthorizedOperationContext,
         subgraph_name: String,
         headers: wit::Headers,
     ) -> Result<wit::Headers, wit::Error> {
-        state::with_context(host_context, || {
+        state::with_event_queue(event_queue, || {
             let mut headers: Headers = headers.into();
 
             state::extension()?
@@ -61,12 +58,12 @@ impl wit::HooksGuest for Component {
     }
 
     fn on_graphql_subgraph_request(
-        host_context: wit::HostContext,
+        event_queue: wit::EventQueue,
         ctx: wit::AuthorizedOperationContext,
         subgraph_name: String,
         parts: wit::HttpRequestParts,
     ) -> Result<wit::HttpRequestParts, wit::Error> {
-        state::with_context(host_context, || {
+        state::with_event_queue(event_queue, || {
             let mut parts: HttpRequestParts = parts.into();
 
             state::extension()?

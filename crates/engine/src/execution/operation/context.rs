@@ -28,7 +28,7 @@ impl<R: Runtime> std::marker::Copy for ExecutionContext<'_, R> {}
 
 impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     pub fn event_queue(&self) -> &'ctx EventQueue {
-        &self.request_context.extension.event_queue
+        &self.request_context.event_queue
     }
 
     pub fn subgraph_headers_with_rules(&self, rules: impl Iterator<Item = HeaderRule<'ctx>>) -> http::HeaderMap {

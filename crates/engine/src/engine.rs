@@ -4,12 +4,13 @@ mod retry_budget;
 mod runtime;
 
 use ::runtime::{
-    extension::{ContractsExtension as _, ExtensionRequestContext, Token},
+    extension::{ContractsExtension as _, Token},
     operation_cache::OperationCache,
 };
 use bytes::Bytes;
 use cache::CacheKey;
 use error::{ErrorCode, ErrorResponse, GraphqlError};
+use event_queue::EventQueue;
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
 use retry_budget::RetryBudgets;
@@ -36,9 +37,10 @@ pub struct ContractAwareEngine<R: Runtime> {
 
 #[derive(Clone)]
 pub struct RequestExtensions {
-    pub context: ExtensionRequestContext,
     pub token: Token,
     pub contract_key: Option<String>,
+    pub event_queue: Arc<EventQueue>,
+    pub hooks_context: Arc<[u8]>,
 }
 
 impl<R: Runtime> ContractAwareEngine<R> {

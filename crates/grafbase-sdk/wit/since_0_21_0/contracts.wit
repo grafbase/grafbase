@@ -1,7 +1,6 @@
 interface contracts {
     use schema.{directive};
     use contracts-types.{contract, graphql-subgraph};
-    use context.{host-context};
 
     construct: func(
         // contact key used for caching.
