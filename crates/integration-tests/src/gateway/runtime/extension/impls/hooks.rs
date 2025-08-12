@@ -1,4 +1,5 @@
 use engine::GraphqlError;
+use engine_schema::{GraphqlSubgraph, VirtualSubgraph};
 use runtime::extension::{EngineHooksExtension, GatewayHooksExtension, OnRequest, ReqwestParts};
 
 use crate::gateway::{EngineTestExtensions, ExtContext, GatewayTestExtensions};
@@ -9,6 +10,7 @@ impl GatewayHooksExtension<ExtContext> for GatewayTestExtensions {
             context,
             parts,
             contract_key,
+            state,
         } = self.wasm.on_request(parts).await?;
         let ctx = ExtContext {
             wasm: context,
@@ -18,6 +20,7 @@ impl GatewayHooksExtension<ExtContext> for GatewayTestExtensions {
             context: ctx,
             parts,
             contract_key,
+            state,
         })
     }
 
@@ -34,17 +37,20 @@ impl EngineHooksExtension<ExtContext> for EngineTestExtensions {
     async fn on_graphql_subgraph_request(
         &self,
         context: &ExtContext,
+        subgraph: GraphqlSubgraph<'_>,
         parts: ReqwestParts,
     ) -> Result<ReqwestParts, GraphqlError> {
-        self.wasm.on_graphql_subgraph_request(&context.wasm, parts).await
+        self.wasm
+            .on_graphql_subgraph_request(&context.wasm, subgraph, parts)
+            .await
     }
 
-    fn on_virtual_subgraph_request(
+    async fn on_virtual_subgraph_request(
         &self,
         context: &ExtContext,
-        subgraph: engine_schema::VirtualSubgraph<'_>,
+        subgraph: VirtualSubgraph<'_>,
         headers: http::HeaderMap,
-    ) -> impl Future<Output = Result<http::HeaderMap, GraphqlError>> + Send {
+    ) -> Result<http::HeaderMap, GraphqlError> {
         self.wasm
             .on_virtual_subgraph_request(&context.wasm, subgraph, headers)
             .await

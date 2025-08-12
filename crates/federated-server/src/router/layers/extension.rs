@@ -92,6 +92,7 @@ where
                 context,
                 mut parts,
                 contract_key,
+                state,
             } = match layer.extensions.on_request(parts).await {
                 Ok(on_request) => on_request,
                 Err(err) => {

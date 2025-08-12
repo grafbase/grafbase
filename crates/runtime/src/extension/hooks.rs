@@ -1,4 +1,4 @@
-use std::{future::Future, sync::Arc};
+use std::future::Future;
 
 use engine_schema::{GraphqlSubgraph, VirtualSubgraph};
 use error::{ErrorResponse, GraphqlError};
@@ -11,7 +11,7 @@ pub struct OnRequest<C> {
     pub context: C,
     pub parts: request::Parts,
     pub contract_key: Option<String>,
-    pub state: Arc<[u8]>,
+    pub state: Vec<u8>,
 }
 
 pub trait GatewayHooksExtension<Context: ExtensionContext>: Clone + Send + Sync + 'static {

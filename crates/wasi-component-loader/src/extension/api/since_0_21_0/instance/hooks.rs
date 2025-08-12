@@ -55,7 +55,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
                         context,
                         parts,
                         contract_key,
-                        state: state.into(),
+                        state,
                     })
                 }
                 Err(err) => Err(self
