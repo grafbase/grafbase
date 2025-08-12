@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use extension_catalog::ExtensionId;
-use runtime::extension::TokenRef;
+use runtime::extension::{ExtensionRequestContext, TokenRef};
 
 use crate::{
     Runtime,
@@ -9,36 +9,32 @@ use crate::{
     prepare::PreparedOperation,
 };
 
-pub struct EngineAuthenticatedContext(Arc<RequestContext>);
+#[derive(Clone)]
+pub struct EngineRequestContext(Arc<RequestContext>);
 
-impl From<&Arc<RequestContext>> for EngineAuthenticatedContext {
+impl From<&Arc<RequestContext>> for EngineRequestContext {
     fn from(ctx: &Arc<RequestContext>) -> Self {
         Self(ctx.clone())
     }
 }
 
-impl runtime::extension::OnRequestContext for EngineAuthenticatedContext {
-    fn event_queue(&self) -> &event_queue::EventQueue {
-        &self.0.extension.event_queue
+impl EngineRequestContext {
+    pub fn extension(&self) -> &Arc<ExtensionRequestContext> {
+        &self.0.extension
     }
 
-    fn hooks_context(&self) -> &[u8] {
-        &self.0.extension.hooks_context
-    }
-}
-
-impl runtime::extension::AuthenticatedContext for EngineAuthenticatedContext {
-    fn token(&self) -> TokenRef<'_> {
+    pub fn token(&self) -> TokenRef<'_> {
         self.0.token.as_ref()
     }
 }
 
-pub struct EngineAuthorizedContext {
+#[derive(Clone)]
+pub struct EngineOperationContext {
     request: Arc<RequestContext>,
     operation: Arc<PreparedOperation>,
 }
 
-impl<R: Runtime> From<&ExecutionContext<'_, R>> for EngineAuthorizedContext {
+impl<R: Runtime> From<&ExecutionContext<'_, R>> for EngineOperationContext {
     fn from(ctx: &ExecutionContext<'_, R>) -> Self {
         Self {
             request: ctx.request_context.clone(),
@@ -47,28 +43,20 @@ impl<R: Runtime> From<&ExecutionContext<'_, R>> for EngineAuthorizedContext {
     }
 }
 
-impl runtime::extension::OnRequestContext for EngineAuthorizedContext {
-    fn event_queue(&self) -> &event_queue::EventQueue {
-        &self.request.extension.event_queue
+impl EngineOperationContext {
+    pub fn extension(&self) -> &Arc<ExtensionRequestContext> {
+        &self.request.extension
     }
 
-    fn hooks_context(&self) -> &[u8] {
-        &self.request.extension.hooks_context
-    }
-}
-
-impl runtime::extension::AuthenticatedContext for EngineAuthorizedContext {
-    fn token(&self) -> TokenRef<'_> {
+    pub fn token(&self) -> TokenRef<'_> {
         self.request.token.as_ref()
     }
-}
 
-impl runtime::extension::AuthorizedContext for EngineAuthorizedContext {
-    fn authorization_context(&self) -> &[(ExtensionId, Vec<u8>)] {
+    pub fn authorization_context(&self) -> &[(ExtensionId, Vec<u8>)] {
         &self.operation.plan.query_modifications.extension.authorization_context
     }
 
-    fn authorization_state(&self) -> &[(ExtensionId, Vec<u8>)] {
+    pub fn authorization_state(&self) -> &[(ExtensionId, Vec<u8>)] {
         &self.operation.plan.query_modifications.extension.authorization_state
     }
 }

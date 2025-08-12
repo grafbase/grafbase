@@ -1,13 +1,15 @@
+use std::sync::Arc;
+
 use engine_error::{ErrorCode, ErrorResponse};
 use futures::future::BoxFuture;
-use runtime::extension::{PublicMetadataEndpoint, Token};
+use runtime::extension::{ExtensionRequestContext, PublicMetadataEndpoint, Token};
 
-use crate::{WasmContext, extension::AuthenticationExtensionInstance, resources::Headers};
+use crate::{LegacyWasmContext, extension::AuthenticationExtensionInstance, resources::Headers};
 
 impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_21_0 {
     fn authenticate<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        ctx: Arc<ExtensionRequestContext>,
         headers: Headers,
     ) -> BoxFuture<'a, wasmtime::Result<Result<(Headers, Token), ErrorResponse>>> {
         Box::pin(async move {

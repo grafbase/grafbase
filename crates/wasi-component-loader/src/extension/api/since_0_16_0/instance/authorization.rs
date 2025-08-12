@@ -1,9 +1,9 @@
+use engine::{EngineOperationContext, EngineRequestContext};
 use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
 use crate::{
-    WasmContext,
     extension::{
         AuthorizationExtensionInstance, AuthorizeQueryOutput,
         api::{
@@ -17,7 +17,7 @@ use crate::{
 impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_16_0 {
     fn authorize_query<'a>(
         &'a mut self,
-        _: &'a WasmContext,
+        _ctx: EngineRequestContext,
         headers: OwnedOrShared<http::HeaderMap>,
         token: TokenRef<'a>,
         elements: QueryElements<'a>,
@@ -43,6 +43,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_16_0 {
                     subgraph_headers: headers,
                     additional_headers: None,
                     decisions: decisions.into(),
+                    context: Default::default(),
                     state,
                 }),
                 Err(err) => Err(self
@@ -57,7 +58,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_16_0 {
 
     fn authorize_response<'a>(
         &'a mut self,
-        _: &'a WasmContext,
+        _ctx: EngineOperationContext,
         state: &'a [u8],
         elements: ResponseElements<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizationDecisions, GraphqlError>>> {

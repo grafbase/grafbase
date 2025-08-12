@@ -18,7 +18,7 @@ mod state;
 #[cfg(test)]
 mod tests;
 
-pub use context::WasmContext;
+pub use context::LegacyWasmContext;
 pub use crossbeam::channel::Sender;
 pub use crossbeam::sync::WaitGroup;
 pub use extension::api::wit::Error as GuestError;

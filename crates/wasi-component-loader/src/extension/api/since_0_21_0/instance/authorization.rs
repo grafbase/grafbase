@@ -1,22 +1,20 @@
+use engine::{EngineOperationContext, EngineRequestContext};
 use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
-use crate::{
-    WasmContext,
-    extension::{
-        AuthorizationExtensionInstance, AuthorizeQueryOutput,
-        api::{
-            since_0_21_0::wit::exports::grafbase::sdk::authorization::AuthorizationOutput,
-            wit::{Headers, QueryElements, ResponseElements},
-        },
+use crate::extension::{
+    AuthorizationExtensionInstance, AuthorizeQueryOutput,
+    api::{
+        since_0_21_0::wit::exports::grafbase::sdk::authorization::AuthorizationOutput,
+        wit::{Headers, QueryElements, ResponseElements},
     },
 };
 
 impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_21_0 {
     fn authorize_query<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        ctx: EngineRequestContext,
         headers: Headers,
         token: TokenRef<'a>,
         elements: QueryElements<'a>,
@@ -34,7 +32,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_21_0 {
             let result = match result {
                 Ok(AuthorizationOutput {
                     decisions,
-                    context: _,
+                    context,
                     state,
                     subgraph_headers,
                     additional_headers,
@@ -49,6 +47,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_21_0 {
                         subgraph_headers,
                         additional_headers,
                         decisions: decisions.into(),
+                        context,
                         state,
                     })
                 }
@@ -64,7 +63,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_21_0 {
 
     fn authorize_response<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        ctx: EngineOperationContext,
         state: &'a [u8],
         elements: ResponseElements<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizationDecisions, GraphqlError>>> {

@@ -1,12 +1,15 @@
+use std::sync::Arc;
+
 use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use engine_schema::GraphqlSubgraph;
+use event_queue::EventQueue;
 use futures::future::BoxFuture;
 use http::{request, response};
 use runtime::extension::{OnRequest, ReqwestParts};
 use url::Url;
 
 use crate::{
-    WasmContext,
+    LegacyWasmContext,
     extension::{
         HooksExtensionInstance,
         api::wit::{self, HttpMethod, HttpRequestPartsParam},
@@ -17,7 +20,7 @@ use crate::{
 impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
     fn on_request<'a>(
         &'a mut self,
-        context: WasmContext,
+        event_queue: EventQueue,
         mut parts: request::Parts,
     ) -> BoxFuture<'a, wasmtime::Result<Result<OnRequest, ErrorResponse>>> {
         Box::pin(async move {
@@ -26,7 +29,12 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
 
             let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
 
-            let ctx = self.store.data_mut().resources.push(context.clone())?;
+            let event_queue = Arc::new(event_queue);
+            let ctx = self
+                .store
+                .data_mut()
+                .resources
+                .push(LegacyWasmContext::from(event_queue.clone()))?;
 
             let method: HttpMethod = (&parts.method).try_into()?;
 
@@ -48,14 +56,14 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
                 Ok(wit::OnRequestOutput {
                     headers,
                     contract_key,
-                    context: state,
+                    context,
                 }) => {
                     parts.headers = self.store.data_mut().resources.delete(headers)?.into_inner().unwrap();
                     Ok(OnRequest {
-                        context,
+                        event_queue,
                         parts,
                         contract_key,
-                        context: state,
+                        context,
                     })
                 }
                 Err(err) => Err(self
@@ -70,7 +78,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
 
     fn on_response(
         &mut self,
-        context: WasmContext,
+        context: LegacyWasmContext,
         mut parts: response::Parts,
     ) -> BoxFuture<'_, wasmtime::Result<Result<response::Parts, String>>> {
         Box::pin(async move {
@@ -101,7 +109,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
 
     fn on_graphql_subgraph_request<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        context: &'a LegacyWasmContext,
         subgraph: GraphqlSubgraph<'a>,
         ReqwestParts { url, method, headers }: ReqwestParts,
     ) -> BoxFuture<'a, wasmtime::Result<Result<ReqwestParts, GraphqlError>>> {

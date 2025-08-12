@@ -4,7 +4,7 @@ use runtime::extension::ResolverExtension as _;
 use walker::Walk;
 
 use crate::{
-    EngineAuthorizedContext, Runtime,
+    EngineOperationContext, Runtime,
     execution::ExecutionContext,
     prepare::Plan,
     response::{ResponseBuilder, ResponsePartBuilder},
@@ -26,7 +26,7 @@ impl super::ExtensionResolver {
             .runtime()
             .extensions()
             .resolve_subscription(
-                EngineAuthorizedContext::from(&ctx),
+                EngineOperationContext::from(&ctx),
                 definition.directive(),
                 &prepared.extension_data,
                 subgraph_headers,

@@ -1,5 +1,5 @@
 use crate::{
-    WasmContext, cbor,
+    cbor,
     extension::{AuthorizeQueryOutput, api::wit},
     resources::OwnedOrShared,
     wasmsafe,
@@ -7,31 +7,29 @@ use crate::{
 
 use super::EngineWasmExtensions;
 
+use engine::{EngineOperationContext, EngineRequestContext};
 use engine_error::{ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use extension_catalog::ExtensionId;
 use futures::{TryStreamExt, stream::FuturesUnordered};
 use itertools::Itertools as _;
 use runtime::extension::{
-    Anything, AuthorizationDecisions, AuthorizationExtension, QueryAuthorizationDecisions, QueryElement, TokenRef,
+    Anything, AuthorizationDecisions, AuthorizationExtension, AuthorizeQuery, QueryAuthorizationDecisions,
+    QueryElement, TokenRef,
 };
 use std::{future::Future, ops::Range, sync::Arc};
 
-impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
-    type State = Vec<(ExtensionId, Vec<u8>)>;
-
+impl AuthorizationExtension<EngineRequestContext, EngineOperationContext> for EngineWasmExtensions {
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
-        ctx: &'ctx WasmContext,
+        ctx: EngineRequestContext,
         headers: http::HeaderMap,
         token: TokenRef<'ctx>,
         extensions: Extensions,
         // (directive name, range within query_elements)
         directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
         query_elements: impl ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
-    ) -> impl Future<Output = Result<(Self::State, http::HeaderMap, Vec<QueryAuthorizationDecisions>), ErrorResponse>>
-    + Send
-    + 'fut
+    ) -> impl Future<Output = Result<AuthorizeQuery, ErrorResponse>> + Send + 'fut
     where
         'ctx: 'fut,
         // (extension id, range within directives, range within query_elements)
@@ -95,10 +93,11 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
         };
 
         async move {
+            let ctx_ref = &ctx;
             let headers_ref = &headers;
             let directive_names = &directive_names;
             let elements = &elements;
-            let (decisions, state, additional_headers): (Vec<_>, Vec<_>, Vec<_>) = extensions
+            let (decisions, state, context, additional_headers): (Vec<_>, Vec<_>, Vec<_>, Vec<_>) = extensions
                 .into_iter()
                 .map(
                     move |(extension_id, directive_range, query_elements_range)| async move {
@@ -106,7 +105,7 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
                         wasmsafe!(
                             instance
                                 .authorize_query(
-                                    ctx,
+                                    ctx_ref.clone(),
                                     headers_ref.clone_shared().unwrap(),
                                     token,
                                     wit::QueryElements {
@@ -121,6 +120,7 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
                                  subgraph_headers: _,
                                  additional_headers,
                                  decisions,
+                                 context,
                                  state,
                              }| {
                                 (
@@ -130,6 +130,7 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
                                         decisions,
                                     },
                                     (extension_id, state),
+                                    (extension_id, context),
                                     additional_headers,
                                 )
                             },
@@ -146,14 +147,18 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
             for additional_headers in additional_headers.into_iter().flatten() {
                 headers.extend(additional_headers);
             }
-            Ok((state, headers, decisions))
+            Ok(AuthorizeQuery {
+                headers,
+                decisions,
+                context,
+                state,
+            })
         }
     }
 
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
-        ctx: &'ctx WasmContext,
-        state: &'ctx Self::State,
+        ctx: EngineOperationContext,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
@@ -168,7 +173,8 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
             .collect::<Vec<_>>();
 
         async move {
-            let state = state
+            let state = ctx
+                .authorization_state()
                 .iter()
                 .find_map(|(id, state)| {
                     if *id == extension_id {
@@ -184,7 +190,7 @@ impl AuthorizationExtension<WasmContext> for EngineWasmExtensions {
             wasmsafe!(
                 instance
                     .authorize_response(
-                        ctx,
+                        ctx.clone(),
                         state,
                         wit::ResponseElements {
                             directive_names: vec![(directive_name, 0, 1)],

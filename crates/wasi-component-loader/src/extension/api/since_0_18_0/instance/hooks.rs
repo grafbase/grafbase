@@ -1,10 +1,13 @@
+use std::sync::Arc;
+
 use engine_error::{ErrorCode, ErrorResponse};
+use event_queue::EventQueue;
 use futures::future::BoxFuture;
 use http::{request, response};
-use runtime::extension::OnRequest;
+use runtime::extension::{ExtensionRequestContext, OnRequest};
 
 use crate::{
-    WasmContext,
+    LegacyWasmContext,
     extension::{HooksExtensionInstance, api::since_0_17_0::world::HttpMethod},
     resources::{EventQueueProxy, LegacyHeaders, OwnedOrShared},
 };
@@ -12,9 +15,9 @@ use crate::{
 impl HooksExtensionInstance for super::ExtensionInstanceSince0_18_0 {
     fn on_request<'a>(
         &'a mut self,
-        context: WasmContext,
+        event_queue: EventQueue,
         mut parts: request::Parts,
-    ) -> BoxFuture<'a, wasmtime::Result<Result<OnRequest<WasmContext>, ErrorResponse>>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<OnRequest, ErrorResponse>>> {
         Box::pin(async move {
             let headers = std::mem::take(&mut parts.headers);
             let url = parts.uri.to_string();
@@ -23,7 +26,12 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_18_0 {
             let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
-            let ctx = self.store.data_mut().resources.push(context.clone())?;
+            let event_queue = Arc::new(event_queue);
+            let ctx = self
+                .store
+                .data_mut()
+                .resources
+                .push(LegacyWasmContext::from(event_queue.clone()))?;
 
             let method = match &parts.method {
                 m if m == http::Method::GET => HttpMethod::Get,
@@ -53,10 +61,12 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_18_0 {
 
             let output = match result {
                 Ok(()) => Ok(OnRequest {
-                    context,
                     parts,
                     contract_key: None,
-                    context: Default::default(),
+                    context: Arc::new(ExtensionRequestContext {
+                        event_queue,
+                        hooks_context: Vec::new(),
+                    }),
                 }),
                 Err(err) => Err(self
                     .store
@@ -70,7 +80,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_18_0 {
 
     fn on_response(
         &mut self,
-        context: WasmContext,
+        ctx: Arc<ExtensionRequestContext>,
         mut parts: response::Parts,
     ) -> BoxFuture<'_, wasmtime::Result<Result<response::Parts, String>>> {
         Box::pin(async move {
@@ -81,8 +91,9 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_18_0 {
             let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
-            let queue = self.store.data_mut().resources.push(EventQueueProxy(context.clone()))?;
-            let context = self.store.data_mut().resources.push(context)?;
+            let ctx = LegacyWasmContext::from(ctx.event_queue.clone());
+            let queue = self.store.data_mut().resources.push(EventQueueProxy(ctx.clone()))?;
+            let context = self.store.data_mut().resources.push(ctx)?;
 
             let result = self
                 .inner

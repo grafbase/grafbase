@@ -1,9 +1,10 @@
+use engine::{EngineOperationContext, EngineRequestContext};
 use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
 use crate::{
-    WasmContext,
+    LegacyWasmContext,
     extension::{
         AuthorizationExtensionInstance, AuthorizeQueryOutput,
         api::{
@@ -17,13 +18,13 @@ use crate::{
 impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
     fn authorize_query<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        ctx: EngineRequestContext,
         headers: OwnedOrShared<http::HeaderMap>,
         token: TokenRef<'a>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizeQueryOutput, ErrorResponse>>> {
         Box::pin(async move {
-            let context = self.store.data_mut().resources.push(context.clone())?;
+            let context = self.store.data_mut().resources.push(LegacyWasmContext::from(&ctx))?;
             let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
@@ -45,6 +46,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
                     subgraph_headers: headers,
                     additional_headers: None,
                     decisions: decisions.into(),
+                    context: Default::default(),
                     state,
                 }),
                 Err(err) => Err(self
@@ -59,12 +61,12 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
 
     fn authorize_response<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        ctx: EngineOperationContext,
         state: &'a [u8],
         elements: ResponseElements<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizationDecisions, GraphqlError>>> {
         Box::pin(async move {
-            let context = self.store.data_mut().resources.push(context.clone())?;
+            let context = self.store.data_mut().resources.push(LegacyWasmContext::from(&ctx))?;
 
             let result = self
                 .inner

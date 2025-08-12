@@ -4,7 +4,7 @@ use runtime::extension::ResolverExtension;
 use walker::Walk;
 
 use crate::{
-    EngineAuthorizedContext, Runtime,
+    EngineOperationContext, Runtime,
     execution::ExecutionContext,
     prepare::Plan,
     response::{ParentObjects, ResponsePartBuilder},
@@ -43,7 +43,7 @@ impl super::ExtensionResolver {
                 ctx.runtime()
                     .extensions()
                     .resolve(
-                        EngineAuthorizedContext::from(&ctx),
+                        EngineOperationContext::from(&ctx),
                         definition.directive(),
                         &prepared.extension_data,
                         // TODO: use Arc instead of clone?
@@ -91,7 +91,7 @@ impl super::ExtensionResolver {
                     ctx.runtime()
                         .extensions()
                         .resolve(
-                            EngineAuthorizedContext::from(&ctx),
+                            EngineOperationContext::from(&ctx),
                             definition.directive(),
                             &prepared.extension_data,
                             // TODO: use Arc instead of clone?

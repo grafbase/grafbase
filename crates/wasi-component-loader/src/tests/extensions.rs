@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use crate::{
-    ExtensionState, WasmContext,
+    ExtensionState, LegacyWasmContext,
     extension::{ExtensionConfig, ExtensionLoader, WasmConfig, build_engine},
 };
 use engine_schema::Schema;
@@ -48,7 +48,7 @@ async fn single_call_caching_auth() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
-    let context = WasmContext::default();
+    let context = LegacyWasmContext::default();
 
     let (headers, token) = loader
         .instantiate()
@@ -108,7 +108,7 @@ async fn single_call_caching_auth_invalid() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
-    let context = WasmContext::default();
+    let context = LegacyWasmContext::default();
 
     let err = loader
         .instantiate()
@@ -174,7 +174,7 @@ async fn multiple_cache_calls() {
             headers.insert("Authorization", HeaderValue::from_static("valid"));
             headers.insert("value", HeaderValue::from_str(&format!("value_{i}")).unwrap());
 
-            let context = WasmContext::default();
+            let context = LegacyWasmContext::default();
 
             let (_, token) = extension.authenticate(&context, headers.into()).await.unwrap().unwrap();
 
@@ -202,7 +202,7 @@ async fn multiple_cache_calls() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("nonvalid"));
 
-    let context = WasmContext::default();
+    let context = LegacyWasmContext::default();
 
     let (_, token) = loader
         .instantiate()
@@ -259,7 +259,7 @@ async fn on_request_hook() {
         .instantiate()
         .await
         .unwrap()
-        .on_request(WasmContext::default(), parts)
+        .on_request(LegacyWasmContext::default(), parts)
         .await
         .unwrap()
         .unwrap();
@@ -297,7 +297,7 @@ async fn on_response_hook() {
         .instantiate()
         .await
         .unwrap()
-        .on_response(WasmContext::default(), parts)
+        .on_response(LegacyWasmContext::default(), parts)
         .await
         .unwrap()
         .unwrap();

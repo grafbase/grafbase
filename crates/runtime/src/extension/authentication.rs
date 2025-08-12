@@ -1,19 +1,17 @@
-use std::future::Future;
+use std::{future::Future, sync::Arc};
 
 use error::ErrorResponse;
 use extension_catalog::ExtensionId;
 
-use crate::extension::OnRequestContext;
+use crate::extension::ExtensionRequestContext;
 
 pub trait AuthenticationExtension: Send + Sync + 'static {
-    fn authenticate<Context>(
+    fn authenticate(
         &self,
-        ctx: Context,
+        ctx: Arc<ExtensionRequestContext>,
         gateway_headers: http::HeaderMap,
         ids: &[ExtensionId],
-    ) -> impl Future<Output = (http::HeaderMap, Result<Token, ErrorResponse>)> + Send
-    where
-        Context: OnRequestContext;
+    ) -> impl Future<Output = (http::HeaderMap, Result<Token, ErrorResponse>)> + Send;
 
     fn public_metadata_endpoints(&self) -> impl Future<Output = Result<Vec<PublicMetadataEndpoint>, String>> + Send;
 }

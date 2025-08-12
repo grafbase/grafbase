@@ -1,12 +1,13 @@
 mod subscription;
 
+use engine::EngineOperationContext;
 use engine_error::GraphqlError;
 use engine_schema::ExtensionDirective;
 use futures::{StreamExt as _, stream::BoxStream};
 use runtime::extension::{Anything, ArgumentsId, Field as _, ResolverExtension, Response, SelectionSet as _};
 
 use crate::{
-    WasmContext, cbor,
+    cbor,
     extension::{
         EngineWasmExtensions,
         api::wit::{self, Field, SelectionSet},
@@ -15,10 +16,9 @@ use crate::{
 };
 
 #[allow(clippy::manual_async_fn)]
-impl ResolverExtension<WasmContext> for EngineWasmExtensions {
+impl ResolverExtension<EngineOperationContext> for EngineWasmExtensions {
     async fn prepare<'ctx, F: runtime::extension::Field<'ctx>>(
         &'ctx self,
-        ctx: &'ctx WasmContext,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
@@ -61,16 +61,12 @@ impl ResolverExtension<WasmContext> for EngineWasmExtensions {
             arguments: cbor::to_vec(directive_arguments).unwrap(),
         };
 
-        wasmsafe!(
-            instance
-                .prepare(ctx, directive.subgraph().name(), dir, 0, &fields)
-                .await
-        )
+        wasmsafe!(instance.prepare(directive.subgraph().name(), dir, 0, &fields).await)
     }
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
-        ctx: &'ctx WasmContext,
+        ctx: EngineOperationContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -110,7 +106,7 @@ impl ResolverExtension<WasmContext> for EngineWasmExtensions {
 
     fn resolve_subscription<'ctx, 'resp, 'f>(
         &'ctx self,
-        ctx: &'ctx WasmContext,
+        ctx: EngineOperationContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -146,7 +142,7 @@ impl ResolverExtension<WasmContext> for EngineWasmExtensions {
             instance.recyclable = false;
             let result = wasmsafe!(
                 instance
-                    .create_subscription(ctx, subgraph_headers, prepared_data, &arguments_refs)
+                    .create_subscription(ctx.clone(), subgraph_headers, prepared_data, &arguments_refs)
                     .await
             );
 
@@ -157,12 +153,12 @@ impl ResolverExtension<WasmContext> for EngineWasmExtensions {
                             extensions: self.clone(),
                             key,
                             instance,
-                            context: ctx.clone(),
+                            context: ctx,
                         }
                         .resolve()
                         .await
                     }
-                    None => subscription::UniqueSubscription { instance }.resolve(ctx.clone()).await,
+                    None => subscription::UniqueSubscription { instance }.resolve(ctx).await,
                 },
                 Err(err) => {
                     let response = Response {

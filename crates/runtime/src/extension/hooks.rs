@@ -1,4 +1,4 @@
-use std::future::Future;
+use std::{future::Future, sync::Arc};
 
 use engine_schema::{GraphqlSubgraph, VirtualSubgraph};
 use error::{ErrorResponse, GraphqlError};
@@ -6,25 +6,25 @@ use event_queue::EventQueue;
 use http::{request, response};
 use url::Url;
 
-use crate::extension::{AuthorizedContext, OnRequestContext};
-
 pub struct OnRequest {
-    pub event_queue: EventQueue,
     pub parts: request::Parts,
     pub contract_key: Option<String>,
-    pub context: Vec<u8>,
+    pub context: Arc<ExtensionRequestContext>,
+}
+
+pub struct ExtensionRequestContext {
+    pub event_queue: Arc<EventQueue>,
+    pub hooks_context: Vec<u8>,
 }
 
 pub trait GatewayHooksExtension: Clone + Send + Sync + 'static {
     fn on_request(&self, parts: request::Parts) -> impl Future<Output = Result<OnRequest, ErrorResponse>> + Send;
 
-    fn on_response<Context>(
+    fn on_response(
         &self,
-        context: Context,
+        context: Arc<ExtensionRequestContext>,
         parts: response::Parts,
-    ) -> impl Future<Output = Result<response::Parts, String>> + Send
-    where
-        Context: OnRequestContext;
+    ) -> impl Future<Output = Result<response::Parts, String>> + Send;
 }
 
 pub struct ReqwestParts {
@@ -33,22 +33,18 @@ pub struct ReqwestParts {
     pub headers: http::HeaderMap,
 }
 
-pub trait EngineHooksExtension: Send + Sync + 'static {
-    fn on_graphql_subgraph_request<Context>(
+pub trait EngineHooksExtension<OperationContext>: Send + Sync + 'static {
+    fn on_graphql_subgraph_request(
         &self,
-        context: Context,
+        context: OperationContext,
         subgraph: GraphqlSubgraph<'_>,
         parts: ReqwestParts,
-    ) -> impl Future<Output = Result<ReqwestParts, GraphqlError>> + Send
-    where
-        Context: AuthorizedContext;
+    ) -> impl Future<Output = Result<ReqwestParts, GraphqlError>> + Send;
 
-    fn on_virtual_subgraph_request<Context>(
+    fn on_virtual_subgraph_request(
         &self,
-        context: Context,
+        context: OperationContext,
         subgraph: VirtualSubgraph<'_>,
         headers: http::HeaderMap,
-    ) -> impl Future<Output = Result<http::HeaderMap, GraphqlError>> + Send
-    where
-        Context: AuthorizedContext;
+    ) -> impl Future<Output = Result<http::HeaderMap, GraphqlError>> + Send;
 }

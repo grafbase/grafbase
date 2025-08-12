@@ -1,17 +1,14 @@
+use engine::EngineOperationContext;
 use engine_error::GraphqlError;
 use futures::future::BoxFuture;
 use runtime::extension::Response;
 
-use crate::{
-    WasmContext,
-    extension::api::wit::{ArgumentsId, Directive, Field, FieldId, SubscriptionItem},
-};
+use crate::extension::api::wit::{ArgumentsId, Directive, Field, FieldId, SubscriptionItem};
 
 #[allow(unused_variables)]
 pub(crate) trait ResolverExtensionInstance {
     fn prepare<'a>(
         &'a mut self,
-        context: &'a WasmContext,
         subgraph_name: &'a str,
         directive: Directive<'a>,
         field_id: FieldId,
@@ -22,7 +19,7 @@ pub(crate) trait ResolverExtensionInstance {
 
     fn resolve<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        ctx: EngineOperationContext,
         headers: http::HeaderMap,
         prepared: &'a [u8],
         arguments: &'a [(ArgumentsId, &'a [u8])],
@@ -33,7 +30,7 @@ pub(crate) trait ResolverExtensionInstance {
     #[allow(clippy::type_complexity)]
     fn create_subscription<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        ctx: EngineOperationContext,
         headers: http::HeaderMap,
         prepared: &'a [u8],
         arguments: &'a [(ArgumentsId, &'a [u8])],
@@ -45,15 +42,15 @@ pub(crate) trait ResolverExtensionInstance {
     // the underlying WIT functions doesn't return a result, the only one we have right now.
     fn drop_subscription<'a>(
         &'a mut self,
-        context: WasmContext,
+        ctx: &'a EngineOperationContext,
     ) -> BoxFuture<'a, wasmtime::Result<wasmtime::Result<()>>> {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 
-    fn resolve_next_subscription_item(
-        &mut self,
-        context: WasmContext,
-    ) -> BoxFuture<'_, wasmtime::Result<Result<Option<SubscriptionItem>, GraphqlError>>> {
+    fn resolve_next_subscription_item<'a>(
+        &'a mut self,
+        ctx: &'a EngineOperationContext,
+    ) -> BoxFuture<'a, wasmtime::Result<Result<Option<SubscriptionItem>, GraphqlError>>> {
         Box::pin(async { unreachable!("Not supported by this SDK") })
     }
 }

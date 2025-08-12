@@ -1,11 +1,11 @@
 use dashmap::Entry;
+use engine::EngineOperationContext;
 use engine_error::{ErrorCode, GraphqlError};
 use runtime::extension::Response;
 use tokio::sync::broadcast;
 use tokio_stream::{StreamExt, wrappers::BroadcastStream};
 
 use crate::{
-    WasmContext,
     extension::{EngineWasmExtensions, ExtensionGuard, api::wit::SubscriptionItem},
     wasmsafe,
 };
@@ -22,7 +22,7 @@ pub struct DeduplicatedSubscription {
     pub extensions: EngineWasmExtensions,
     pub key: Vec<u8>,
     pub instance: ExtensionGuard,
-    pub context: WasmContext,
+    pub context: EngineOperationContext,
 }
 
 impl DeduplicatedSubscription {
@@ -59,7 +59,7 @@ impl DeduplicatedSubscription {
             let mut client_registrations_closed = false;
 
             loop {
-                let next = wasmsafe!(instance.resolve_next_subscription_item(context.clone()).await);
+                let next = wasmsafe!(instance.resolve_next_subscription_item(&context).await);
 
                 let items = match next {
                     Ok(Some(item)) => match item {
@@ -70,7 +70,7 @@ impl DeduplicatedSubscription {
                         SubscriptionItem::Multiple(items) => items,
                     },
                     Ok(None) => {
-                        if let Err(err) = wasmsafe!(instance.drop_subscription(context).await) {
+                        if let Err(err) = wasmsafe!(instance.drop_subscription(&context).await) {
                             tracing::error!("Error dropping subscription: {err}");
                         }
                         instance.recyclable = true;
@@ -80,7 +80,7 @@ impl DeduplicatedSubscription {
                         return;
                     }
                     Err(err) => {
-                        if let Err(err) = wasmsafe!(instance.drop_subscription(context).await) {
+                        if let Err(err) = wasmsafe!(instance.drop_subscription(&context).await) {
                             tracing::error!("Error dropping subscription: {err}");
                         }
                         instance.recyclable = true;
@@ -96,7 +96,7 @@ impl DeduplicatedSubscription {
                     if sender.send(item.into()).is_err() {
                         tracing::debug!("all subscribers are gone");
                         if client_registrations_closed {
-                            if let Err(err) = wasmsafe!(instance.drop_subscription(context.clone()).await) {
+                            if let Err(err) = wasmsafe!(instance.drop_subscription(&context).await) {
                                 tracing::error!("Error dropping subscription: {err}");
                             }
                             instance.recyclable = true;

@@ -4,14 +4,12 @@ use engine_schema::{DirectiveSite, Subgraph};
 use error::{ErrorResponse, GraphqlError};
 use extension_catalog::ExtensionId;
 
-use crate::extension::{AuthenticatedContext, AuthorizedContext};
-
 use super::{Anything, TokenRef};
 
-pub trait AuthorizationExtension: Send + Sync + 'static {
-    fn authorize_query<'ctx, 'fut, Context, Extensions, Arguments>(
+pub trait AuthorizationExtension<RequestContext, OperationContext>: Send + Sync + 'static {
+    fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
-        ctx: Context,
+        ctx: RequestContext,
         subgraph_headers: http::HeaderMap,
         token: TokenRef<'ctx>,
         extensions: Extensions,
@@ -21,7 +19,6 @@ pub trait AuthorizationExtension: Send + Sync + 'static {
     ) -> impl Future<Output = Result<AuthorizeQuery, ErrorResponse>> + Send + 'fut
     where
         'ctx: 'fut,
-        Context: AuthenticatedContext,
         // (extension id, range within directives, range within query_elements)
         Extensions: IntoIterator<
                 Item = (ExtensionId, Range<usize>, Range<usize>),
@@ -31,17 +28,16 @@ pub trait AuthorizationExtension: Send + Sync + 'static {
             + 'ctx,
         Arguments: Anything<'ctx>;
 
-    fn authorize_response<'ctx, 'fut, Context>(
+    fn authorize_response<'ctx, 'fut>(
         &'ctx self,
-        ctx: Context,
+        ctx: OperationContext,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
         items: impl IntoIterator<Item: Anything<'ctx>>,
     ) -> impl Future<Output = Result<AuthorizationDecisions, GraphqlError>> + Send + 'fut
     where
-        'ctx: 'fut,
-        Context: AuthorizedContext;
+        'ctx: 'fut;
 }
 
 #[derive(Clone, Debug)]

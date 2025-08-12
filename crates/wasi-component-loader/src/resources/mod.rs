@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 use sqlx::Postgres;
 
-pub use crate::context::WasmContext;
+pub use crate::context::LegacyWasmContext;
 pub use cache::*;
 pub use headers::*;
 pub use kafka_consumer::*;
@@ -34,7 +34,7 @@ pub type PgTransaction = sqlx::Transaction<'static, Postgres>;
 pub type PgRow = sqlx::postgres::PgRow;
 pub type FileLogger = file_logger::FileLogger;
 
-pub struct EventQueueProxy(pub(crate) WasmContext);
+pub struct EventQueueProxy(pub(crate) LegacyWasmContext);
 pub type AccessLogSender = ();
 
 /// It's not possible to provide a reference to wasmtime, it must be static and there are too many

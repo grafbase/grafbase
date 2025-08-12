@@ -12,7 +12,7 @@ use serde::Deserialize;
 use walker::Walk;
 
 use crate::{
-    EngineAuthenticatedContext, Runtime,
+    EngineRequestContext, Runtime,
     execution::find_matching_denied_header,
     prepare::{
         CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, Derive, FieldShapeId, GraphqlError,
@@ -135,7 +135,7 @@ where
             .ctx
             .extensions()
             .authorize_query(
-                EngineAuthenticatedContext::from(self.ctx.request_context),
+                EngineRequestContext::from(self.ctx.request_context),
                 headers,
                 self.ctx.access_token().as_ref(),
                 extensions,

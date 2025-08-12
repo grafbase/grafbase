@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
-use crate::{WasmContext, extension::GatewayWasmExtensions, wasmsafe};
+use crate::{extension::GatewayWasmExtensions, wasmsafe};
 use engine_error::ErrorResponse;
 use extension_catalog::ExtensionId;
 use futures::{StreamExt as _, TryStreamExt as _, stream::FuturesUnordered};
-use runtime::extension::{AuthenticationExtension, PublicMetadataEndpoint, Token};
+use runtime::extension::{AuthenticationExtension, ExtensionRequestContext, PublicMetadataEndpoint, Token};
 
-impl AuthenticationExtension<WasmContext> for GatewayWasmExtensions {
+impl AuthenticationExtension for GatewayWasmExtensions {
     async fn authenticate(
         &self,
-        context: &WasmContext,
+        context: Arc<ExtensionRequestContext>,
         gateway_headers: http::HeaderMap,
         ids: &[ExtensionId],
     ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
@@ -24,7 +24,7 @@ impl AuthenticationExtension<WasmContext> for GatewayWasmExtensions {
                     tracing::error!("Failed to get authentication instance: {err}");
                     ErrorResponse::internal_extension_error()
                 })?;
-                wasmsafe!(instance.authenticate(context, headers.clone().into()).await)
+                wasmsafe!(instance.authenticate(context.clone(), headers.clone().into()).await)
             })
             .collect::<FuturesUnordered<_>>()
             .map(|result| match result {

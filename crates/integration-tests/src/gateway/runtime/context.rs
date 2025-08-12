@@ -8,7 +8,7 @@ use runtime::extension::ExtensionContext;
 
 #[derive(Default, Clone)]
 pub struct ExtContext {
-    pub wasm: wasi_component_loader::WasmContext,
+    pub wasm: wasi_component_loader::LegacyWasmContext,
     pub kv: Arc<Mutex<HashMap<String, serde_json::Value>>>,
 }
 

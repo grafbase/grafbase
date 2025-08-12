@@ -1,38 +1,32 @@
 use std::sync::Arc;
 
+use engine::{EngineOperationContext, EngineRequestContext};
 use event_queue::EventQueue;
-use runtime::extension::ExtensionContext;
 
-#[derive(Clone)]
-pub struct WasmContext(Arc<WasmContextInner>);
+#[derive(Default, Clone)]
+pub struct LegacyWasmContext(Arc<EventQueue>);
 
-impl std::ops::Deref for WasmContext {
-    type Target = WasmContextInner;
+impl From<Arc<EventQueue>> for LegacyWasmContext {
+    fn from(event_queue: Arc<EventQueue>) -> Self {
+        Self(event_queue)
+    }
+}
+
+impl From<&EngineOperationContext> for LegacyWasmContext {
+    fn from(ctx: &EngineOperationContext) -> Self {
+        Self(ctx.extension().event_queue.clone())
+    }
+}
+
+impl From<&EngineRequestContext> for LegacyWasmContext {
+    fn from(ctx: &EngineRequestContext) -> Self {
+        Self(ctx.extension().event_queue.clone())
+    }
+}
+
+impl std::ops::Deref for LegacyWasmContext {
+    type Target = EventQueue;
     fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-pub struct WasmContextInner {
-    pub event_queue: EventQueue,
-}
-
-impl ExtensionContext for WasmContext {
-    fn event_queue(&self) -> &EventQueue {
-        &self.event_queue
-    }
-}
-
-impl Default for WasmContext {
-    fn default() -> Self {
-        WasmContext(Arc::new(WasmContextInner {
-            event_queue: EventQueue::default(),
-        }))
-    }
-}
-
-impl WasmContext {
-    pub fn new(event_queue: EventQueue) -> Self {
-        WasmContext(Arc::new(WasmContextInner { event_queue }))
+        self.0.as_ref()
     }
 }

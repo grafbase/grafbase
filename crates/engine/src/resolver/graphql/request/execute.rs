@@ -17,7 +17,7 @@ use tower::retry::budget::Budget;
 use tracing::{Instrument, Span};
 
 use crate::{
-    EngineAuthorizedContext, Runtime,
+    EngineOperationContext, Runtime,
     execution::{ExecutionError, ExecutionResult},
     resolver::graphql::SubgraphContext,
     response::{ErrorCode, GraphqlError, ResponsePartBuilder},
@@ -51,7 +51,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
         } = ctx
             .extensions()
             .on_graphql_subgraph_request(
-                EngineAuthorizedContext::from(&ctx.ctx),
+                EngineOperationContext::from(&ctx.ctx),
                 ctx.endpoint,
                 ReqwestParts {
                     url: endpoint.url().clone(),

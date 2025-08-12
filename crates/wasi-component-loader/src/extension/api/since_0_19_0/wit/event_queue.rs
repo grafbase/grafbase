@@ -10,7 +10,7 @@ impl HostEventQueue for InstanceState {
     async fn pop(&mut self, self_: Resource<EventQueueProxy>) -> wasmtime::Result<Option<Event>> {
         let this = self.resources.get(&self_)?;
 
-        match this.0.event_queue.pop() {
+        match this.0.pop() {
             Some(event) => Ok(Some(super::event_types::convert_event(self, event)?)),
             None => Ok(None),
         }

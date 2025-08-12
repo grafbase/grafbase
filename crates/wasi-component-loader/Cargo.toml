@@ -20,6 +20,7 @@ crossbeam = { workspace = true, features = ["crossbeam-channel"] }
 dashmap.workspace = true
 deadpool.workspace = true
 either.workspace = true
+engine.workspace = true
 engine-error.workspace = true
 engine-schema.workspace = true
 enumflags2.workspace = true

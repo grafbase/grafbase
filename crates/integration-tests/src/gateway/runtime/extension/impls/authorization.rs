@@ -9,7 +9,7 @@ use runtime::{
     extension::{AuthorizationDecisions, AuthorizationExtension, QueryAuthorizationDecisions, QueryElement, TokenRef},
 };
 use tokio::sync::RwLock;
-use wasi_component_loader::{WasmContext, extension::EngineWasmExtensions};
+use wasi_component_loader::{LegacyWasmContext, extension::EngineWasmExtensions};
 
 use crate::gateway::{
     DispatchRule, EngineTestExtensions, ExtContext, ExtensionsBuilder, TestExtensions, TestManifest,
@@ -18,7 +18,7 @@ use crate::gateway::{
 
 #[derive(Default)]
 pub struct State {
-    wasm: <EngineWasmExtensions as AuthorizationExtension<WasmContext>>::State,
+    wasm: <EngineWasmExtensions as AuthorizationExtension<LegacyWasmContext>>::State,
 }
 
 impl AuthorizationExtension<ExtContext> for EngineTestExtensions {

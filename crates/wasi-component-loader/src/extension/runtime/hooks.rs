@@ -1,11 +1,15 @@
+use std::sync::Arc;
+
+use engine::EngineOperationContext;
 use engine_error::{ErrorResponse, GraphqlError};
 use engine_schema::{GraphqlSubgraph, VirtualSubgraph};
 use event_queue::EventQueue;
 use http::{request, response};
-use runtime::extension::{EngineHooksExtension, GatewayHooksExtension, OnRequest, ReqwestParts};
+use runtime::extension::{
+    EngineHooksExtension, ExtensionRequestContext, GatewayHooksExtension, OnRequest, ReqwestParts,
+};
 
 use crate::{
-    WasmContext,
     extension::{EngineWasmExtensions, GatewayWasmExtensions},
     wasmsafe,
 };
@@ -15,10 +19,12 @@ impl GatewayHooksExtension for GatewayWasmExtensions {
         let event_queue = EventQueue::new(self.hooks_event_filter);
         let Some(pool) = self.hooks.as_ref() else {
             return Ok(OnRequest {
-                event_queue,
                 parts,
                 contract_key: None,
-                context: Default::default(),
+                context: Arc::new(ExtensionRequestContext {
+                    event_queue: Arc::new(event_queue),
+                    hooks_context: Vec::new(),
+                }),
             });
         };
 
@@ -27,10 +33,14 @@ impl GatewayHooksExtension for GatewayWasmExtensions {
             ErrorResponse::internal_extension_error()
         })?;
 
-        wasmsafe!(instance.on_request(context, parts).await)
+        wasmsafe!(instance.on_request(event_queue, parts).await)
     }
 
-    async fn on_response(&self, context: WasmContext, parts: response::Parts) -> Result<response::Parts, String> {
+    async fn on_response(
+        &self,
+        context: Arc<ExtensionRequestContext>,
+        parts: response::Parts,
+    ) -> Result<response::Parts, String> {
         let Some(pool) = self.hooks.as_ref() else {
             return Ok(parts);
         };
@@ -40,10 +50,10 @@ impl GatewayHooksExtension for GatewayWasmExtensions {
     }
 }
 
-impl EngineHooksExtension<WasmContext> for EngineWasmExtensions {
+impl EngineHooksExtension<EngineOperationContext> for EngineWasmExtensions {
     async fn on_graphql_subgraph_request(
         &self,
-        context: &WasmContext,
+        context: EngineOperationContext,
         subgraph: GraphqlSubgraph<'_>,
         parts: ReqwestParts,
     ) -> Result<ReqwestParts, GraphqlError> {
@@ -60,7 +70,7 @@ impl EngineHooksExtension<WasmContext> for EngineWasmExtensions {
 
     async fn on_virtual_subgraph_request(
         &self,
-        context: &WasmContext,
+        context: EngineOperationContext,
         subgraph: VirtualSubgraph<'_>,
         headers: http::HeaderMap,
     ) -> Result<http::HeaderMap, GraphqlError> {

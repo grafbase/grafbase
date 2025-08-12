@@ -1,9 +1,10 @@
+use engine::EngineOperationContext;
 use engine_error::{ErrorCode, GraphqlError};
 use futures::future::BoxFuture;
 use runtime::extension::Response;
 
 use crate::{
-    WasmContext,
+    LegacyWasmContext,
     extension::{
         ResolverExtensionInstance,
         api::wit::{ArgumentsId, Directive, Field, FieldId, SubscriptionItem},
@@ -14,14 +15,13 @@ use crate::{
 impl ResolverExtensionInstance for super::ExtensionInstanceSince0_19_0 {
     fn prepare<'a>(
         &'a mut self,
-        context: &'a WasmContext,
         subgraph_name: &'a str,
         directive: Directive<'a>,
         field_id: FieldId,
         fields: &'a [Field<'a>],
     ) -> BoxFuture<'a, wasmtime::Result<Result<Vec<u8>, GraphqlError>>> {
         Box::pin(async move {
-            let context = self.store.data_mut().resources.push(context.clone())?;
+            let context = self.store.data_mut().resources.push(LegacyWasmContext::default())?;
 
             let result = self
                 .inner
@@ -35,14 +35,14 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_19_0 {
 
     fn resolve<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        ctx: EngineOperationContext,
         headers: http::HeaderMap,
         prepared: &'a [u8],
         arguments: &'a [(ArgumentsId, &'a [u8])],
     ) -> BoxFuture<'a, wasmtime::Result<Response>> {
         Box::pin(async move {
             let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
-            let context = self.store.data_mut().resources.push(context.clone())?;
+            let context = self.store.data_mut().resources.push(LegacyWasmContext::from(&ctx))?;
 
             let response = self
                 .inner
@@ -56,14 +56,14 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_19_0 {
 
     fn create_subscription<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        ctx: EngineOperationContext,
         headers: http::HeaderMap,
         prepared: &'a [u8],
         arguments: &'a [(ArgumentsId, &'a [u8])],
     ) -> BoxFuture<'a, wasmtime::Result<Result<Option<Vec<u8>>, GraphqlError>>> {
         Box::pin(async move {
             let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
-            let context = self.store.data_mut().resources.push(context.clone())?;
+            let context = self.store.data_mut().resources.push(LegacyWasmContext::from(&ctx))?;
 
             let result = self
                 .inner
@@ -77,10 +77,10 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_19_0 {
 
     fn drop_subscription<'a>(
         &'a mut self,
-        context: WasmContext,
+        ctx: &'a EngineOperationContext,
     ) -> BoxFuture<'a, wasmtime::Result<wasmtime::Result<()>>> {
         Box::pin(async move {
-            let context = self.store.data_mut().resources.push(context)?;
+            let context = self.store.data_mut().resources.push(LegacyWasmContext::from(ctx))?;
 
             self.inner
                 .grafbase_sdk_resolver()
@@ -91,12 +91,12 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_19_0 {
         })
     }
 
-    fn resolve_next_subscription_item(
-        &mut self,
-        context: WasmContext,
-    ) -> BoxFuture<'_, wasmtime::Result<Result<Option<SubscriptionItem>, GraphqlError>>> {
+    fn resolve_next_subscription_item<'a>(
+        &'a mut self,
+        ctx: &'a EngineOperationContext,
+    ) -> BoxFuture<'a, wasmtime::Result<Result<Option<SubscriptionItem>, GraphqlError>>> {
         Box::pin(async move {
-            let context = self.store.data_mut().resources.push(context)?;
+            let context = self.store.data_mut().resources.push(LegacyWasmContext::from(ctx))?;
 
             let result = self
                 .inner

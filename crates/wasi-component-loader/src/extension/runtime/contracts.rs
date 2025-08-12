@@ -11,13 +11,13 @@ use rapidhash::fast::RapidHashMap;
 use runtime::extension::ContractsExtension;
 
 use crate::{
-    WasmContext, cbor,
+    cbor,
     extension::{EngineWasmExtensions, api::wit},
     wasmsafe,
 };
 
-impl ContractsExtension<WasmContext> for EngineWasmExtensions {
-    async fn construct(&self, context: &WasmContext, key: String, schema: Schema) -> Option<Schema> {
+impl ContractsExtension for EngineWasmExtensions {
+    async fn construct(&self, key: String, schema: Schema) -> Option<Schema> {
         let mut instance = match self.contracts().await {
             Ok(Some(instance)) => instance,
             Ok(None) => {
@@ -41,7 +41,7 @@ impl ContractsExtension<WasmContext> for EngineWasmExtensions {
             })
             .collect();
 
-        let mut contract = match wasmsafe!(instance.construct(context, &key, &directives, subgraphs).await) {
+        let mut contract = match wasmsafe!(instance.construct(&key, &directives, subgraphs).await) {
             Ok(contract) => contract,
             Err(err) => {
                 tracing::error!("Failed to construct contract for key {key}: {err}");
