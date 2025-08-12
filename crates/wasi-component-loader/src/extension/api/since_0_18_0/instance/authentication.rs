@@ -5,9 +5,8 @@ use futures::future::BoxFuture;
 use runtime::extension::{ExtensionRequestContext, PublicMetadataEndpoint, Token};
 
 use crate::{
-    LegacyWasmContext,
     extension::AuthenticationExtensionInstance,
-    resources::{LegacyHeaders, OwnedOrShared},
+    resources::{LegacyHeaders, LegacyWasmContext, OwnedOrShared},
 };
 
 impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_18_0 {

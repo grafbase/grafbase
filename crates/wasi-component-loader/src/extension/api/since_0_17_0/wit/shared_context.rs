@@ -2,7 +2,7 @@ use wasmtime::component::{Resource, ResourceType, WasmList, WasmStr};
 
 use crate::InstanceState;
 
-pub(crate) use crate::LegacyWasmContext as SharedContext;
+pub(crate) use crate::resources::LegacyWasmContext as SharedContext;
 
 impl Host for InstanceState {}
 

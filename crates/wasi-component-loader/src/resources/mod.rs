@@ -1,4 +1,5 @@
 mod cache;
+mod context;
 mod file_logger;
 mod headers;
 mod kafka_consumer;
@@ -10,8 +11,8 @@ use std::sync::Arc;
 
 use sqlx::Postgres;
 
-pub use crate::context::LegacyWasmContext;
 pub use cache::*;
+pub use context::*;
 pub use headers::*;
 pub use kafka_consumer::*;
 pub use kafka_producer::*;

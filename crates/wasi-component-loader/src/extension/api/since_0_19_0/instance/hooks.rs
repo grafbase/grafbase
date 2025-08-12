@@ -10,9 +10,11 @@ use runtime::extension::{ExtensionRequestContext, OnRequest, ReqwestParts};
 use url::Url;
 
 use crate::{
-    LegacyWasmContext,
-    extension::{HooksExtensionInstance, api::since_0_19_0::world as wit19, api::wit::HttpMethod},
-    resources::{EventQueueProxy, Headers},
+    extension::{
+        HooksExtensionInstance,
+        api::{since_0_19_0::world as wit19, wit::HttpMethod},
+    },
+    resources::{EventQueueProxy, Headers, LegacyWasmContext},
 };
 
 impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {

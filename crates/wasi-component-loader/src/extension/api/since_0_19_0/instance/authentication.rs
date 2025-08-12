@@ -4,7 +4,10 @@ use engine_error::{ErrorCode, ErrorResponse};
 use futures::future::BoxFuture;
 use runtime::extension::{ExtensionRequestContext, PublicMetadataEndpoint, Token};
 
-use crate::{LegacyWasmContext, extension::AuthenticationExtensionInstance, resources::Headers};
+use crate::{
+    extension::AuthenticationExtensionInstance,
+    resources::{Headers, LegacyWasmContext},
+};
 
 impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_19_0 {
     fn authenticate<'a>(

@@ -4,7 +4,6 @@ use futures::future::BoxFuture;
 use runtime::extension::{AuthorizationDecisions, TokenRef};
 
 use crate::{
-    LegacyWasmContext,
     extension::{
         AuthorizationExtensionInstance, AuthorizeQueryOutput,
         api::{
@@ -12,7 +11,7 @@ use crate::{
             wit::{QueryElements, ResponseElements},
         },
     },
-    resources::{LegacyHeaders, OwnedOrShared},
+    resources::{LegacyHeaders, LegacyWasmContext, OwnedOrShared},
 };
 
 impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_18_0 {

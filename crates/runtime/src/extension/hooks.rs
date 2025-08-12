@@ -12,6 +12,7 @@ pub struct OnRequest {
     pub context: Arc<ExtensionRequestContext>,
 }
 
+#[derive(Default)]
 pub struct ExtensionRequestContext {
     pub event_queue: Arc<EventQueue>,
     pub hooks_context: Vec<u8>,

@@ -4,12 +4,11 @@ use futures::future::BoxFuture;
 use runtime::extension::Response;
 
 use crate::{
-    LegacyWasmContext,
     extension::{
         ResolverExtensionInstance,
         api::wit::{ArgumentsId, Directive, Field, FieldId, SubscriptionItem},
     },
-    resources::Headers,
+    resources::{Headers, LegacyWasmContext},
 };
 
 impl ResolverExtensionInstance for super::ExtensionInstanceSince0_19_0 {

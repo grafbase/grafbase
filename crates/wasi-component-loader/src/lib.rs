@@ -9,7 +9,6 @@
 mod cache;
 mod cbor;
 mod config;
-mod context;
 pub mod extension;
 mod http_client;
 pub mod resources;
@@ -17,11 +16,6 @@ mod state;
 
 #[cfg(test)]
 mod tests;
-
-pub use context::LegacyWasmContext;
-pub use crossbeam::channel::Sender;
-pub use crossbeam::sync::WaitGroup;
-pub use extension::api::wit::Error as GuestError;
 
 use state::{ExtensionState, InstanceState};
 

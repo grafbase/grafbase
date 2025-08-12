@@ -1,8 +1,8 @@
 use futures::future::BoxFuture;
 
 use crate::{
-    LegacyWasmContext,
     extension::{ContractsExtensionInstance, api::wit},
+    resources::LegacyWasmContext,
 };
 
 #[allow(unused_variables)]

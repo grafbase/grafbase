@@ -7,9 +7,8 @@ use http::{request, response};
 use runtime::extension::{ExtensionRequestContext, OnRequest};
 
 use crate::{
-    LegacyWasmContext,
     extension::{HooksExtensionInstance, api::since_0_17_0::world::HttpMethod},
-    resources::{EventQueueProxy, LegacyHeaders, OwnedOrShared},
+    resources::{EventQueueProxy, LegacyHeaders, LegacyWasmContext, OwnedOrShared},
 };
 
 impl HooksExtensionInstance for super::ExtensionInstanceSince0_18_0 {
