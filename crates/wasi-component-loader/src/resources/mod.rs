@@ -73,6 +73,7 @@ impl<T> OwnedOrShared<T> {
         }
     }
 
+    #[allow(unused)]
     pub(crate) fn as_ref(&self) -> &T {
         match self {
             Self::Owned(v) => v,
@@ -81,6 +82,7 @@ impl<T> OwnedOrShared<T> {
         }
     }
 
+    #[allow(unused)]
     pub(crate) fn as_mut(&mut self) -> Option<&mut T> {
         match self {
             Self::Owned(v) => Some(v),

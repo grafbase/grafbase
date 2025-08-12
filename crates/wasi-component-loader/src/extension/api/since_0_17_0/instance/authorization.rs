@@ -1,7 +1,7 @@
 use engine::{EngineOperationContext, EngineRequestContext};
 use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use futures::future::BoxFuture;
-use runtime::extension::{AuthorizationDecisions, TokenRef};
+use runtime::extension::AuthorizationDecisions;
 
 use crate::{
     extension::{

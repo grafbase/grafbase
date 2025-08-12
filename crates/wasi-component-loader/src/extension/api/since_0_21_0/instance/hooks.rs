@@ -59,7 +59,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
                         contract_key,
                         context: ExtensionRequestContext {
                             event_queue,
-                            hooks_context: Default::default(),
+                            hooks_context: context.into(),
                         },
                     })
                 }
