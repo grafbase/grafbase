@@ -11,11 +11,46 @@ pub struct ErrorId(u32);
 /// method.
 pub struct AuthorizeQueryOutput {
     /// Authorization decisions for each query element to be applied by the GraphQL engine.
-    pub decisions: AuthorizationDecisions,
+    pub(crate) decisions: AuthorizationDecisions,
+    /// Authorization context if any.
+    pub(crate) context: Vec<u8>,
     /// Authorization state if any.
-    pub state: Vec<u8>,
-    /// Extra headers to add to the subgraph headers if any.
-    pub extra_headers: Option<Headers>,
+    pub(crate) state: Vec<u8>,
+    /// Additional headers to add to the subgraph headers if any.
+    pub(crate) additional_headers: Option<Headers>,
+}
+
+impl AuthorizeQueryOutput {
+    /// Create a new `AuthorizeQueryOutput` with the given decisions.
+    pub fn new(decisions: AuthorizationDecisions) -> Self {
+        Self {
+            decisions,
+            context: Vec::new(),
+            state: Vec::new(),
+            additional_headers: None,
+        }
+    }
+
+    /// Set the authorization context for the request and extension.
+    /// Accessible by other extensions.
+    pub fn context(mut self, context: impl Into<Vec<u8>>) -> Self {
+        self.context = context.into();
+        self
+    }
+
+    /// Set the authorization state for the request.
+    /// Only accessible by [authorize_response()](crate::AuthorizationExtension::authorize_response())
+    /// of the same extensions.
+    pub fn state(mut self, state: impl Into<Vec<u8>>) -> Self {
+        self.state = state.into();
+        self
+    }
+
+    /// Set additional headers to be added to the subgraph headers.
+    pub fn additional_headers(mut self, headers: Headers) -> Self {
+        self.additional_headers = Some(headers);
+        self
+    }
 }
 
 /// Authorization decisions for each query elements to be applied by the GraphQL engine.

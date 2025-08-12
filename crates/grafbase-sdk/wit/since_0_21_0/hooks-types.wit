@@ -11,6 +11,6 @@ interface hooks-types {
     record on-request-output {
         headers: headers,
         contract-key: option<string>,
-        state: list<u8>,
+        context: list<u8>,
     }
 }

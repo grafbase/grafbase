@@ -11,6 +11,8 @@ use crate::resources::Headers;
 pub struct AuthorizationOutput {
     #[component(name = "decisions")]
     pub decisions: AuthorizationDecisions,
+    #[component(name = "context")]
+    pub context: Vec<u8>,
     #[component(name = "state")]
     pub state: Vec<u8>,
     #[component(name = "subgraph-headers")]

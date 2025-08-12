@@ -16,7 +16,7 @@ impl wit::HooksGuest for Component {
                 .on_request(&parts.url, parts.method, &mut parts.headers)
                 .map(|output| wit::OnRequestOutput {
                     contract_key: output.contract_key,
-                    state: output.state,
+                    context: output.context,
                     headers: parts.headers.into(),
                 })
                 .map_err(Into::into)

@@ -1,7 +1,7 @@
 use crate::{
     component::AnyExtension,
     types::{
-        AuthorizationDecisions, AuthorizeQueryOutput, Configuration, Error, ErrorResponse, OperationContext,
+        AuthorizationDecisions, AuthorizeQueryOutput, Configuration, Error, ErrorResponse, Headers, OperationContext,
         QueryElements, ResponseElements, SubgraphHeaders,
     },
 };
@@ -337,31 +337,21 @@ impl IntoAuthorizeQueryOutput for AuthorizeQueryOutput {
 
 impl IntoAuthorizeQueryOutput for AuthorizationDecisions {
     fn into_authorize_query_output(self) -> AuthorizeQueryOutput {
-        AuthorizeQueryOutput {
-            decisions: self,
-            state: Vec::new(),
-            extra_headers: None,
-        }
+        AuthorizeQueryOutput::new(self)
     }
 }
 
-impl IntoAuthorizeQueryOutput for (Vec<u8>, AuthorizationDecisions) {
+impl IntoAuthorizeQueryOutput for (Headers, AuthorizationDecisions) {
     fn into_authorize_query_output(self) -> AuthorizeQueryOutput {
-        AuthorizeQueryOutput {
-            decisions: self.1,
-            state: self.0,
-            extra_headers: None,
-        }
+        let (headers, decisions) = self;
+        AuthorizeQueryOutput::new(decisions).additional_headers(headers)
     }
 }
 
-impl IntoAuthorizeQueryOutput for (AuthorizationDecisions, Vec<u8>) {
+impl IntoAuthorizeQueryOutput for (AuthorizationDecisions, Headers) {
     fn into_authorize_query_output(self) -> AuthorizeQueryOutput {
-        AuthorizeQueryOutput {
-            decisions: self.0,
-            state: self.1,
-            extra_headers: None,
-        }
+        let (decisions, headers) = self;
+        AuthorizeQueryOutput::new(decisions).additional_headers(headers)
     }
 }
 

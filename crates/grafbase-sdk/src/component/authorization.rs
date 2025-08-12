@@ -18,10 +18,12 @@ impl wit::AuthorizationGuest for Component {
                 .map(
                     |AuthorizeQueryOutput {
                          decisions,
+                         context,
                          state,
-                         extra_headers,
+                         additional_headers: extra_headers,
                      }| wit::AuthorizationOutput {
                         decisions: decisions.into(),
+                        context,
                         state,
                         subgraph_headers: headers.into(),
                         additional_headers: extra_headers.map(Into::into),

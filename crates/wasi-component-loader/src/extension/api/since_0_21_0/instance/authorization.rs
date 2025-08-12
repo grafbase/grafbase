@@ -34,6 +34,7 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_21_0 {
             let result = match result {
                 Ok(AuthorizationOutput {
                     decisions,
+                    context: _,
                     state,
                     subgraph_headers,
                     additional_headers,

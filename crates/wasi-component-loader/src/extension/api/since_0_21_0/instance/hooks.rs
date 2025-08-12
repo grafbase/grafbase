@@ -48,7 +48,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
                 Ok(wit::OnRequestOutput {
                     headers,
                     contract_key,
-                    state,
+                    context: state,
                 }) => {
                     parts.headers = self.store.data_mut().resources.delete(headers)?.into_inner().unwrap();
                     Ok(OnRequest {
