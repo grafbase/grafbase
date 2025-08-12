@@ -10,15 +10,15 @@ use crate::{
     wasmsafe,
 };
 
-impl GatewayHooksExtension<WasmContext> for GatewayWasmExtensions {
-    async fn on_request(&self, parts: request::Parts) -> Result<OnRequest<WasmContext>, ErrorResponse> {
-        let context = WasmContext::new(EventQueue::new(self.hooks_event_filter));
+impl GatewayHooksExtension for GatewayWasmExtensions {
+    async fn on_request(&self, parts: request::Parts) -> Result<OnRequest, ErrorResponse> {
+        let event_queue = EventQueue::new(self.hooks_event_filter);
         let Some(pool) = self.hooks.as_ref() else {
             return Ok(OnRequest {
-                context,
+                event_queue,
                 parts,
                 contract_key: None,
-                state: Default::default(),
+                context: Default::default(),
             });
         };
 

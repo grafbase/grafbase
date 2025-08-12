@@ -19,7 +19,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
         &'a mut self,
         context: WasmContext,
         mut parts: request::Parts,
-    ) -> BoxFuture<'a, wasmtime::Result<Result<OnRequest<WasmContext>, ErrorResponse>>> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<OnRequest, ErrorResponse>>> {
         Box::pin(async move {
             let headers = std::mem::take(&mut parts.headers);
             let url = parts.uri.to_string();
@@ -55,7 +55,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
                         context,
                         parts,
                         contract_key,
-                        state,
+                        context: state,
                     })
                 }
                 Err(err) => Err(self

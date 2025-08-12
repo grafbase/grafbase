@@ -26,6 +26,7 @@ pub(crate) use grafbase::sdk::authorization_types::{
     ResponseElement, ResponseElements,
 };
 pub(crate) use grafbase::sdk::cache::*;
+pub(crate) use grafbase::sdk::context::*;
 pub(crate) use grafbase::sdk::contracts_types::{Contract, GraphqlSubgraph};
 pub(crate) use grafbase::sdk::error::{Error, ErrorResponse};
 pub(crate) use grafbase::sdk::event_queue::EventQueue;
@@ -43,6 +44,5 @@ pub(crate) use grafbase::sdk::logger::*;
 pub use grafbase::sdk::nats_client::*;
 pub use grafbase::sdk::postgres::*;
 pub(crate) use grafbase::sdk::schema::*;
-pub(crate) use grafbase::sdk::shared_context::SharedContext;
-pub(crate) use grafbase::sdk::token::*;
+pub(crate) use grafbase::sdk::token::Token;
 pub(crate) use resolver_types::{ArgumentsId, Data, Field, FieldId, Response, SelectionSet, SubscriptionItem};

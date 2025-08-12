@@ -114,8 +114,8 @@ pub fn register<T: AuthenticationExtension>() {
     pub(super) struct Proxy<T: AuthenticationExtension>(T);
 
     impl<T: AuthenticationExtension> AnyExtension for Proxy<T> {
-        fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
-            self.0.authenticate(&RequestContext, headers)
+        fn authenticate(&mut self, ctx: &RequestContext, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
+            self.0.authenticate(ctx, headers)
         }
 
         fn public_metadata(&mut self) -> Result<Vec<PublicMetadataEndpoint>, Error> {

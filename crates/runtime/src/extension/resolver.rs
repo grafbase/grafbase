@@ -5,7 +5,7 @@ use engine_schema::{ExtensionDirective, FieldDefinition};
 use error::GraphqlError;
 use futures_util::stream::BoxStream;
 
-use crate::extension::Anything;
+use crate::extension::{Anything, AuthorizedContext};
 
 pub trait SelectionSet<'a>: Sized + Send + 'a {
     type Field: Field<'a, SelectionSet = Self>;
@@ -44,16 +44,15 @@ impl From<ArgumentsId> for u16 {
     }
 }
 
-pub trait ResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
+pub trait ResolverExtension: Send + Sync + 'static {
     fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
-        ctx: &'ctx Context,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
     ) -> impl Future<Output = Result<Vec<u8>, GraphqlError>> + Send;
 
-    fn resolve<'ctx, 'resp, 'f>(
+    fn resolve<'ctx, 'resp, 'f, Context>(
         &'ctx self,
         ctx: &'ctx Context,
         directive: ExtensionDirective<'ctx>,
@@ -62,9 +61,10 @@ pub trait ResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 'stat
         arguments: impl Iterator<Item = (ArgumentsId, impl Anything<'resp>)> + Send,
     ) -> impl Future<Output = Response> + Send + 'f
     where
-        'ctx: 'f;
+        'ctx: 'f,
+        Context: AuthorizedContext;
 
-    fn resolve_subscription<'ctx, 'resp, 'f>(
+    fn resolve_subscription<'ctx, 'resp, 'f, Context>(
         &'ctx self,
         ctx: &'ctx Context,
         directive: ExtensionDirective<'ctx>,
@@ -73,7 +73,8 @@ pub trait ResolverExtension<Context: Send + Sync + 'static>: Send + Sync + 'stat
         arguments: impl Iterator<Item = (ArgumentsId, impl Anything<'resp>)> + Send,
     ) -> impl Future<Output = BoxStream<'f, Response>> + Send + 'f
     where
-        'ctx: 'f;
+        'ctx: 'f,
+        Context: AuthorizedContext;
 }
 
 #[derive(Debug, Clone)]

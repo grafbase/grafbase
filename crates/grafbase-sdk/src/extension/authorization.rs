@@ -1,8 +1,8 @@
 use crate::{
     component::AnyExtension,
     types::{
-        AuthorizationDecisions, AuthorizeQueryOutput, Configuration, Error, ErrorResponse, Headers, OperationContext,
-        QueryElements, ResponseElements, SubgraphHeaders,
+        AuthenticatedRequestContext, AuthorizationDecisions, AuthorizeQueryOutput, AuthorizedOperationContext,
+        Configuration, Error, ErrorResponse, Headers, QueryElements, ResponseElements, SubgraphHeaders,
     },
 };
 
@@ -268,7 +268,7 @@ pub trait AuthorizationExtension: Sized + 'static {
     ///
     fn authorize_query(
         &mut self,
-        ctx: &OperationContext,
+        ctx: &AuthenticatedRequestContext,
         headers: &mut SubgraphHeaders,
         elements: QueryElements<'_>,
     ) -> Result<impl IntoAuthorizeQueryOutput, ErrorResponse>;
@@ -317,7 +317,7 @@ pub trait AuthorizationExtension: Sized + 'static {
     /// That's why this method receives a `state` argument provided by [authorize_query()](AuthorizationExtension::authorize_query()).
     fn authorize_response(
         &mut self,
-        ctx: &OperationContext,
+        ctx: &AuthorizedOperationContext,
         state: Vec<u8>,
         elements: ResponseElements<'_>,
     ) -> Result<AuthorizationDecisions, Error> {
@@ -362,20 +362,22 @@ pub fn register<T: AuthorizationExtension>() {
     impl<T: AuthorizationExtension> AnyExtension for Proxy<T> {
         fn authorize_query(
             &mut self,
+            ctx: &AuthenticatedRequestContext,
             headers: &mut SubgraphHeaders,
             elements: QueryElements<'_>,
         ) -> Result<AuthorizeQueryOutput, ErrorResponse> {
             self.0
-                .authorize_query(&OperationContext, headers, elements)
+                .authorize_query(ctx, headers, elements)
                 .map(|output| output.into_authorize_query_output())
         }
 
         fn authorize_response(
             &mut self,
+            ctx: &AuthorizedOperationContext,
             state: Vec<u8>,
             elements: ResponseElements<'_>,
         ) -> Result<AuthorizationDecisions, Error> {
-            self.0.authorize_response(&OperationContext, state, elements)
+            self.0.authorize_response(ctx, state, elements)
         }
     }
 

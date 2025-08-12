@@ -16,7 +16,7 @@ pub(crate) trait HooksExtensionInstance {
             context,
             parts,
             contract_key: None,
-            state: Default::default(),
+            context: Default::default(),
         }))))
     }
 

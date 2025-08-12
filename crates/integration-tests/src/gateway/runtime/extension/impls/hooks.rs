@@ -10,7 +10,7 @@ impl GatewayHooksExtension<ExtContext> for GatewayTestExtensions {
             context,
             parts,
             contract_key,
-            state,
+            context: state,
         } = self.wasm.on_request(parts).await?;
         let ctx = ExtContext {
             wasm: context,
@@ -20,7 +20,7 @@ impl GatewayHooksExtension<ExtContext> for GatewayTestExtensions {
             context: ctx,
             parts,
             contract_key,
-            state,
+            context: state,
         })
     }
 

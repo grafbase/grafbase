@@ -13,10 +13,6 @@ use runtime::extension::{EngineExtensions, GatewayExtensions};
 
 use super::EngineWasmExtensions;
 
-impl EngineExtensions for EngineWasmExtensions {
-    type Context = WasmContext;
-}
+impl EngineExtensions for EngineWasmExtensions {}
 
-impl GatewayExtensions for GatewayWasmExtensions {
-    type Context = WasmContext;
-}
+impl GatewayExtensions for GatewayWasmExtensions {}

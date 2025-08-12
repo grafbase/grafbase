@@ -1,7 +1,7 @@
 use crate::{
     component::AnyExtension,
     types::{
-        Configuration, Error, IndexedSchema, OperationContext, ResolvedField, Response, SubgraphHeaders,
+        AuthorizedOperationContext, Configuration, Error, IndexedSchema, ResolvedField, Response, SubgraphHeaders,
         SubgraphSchema, SubscriptionItem, Variables,
     },
 };
@@ -185,7 +185,7 @@ pub trait ResolverExtension: Sized + 'static {
     /// use [Response::data] to use the fastest supported serialization format.
     fn resolve(
         &mut self,
-        ctx: &OperationContext,
+        ctx: &AuthorizedOperationContext,
         prepared: &[u8],
         headers: SubgraphHeaders,
         variables: Variables,
@@ -202,7 +202,7 @@ pub trait ResolverExtension: Sized + 'static {
     #[allow(unused_variables)]
     fn resolve_subscription<'s>(
         &'s mut self,
-        ctx: &'s OperationContext,
+        ctx: &'s AuthorizedOperationContext,
         prepared: &'s [u8],
         headers: SubgraphHeaders,
         variables: Variables,
@@ -359,19 +359,28 @@ pub fn register<T: ResolverExtension>() {
             self.0.prepare(field)
         }
 
-        fn resolve(&mut self, prepared: &[u8], headers: SubgraphHeaders, variables: Variables) -> Response {
-            self.0.resolve(&OperationContext, prepared, headers, variables).into()
+        fn resolve(
+            &mut self,
+            ctx: &AuthorizedOperationContext,
+
+            prepared: &[u8],
+            headers: SubgraphHeaders,
+            variables: Variables,
+        ) -> Response {
+            self.0.resolve(ctx, prepared, headers, variables).into()
         }
 
         fn resolve_subscription<'a>(
             &'a mut self,
+            ctx: &'a AuthorizedOperationContext,
+
             prepared: &'a [u8],
             headers: SubgraphHeaders,
             variables: Variables,
         ) -> Result<(Option<Vec<u8>>, SubscriptionCallback<'a>), Error> {
             let (key, callback) = self
                 .0
-                .resolve_subscription(&OperationContext, prepared, headers, variables)?
+                .resolve_subscription(ctx, prepared, headers, variables)?
                 .into_deduplication_key_and_subscription_callback();
             Ok((key, callback))
         }

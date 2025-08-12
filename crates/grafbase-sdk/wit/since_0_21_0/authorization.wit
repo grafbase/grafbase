@@ -2,17 +2,19 @@ interface authorization {
     use error.{error, error-response};
     use headers.{headers};
     use authorization-types.{authorization-decisions, query-elements, response-elements, authorization-output};
-    use shared-context.{shared-context};
+    use context.{authenticated-request-context, authorized-operation-context, host-context};
 
     authorize-query: func(
-        context: shared-context,
+        host-context: host-context,
+        context: authenticated-request-context,
         // Read-only headers, they will fail on mutable access.
         subgraph-headers: headers,
         elements: query-elements
     ) -> result<authorization-output, error-response>;
 
     authorize-response: func(
-        context: shared-context,
+        host-context: host-context,
+        context: authorized-operation-context,
         state: list<u8>,
         elements: response-elements
     ) -> result<authorization-decisions, error>;

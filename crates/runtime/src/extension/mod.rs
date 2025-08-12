@@ -20,37 +20,33 @@ pub trait Anything<'a>: serde::Serialize + Send + 'a {}
 impl<'a, T> Anything<'a> for T where T: serde::Serialize + Send + 'a {}
 
 pub trait EngineExtensions:
-    AuthorizationExtension<Self::Context>
+    AuthorizationExtension
     + FieldResolverExtension
     + SelectionSetResolverExtension
-    + ResolverExtension<Self::Context>
-    + ContractsExtension<Self::Context>
-    + EngineHooksExtension<Self::Context>
+    + ResolverExtension
+    + ContractsExtension
+    + EngineHooksExtension
     + Send
     + Sync
     + 'static
 {
-    type Context: ExtensionContext;
 }
 
-pub trait GatewayExtensions:
-    GatewayHooksExtension<Self::Context> + AuthenticationExtension<Self::Context> + Send + Sync + 'static
-{
-    type Context: ExtensionContext;
-}
+pub trait GatewayExtensions: GatewayHooksExtension + AuthenticationExtension + Send + Sync + 'static {}
 
 pub trait ExtensionContext: Clone + Default + Send + Sync + 'static {
     fn event_queue(&self) -> &EventQueue;
 }
 
-trait HasHooksContext {
+pub trait OnRequestContext: Send + Sync + 'static {
+    fn event_queue(&self) -> &EventQueue;
     fn hooks_context(&self) -> &[u8];
 }
 
-trait HasToken {
+pub trait AuthenticatedContext: OnRequestContext {
     fn token(&self) -> TokenRef<'_>;
 }
 
-trait HasAuthorizationContext {
+pub trait AuthorizedContext: AuthenticatedContext {
     fn authorization_context(&self) -> &[(ExtensionId, Vec<u8>)];
 }

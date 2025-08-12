@@ -18,7 +18,7 @@ world sdk {
     import hooks-types;
     import event-types;
     import event-queue;
-    import shared-context;
+    import context;
     import logger;
 
     export authentication;

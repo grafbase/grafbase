@@ -14,7 +14,7 @@ use crate::{
 
 pub use error::SdkError;
 pub(crate) use extension::*;
-pub(crate) use state::{can_skip_sending_events, current_context, queue_event, register_extension};
+pub(crate) use state::{can_skip_sending_events, queue_event, register_extension};
 
 pub(crate) struct Component;
 

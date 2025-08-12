@@ -1,10 +1,10 @@
 interface contracts {
     use schema.{directive};
-    use shared-context.{shared-context};
     use contracts-types.{contract, graphql-subgraph};
+    use context.{host-context};
 
     construct: func(
-        context: shared-context,
+        host-context: host-context,
         // contact key used for caching.
         key: string,
         // List of all directives, deduplicated, on the schema associated with this contracts extensions.

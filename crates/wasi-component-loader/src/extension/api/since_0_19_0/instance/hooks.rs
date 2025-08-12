@@ -48,7 +48,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                         context,
                         parts,
                         contract_key,
-                        state: Default::default(),
+                        context: Default::default(),
                     })
                 }
                 Err(err) => Err(self

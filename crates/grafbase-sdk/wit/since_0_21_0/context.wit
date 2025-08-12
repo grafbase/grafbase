@@ -1,0 +1,23 @@
+interface context {
+    use token.{token};
+
+    resource host-context {
+        /// Pushes a new event to the end of the request event queue.
+        push-event: func(name: string, data: list<u8>);
+    }
+
+    resource request-context {
+        hook-context: func() -> list<u8>;
+    }
+
+    resource authenticated-request-context {
+        hook-context: func() -> list<u8>;
+        token: func() -> token;
+    }
+
+    resource authorized-operation-context {
+        hook-context: func() -> list<u8>;
+        token: func() -> token;
+        authorization-context: func(key: option<string>) -> result<list<u8>, string>;
+    }
+}

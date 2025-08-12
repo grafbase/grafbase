@@ -2,8 +2,8 @@ use crate::{
     component::AnyExtension,
     host_io::{event_queue::EventQueue, http::StatusCode},
     types::{
-        Configuration, Error, ErrorResponse, GatewayHeaders, Headers, HttpRequestParts, OnRequestOutput,
-        OperationContext, RequestContext,
+        AuthorizedOperationContext, Configuration, Error, ErrorResponse, GatewayHeaders, Headers, HttpRequestParts,
+        OnRequestOutput, RequestContext,
     },
 };
 
@@ -129,7 +129,7 @@ pub trait HooksExtension: Sized + 'static {
     /// Called when a GraphQL subgraph request is made, allowing you to modify the request parts before they are sent to the subgraph.
     fn on_graphql_subgraph_request(
         &mut self,
-        ctx: &OperationContext,
+        ctx: &AuthorizedOperationContext,
         subgraph_name: &str,
         parts: &mut HttpRequestParts,
     ) -> Result<(), Error> {
@@ -139,7 +139,7 @@ pub trait HooksExtension: Sized + 'static {
     /// Called when a virtual subgraph request is made through an extension, allowing you to modify the request headers before sending it to the extension.
     fn on_virtual_subgraph_request(
         &mut self,
-        ctx: &OperationContext,
+        ctx: &AuthorizedOperationContext,
         subgraph_name: &str,
         headers: &mut Headers,
     ) -> Result<(), Error> {
@@ -181,25 +181,30 @@ pub fn register<T: HooksExtension>() {
 
         fn on_response(
             &mut self,
+            ctx: &RequestContext,
             status: StatusCode,
             headers: &mut Headers,
             event_queue: EventQueue,
         ) -> Result<(), Error> {
-            self.0.on_response(&RequestContext, status, headers, event_queue)
+            self.0.on_response(ctx, status, headers, event_queue)
         }
 
         fn on_graphql_subgraph_request(
             &mut self,
+            ctx: &AuthorizedOperationContext,
             subgraph_name: &str,
             parts: &mut HttpRequestParts,
         ) -> Result<(), Error> {
-            self.0
-                .on_graphql_subgraph_request(&OperationContext, subgraph_name, parts)
+            self.0.on_graphql_subgraph_request(ctx, subgraph_name, parts)
         }
 
-        fn on_virtual_subgraph_request(&mut self, subgraph_name: &str, headers: &mut Headers) -> Result<(), Error> {
-            self.0
-                .on_virtual_subgraph_request(&OperationContext, subgraph_name, headers)
+        fn on_virtual_subgraph_request(
+            &mut self,
+            ctx: &AuthorizedOperationContext,
+            subgraph_name: &str,
+            headers: &mut Headers,
+        ) -> Result<(), Error> {
+            self.0.on_virtual_subgraph_request(ctx, subgraph_name, headers)
         }
     }
 

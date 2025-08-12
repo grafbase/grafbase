@@ -3,12 +3,12 @@ use crate::{component::state, wit};
 
 impl wit::ContractsGuest for Component {
     fn construct(
-        ctx: wit::SharedContext,
+        host_context: wit::HostContext,
         key: String,
         directives: Vec<wit::Directive>,
         subgraphs: Vec<wit::GraphqlSubgraph>,
     ) -> Result<wit::Contract, String> {
-        state::with_context(ctx, || {
+        state::with_context(host_context, || {
             let directives = directives.iter().enumerate().map(Into::into).collect();
             let subgraphs = subgraphs.into_iter().map(Into::into).collect();
 
