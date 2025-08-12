@@ -13,7 +13,7 @@ use futures::{
 use http::{HeaderMap, HeaderValue, Request, Response};
 use runtime::extension::Token;
 
-const LATEST_SDK: semver::Version = semver::Version::new(0, 19, 0);
+const LATEST_SDK: semver::Version = semver::Version::new(0, 21, 0);
 
 #[tokio::test]
 async fn single_call_caching_auth() {

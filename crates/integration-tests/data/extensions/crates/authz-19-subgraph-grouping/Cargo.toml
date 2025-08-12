@@ -14,12 +14,12 @@ lto = true
 codegen-units = 1
 
 [dependencies]
-grafbase-sdk.workspace = true
+grafbase-sdk = "0.20.1"
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
-grafbase-sdk = { workspace = true, features = ["test-utils"] }
+grafbase-sdk = { version = "0.20.1", features = ["test-utils"] }
 insta = { version = "1", features = ["json"] }
 serde_json = "1"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
