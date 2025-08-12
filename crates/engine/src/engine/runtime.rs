@@ -6,8 +6,6 @@ use schema::Schema;
 
 use crate::CachedOperation;
 
-pub type ExtensionContext<R> = <<R as Runtime>::Extensions as EngineExtensions>::Context;
-
 pub trait Runtime: Send + Sync + Sized + 'static {
     type Fetcher: runtime::fetch::Fetcher;
     type OperationCache: runtime::operation_cache::OperationCache<Arc<CachedOperation>>;

@@ -4,6 +4,7 @@ use grafbase_workspace_hack as _;
 
 mod engine;
 mod execution;
+mod extension;
 mod graphql_over_http;
 mod prepare;
 mod resolver;
@@ -13,6 +14,7 @@ pub mod websocket;
 
 pub use engine::{ContractAwareEngine, Engine, RequestExtensions, Runtime, WebsocketSession, mcp};
 pub use error::{ErrorCode, ErrorResponse, GraphqlError};
+pub use extension::*;
 pub use graphql_over_http::{Body, ResponseFormat, TelemetryExtension};
 pub use prepare::cached::CachedOperation;
 pub use schema::Schema;

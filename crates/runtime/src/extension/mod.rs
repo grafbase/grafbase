@@ -38,6 +38,11 @@ pub trait ExtensionContext: Clone + Default + Send + Sync + 'static {
     fn event_queue(&self) -> &EventQueue;
 }
 
+pub struct ExtensionRequestContext {
+    pub event_queue: EventQueue,
+    pub hooks_context: Vec<u8>,
+}
+
 pub trait OnRequestContext: Send + Sync + 'static {
     fn event_queue(&self) -> &EventQueue;
     fn hooks_context(&self) -> &[u8];
@@ -49,4 +54,5 @@ pub trait AuthenticatedContext: OnRequestContext {
 
 pub trait AuthorizedContext: AuthenticatedContext {
     fn authorization_context(&self) -> &[(ExtensionId, Vec<u8>)];
+    fn authorization_state(&self) -> &[(ExtensionId, Vec<u8>)];
 }

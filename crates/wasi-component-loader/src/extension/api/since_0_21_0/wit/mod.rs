@@ -1,6 +1,6 @@
 pub mod authorization_types;
 pub mod hooks_types;
-pub mod shared_context;
+pub mod context;
 pub mod token;
 
 wasmtime::component::bindgen!({
@@ -25,7 +25,7 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/http-types": crate::extension::api::since_0_19_0::wit::http_types,
         "grafbase:sdk/event-queue": crate::extension::api::since_0_19_0::wit::event_queue,
         "grafbase:sdk/logger": crate::extension::api::since_0_19_0::wit::logger,
-        "grafbase:sdk/shared-context": shared_context
+        "grafbase:sdk/context": context
     },
     trappable_imports: true,
     ownership: Borrowing {

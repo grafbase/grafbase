@@ -36,7 +36,7 @@ pub struct ReqwestParts {
 pub trait EngineHooksExtension: Send + Sync + 'static {
     fn on_graphql_subgraph_request<Context>(
         &self,
-        context: &Context,
+        context: Context,
         subgraph: GraphqlSubgraph<'_>,
         parts: ReqwestParts,
     ) -> impl Future<Output = Result<ReqwestParts, GraphqlError>> + Send
@@ -45,7 +45,7 @@ pub trait EngineHooksExtension: Send + Sync + 'static {
 
     fn on_virtual_subgraph_request<Context>(
         &self,
-        context: &Context,
+        context: Context,
         subgraph: VirtualSubgraph<'_>,
         headers: http::HeaderMap,
     ) -> impl Future<Output = Result<http::HeaderMap, GraphqlError>> + Send

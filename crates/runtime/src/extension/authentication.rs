@@ -8,7 +8,7 @@ use crate::extension::OnRequestContext;
 pub trait AuthenticationExtension: Send + Sync + 'static {
     fn authenticate<Context>(
         &self,
-        ctx: &Context,
+        ctx: Context,
         gateway_headers: http::HeaderMap,
         ids: &[ExtensionId],
     ) -> impl Future<Output = (http::HeaderMap, Result<Token, ErrorResponse>)> + Send

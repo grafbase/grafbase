@@ -54,7 +54,7 @@ pub trait ResolverExtension: Send + Sync + 'static {
 
     fn resolve<'ctx, 'resp, 'f, Context>(
         &'ctx self,
-        ctx: &'ctx Context,
+        ctx: Context,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -66,7 +66,7 @@ pub trait ResolverExtension: Send + Sync + 'static {
 
     fn resolve_subscription<'ctx, 'resp, 'f, Context>(
         &'ctx self,
-        ctx: &'ctx Context,
+        ctx: Context,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,

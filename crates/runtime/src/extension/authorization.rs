@@ -11,7 +11,7 @@ use super::{Anything, TokenRef};
 pub trait AuthorizationExtension: Send + Sync + 'static {
     fn authorize_query<'ctx, 'fut, Context, Extensions, Arguments>(
         &'ctx self,
-        ctx: &'ctx Context,
+        ctx: Context,
         subgraph_headers: http::HeaderMap,
         token: TokenRef<'ctx>,
         extensions: Extensions,
@@ -33,8 +33,7 @@ pub trait AuthorizationExtension: Send + Sync + 'static {
 
     fn authorize_response<'ctx, 'fut, Context>(
         &'ctx self,
-        ctx: &'ctx Context,
-        state: &'ctx [u8],
+        ctx: Context,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,

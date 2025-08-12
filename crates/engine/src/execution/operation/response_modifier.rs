@@ -4,7 +4,7 @@ use schema::DirectiveSiteId;
 use walker::Walk;
 
 use crate::{
-    Runtime,
+    EngineAuthorizedContext, Runtime,
     prepare::{
         PlanFieldArguments, ResponseModifier, ResponseModifierRule, ResponseModifierRuleTarget,
         create_extension_directive_response_view,
@@ -65,8 +65,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                     let result = self
                         .extensions()
                         .authorize_response(
-                            &self.request_context.extension_context,
-                            &self.gql_context.authorization_state,
+                            EngineAuthorizedContext::from(self),
                             directive.extension_id,
                             directive.name(),
                             DirectiveSiteId::from(rule_target).walk(self),
@@ -171,8 +170,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                     let result = self
                         .extensions()
                         .authorize_response(
-                            &self.request_context.extension_context,
-                            &self.gql_context.authorization_state,
+                            EngineAuthorizedContext::from(self),
                             directive.extension_id,
                             directive.name(),
                             DirectiveSiteId::from(rule_target).walk(self),

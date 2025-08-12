@@ -6,30 +6,24 @@ use grafbase_telemetry::metrics::EngineMetrics;
 use runtime::extension::Token;
 use schema::Schema;
 
-use crate::{
-    Engine, Runtime,
-    engine::ExtensionContext,
-    execution::{GraphqlRequestContext, RequestContext},
-};
+use crate::{Engine, Runtime, execution::RequestContext};
 
 /// Context for preparing a single operation.
 /// Background futures will be started in parallel with the operation execution to avoid delaying the plan,
 /// if and only if operation preparation succeeds.
 pub(crate) struct PrepareContext<'ctx, R: Runtime> {
     pub engine: &'ctx Arc<Engine<R>>,
-    pub request_context: &'ctx Arc<RequestContext<ExtensionContext<R>>>,
-    pub gql_context: GraphqlRequestContext<R>,
+    pub request_context: &'ctx Arc<RequestContext>,
     pub executed_operation_builder: ExecutedOperationBuilder<'ctx>,
     // needs to be Send so that futures are Send.
     pub background_futures: crossbeam_queue::SegQueue<BoxFuture<'ctx, ()>>,
 }
 
 impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
-    pub fn new(engine: &'ctx Arc<Engine<R>>, request_context: &'ctx Arc<RequestContext<ExtensionContext<R>>>) -> Self {
+    pub fn new(engine: &'ctx Arc<Engine<R>>, request_context: &'ctx Arc<RequestContext>) -> Self {
         Self {
             engine,
             request_context,
-            gql_context: Default::default(),
             executed_operation_builder: ExecutedOperation::builder_with_default(),
             background_futures: Default::default(),
         }

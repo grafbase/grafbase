@@ -1,18 +1,19 @@
 use std::{num::NonZero, ops::Deref};
 
+use extension_catalog::ExtensionId;
 use futures::future::FutureExt;
 use id_newtypes::{BitSet, IdRange, IdToMany};
 use operation::{InputValueContext, Variables};
 use runtime::extension::{
-    AuthorizationDecisions, AuthorizationExtension as _, QueryAuthorizationDecisions, QueryElement,
+    AuthorizationDecisions, AuthorizationExtension as _, AuthorizeQuery, QueryAuthorizationDecisions, QueryElement,
 };
 use schema::DirectiveSiteId;
 use serde::Deserialize;
 use walker::Walk;
 
 use crate::{
-    Runtime,
-    execution::{GraphqlRequestContext, find_matching_denied_header},
+    EngineAuthenticatedContext, Runtime,
+    execution::find_matching_denied_header,
     prepare::{
         CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, Derive, FieldShapeId, GraphqlError,
         PartitionField, PrepareContext, QueryModifierId, QueryModifierRecord, QueryModifierRule, QueryModifierTarget,
@@ -33,6 +34,14 @@ pub(crate) struct QueryModifications {
     pub concrete_shape_has_error: BitSet<ConcreteShapeId>,
     pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, QueryErrorId>,
     pub root_error_ids: Vec<QueryErrorId>,
+    pub extension: ExtensionPreparedOperation,
+}
+
+#[derive(Default)]
+pub(crate) struct ExtensionPreparedOperation {
+    pub authorization_context: Vec<(ExtensionId, Vec<u8>)>,
+    pub authorization_state: Vec<(ExtensionId, Vec<u8>)>,
+    pub subgraph_default_headers_override: Option<http::HeaderMap>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -66,6 +75,7 @@ impl QueryModifications {
                 errors: Vec::new(),
                 field_shape_id_to_error_ids: Default::default(),
                 root_error_ids: Vec::new(),
+                extension: Default::default(),
             },
         }
         .build()
@@ -105,7 +115,7 @@ where
         let operation_ctx = self.operation_ctx;
         let variables = &self.input_value_ctx.variables;
 
-        let subgraph_default_headers_override = self.ctx.request_context.subgraph_default_headers.clone();
+        let headers = self.ctx.request_context.subgraph_default_headers.clone();
 
         let extensions = modifiers
             .by_extension
@@ -116,12 +126,17 @@ where
             })
             .collect::<Vec<_>>();
 
-        let (state, mut subgraph_default_headers_override, decisions) = self
+        let AuthorizeQuery {
+            mut headers,
+            decisions,
+            context,
+            state,
+        } = self
             .ctx
             .extensions()
             .authorize_query(
-                &self.ctx.request_context.extension_context,
-                subgraph_default_headers_override,
+                EngineAuthenticatedContext::from(self.ctx.request_context),
+                headers,
                 self.ctx.access_token().as_ref(),
                 extensions,
                 modifiers
@@ -170,16 +185,17 @@ where
             .await?;
 
         // TODO: Use http::HeaderMap.retain if it comes out.
-        let denied_header_names = subgraph_default_headers_override
+        let denied_header_names = headers
             .keys()
             .filter_map(|name| find_matching_denied_header(name))
             .collect::<Vec<_>>();
         for name in denied_header_names {
-            subgraph_default_headers_override.remove(name);
+            headers.remove(name);
         }
-        self.ctx.gql_context = GraphqlRequestContext {
+        self.modifications.extension = ExtensionPreparedOperation {
             authorization_state: state,
-            subgraph_default_headers_override: Some(subgraph_default_headers_override),
+            authorization_context: context,
+            subgraph_default_headers_override: Some(headers),
         };
         for QueryAuthorizationDecisions {
             query_elements_range,
