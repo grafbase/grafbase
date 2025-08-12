@@ -14,8 +14,7 @@ use extension_catalog::ExtensionId;
 use futures::{TryStreamExt, stream::FuturesUnordered};
 use itertools::Itertools as _;
 use runtime::extension::{
-    Anything, AuthorizationDecisions, AuthorizationExtension, AuthorizeQuery, QueryAuthorizationDecisions,
-    QueryElement, TokenRef,
+    Anything, AuthorizationDecisions, AuthorizationExtension, AuthorizeQuery, QueryAuthorizationDecisions, QueryElement,
 };
 use std::{future::Future, ops::Range, sync::Arc};
 
@@ -24,7 +23,6 @@ impl AuthorizationExtension<EngineRequestContext, EngineOperationContext> for En
         &'ctx self,
         ctx: EngineRequestContext,
         headers: http::HeaderMap,
-        token: TokenRef<'ctx>,
         extensions: Extensions,
         // (directive name, range within query_elements)
         directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
@@ -107,7 +105,6 @@ impl AuthorizationExtension<EngineRequestContext, EngineOperationContext> for En
                                 .authorize_query(
                                     ctx_ref.clone(),
                                     headers_ref.clone_shared().unwrap(),
-                                    token,
                                     wit::QueryElements {
                                         directive_names: &directive_names[directive_range],
                                         elements: &elements[query_elements_range.clone()],
@@ -130,7 +127,7 @@ impl AuthorizationExtension<EngineRequestContext, EngineOperationContext> for En
                                         decisions,
                                     },
                                     (extension_id, state),
-                                    (extension_id, context),
+                                    (extension_id, context.into()),
                                     additional_headers,
                                 )
                             },

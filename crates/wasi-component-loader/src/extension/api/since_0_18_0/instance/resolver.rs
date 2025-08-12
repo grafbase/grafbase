@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use engine::EngineOperationContext;
 use engine_error::{ErrorCode, GraphqlError};
+use event_queue::EventQueue;
 use futures::future::BoxFuture;
 use runtime::extension::Response;
 
@@ -14,13 +17,18 @@ use crate::{
 impl ResolverExtensionInstance for super::ExtensionInstanceSince0_18_0 {
     fn prepare<'a>(
         &'a mut self,
+        event_queue: Arc<EventQueue>,
         subgraph_name: &'a str,
         directive: Directive<'a>,
         field_id: FieldId,
         fields: &'a [Field<'a>],
     ) -> BoxFuture<'a, wasmtime::Result<Result<Vec<u8>, GraphqlError>>> {
         Box::pin(async move {
-            let context = self.store.data_mut().resources.push(LegacyWasmContext::default())?;
+            let context = self
+                .store
+                .data_mut()
+                .resources
+                .push(LegacyWasmContext::from(event_queue))?;
 
             let result = self
                 .inner

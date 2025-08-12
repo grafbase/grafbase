@@ -8,7 +8,7 @@ use runtime::extension::{ExtensionRequestContext, OnRequest};
 
 use crate::{
     extension::{HooksExtensionInstance, api::since_0_17_0::world::HttpMethod},
-    resources::{EventQueueProxy, LegacyHeaders, LegacyWasmContext, OwnedOrShared},
+    resources::{EventQueueResource, LegacyHeaders, LegacyWasmContext, OwnedOrShared},
 };
 
 impl HooksExtensionInstance for super::ExtensionInstanceSince0_18_0 {
@@ -62,10 +62,10 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_18_0 {
                 Ok(()) => Ok(OnRequest {
                     parts,
                     contract_key: None,
-                    context: Arc::new(ExtensionRequestContext {
+                    context: ExtensionRequestContext {
                         event_queue,
-                        hooks_context: Vec::new(),
-                    }),
+                        hooks_context: Default::default(),
+                    },
                 }),
                 Err(err) => Err(self
                     .store
@@ -79,7 +79,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_18_0 {
 
     fn on_response(
         &mut self,
-        ctx: Arc<ExtensionRequestContext>,
+        ctx: ExtensionRequestContext,
         mut parts: response::Parts,
     ) -> BoxFuture<'_, wasmtime::Result<Result<response::Parts, String>>> {
         Box::pin(async move {
@@ -90,8 +90,12 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_18_0 {
             let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
-            let ctx = LegacyWasmContext::from(ctx.event_queue.clone());
-            let queue = self.store.data_mut().resources.push(EventQueueProxy(ctx.clone()))?;
+            let ctx = LegacyWasmContext::from(&ctx);
+            let queue = self
+                .store
+                .data_mut()
+                .resources
+                .push(EventQueueResource::from(ctx.clone()))?;
             let context = self.store.data_mut().resources.push(ctx)?;
 
             let result = self

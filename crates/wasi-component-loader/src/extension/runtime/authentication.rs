@@ -9,7 +9,7 @@ use runtime::extension::{AuthenticationExtension, ExtensionRequestContext, Publi
 impl AuthenticationExtension for GatewayWasmExtensions {
     async fn authenticate(
         &self,
-        context: Arc<ExtensionRequestContext>,
+        context: &ExtensionRequestContext,
         gateway_headers: http::HeaderMap,
         ids: &[ExtensionId],
     ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
@@ -24,7 +24,7 @@ impl AuthenticationExtension for GatewayWasmExtensions {
                     tracing::error!("Failed to get authentication instance: {err}");
                     ErrorResponse::internal_extension_error()
                 })?;
-                wasmsafe!(instance.authenticate(context.clone(), headers.clone().into()).await)
+                wasmsafe!(instance.authenticate(context, headers.clone().into()).await)
             })
             .collect::<FuturesUnordered<_>>()
             .map(|result| match result {

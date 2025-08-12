@@ -8,7 +8,7 @@ use crate::extension::ExtensionRequestContext;
 pub trait AuthenticationExtension: Send + Sync + 'static {
     fn authenticate(
         &self,
-        ctx: Arc<ExtensionRequestContext>,
+        ctx: &ExtensionRequestContext,
         gateway_headers: http::HeaderMap,
         ids: &[ExtensionId],
     ) -> impl Future<Output = (http::HeaderMap, Result<Token, ErrorResponse>)> + Send;
@@ -25,7 +25,8 @@ pub struct PublicMetadataEndpoint {
 #[derive(Clone, Debug)]
 pub enum Token {
     Anonymous,
-    Bytes(Vec<u8>),
+    // Arc for Wasmtime because we can't return an non 'static value from a function.
+    Bytes(Arc<[u8]>),
 }
 
 impl Token {
@@ -61,7 +62,7 @@ impl TokenRef<'_> {
     pub fn to_owned(&self) -> Token {
         match self {
             TokenRef::Anonymous => Token::Anonymous,
-            TokenRef::Bytes(bytes) => Token::Bytes(bytes.to_vec()),
+            TokenRef::Bytes(bytes) => Token::Bytes(bytes.to_vec().into()),
         }
     }
 }

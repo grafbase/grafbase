@@ -3,7 +3,7 @@ mod lambda;
 
 use axum::Router;
 use gateway_config::{Config, TlsConfig};
-use std::{net::SocketAddr, path::PathBuf};
+use std::{net::SocketAddr, path::PathBuf, sync::Arc};
 use tokio::{
     signal,
     sync::{mpsc, watch},
@@ -79,7 +79,7 @@ pub async fn serve(
     }
 
     // We separate the hooks extension, which runs outside of the engine in the axum layers.
-    let extension_catalog = create_extension_catalog(&config).await?;
+    let extension_catalog = Arc::new(create_extension_catalog(&config).await?);
     //
     // On-request, on-response hooks extension.
     let gateway_extensions = GatewayWasmExtensions::new(&extension_catalog, &config, logging_filter.clone())
@@ -90,7 +90,7 @@ pub async fn serve(
     let engine_reloader = EngineReloader::spawn(EngineReloaderConfig {
         update_receiver,
         initial_config: config.clone(),
-        extension_catalog: &extension_catalog,
+        extension_catalog: extension_catalog.clone(),
         logging_filter,
         hot_reload_config_path: config_hot_reload.then_some(config_path).flatten(),
         access_token: grafbase_access_token,

@@ -16,7 +16,7 @@ use regex::Regex;
 use runtime::{entity_cache::EntityCache, extension::Token, rate_limiting::RateLimiter, trusted_documents_client};
 use runtime_local::{InMemoryEntityCache, InMemoryOperationCache, NativeFetcher};
 use std::io::stdout;
-use wasi_component_loader::{LegacyWasmContext, extension::EngineWasmExtensions};
+use wasi_component_loader::extension::EngineWasmExtensions;
 
 use crate::{cli_input::McpCommand, dev::DEFAULT_PORT};
 
@@ -104,7 +104,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
     let router = router.layer(
         tower::ServiceBuilder::new().map_request(|mut request: axum::http::Request<_>| {
             // FIXME: Imitating the federated-server extension layer... not great
-            request.extensions_mut().insert(RequestExtensions::<LegacyWasmContext> {
+            request.extensions_mut().insert(RequestExtensions {
                 context: Default::default(),
                 token: Token::Anonymous,
                 contract_key: None,

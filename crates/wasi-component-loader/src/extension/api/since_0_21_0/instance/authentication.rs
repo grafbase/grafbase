@@ -1,26 +1,28 @@
-use std::sync::Arc;
-
 use engine_error::{ErrorCode, ErrorResponse};
 use futures::future::BoxFuture;
 use runtime::extension::{ExtensionRequestContext, PublicMetadataEndpoint, Token};
 
-use crate::{LegacyWasmContext, extension::AuthenticationExtensionInstance, resources::Headers};
+use crate::{
+    extension::{AuthenticationExtensionInstance, api::since_0_21_0::wit},
+    resources::Headers,
+};
 
 impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_21_0 {
     fn authenticate<'a>(
         &'a mut self,
-        ctx: Arc<ExtensionRequestContext>,
+        ctx: &'a ExtensionRequestContext,
         headers: Headers,
     ) -> BoxFuture<'a, wasmtime::Result<Result<(Headers, Token), ErrorResponse>>> {
         Box::pin(async move {
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
-
-            let context = self.store.data_mut().resources.push(context.clone())?;
+            let resources = &mut self.store.data_mut().resources;
+            let headers = resources.push(Headers::from(headers))?;
+            let host_context = resources.push(wit::HostContext::from(ctx))?;
+            let ctx = resources.push(wit::RequestContext::from(ctx))?;
 
             let result = self
                 .inner
                 .grafbase_sdk_authentication()
-                .call_authenticate(&mut self.store, context, headers)
+                .call_authenticate(&mut self.store, host_context, ctx, headers)
                 .await?;
 
             let result = match result {

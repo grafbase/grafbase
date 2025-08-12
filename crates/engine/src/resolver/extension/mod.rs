@@ -44,7 +44,12 @@ impl ExtensionResolver {
                 let prepared_data = ctx
                     .runtime()
                     .extensions()
-                    .prepare(directive, directive.static_arguments(), field)
+                    .prepare(
+                        ctx.request_context.extension.event_queue.clone(),
+                        directive,
+                        directive.static_arguments(),
+                        field,
+                    )
                     // FIXME: Unfortunately, boxing seems to be the only solution for the bug explained here:
                     //        https://github.com/rust-lang/rust/issues/110338#issuecomment-1513761297
                     .boxed()

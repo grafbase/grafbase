@@ -4,38 +4,27 @@ use engine::{ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use extension_catalog::{ExtensionId, Id};
 use futures::{FutureExt as _, TryFutureExt as _, TryStreamExt as _, stream::FuturesUnordered};
-use runtime::{
-    extension::Anything,
-    extension::{AuthorizationDecisions, AuthorizationExtension, QueryAuthorizationDecisions, QueryElement, TokenRef},
+use runtime::extension::{
+    Anything, AuthorizationDecisions, AuthorizationExtension, AuthorizeQuery, QueryAuthorizationDecisions,
+    QueryElement, TokenRef,
 };
 use tokio::sync::RwLock;
-use wasi_component_loader::{LegacyWasmContext, extension::EngineWasmExtensions};
 
 use crate::gateway::{
-    DispatchRule, EngineTestExtensions, ExtContext, ExtensionsBuilder, TestExtensions, TestManifest,
+    DispatchRule, EngineTestExtensions, ExtensionsBuilder, TestExtensions, TestManifest,
     runtime::extension::builder::AnyExtension,
 };
 
-#[derive(Default)]
-pub struct State {
-    wasm: <EngineWasmExtensions as AuthorizationExtension<LegacyWasmContext>>::State,
-}
-
-impl AuthorizationExtension<ExtContext> for EngineTestExtensions {
-    type State = State;
-
+impl AuthorizationExtension<engine::EngineRequestContext, engine::EngineOperationContext> for EngineTestExtensions {
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
-        ctx: &'ctx ExtContext,
+        ctx: engine::EngineRequestContext,
         subgraph_headers: http::HeaderMap,
-        token: TokenRef<'ctx>,
         extensions: Extensions,
         // (directive name, range within query_elements)
         directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
         query_elements: impl ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
-    ) -> impl Future<Output = Result<(State, http::HeaderMap, Vec<QueryAuthorizationDecisions>), engine::ErrorResponse>>
-    + Send
-    + 'fut
+    ) -> impl Future<Output = Result<AuthorizeQuery, engine::ErrorResponse>> + Send + 'fut
     where
         'ctx: 'fut,
         // (extension id, range within directives, range within query_elements)
@@ -65,42 +54,29 @@ impl AuthorizationExtension<ExtContext> for EngineTestExtensions {
         if !wasm_extensions.is_empty() {
             self.wasm
                 .authorize_query(
-                    &ctx.wasm,
+                    ctx,
                     subgraph_headers,
-                    token,
                     wasm_extensions,
                     directives,
                     query_elements,
                 )
-                .map_ok(|(state, headers, decisions)| (State { wasm: state }, headers, decisions))
                 .boxed()
         } else {
             self.test
                 .authorize_query(
                     ctx,
                     subgraph_headers,
-                    token,
                     test_extensions,
                     directives,
                     query_elements,
                 )
-                .map_ok(|(_, headers, decisions)| {
-                    (
-                        State {
-                            wasm: Default::default(),
-                        },
-                        headers,
-                        decisions,
-                    )
-                })
                 .boxed()
         }
     }
 
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
-        ctx: &'ctx ExtContext,
-        state: &'ctx State,
+        ctx: engine::EngineOperationContext,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
@@ -112,39 +88,27 @@ impl AuthorizationExtension<ExtContext> for EngineTestExtensions {
         match self.dispatch[&extension_id] {
             DispatchRule::Wasm => self
                 .wasm
-                .authorize_response(
-                    &ctx.wasm,
-                    &state.wasm,
-                    extension_id,
-                    directive_name,
-                    directive_site,
-                    items,
-                )
+                .authorize_response(ctx, extension_id, directive_name, directive_site, items)
                 .boxed(),
             DispatchRule::Test => self
                 .test
-                .authorize_response(ctx, &(), extension_id, directive_name, directive_site, items)
+                .authorize_response(ctx, extension_id, directive_name, directive_site, items)
                 .boxed(),
         }
     }
 }
 
-impl AuthorizationExtension<ExtContext> for TestExtensions {
-    type State = ();
-
+impl TestExtensions {
     #[allow(clippy::manual_async_fn)]
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
-        ctx: &'ctx ExtContext,
+        ctx: engine::EngineRequestContext,
         headers: http::HeaderMap,
-        token: TokenRef<'ctx>,
         extensions: Extensions,
         // (directive name, range within query_elements)
         directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
         query_elements: impl ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
-    ) -> impl Future<Output = Result<(Self::State, http::HeaderMap, Vec<QueryAuthorizationDecisions>), ErrorResponse>>
-    + Send
-    + 'fut
+    ) -> impl Future<Output = Result<AuthorizeQuery, ErrorResponse>> + Send + 'fut
     where
         'ctx: 'fut,
         // (extension id, range within directives, range within query_elements)
@@ -168,11 +132,12 @@ impl AuthorizationExtension<ExtContext> for TestExtensions {
 
         async move {
             let headers = RwLock::new(headers);
+            let ctx_ref = &ctx;
             let headers_ref = &headers;
             let directives = &directives;
             let query_elements = &query_elements;
 
-            let decisions = extensions
+            let (decisions, state): (Vec<_>, Vec<_>) = extensions
                 .into_iter()
                 .map(
                     move |(extension_id, directive_range, query_elements_range)| async move {
@@ -180,37 +145,47 @@ impl AuthorizationExtension<ExtContext> for TestExtensions {
 
                         instance
                             .authorize_query(
-                                ctx,
+                                ctx_ref.clone(),
                                 headers_ref,
-                                token,
+                                ctx_ref.token().as_ref(),
                                 directives[directive_range]
                                     .iter()
                                     .map(|(name, range)| (*name, query_elements[range.clone()].to_vec()))
                                     .collect(),
                             )
-                            .and_then(|decisions| async {
-                                Ok(QueryAuthorizationDecisions {
-                                    extension_id,
-                                    query_elements_range,
-                                    decisions,
-                                })
+                            .and_then(|(decisions, state)| async {
+                                Ok((
+                                    QueryAuthorizationDecisions {
+                                        extension_id,
+                                        query_elements_range,
+                                        decisions,
+                                    },
+                                    (extension_id, state),
+                                ))
                             })
                             .await
                     },
                 )
                 .collect::<FuturesUnordered<_>>()
-                .try_collect()
-                .await?;
+                .try_collect::<Vec<_>>()
+                .await?
+                .into_iter()
+                .unzip();
+
             let headers = headers.into_inner();
-            Ok(((), headers, decisions))
+            Ok(AuthorizeQuery {
+                headers,
+                decisions,
+                context: Default::default(),
+                state,
+            })
         }
         .boxed()
     }
 
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
-        ctx: &'ctx ExtContext,
-        _state: &'ctx Self::State,
+        ctx: engine::EngineOperationContext,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
@@ -226,8 +201,14 @@ impl AuthorizationExtension<ExtContext> for TestExtensions {
             .unwrap();
         async move {
             let instance = self.state.lock().await.get_authorization_ext(extension_id);
+            let state = ctx
+                .authorization_state()
+                .iter()
+                .find_map(|(id, state)| if *id == extension_id { Some(state) } else { None })
+                .cloned()
+                .unwrap_or_default();
             instance
-                .authorize_response(ctx, directive_name, directive_site, items)
+                .authorize_response(ctx, &state, directive_name, directive_site, items)
                 .await
         }
         .boxed()
@@ -295,16 +276,17 @@ impl AnyExtension for AuthorizationExt {
 pub trait AuthorizationTestExtension: Send + Sync + 'static {
     async fn authorize_query(
         &self,
-        ctx: &ExtContext,
+        ctx: engine::EngineRequestContext,
         headers: &RwLock<http::HeaderMap>,
         token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse>;
+    ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse>;
 
     #[allow(clippy::manual_async_fn)]
     async fn authorize_response(
         &self,
-        ctx: &ExtContext,
+        ctx: engine::EngineOperationContext,
+        state: &[u8],
         directive_name: &str,
         directive_site: DirectiveSite<'_>,
         items: Vec<serde_json::Value>,

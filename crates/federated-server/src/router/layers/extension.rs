@@ -6,7 +6,7 @@ use event_queue::ExecutedHttpRequest;
 use extension_catalog::ExtensionId;
 use gateway_config::DefaultAuthenticationBehavior;
 use http::{Request, Response};
-use runtime::extension::{ExtensionContext, GatewayExtensions, OnRequest, Token};
+use runtime::extension::{GatewayExtensions, OnRequest, Token};
 use tower::Layer;
 
 use crate::engine::into_axum_response;
@@ -92,7 +92,6 @@ where
                 context,
                 mut parts,
                 contract_key,
-                context: state,
             } = match layer.extensions.on_request(parts).await {
                 Ok(on_request) => on_request,
                 Err(err) => {
@@ -127,13 +126,11 @@ where
 
             let response = match result {
                 Ok(token) => {
-                    parts
-                        .extensions
-                        .insert(RequestExtensions::<<Ext as GatewayExtensions>::Context> {
-                            context: context.clone(),
-                            token,
-                            contract_key: contract_key.or_else(|| layer.default_contract_key.clone()),
-                        });
+                    parts.extensions.insert(RequestExtensions {
+                        context: context.clone(),
+                        token,
+                        contract_key: contract_key.or_else(|| layer.default_contract_key.clone()),
+                    });
 
                     next.call(Request::from_parts(parts, body)).await?
                 }
@@ -149,7 +146,7 @@ where
                 .method(method)
                 .response_status(parts.status);
 
-            context.event_queue().push_http_request(builder);
+            context.event_queue.push_http_request(builder);
 
             let parts = match layer.extensions.on_response(context, parts).await {
                 Ok(parts) => parts,

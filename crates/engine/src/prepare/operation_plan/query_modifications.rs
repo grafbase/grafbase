@@ -1,4 +1,4 @@
-use std::{num::NonZero, ops::Deref};
+use std::{num::NonZero, ops::Deref, sync::Arc};
 
 use extension_catalog::ExtensionId;
 use futures::future::FutureExt;
@@ -39,7 +39,8 @@ pub(crate) struct QueryModifications {
 
 #[derive(Default)]
 pub(crate) struct ExtensionPreparedOperation {
-    pub authorization_context: Vec<(ExtensionId, Vec<u8>)>,
+    // Arc for Wasmtime because we can't return an non 'static value from a function.
+    pub authorization_context: Vec<(ExtensionId, Arc<[u8]>)>,
     pub authorization_state: Vec<(ExtensionId, Vec<u8>)>,
     pub subgraph_default_headers_override: Option<http::HeaderMap>,
 }
@@ -137,7 +138,6 @@ where
             .authorize_query(
                 EngineRequestContext::from(self.ctx.request_context),
                 headers,
-                self.ctx.access_token().as_ref(),
                 extensions,
                 modifiers
                     .by_directive

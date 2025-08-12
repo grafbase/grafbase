@@ -1,7 +1,7 @@
 use engine::ErrorResponse;
 use graphql_mocks::{EchoSchema, Schema};
 use integration_tests::{
-    gateway::{AuthenticationExt, AuthorizationExt, AuthorizationTestExtension, ExtContext, Gateway},
+    gateway::{AuthenticationExt, AuthorizationExt, AuthorizationTestExtension, Gateway},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
@@ -16,17 +16,17 @@ impl AuthorizationTestExtension for InsertTokenAsHeader {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        _ctx: &ExtContext,
+        _ctx: engine::EngineRequestContext,
         headers: &tokio::sync::RwLock<http::HeaderMap>,
         token: TokenRef<'_>,
         _elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+    ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
         println!("{}", String::from_utf8_lossy(token.as_bytes().unwrap_or_default()));
         headers.write().await.insert(
             "token",
             http::HeaderValue::from_bytes(token.as_bytes().unwrap_or_default()).unwrap(),
         );
-        Ok(AuthorizationDecisions::GrantAll)
+        Ok((AuthorizationDecisions::GrantAll, Vec::new()))
     }
 }
 

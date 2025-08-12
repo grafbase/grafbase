@@ -18,7 +18,7 @@ use since_0_17_0::SdkPre0_17_0;
 use since_0_18_0::SdkPre0_18_0;
 use since_0_19_0::SdkPre0_19_0;
 use since_0_21_0::SdkPre0_21_0;
-pub use since_0_21_0::world as wit;
+pub use since_0_21_0::wit;
 
 use super::{ExtensionConfig, ExtensionInstance};
 use crate::InstanceState;

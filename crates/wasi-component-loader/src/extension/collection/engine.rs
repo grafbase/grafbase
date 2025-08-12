@@ -42,7 +42,7 @@ pub struct EngineWasmExtensionsInner {
 impl EngineWasmExtensions {
     pub async fn new(
         gateway_extensions: GatewayWasmExtensions,
-        extension_catalog: &ExtensionCatalog,
+        extension_catalog: &Arc<ExtensionCatalog>,
         gateway_config: &Config,
         schema: &Arc<Schema>,
         logging_filter: String,
@@ -76,13 +76,13 @@ impl EngineWasmExtensions {
         }
 
         Ok(Self(Arc::new(EngineWasmExtensionsInner {
-            pools: create_pools(&gateway_extensions.engine, schema, extensions).await?,
+            pools: create_pools(&gateway_extensions.engine, schema, extension_catalog, extensions).await?,
             contracts: match contracts {
                 Some(config) => Some(
                     Pool::new(
                         &gateway_extensions.engine,
                         schema,
-                        Arc::new(ExtensionState::new(config)),
+                        Arc::new(ExtensionState::new(extension_catalog, config)),
                     )
                     .await?,
                 ),
@@ -146,6 +146,7 @@ impl EngineWasmExtensions {
 async fn create_pools(
     engine: &Engine,
     schema: &Arc<Schema>,
+    catalog: &Arc<ExtensionCatalog>,
     extensions: Vec<ExtensionConfig>,
 ) -> wasmtime::Result<HashMap<ExtensionId, Pool, BuildHasherDefault<FxHasher32>>> {
     let parallelism = std::thread::available_parallelism()
@@ -163,7 +164,7 @@ async fn create_pools(
         std::future::ready(()).await;
 
         let id = config.id;
-        let pool = Pool::new(engine, schema, Arc::new(ExtensionState::new(config))).await?;
+        let pool = Pool::new(engine, schema, Arc::new(ExtensionState::new(catalog, config))).await?;
 
         Ok((id, pool))
     }))

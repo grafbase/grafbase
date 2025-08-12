@@ -52,7 +52,7 @@ async fn single_call_caching_auth() {
         .instantiate()
         .await
         .unwrap()
-        .authenticate(Default::default(), headers.into())
+        .authenticate(&Default::default(), headers.into())
         .await
         .unwrap()
         .unwrap();
@@ -110,7 +110,7 @@ async fn single_call_caching_auth_invalid() {
         .instantiate()
         .await
         .unwrap()
-        .authenticate(Default::default(), http::HeaderMap::new().into())
+        .authenticate(&Default::default(), http::HeaderMap::new().into())
         .await
         .unwrap()
         .err();
@@ -171,7 +171,7 @@ async fn multiple_cache_calls() {
             headers.insert("value", HeaderValue::from_str(&format!("value_{i}")).unwrap());
 
             let (_, token) = extension
-                .authenticate(Default::default(), headers.into())
+                .authenticate(&Default::default(), headers.into())
                 .await
                 .unwrap()
                 .unwrap();
@@ -204,7 +204,7 @@ async fn multiple_cache_calls() {
         .instantiate()
         .await
         .unwrap()
-        .authenticate(Default::default(), headers.into())
+        .authenticate(&Default::default(), headers.into())
         .await
         .unwrap()
         .unwrap();
@@ -304,7 +304,7 @@ async fn load(config: ExtensionConfig) -> ExtensionLoader {
     ExtensionLoader::new(
         &engine,
         Arc::new(Schema::from_sdl_or_panic("").await),
-        Arc::new(ExtensionState::new(config)),
+        Arc::new(ExtensionState::new(&Default::default(), config)),
     )
     .unwrap()
 }

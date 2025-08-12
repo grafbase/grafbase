@@ -1,8 +1,9 @@
-use std::future::Future;
+use std::{future::Future, sync::Arc};
 
 use bytes::Bytes;
 use engine_schema::{ExtensionDirective, FieldDefinition};
 use error::GraphqlError;
+use event_queue::EventQueue;
 use futures_util::stream::BoxStream;
 
 use crate::extension::Anything;
@@ -47,6 +48,7 @@ impl From<ArgumentsId> for u16 {
 pub trait ResolverExtension<OperationContext>: Send + Sync + 'static {
     fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
+        event_queue: Arc<EventQueue>,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,

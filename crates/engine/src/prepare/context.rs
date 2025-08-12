@@ -3,7 +3,6 @@ use std::sync::Arc;
 use event_queue::{ExecutedOperation, ExecutedOperationBuilder};
 use futures::future::BoxFuture;
 use grafbase_telemetry::metrics::EngineMetrics;
-use runtime::extension::Token;
 use schema::Schema;
 
 use crate::{Engine, Runtime, execution::RequestContext};
@@ -39,10 +38,6 @@ impl<'ctx, R: Runtime> PrepareContext<'ctx, R> {
 
     pub fn runtime(&self) -> &'ctx R {
         &self.engine.runtime
-    }
-
-    pub fn access_token(&self) -> &'ctx Token {
-        &self.request_context.token
     }
 
     pub fn headers(&self) -> &'ctx http::HeaderMap {

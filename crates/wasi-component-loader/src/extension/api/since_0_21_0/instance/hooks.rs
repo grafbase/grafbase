@@ -1,20 +1,20 @@
 use std::sync::Arc;
 
+use engine::EngineOperationContext;
 use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
-use engine_schema::GraphqlSubgraph;
+use engine_schema::{GraphqlSubgraph, VirtualSubgraph};
 use event_queue::EventQueue;
 use futures::future::BoxFuture;
 use http::{request, response};
-use runtime::extension::{OnRequest, ReqwestParts};
+use runtime::extension::{ExtensionRequestContext, OnRequest, ReqwestParts};
 use url::Url;
 
 use crate::{
-    LegacyWasmContext,
     extension::{
         HooksExtensionInstance,
-        api::wit::{self, HttpMethod, HttpRequestPartsParam},
+        api::since_0_21_0::wit::{self, HttpMethod, HttpRequestPartsParam},
     },
-    resources::{EventQueueProxy, Headers},
+    resources::EventQueueResource,
 };
 
 impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
@@ -24,19 +24,14 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
         mut parts: request::Parts,
     ) -> BoxFuture<'a, wasmtime::Result<Result<OnRequest, ErrorResponse>>> {
         Box::pin(async move {
-            let headers = std::mem::take(&mut parts.headers);
-            let url = parts.uri.to_string();
-
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
-
-            let event_queue = Arc::new(event_queue);
-            let ctx = self
-                .store
-                .data_mut()
-                .resources
-                .push(LegacyWasmContext::from(event_queue.clone()))?;
-
             let method: HttpMethod = (&parts.method).try_into()?;
+            let url = parts.uri.to_string();
+            let headers = std::mem::take(&mut parts.headers);
+            let event_queue = Arc::new(event_queue);
+
+            let resources = &mut self.store.data_mut().resources;
+            let headers = resources.push(wit::Headers::from(headers))?;
+            let ctx = resources.push(wit::HostContext::from(&event_queue))?;
 
             let result = self
                 .inner
@@ -60,10 +55,12 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
                 }) => {
                     parts.headers = self.store.data_mut().resources.delete(headers)?.into_inner().unwrap();
                     Ok(OnRequest {
-                        event_queue,
                         parts,
                         contract_key,
-                        context,
+                        context: ExtensionRequestContext {
+                            event_queue,
+                            hooks_context: Default::default(),
+                        },
                     })
                 }
                 Err(err) => Err(self
@@ -78,22 +75,23 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
 
     fn on_response(
         &mut self,
-        context: LegacyWasmContext,
+        context: ExtensionRequestContext,
         mut parts: response::Parts,
     ) -> BoxFuture<'_, wasmtime::Result<Result<response::Parts, String>>> {
         Box::pin(async move {
             let headers = std::mem::take(&mut parts.headers);
             let status = parts.status.as_u16();
 
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
-
-            let queue = self.store.data_mut().resources.push(EventQueueProxy(context.clone()))?;
-            let context = self.store.data_mut().resources.push(context.clone())?;
+            let resources = &mut self.store.data_mut().resources;
+            let headers = resources.push(wit::Headers::from(headers))?;
+            let queue = resources.push(EventQueueResource(context.event_queue.clone()))?;
+            let host_context = resources.push(wit::HostContext::from(&context))?;
+            let ctx = resources.push(wit::RequestContext::from(&context))?;
 
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
-                .call_on_response(&mut self.store, context, status, headers, queue)
+                .call_on_response(&mut self.store, host_context, ctx, status, headers, queue)
                 .await?;
 
             let result = match result {
@@ -109,20 +107,25 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
 
     fn on_graphql_subgraph_request<'a>(
         &'a mut self,
-        context: &'a LegacyWasmContext,
+        ctx: EngineOperationContext,
         subgraph: GraphqlSubgraph<'a>,
         ReqwestParts { url, method, headers }: ReqwestParts,
     ) -> BoxFuture<'a, wasmtime::Result<Result<ReqwestParts, GraphqlError>>> {
         Box::pin(async move {
             let method: HttpMethod = (&method).try_into()?;
-            let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
-            let context = self.store.data_mut().resources.push(context.clone())?;
+
+            let resources = &mut self.store.data_mut().resources;
+            let headers = resources.push(wit::Headers::from(headers))?;
+            let host_context = resources.push(wit::HostContext::from(&ctx))?;
+            let ctx = resources.push(ctx)?;
+
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
                 .call_on_graphql_subgraph_request(
                     &mut self.store,
-                    context,
+                    host_context,
+                    ctx,
                     subgraph.name(),
                     HttpRequestPartsParam {
                         url: url.as_str(),
@@ -155,6 +158,35 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
                         method: parts.method.into(),
                         headers,
                     })
+                }
+                Err(err) => Err(err.into_graphql_error(ErrorCode::ExtensionError)),
+            };
+            Ok(result)
+        })
+    }
+
+    fn on_virtual_subgraph_request<'a>(
+        &'a mut self,
+        ctx: EngineOperationContext,
+        subgraph: VirtualSubgraph<'a>,
+        headers: http::HeaderMap,
+    ) -> BoxFuture<'a, wasmtime::Result<Result<http::HeaderMap, GraphqlError>>> {
+        Box::pin(async move {
+            let resources = &mut self.store.data_mut().resources;
+            let headers = resources.push(wit::Headers::from(headers))?;
+            let host_context = resources.push(wit::HostContext::from(&ctx))?;
+            let ctx = resources.push(ctx)?;
+
+            let result = self
+                .inner
+                .grafbase_sdk_hooks()
+                .call_on_virtual_subgraph_request(&mut self.store, host_context, ctx, subgraph.name(), headers)
+                .await?;
+
+            let result = match result {
+                Ok(headers) => {
+                    let headers = self.store.data_mut().resources.delete(headers)?.into_inner().unwrap();
+                    Ok(headers)
                 }
                 Err(err) => Err(err.into_graphql_error(ErrorCode::ExtensionError)),
             };

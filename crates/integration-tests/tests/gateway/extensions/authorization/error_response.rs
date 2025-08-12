@@ -1,7 +1,7 @@
 use engine::{ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    gateway::{AuthorizationExt, AuthorizationTestExtension, ExtContext, Gateway},
+    gateway::{AuthorizationExt, AuthorizationTestExtension, Gateway},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
@@ -14,11 +14,11 @@ impl AuthorizationTestExtension for Failure {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        _ctx: &ExtContext,
+        _ctx: engine::EngineRequestContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         _token: TokenRef<'_>,
         _elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+    ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
         Err(ErrorResponse {
             status: http::StatusCode::UNAUTHORIZED,
             errors: vec![GraphqlError::unauthorized()],

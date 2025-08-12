@@ -36,7 +36,7 @@ pub struct ContractAwareEngine<R: Runtime> {
 
 #[derive(Clone)]
 pub struct RequestExtensions {
-    pub context: Arc<ExtensionRequestContext>,
+    pub context: ExtensionRequestContext,
     pub token: Token,
     pub contract_key: Option<String>,
 }

@@ -17,16 +17,16 @@ use crate::{
 impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_15_0 {
     fn authorize_query<'a>(
         &'a mut self,
-        _ctx: EngineRequestContext,
+        ctx: EngineRequestContext,
         headers: OwnedOrShared<http::HeaderMap>,
-        token: TokenRef<'a>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizeQueryOutput, ErrorResponse>>> {
         Box::pin(async move {
             let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
-            let token_param = token
+            let token_param = ctx
+                .token()
                 .as_bytes()
                 .map(wit15::TokenParam::Bytes)
                 .unwrap_or(wit15::TokenParam::Anonymous);

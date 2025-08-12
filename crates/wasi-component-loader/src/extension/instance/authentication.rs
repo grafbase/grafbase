@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use engine_error::ErrorResponse;
 use futures::future::BoxFuture;
 use runtime::extension::{ExtensionRequestContext, PublicMetadataEndpoint, Token};
@@ -10,7 +8,7 @@ pub(crate) trait AuthenticationExtensionInstance {
     #[allow(clippy::type_complexity)]
     fn authenticate<'a>(
         &'a mut self,
-        context: Arc<ExtensionRequestContext>,
+        context: &'a ExtensionRequestContext,
         headers: Headers,
     ) -> BoxFuture<'a, wasmtime::Result<Result<(Headers, Token), ErrorResponse>>>;
 

@@ -1,17 +1,16 @@
-use std::{future::Future, ops::Range};
+use std::{future::Future, ops::Range, sync::Arc};
 
 use engine_schema::{DirectiveSite, Subgraph};
 use error::{ErrorResponse, GraphqlError};
 use extension_catalog::ExtensionId;
 
-use super::{Anything, TokenRef};
+use super::Anything;
 
 pub trait AuthorizationExtension<RequestContext, OperationContext>: Send + Sync + 'static {
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
         ctx: RequestContext,
         subgraph_headers: http::HeaderMap,
-        token: TokenRef<'ctx>,
         extensions: Extensions,
         // (directive name, range within query_elements)
         directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
@@ -50,7 +49,8 @@ pub struct QueryElement<'a, A> {
 pub struct AuthorizeQuery {
     pub headers: http::HeaderMap,
     pub decisions: Vec<QueryAuthorizationDecisions>,
-    pub context: Vec<(ExtensionId, Vec<u8>)>,
+    // Arc for Wasmtime because we can't return an non 'static value from a function.
+    pub context: Vec<(ExtensionId, Arc<[u8]>)>,
     pub state: Vec<(ExtensionId, Vec<u8>)>,
 }
 

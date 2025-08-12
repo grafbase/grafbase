@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use extension_catalog::ExtensionId;
-use runtime::extension::{ExtensionRequestContext, TokenRef};
+use runtime::extension::{ExtensionRequestContext, Token};
 
 use crate::{
     Runtime,
@@ -19,12 +19,12 @@ impl From<&Arc<RequestContext>> for EngineRequestContext {
 }
 
 impl EngineRequestContext {
-    pub fn extension(&self) -> &Arc<ExtensionRequestContext> {
+    pub fn extension(&self) -> &ExtensionRequestContext {
         &self.0.extension
     }
 
-    pub fn token(&self) -> TokenRef<'_> {
-        self.0.token.as_ref()
+    pub fn token(&self) -> &Token {
+        &self.0.token
     }
 }
 
@@ -44,15 +44,15 @@ impl<R: Runtime> From<&ExecutionContext<'_, R>> for EngineOperationContext {
 }
 
 impl EngineOperationContext {
-    pub fn extension(&self) -> &Arc<ExtensionRequestContext> {
+    pub fn extension(&self) -> &ExtensionRequestContext {
         &self.request.extension
     }
 
-    pub fn token(&self) -> TokenRef<'_> {
-        self.request.token.as_ref()
+    pub fn token(&self) -> &Token {
+        &self.request.token
     }
 
-    pub fn authorization_context(&self) -> &[(ExtensionId, Vec<u8>)] {
+    pub fn authorization_context(&self) -> &[(ExtensionId, Arc<[u8]>)] {
         &self.operation.plan.query_modifications.extension.authorization_context
     }
 

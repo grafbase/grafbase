@@ -1,21 +1,22 @@
 mod cache;
-mod context;
 mod file_logger;
 mod headers;
 mod kafka_consumer;
 mod kafka_producer;
+mod legacy_context;
 mod legacy_sdk18;
 mod nats;
 
 use std::sync::Arc;
 
+use event_queue::EventQueue;
 use sqlx::Postgres;
 
 pub use cache::*;
-pub use context::*;
 pub use headers::*;
 pub use kafka_consumer::*;
 pub use kafka_producer::*;
+pub use legacy_context::*;
 pub use legacy_sdk18::*;
 pub use nats::*;
 
@@ -35,7 +36,14 @@ pub type PgTransaction = sqlx::Transaction<'static, Postgres>;
 pub type PgRow = sqlx::postgres::PgRow;
 pub type FileLogger = file_logger::FileLogger;
 
-pub struct EventQueueProxy(pub(crate) LegacyWasmContext);
+pub struct EventQueueResource(pub(crate) Arc<EventQueue>);
+
+impl From<Arc<EventQueue>> for EventQueueResource {
+    fn from(event_queue: Arc<EventQueue>) -> Self {
+        Self(event_queue)
+    }
+}
+
 pub type AccessLogSender = ();
 
 /// It's not possible to provide a reference to wasmtime, it must be static and there are too many

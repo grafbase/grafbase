@@ -1,7 +1,7 @@
 use engine::{EngineOperationContext, EngineRequestContext};
 use engine_error::{ErrorResponse, GraphqlError};
 use futures::future::BoxFuture;
-use runtime::extension::{AuthorizationDecisions, TokenRef};
+use runtime::extension::AuthorizationDecisions;
 
 use crate::{extension::api::wit, resources::Headers};
 
@@ -10,7 +10,6 @@ pub(crate) trait AuthorizationExtensionInstance {
         &'a mut self,
         ctx: EngineRequestContext,
         headers: Headers,
-        token: TokenRef<'a>,
         elements: wit::QueryElements<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizeQueryOutput, ErrorResponse>>>;
 
@@ -23,6 +22,7 @@ pub(crate) trait AuthorizationExtensionInstance {
 }
 
 pub(crate) struct AuthorizeQueryOutput {
+    #[allow(unused)] // just there to force us to give it back.
     pub subgraph_headers: Headers,
     pub additional_headers: Option<http::HeaderMap>,
     pub decisions: AuthorizationDecisions,

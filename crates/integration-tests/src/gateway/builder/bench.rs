@@ -13,7 +13,7 @@ use runtime::{
 };
 use runtime_local::InMemoryOperationCache;
 
-use crate::gateway::{ExtContext, GraphqlResponse, GraphqlStreamingResponse};
+use crate::gateway::{GraphqlResponse, GraphqlStreamingResponse};
 
 use super::TestRuntime;
 
@@ -75,7 +75,7 @@ impl DeterministicEngineBuilder<'_> {
                     http::HeaderValue::from_static("application/json"),
                 )
                 .extension(RequestExtensions {
-                    context: ExtContext::default(),
+                    context: Default::default(),
                     token: Token::Anonymous,
                     contract_key: None,
                 })

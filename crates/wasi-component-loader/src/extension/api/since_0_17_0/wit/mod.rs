@@ -23,7 +23,7 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/headers/headers": crate::resources::LegacyHeaders,
         "grafbase:sdk/resolver-types": resolver_types,
         "grafbase:sdk/authorization-types": authorization_types,
-        "grafbase:sdk/event-queue/event-queue": crate::resources::EventQueueProxy,
+        "grafbase:sdk/event-queue/event-queue": crate::resources::EventQueueResource,
         "grafbase:sdk/shared-context": shared_context
     },
     trappable_imports: true,

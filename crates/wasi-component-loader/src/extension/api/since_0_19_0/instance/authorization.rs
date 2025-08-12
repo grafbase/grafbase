@@ -19,14 +19,14 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_19_0 {
         &'a mut self,
         ctx: EngineRequestContext,
         headers: Headers,
-        token: TokenRef<'a>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizeQueryOutput, ErrorResponse>>> {
         Box::pin(async move {
             let context = self.store.data_mut().resources.push(LegacyWasmContext::from(&ctx))?;
             let headers = self.store.data_mut().resources.push(headers)?;
 
-            let token_param = token
+            let token_param = ctx
+                .token()
                 .as_bytes()
                 .map(wit19::TokenParam::Bytes)
                 .unwrap_or(wit19::TokenParam::Anonymous);

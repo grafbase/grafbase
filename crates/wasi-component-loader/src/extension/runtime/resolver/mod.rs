@@ -1,8 +1,11 @@
 mod subscription;
 
+use std::sync::Arc;
+
 use engine::EngineOperationContext;
 use engine_error::GraphqlError;
 use engine_schema::ExtensionDirective;
+use event_queue::EventQueue;
 use futures::{StreamExt as _, stream::BoxStream};
 use runtime::extension::{Anything, ArgumentsId, Field as _, ResolverExtension, Response, SelectionSet as _};
 
@@ -19,6 +22,7 @@ use crate::{
 impl ResolverExtension<EngineOperationContext> for EngineWasmExtensions {
     async fn prepare<'ctx, F: runtime::extension::Field<'ctx>>(
         &'ctx self,
+        event_queue: Arc<EventQueue>,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
@@ -61,7 +65,11 @@ impl ResolverExtension<EngineOperationContext> for EngineWasmExtensions {
             arguments: cbor::to_vec(directive_arguments).unwrap(),
         };
 
-        wasmsafe!(instance.prepare(directive.subgraph().name(), dir, 0, &fields).await)
+        wasmsafe!(
+            instance
+                .prepare(event_queue, directive.subgraph().name(), dir, 0, &fields)
+                .await
+        )
     }
 
     fn resolve<'ctx, 'resp, 'f>(

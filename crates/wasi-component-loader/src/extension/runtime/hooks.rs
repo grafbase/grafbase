@@ -21,10 +21,10 @@ impl GatewayHooksExtension for GatewayWasmExtensions {
             return Ok(OnRequest {
                 parts,
                 contract_key: None,
-                context: Arc::new(ExtensionRequestContext {
+                context: ExtensionRequestContext {
                     event_queue: Arc::new(event_queue),
-                    hooks_context: Vec::new(),
-                }),
+                    hooks_context: Default::default(),
+                },
             });
         };
 
@@ -38,7 +38,7 @@ impl GatewayHooksExtension for GatewayWasmExtensions {
 
     async fn on_response(
         &self,
-        context: Arc<ExtensionRequestContext>,
+        context: ExtensionRequestContext,
         parts: response::Parts,
     ) -> Result<response::Parts, String> {
         let Some(pool) = self.hooks.as_ref() else {

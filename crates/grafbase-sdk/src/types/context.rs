@@ -12,8 +12,8 @@ impl From<wit::RequestContext> for RequestContext {
 impl RequestContext {
     /// Returns the Hook context created by the [on_request()](crate::HooksExtension::on_request())
     /// hook if any.
-    pub fn hook_context(&self) -> Vec<u8> {
-        self.0.hook_context()
+    pub fn hooks_context(&self) -> Vec<u8> {
+        self.0.hooks_context()
     }
 }
 
@@ -29,8 +29,8 @@ impl From<wit::AuthenticatedRequestContext> for AuthenticatedRequestContext {
 impl AuthenticatedRequestContext {
     /// Returns the Hook context created by the [on_request()](crate::HooksExtension::on_request())
     /// hook if any.
-    pub fn hook_context(&self) -> Vec<u8> {
-        self.0.hook_context()
+    pub fn hooks_context(&self) -> Vec<u8> {
+        self.0.hooks_context()
     }
     /// Returns the authentication token provided by an authentication extension if any.
     pub fn token(&self) -> Token {
@@ -50,8 +50,8 @@ impl From<wit::AuthorizedOperationContext> for AuthorizedOperationContext {
 impl AuthorizedOperationContext {
     /// Returns the Hook context created by the [on_request()](crate::HooksExtension::on_request())
     /// hook if any.
-    pub fn hook_context(&self) -> Vec<u8> {
-        self.0.hook_context()
+    pub fn hooks_context(&self) -> Vec<u8> {
+        self.0.hooks_context()
     }
     /// Returns the authentication token provided by an authentication extension if any.
     pub fn token(&self) -> Token {

@@ -2,19 +2,20 @@ use std::sync::Arc;
 
 use engine::{ErrorCode, GraphqlError};
 use engine_schema::ExtensionDirective;
+use event_queue::EventQueue;
 use futures::{FutureExt as _, stream::BoxStream};
 use runtime::{
     extension::Anything,
     extension::{ArgumentsId, DynField, Field, ResolverExtension, Response},
 };
 
-use crate::gateway::{DispatchRule, EngineTestExtensions, ExtContext, TestExtensions};
+use crate::gateway::{DispatchRule, EngineTestExtensions, TestExtensions};
 
 #[allow(clippy::manual_async_fn, unused_variables)]
-impl ResolverExtension<ExtContext> for EngineTestExtensions {
+impl ResolverExtension<engine::EngineOperationContext> for EngineTestExtensions {
     async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
-        ctx: &'ctx ExtContext,
+        event_queue: Arc<EventQueue>,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
@@ -22,16 +23,16 @@ impl ResolverExtension<ExtContext> for EngineTestExtensions {
         match self.dispatch[&directive.extension_id] {
             DispatchRule::Wasm => {
                 self.wasm
-                    .prepare(&ctx.wasm, directive, directive_arguments, field)
+                    .prepare(event_queue, directive, directive_arguments, field)
                     .await
             }
-            DispatchRule::Test => self.test.prepare(ctx, directive, directive_arguments, field).await,
+            DispatchRule::Test => self.test.prepare(directive, directive_arguments, field).await,
         }
     }
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
-        ctx: &'ctx ExtContext,
+        ctx: engine::EngineOperationContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -43,7 +44,7 @@ impl ResolverExtension<ExtContext> for EngineTestExtensions {
         match self.dispatch[&directive.extension_id] {
             DispatchRule::Wasm => self
                 .wasm
-                .resolve(&ctx.wasm, directive, prepared_data, subgraph_headers, arguments)
+                .resolve(ctx, directive, prepared_data, subgraph_headers, arguments)
                 .boxed(),
             DispatchRule::Test => self
                 .test
@@ -54,7 +55,7 @@ impl ResolverExtension<ExtContext> for EngineTestExtensions {
 
     fn resolve_subscription<'ctx, 'resp, 'f>(
         &'ctx self,
-        ctx: &'ctx ExtContext,
+        ctx: engine::EngineOperationContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -66,7 +67,7 @@ impl ResolverExtension<ExtContext> for EngineTestExtensions {
         match self.dispatch[&directive.extension_id] {
             DispatchRule::Wasm => self
                 .wasm
-                .resolve_subscription(&ctx.wasm, directive, prepared_data, subgraph_headers, arguments)
+                .resolve_subscription(ctx, directive, prepared_data, subgraph_headers, arguments)
                 .boxed(),
             DispatchRule::Test => self
                 .test
@@ -77,10 +78,9 @@ impl ResolverExtension<ExtContext> for EngineTestExtensions {
 }
 
 #[allow(clippy::manual_async_fn, unused_variables)]
-impl ResolverExtension<ExtContext> for TestExtensions {
+impl TestExtensions {
     async fn prepare<'ctx, F: Field<'ctx>>(
         &'ctx self,
-        ctx: &'ctx ExtContext,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
@@ -99,7 +99,7 @@ impl ResolverExtension<ExtContext> for TestExtensions {
 
     fn resolve<'ctx, 'resp, 'f>(
         &'ctx self,
-        ctx: &'ctx ExtContext,
+        ctx: engine::EngineOperationContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
@@ -125,7 +125,7 @@ impl ResolverExtension<ExtContext> for TestExtensions {
 
     fn resolve_subscription<'ctx, 'resp, 'f>(
         &'ctx self,
-        ctx: &'ctx ExtContext,
+        ctx: engine::EngineOperationContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,

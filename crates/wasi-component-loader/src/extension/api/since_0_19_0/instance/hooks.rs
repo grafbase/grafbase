@@ -14,7 +14,7 @@ use crate::{
         HooksExtensionInstance,
         api::{since_0_19_0::world as wit19, wit::HttpMethod},
     },
-    resources::{EventQueueProxy, Headers, LegacyWasmContext},
+    resources::{EventQueueResource, Headers, LegacyWasmContext},
 };
 
 impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
@@ -58,10 +58,10 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                     Ok(OnRequest {
                         parts,
                         contract_key,
-                        context: Arc::new(ExtensionRequestContext {
+                        context: ExtensionRequestContext {
                             event_queue,
-                            hooks_context: Vec::new(),
-                        }),
+                            hooks_context: Default::default(),
+                        },
                     })
                 }
                 Err(err) => Err(self
@@ -76,7 +76,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
 
     fn on_response(
         &mut self,
-        ctx: Arc<ExtensionRequestContext>,
+        ctx: ExtensionRequestContext,
         mut parts: response::Parts,
     ) -> BoxFuture<'_, wasmtime::Result<Result<response::Parts, String>>> {
         Box::pin(async move {
@@ -85,8 +85,12 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
 
             let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
 
-            let ctx = LegacyWasmContext::from(ctx.event_queue.clone());
-            let queue = self.store.data_mut().resources.push(EventQueueProxy(ctx.clone()))?;
+            let ctx = LegacyWasmContext::from(&ctx);
+            let queue = self
+                .store
+                .data_mut()
+                .resources
+                .push(EventQueueResource::from(ctx.clone()))?;
             let context = self.store.data_mut().resources.push(ctx)?;
 
             let result = self

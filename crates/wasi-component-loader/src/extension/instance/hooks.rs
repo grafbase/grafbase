@@ -17,16 +17,16 @@ pub(crate) trait HooksExtensionInstance {
         Box::pin(std::future::ready(Ok(Ok(OnRequest {
             parts,
             contract_key: None,
-            context: Arc::new(ExtensionRequestContext {
+            context: ExtensionRequestContext {
                 event_queue: Arc::new(event_queue),
-                hooks_context: Vec::new(),
-            }),
+                hooks_context: Default::default(),
+            },
         }))))
     }
 
     fn on_response(
         &mut self,
-        ctx: Arc<ExtensionRequestContext>,
+        ctx: ExtensionRequestContext,
         parts: http::response::Parts,
     ) -> BoxFuture<'_, wasmtime::Result<Result<http::response::Parts, String>>> {
         Box::pin(std::future::ready(Ok(Ok(parts))))

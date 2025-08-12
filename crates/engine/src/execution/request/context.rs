@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use grafbase_telemetry::grafbase_client::Client;
 use runtime::extension::{ExtensionRequestContext, Token};
 
@@ -29,5 +27,5 @@ pub(crate) struct RequestContext {
     pub subgraph_default_headers: http::HeaderMap,
     pub include_grafbase_response_extension: bool,
     pub include_mcp_response_extension: bool,
-    pub extension: Arc<ExtensionRequestContext>,
+    pub extension: ExtensionRequestContext,
 }

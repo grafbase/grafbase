@@ -19,7 +19,6 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
         &'a mut self,
         ctx: EngineRequestContext,
         headers: OwnedOrShared<http::HeaderMap>,
-        token: TokenRef<'a>,
         elements: QueryElements<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizeQueryOutput, ErrorResponse>>> {
         Box::pin(async move {
@@ -27,7 +26,8 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_17_0 {
             let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
-            let token_param = token
+            let token_param = ctx
+                .token()
                 .as_bytes()
                 .map(wit17::TokenParam::Bytes)
                 .unwrap_or(wit17::TokenParam::Anonymous);

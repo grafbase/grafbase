@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use engine::EngineOperationContext;
 use engine_error::GraphqlError;
+use event_queue::EventQueue;
 use futures::future::BoxFuture;
 use runtime::extension::Response;
 
@@ -9,6 +12,7 @@ use crate::extension::api::wit::{ArgumentsId, Directive, Field, FieldId, Subscri
 pub(crate) trait ResolverExtensionInstance {
     fn prepare<'a>(
         &'a mut self,
+        event_queue: Arc<EventQueue>,
         subgraph_name: &'a str,
         directive: Directive<'a>,
         field_id: FieldId,
