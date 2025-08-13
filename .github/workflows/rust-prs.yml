@@ -49,7 +49,7 @@ jobs:
 
       - name: Run what-rust-changed
         id: rust
-        uses: grafbase/what-rust-changed@afaec86db005c2f82f3c06db086c00b830d17e05 # v0.2.1
+        uses: grafbase/what-rust-changed@4bd103b30c18e07a48c08f7c891fb22e27ddcd8e # v0.2.1
         with:
           config: .github/what-rust-changed.toml
           base: ${{ inputs.base_ref || github.event.pull_request.base.ref || 'main' }}
