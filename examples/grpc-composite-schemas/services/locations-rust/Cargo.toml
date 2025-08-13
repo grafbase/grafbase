@@ -1,0 +1,12 @@
+[package]
+name = "locations-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+prost = "0.12"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+tonic = "0.11"
+
+[build-dependencies]
+tonic-build = "0.11"

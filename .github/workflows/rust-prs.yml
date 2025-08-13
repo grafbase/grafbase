@@ -457,6 +457,7 @@ jobs:
           - examples/authorization
           - examples/grpc-extension
           - examples/composite-rest
+          - examples/grpc-composite-schemas
     runs-on: depot-ubuntu-24.04-8
     steps:
       - name: Get sources

@@ -1,0 +1,12 @@
+# Ignore generated protobuf files (except grafbase/options.pb.go)
+**/*.pb.go
+**/*_grpc.pb.go
+!**/grafbase/options.pb.go
+
+# Ignore node_modules
+**/node_modules/
+
+# Ignore build artifacts
+**/target/
+**/dist/
+**/build/

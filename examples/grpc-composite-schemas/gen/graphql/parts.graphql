@@ -1,0 +1,326 @@
+extend schema
+  @link(url: "https://grafbase.com/extensions/grpc/0.2.0", import: ["@protoServices", "@protoEnums", "@protoMessages", "@grpcMethod"])
+  @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@key", "@derive", "@is", "@lookup", "@require"])
+  @protoServices(
+    definitions: [
+      {
+        name: "parts.PartService"
+        methods: [
+          {
+            name: "GetPart"
+            inputType: ".parts.GetPartRequest"
+            outputType: ".parts.GetPartResponse"
+          }
+          {
+            name: "BatchGetParts"
+            inputType: ".parts.BatchGetPartsRequest"
+            outputType: ".parts.BatchGetPartsResponse"
+          }
+          {
+            name: "SearchParts"
+            inputType: ".parts.SearchPartsRequest"
+            outputType: ".parts.SearchPartsResponse"
+          }
+        ]
+      }
+    ]
+  )
+  @protoMessages(
+    definitions: [
+      {
+        name: ".parts.Part"
+        fields: [
+          {
+            name: "id"
+            number: 1
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "part_number"
+            number: 2
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "name"
+            number: 3
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "description"
+            number: 4
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "cost"
+            number: 5
+            repeated: false
+            type: "double"
+          }
+          {
+            name: "supplier"
+            number: 6
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "warehouse_id"
+            number: 7
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "quantity_available"
+            number: 8
+            repeated: false
+            type: "int32"
+          }
+          {
+            name: "category"
+            number: 9
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "is_critical"
+            number: 10
+            repeated: false
+            type: "bool"
+          }
+        ]
+      }
+      {
+        name: ".parts.GetPartRequest"
+        fields: [
+          {
+            name: "id"
+            number: 1
+            repeated: false
+            type: "string"
+          }
+        ]
+      }
+      {
+        name: ".parts.GetPartResponse"
+        fields: [
+          {
+            name: "part"
+            number: 1
+            repeated: false
+            type: ".parts.Part"
+          }
+        ]
+      }
+      {
+        name: ".parts.BatchGetPartsRequest"
+        fields: [
+          {
+            name: "ids"
+            number: 1
+            repeated: true
+            type: "string"
+          }
+        ]
+      }
+      {
+        name: ".parts.BatchGetPartsResponse"
+        fields: [
+          {
+            name: "parts"
+            number: 1
+            repeated: true
+            type: ".parts.Part"
+          }
+        ]
+      }
+      {
+        name: ".parts.SearchPartsRequest"
+        fields: [
+          {
+            name: "name"
+            number: 1
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "category"
+            number: 2
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "supplier"
+            number: 3
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "warehouse_id"
+            number: 4
+            repeated: false
+            type: "string"
+          }
+          {
+            name: "min_quantity"
+            number: 5
+            repeated: false
+            type: "int32"
+          }
+          {
+            name: "is_critical"
+            number: 6
+            repeated: false
+            type: "bool"
+          }
+          {
+            name: "min_cost"
+            number: 7
+            repeated: false
+            type: "double"
+          }
+          {
+            name: "max_cost"
+            number: 8
+            repeated: false
+            type: "double"
+          }
+          {
+            name: "part_number"
+            number: 9
+            repeated: false
+            type: "string"
+          }
+        ]
+      }
+      {
+        name: ".parts.SearchPartsResponse"
+        fields: [
+          {
+            name: "parts"
+            number: 1
+            repeated: true
+            type: ".parts.Part"
+          }
+        ]
+      }
+    ]
+  )
+
+type Query {
+"""
+Get a single part by ID
+"""
+  parts_PartService_GetPart(input: parts_GetPartRequestInput): parts_GetPartResponse @grpcMethod(service: "parts.PartService", method: "GetPart")
+"""
+Batch get parts by IDs
+"""
+  parts_PartService_BatchGetParts(input: parts_BatchGetPartsRequestInput @is(field: "{ ids: [id] }")): parts_BatchGetPartsResponse @grpcMethod(service: "parts.PartService", method: "BatchGetParts") @lookup
+"""
+Search parts with optional filters
+"""
+  parts_PartService_SearchParts(input: parts_SearchPartsRequestInput): parts_SearchPartsResponse @grpcMethod(service: "parts.PartService", method: "SearchParts")
+}
+
+"64 bit signed integer" scalar I64
+"64 bit unsigned integer" scalar U64
+
+"""
+Request message for getting a single part
+"""
+input parts_GetPartRequestInput {
+  id: String
+}
+
+"""
+Request message for batch getting parts
+"""
+input parts_BatchGetPartsRequestInput {
+  ids: [String!]
+}
+
+"""
+Request message for searching parts with filters
+"""
+input parts_SearchPartsRequestInput {
+"""
+Filter by name (partial match)
+"""
+  name: String
+"""
+Filter by category
+"""
+  category: String
+"""
+Filter by supplier
+"""
+  supplier: String
+"""
+Filter by warehouse ID
+"""
+  warehouse_id: String
+"""
+Filter by minimum quantity available
+"""
+  min_quantity: Int
+"""
+Filter by is_critical flag
+"""
+  is_critical: Boolean
+"""
+Filter by minimum cost
+"""
+  min_cost: Float
+"""
+Filter by maximum cost
+"""
+  max_cost: Float
+"""
+Filter by part number (partial match)
+"""
+  part_number: String
+}
+
+"""
+Part represents a component part in the system
+"""
+type parts_Part @key(fields: "id") @key(fields: "part_number") {
+  id: String!
+  part_number: String!
+  name: String!
+  description: String!
+  cost: Float!
+  supplier: String!
+  warehouse_id: String!
+  quantity_available: Int!
+  category: String!
+  is_critical: Boolean!
+  warehouse: locations_Location @derive @is(field: "{ id: warehouse_id }")
+}
+
+"""
+Response message for getting a single part
+"""
+type parts_GetPartResponse {
+  part: parts_Part
+}
+
+"""
+Response message for batch getting parts
+"""
+type parts_BatchGetPartsResponse {
+  parts: [parts_Part!]
+}
+
+"""
+Response message for searching parts
+"""
+type parts_SearchPartsResponse {
+  parts: [parts_Part!]
+}
+
+type locations_Location @key(fields: "id") {
+  id: String!
+}
