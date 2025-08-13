@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use engine::ErrorResponse;
+use event_queue::EventQueue;
 use extension_catalog::{ExtensionId, Id};
 use futures::{StreamExt as _, stream::FuturesUnordered};
-use runtime::extension::{AuthenticationExtension, ExtensionRequestContext, PublicMetadataEndpoint, Token};
+use runtime::extension::{AuthenticationExtension, PublicMetadataEndpoint, Token};
 
 use crate::gateway::{
     DispatchRule, ExtensionsBuilder, GatewayTestExtensions, TestExtensions, TestManifest,
@@ -13,7 +14,8 @@ use crate::gateway::{
 impl AuthenticationExtension for GatewayTestExtensions {
     async fn authenticate(
         &self,
-        ctx: &ExtensionRequestContext,
+        event_queue: &Arc<EventQueue>,
+        hooks_context: &Arc<[u8]>,
         headers: http::HeaderMap,
         ids: &[ExtensionId],
     ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
@@ -30,7 +32,10 @@ impl AuthenticationExtension for GatewayTestExtensions {
         let (headers, wasm_error) = if wasm_extensions.is_empty() {
             (headers, None)
         } else {
-            let (headers, result) = self.wasm.authenticate(ctx, headers, &wasm_extensions).await;
+            let (headers, result) = self
+                .wasm
+                .authenticate(event_queue, hooks_context, headers, &wasm_extensions)
+                .await;
             match result {
                 Ok(token) => return (headers, Ok(token)),
                 Err(err) => (headers, Some(err)),

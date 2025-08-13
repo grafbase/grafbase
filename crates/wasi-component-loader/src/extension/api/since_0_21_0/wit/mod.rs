@@ -38,21 +38,21 @@ wasmtime::component::bindgen!({
 
 use grafbase::sdk;
 
-pub use sdk::authorization_types::{
+pub(crate) use sdk::authorization_types::{
     AuthorizationDecisions, AuthorizationDecisionsDenySome, QueryElement, QueryElements, ResponseElement,
     ResponseElements,
 };
-pub use sdk::cache::Cache;
-pub use sdk::context::*;
-pub use sdk::contracts_types::{Contract, GraphqlSubgraphParam, GraphqlSubgraphResult};
-pub use sdk::error::{Error, ErrorResponse};
-pub use sdk::headers::{HeaderError, Headers};
-pub use sdk::hooks_types::{HttpRequestPartsParam, HttpRequestPartsResult, OnRequestOutput};
-pub use sdk::http_types::{HttpError, HttpMethod, HttpRequest, HttpResponse};
-pub use sdk::nats_client::{NatsAuth, NatsKeyValue, NatsStreamConfig, NatsStreamDeliverPolicy, NatsSubscriber};
-pub use sdk::resolver_types::{ArgumentsId, Data, Field, FieldId, Response, SelectionSet, SubscriptionItem};
-pub use sdk::schema::{
+pub(crate) use sdk::cache::Cache;
+pub(crate) use sdk::context::{AuthenticatedRequestContext, AuthorizedOperationContext, RequestContext};
+pub(crate) use sdk::contracts_types::{Contract, GraphqlSubgraphParam, GraphqlSubgraphResult};
+pub(crate) use sdk::error::{Error, ErrorResponse};
+pub(crate) use sdk::headers::{HeaderError, Headers};
+pub(crate) use sdk::hooks_types::{HttpRequestPartsParam, HttpRequestPartsResult, OnRequestOutput};
+pub(crate) use sdk::http_types::{HttpError, HttpMethod, HttpRequest, HttpResponse};
+pub(crate) use sdk::nats_client::{NatsAuth, NatsKeyValue, NatsStreamConfig, NatsStreamDeliverPolicy, NatsSubscriber};
+pub(crate) use sdk::resolver_types::{ArgumentsId, Data, Field, FieldId, Response, SelectionSet, SubscriptionItem};
+pub(crate) use sdk::schema::{
     Directive, DirectiveSite, EnumDirectiveSite, FieldDefinitionDirective, FieldDefinitionDirectiveSite,
     InterfaceDirectiveSite, ObjectDirectiveSite, ScalarDirectiveSite, UnionDirectiveSite,
 };
-pub use sdk::token::Token;
+pub(crate) use sdk::token::Token;

@@ -1,8 +1,9 @@
+use std::sync::Arc;
+
 use engine::GraphqlError;
 use engine_schema::{GraphqlSubgraph, VirtualSubgraph};
-use runtime::extension::{
-    EngineHooksExtension, ExtensionRequestContext, GatewayHooksExtension, OnRequest, ReqwestParts,
-};
+use event_queue::EventQueue;
+use runtime::extension::{EngineHooksExtension, GatewayHooksExtension, OnRequest, ReqwestParts};
 
 use crate::gateway::{EngineTestExtensions, GatewayTestExtensions};
 
@@ -13,10 +14,11 @@ impl GatewayHooksExtension for GatewayTestExtensions {
 
     async fn on_response(
         &self,
-        context: ExtensionRequestContext,
+        event_queue: Arc<EventQueue>,
+        hooks_context: Arc<[u8]>,
         parts: http::response::Parts,
     ) -> Result<http::response::Parts, String> {
-        self.wasm.on_response(context, parts).await
+        self.wasm.on_response(event_queue, hooks_context, parts).await
     }
 }
 

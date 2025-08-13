@@ -20,8 +20,10 @@ impl AuthenticationExtensionInstance for super::ExtensionInstanceSince0_21_0 {
         Box::pin(async move {
             let resources = &mut self.store.data_mut().resources;
             let headers = resources.push(Headers::from(headers))?;
-            let event_queue = resources.push(wit::EventQueue::from(ctx))?;
-            let ctx = resources.push(wit::RequestContext::from(ctx))?;
+            let event_queue = resources.push(event_queue.clone())?;
+            let ctx = resources.push(wit::RequestContext {
+                hooks_context: hooks_context.clone(),
+            })?;
 
             let result = self
                 .inner

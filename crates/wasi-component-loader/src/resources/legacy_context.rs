@@ -3,16 +3,8 @@ use std::sync::Arc;
 use engine::{EngineOperationContext, EngineRequestContext};
 use event_queue::EventQueue;
 
-use crate::resources::EventQueueResource;
-
 #[derive(Default, Clone)]
 pub struct LegacyWasmContext(Arc<EventQueue>);
-
-impl From<LegacyWasmContext> for EventQueueResource {
-    fn from(context: LegacyWasmContext) -> Self {
-        Self(context.0)
-    }
-}
 
 impl From<Arc<EventQueue>> for LegacyWasmContext {
     fn from(event_queue: Arc<EventQueue>) -> Self {

@@ -43,6 +43,17 @@ pub struct RequestExtensions {
     pub hooks_context: Arc<[u8]>,
 }
 
+impl Default for RequestExtensions {
+    fn default() -> Self {
+        Self {
+            token: Token::Anonymous,
+            contract_key: None,
+            event_queue: Arc::new(EventQueue::default()),
+            hooks_context: Arc::new([]),
+        }
+    }
+}
+
 impl<R: Runtime> ContractAwareEngine<R> {
     pub fn new(schema: Arc<Schema>, runtime: R) -> Self {
         let no_contract = Arc::new(Engine::new(schema.clone(), runtime));

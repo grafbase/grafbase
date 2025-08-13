@@ -53,23 +53,11 @@ impl AuthorizationExtension<engine::EngineRequestContext, engine::EngineOperatio
 
         if !wasm_extensions.is_empty() {
             self.wasm
-                .authorize_query(
-                    ctx,
-                    subgraph_headers,
-                    wasm_extensions,
-                    directives,
-                    query_elements,
-                )
+                .authorize_query(ctx, subgraph_headers, wasm_extensions, directives, query_elements)
                 .boxed()
         } else {
             self.test
-                .authorize_query(
-                    ctx,
-                    subgraph_headers,
-                    test_extensions,
-                    directives,
-                    query_elements,
-                )
+                .authorize_query(ctx, subgraph_headers, test_extensions, directives, query_elements)
                 .boxed()
         }
     }

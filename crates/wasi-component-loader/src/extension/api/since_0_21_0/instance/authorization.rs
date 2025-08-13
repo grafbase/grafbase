@@ -18,13 +18,13 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_21_0 {
         Box::pin(async move {
             let resources = &mut self.store.data_mut().resources;
             let headers = resources.push(wit::Headers::from(headers))?;
-            let host_context = resources.push(wit::HostContext::from(&ctx))?;
+            let event_queue = resources.push(ctx.event_queue().clone())?;
             let ctx = resources.push(ctx)?;
 
             let result = self
                 .inner
                 .grafbase_sdk_authorization()
-                .call_authorize_query(&mut self.store, host_context, ctx, headers, elements)
+                .call_authorize_query(&mut self.store, event_queue, ctx, headers, elements)
                 .await?;
 
             let result = match result {
@@ -67,13 +67,13 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_21_0 {
     ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizationDecisions, GraphqlError>>> {
         Box::pin(async move {
             let resources = &mut self.store.data_mut().resources;
-            let host_context = resources.push(wit::HostContext::from(&ctx))?;
+            let event_queue = resources.push(ctx.event_queue().clone())?;
             let ctx = resources.push(ctx)?;
 
             let result = self
                 .inner
                 .grafbase_sdk_authorization()
-                .call_authorize_response(&mut self.store, host_context, ctx, state, elements)
+                .call_authorize_response(&mut self.store, event_queue, ctx, state, elements)
                 .await?;
 
             Ok(result

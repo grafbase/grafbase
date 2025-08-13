@@ -36,13 +36,7 @@ pub type PgTransaction = sqlx::Transaction<'static, Postgres>;
 pub type PgRow = sqlx::postgres::PgRow;
 pub type FileLogger = file_logger::FileLogger;
 
-pub struct EventQueueResource(pub(crate) Arc<EventQueue>);
-
-impl From<Arc<EventQueue>> for EventQueueResource {
-    fn from(event_queue: Arc<EventQueue>) -> Self {
-        Self(event_queue)
-    }
-}
+pub type EventQueueResource = Arc<EventQueue>;
 
 pub type AccessLogSender = ();
 

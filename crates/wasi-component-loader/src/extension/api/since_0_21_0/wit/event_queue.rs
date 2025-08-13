@@ -30,7 +30,7 @@ pub fn add_to_linker_impl(linker: &mut wasmtime::component::Linker<InstanceState
                 let event_queue = state.resources.get(&event_queue)?;
                 // We use WasmStr & WasmList which are references into the instance's linear
                 // memory. So we only copy data if we really need it.
-                event_queue.0.push_extension_event::<wasmtime::Error>(|| {
+                event_queue.push_extension_event::<wasmtime::Error>(|| {
                     Ok(event_queue::ExtensionEvent {
                         extension_name: state.extension_name().to_string(),
                         event_name: name.to_str(&caller)?.into_owned(),
@@ -47,7 +47,7 @@ pub fn add_to_linker_impl(linker: &mut wasmtime::component::Linker<InstanceState
             Box::new(async move {
                 let state = caller.data_mut();
                 let event_queue = state.resources.get(&event_queue)?;
-                match event_queue.0.pop() {
+                match event_queue.pop() {
                     Some(event) => Ok((Some(event_types::convert_event(state, event)?),)),
                     None => Ok((None,)),
                 }

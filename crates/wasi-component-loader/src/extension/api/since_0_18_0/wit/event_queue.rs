@@ -13,7 +13,7 @@ impl HostEventQueue for InstanceState {
     async fn pop(&mut self, self_: Resource<EventQueueResource>) -> wasmtime::Result<Option<Event>> {
         let this = self.resources.get(&self_)?;
 
-        match this.0.pop() {
+        match this.pop() {
             Some(event) => Ok(Some(self.convert_event_0_18_0(event)?)),
             None => Ok(None),
         }

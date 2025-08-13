@@ -6,7 +6,7 @@ use engine_schema::GraphqlSubgraph;
 use event_queue::EventQueue;
 use futures::future::BoxFuture;
 use http::{request, response};
-use runtime::extension::{ExtensionRequestContext, OnRequest, ReqwestParts};
+use runtime::extension::{OnRequest, ReqwestParts};
 use url::Url;
 
 use crate::{
@@ -14,7 +14,7 @@ use crate::{
         HooksExtensionInstance,
         api::{since_0_19_0::world as wit19, wit::HttpMethod},
     },
-    resources::{EventQueueResource, Headers, LegacyWasmContext},
+    resources::{Headers, LegacyWasmContext},
 };
 
 impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
@@ -58,10 +58,8 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
                     Ok(OnRequest {
                         parts,
                         contract_key,
-                        hooks_context: ExtensionRequestContext {
-                            event_queue,
-                            hooks_context: Default::default(),
-                        },
+                        event_queue,
+                        hooks_context: Default::default(),
                     })
                 }
                 Err(err) => Err(self
@@ -76,7 +74,8 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
 
     fn on_response(
         &mut self,
-        ctx: ExtensionRequestContext,
+        event_queue: Arc<EventQueue>,
+        _hooks_context: Arc<[u8]>,
         mut parts: response::Parts,
     ) -> BoxFuture<'_, wasmtime::Result<Result<response::Parts, String>>> {
         Box::pin(async move {
@@ -85,12 +84,8 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_19_0 {
 
             let headers = self.store.data_mut().resources.push(Headers::from(headers))?;
 
-            let ctx = LegacyWasmContext::from(&ctx);
-            let queue = self
-                .store
-                .data_mut()
-                .resources
-                .push(EventQueueResource::from(ctx.clone()))?;
+            let ctx = LegacyWasmContext::from(event_queue.clone());
+            let queue = self.store.data_mut().resources.push(event_queue)?;
             let context = self.store.data_mut().resources.push(ctx)?;
 
             let result = self

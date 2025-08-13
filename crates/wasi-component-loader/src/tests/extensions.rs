@@ -52,7 +52,7 @@ async fn single_call_caching_auth() {
         .instantiate()
         .await
         .unwrap()
-        .authenticate(&Default::default(), headers.into())
+        .authenticate(&Default::default(), &Default::default(), headers.into())
         .await
         .unwrap()
         .unwrap();
@@ -110,7 +110,7 @@ async fn single_call_caching_auth_invalid() {
         .instantiate()
         .await
         .unwrap()
-        .authenticate(&Default::default(), http::HeaderMap::new().into())
+        .authenticate(&Default::default(), &Default::default(), http::HeaderMap::new().into())
         .await
         .unwrap()
         .err();
@@ -171,7 +171,7 @@ async fn multiple_cache_calls() {
             headers.insert("value", HeaderValue::from_str(&format!("value_{i}")).unwrap());
 
             let (_, token) = extension
-                .authenticate(&Default::default(), headers.into())
+                .authenticate(&Default::default(), &Default::default(), headers.into())
                 .await
                 .unwrap()
                 .unwrap();
@@ -204,7 +204,7 @@ async fn multiple_cache_calls() {
         .instantiate()
         .await
         .unwrap()
-        .authenticate(&Default::default(), headers.into())
+        .authenticate(&Default::default(), &Default::default(), headers.into())
         .await
         .unwrap()
         .unwrap();
@@ -293,7 +293,7 @@ async fn on_response_hook() {
         .instantiate()
         .await
         .unwrap()
-        .on_response(Default::default(), parts)
+        .on_response(Default::default(), Default::default(), parts)
         .await
         .unwrap()
         .unwrap();

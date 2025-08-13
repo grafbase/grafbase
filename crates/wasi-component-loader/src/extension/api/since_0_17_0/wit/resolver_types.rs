@@ -3,7 +3,7 @@ use wasmtime::component::{ComponentType, Lift};
 
 pub use crate::extension::api::{
     since_0_14_0::wit::{resolver_types::Data, selection_set_resolver_types::*},
-    wit::Error,
+    since_0_14_0::world::Error,
 };
 
 #[derive(Clone, Debug, ComponentType, Lift)]

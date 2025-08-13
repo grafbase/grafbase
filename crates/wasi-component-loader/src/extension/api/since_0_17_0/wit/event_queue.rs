@@ -9,7 +9,7 @@ impl Host for InstanceState {}
 impl HostEventQueue for InstanceState {
     async fn pop(&mut self, self_: Resource<EventQueueResource>) -> wasmtime::Result<Option<Event>> {
         let this = self.resources.get(&self_)?;
-        Ok(this.0.pop().map(Into::into))
+        Ok(this.pop().map(Into::into))
     }
 
     async fn drop(&mut self, res: Resource<EventQueueResource>) -> wasmtime::Result<()> {

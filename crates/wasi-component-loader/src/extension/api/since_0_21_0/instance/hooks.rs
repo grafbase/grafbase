@@ -6,15 +6,12 @@ use engine_schema::{GraphqlSubgraph, VirtualSubgraph};
 use event_queue::EventQueue;
 use futures::future::BoxFuture;
 use http::{request, response};
-use runtime::extension::{ExtensionRequestContext, OnRequest, ReqwestParts};
+use runtime::extension::{OnRequest, ReqwestParts};
 use url::Url;
 
-use crate::{
-    extension::{
-        HooksExtensionInstance,
-        api::since_0_21_0::wit::{self, HttpMethod, HttpRequestPartsParam},
-    },
-    resources::EventQueueResource,
+use crate::extension::{
+    HooksExtensionInstance,
+    api::since_0_21_0::wit::{self, HttpMethod, HttpRequestPartsParam},
 };
 
 impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
@@ -31,14 +28,14 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
 
             let resources = &mut self.store.data_mut().resources;
             let headers = resources.push(wit::Headers::from(headers))?;
-            let ctx = resources.push(wit::HostContext::from(&event_queue))?;
+            let event_queue_resource = resources.push(event_queue.clone())?;
 
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
                 .call_on_request(
                     &mut self.store,
-                    ctx,
+                    event_queue_resource,
                     HttpRequestPartsParam {
                         url: url.as_str(),
                         method,
@@ -57,10 +54,8 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
                     Ok(OnRequest {
                         parts,
                         contract_key,
-                        hooks_context: ExtensionRequestContext {
-                            event_queue,
-                            hooks_context: context.into(),
-                        },
+                        event_queue,
+                        hooks_context: context.into(),
                     })
                 }
                 Err(err) => Err(self
@@ -75,7 +70,8 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
 
     fn on_response(
         &mut self,
-        context: ExtensionRequestContext,
+        event_queue: Arc<EventQueue>,
+        hooks_context: Arc<[u8]>,
         mut parts: response::Parts,
     ) -> BoxFuture<'_, wasmtime::Result<Result<response::Parts, String>>> {
         Box::pin(async move {
@@ -84,14 +80,13 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
 
             let resources = &mut self.store.data_mut().resources;
             let headers = resources.push(wit::Headers::from(headers))?;
-            let queue = resources.push(EventQueueResource(context.event_queue.clone()))?;
-            let host_context = resources.push(wit::HostContext::from(&context))?;
-            let ctx = resources.push(wit::RequestContext::from(&context))?;
+            let event_queue = resources.push(event_queue)?;
+            let ctx = resources.push(wit::RequestContext { hooks_context })?;
 
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
-                .call_on_response(&mut self.store, host_context, ctx, status, headers, queue)
+                .call_on_response(&mut self.store, event_queue, ctx, status, headers)
                 .await?;
 
             let result = match result {
@@ -116,7 +111,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
 
             let resources = &mut self.store.data_mut().resources;
             let headers = resources.push(wit::Headers::from(headers))?;
-            let host_context = resources.push(wit::HostContext::from(&ctx))?;
+            let event_queue = resources.push(ctx.event_queue().clone())?;
             let ctx = resources.push(ctx)?;
 
             let result = self
@@ -124,7 +119,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
                 .grafbase_sdk_hooks()
                 .call_on_graphql_subgraph_request(
                     &mut self.store,
-                    host_context,
+                    event_queue,
                     ctx,
                     subgraph.name(),
                     HttpRequestPartsParam {
@@ -174,13 +169,13 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
         Box::pin(async move {
             let resources = &mut self.store.data_mut().resources;
             let headers = resources.push(wit::Headers::from(headers))?;
-            let host_context = resources.push(wit::HostContext::from(&ctx))?;
+            let event_queue = resources.push(ctx.event_queue().clone())?;
             let ctx = resources.push(ctx)?;
 
             let result = self
                 .inner
                 .grafbase_sdk_hooks()
-                .call_on_virtual_subgraph_request(&mut self.store, host_context, ctx, subgraph.name(), headers)
+                .call_on_virtual_subgraph_request(&mut self.store, event_queue, ctx, subgraph.name(), headers)
                 .await?;
 
             let result = match result {

@@ -22,18 +22,11 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_21_0 {
     ) -> BoxFuture<'a, wasmtime::Result<Result<Vec<u8>, GraphqlError>>> {
         Box::pin(async move {
             let resources = &mut self.store.data_mut().resources;
-            let host_context = resources.push(wit::HostContext::from(event_queue))?;
+            let event_queue = resources.push(event_queue)?;
             let result = self
                 .inner
                 .grafbase_sdk_resolver()
-                .call_prepare(
-                    &mut self.store,
-                    host_context,
-                    subgraph_name,
-                    directive,
-                    field_id,
-                    fields,
-                )
+                .call_prepare(&mut self.store, event_queue, subgraph_name, directive, field_id, fields)
                 .await?;
 
             Ok(result.map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError)))
@@ -50,13 +43,13 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_21_0 {
         Box::pin(async move {
             let resources = &mut self.store.data_mut().resources;
             let headers = resources.push(wit::Headers::from(headers))?;
-            let host_context = resources.push(wit::HostContext::from(&ctx))?;
+            let event_queue = resources.push(ctx.event_queue().clone())?;
             let ctx = resources.push(ctx)?;
 
             let response = self
                 .inner
                 .grafbase_sdk_resolver()
-                .call_resolve(&mut self.store, host_context, ctx, prepared, headers, arguments)
+                .call_resolve(&mut self.store, event_queue, ctx, prepared, headers, arguments)
                 .await?;
 
             Ok(response.into())
@@ -73,13 +66,13 @@ impl ResolverExtensionInstance for super::ExtensionInstanceSince0_21_0 {
         Box::pin(async move {
             let resources = &mut self.store.data_mut().resources;
             let headers = resources.push(wit::Headers::from(headers))?;
-            let host_context = resources.push(wit::HostContext::from(&ctx))?;
+            let event_queue = resources.push(ctx.event_queue().clone())?;
             let ctx = resources.push(ctx)?;
 
             let result = self
                 .inner
                 .grafbase_sdk_resolver()
-                .call_create_subscription(&mut self.store, host_context, ctx, prepared, headers, arguments)
+                .call_create_subscription(&mut self.store, event_queue, ctx, prepared, headers, arguments)
                 .await?;
 
             Ok(result.map_err(|err| err.into_graphql_error(ErrorCode::ExtensionError)))
