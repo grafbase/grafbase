@@ -31,12 +31,20 @@ use super::steiner_tree::GreedyFlac;
 /// As this extra cost changes every time we change the Steiner tree, we have to adjust those while
 /// constructing it.
 pub(crate) struct Solver<'schema, 'op> {
-    schema: &'schema Schema,
-    operation: &'op Operation,
+    ctx: OperationContext<'op>,
     input: SteinerInput<'schema>,
-    flac: GreedyFlac,
     steiner_tree: SteinerTree,
-    requirements_and_cost_updater: RequirementAndCostUpdater,
+    state: SolverState,
+}
+
+#[derive(Default)]
+enum SolverState {
+    SteinerTreeAlgorithm {
+        flac: GreedyFlac,
+        requirements_and_cost_updater: RequirementAndCostUpdater,
+    },
+    #[default]
+    Solved,
 }
 
 impl<'schema, 'op> Solver<'schema, 'op>
@@ -48,30 +56,35 @@ where
         operation: &'op Operation,
         query_solution_space: QuerySolutionSpace<'schema>,
     ) -> crate::Result<Self> {
-        let (input, terminals) = build_input_and_terminals(query_solution_space);
+        let ctx = OperationContext { schema, operation };
+        let (mut input, terminals) = build_input_and_terminals(ctx, query_solution_space);
 
         let steiner_tree = SteinerTree::new(&input.graph, input.root_node_id);
-        let flac = GreedyFlac::new(&input.graph, terminals);
-        let requirements_and_cost_updater = RequirementAndCostUpdater::new(&input)?;
 
-        let mut solver = Self {
-            schema,
-            operation,
-            input,
-            flac,
-            steiner_tree,
-            requirements_and_cost_updater,
+        let algorithm = if terminals.is_empty() {
+            SolverState::Solved
+        } else {
+            let flac = GreedyFlac::new(&input.graph, terminals);
+            let mut requirements_and_cost_updater = RequirementAndCostUpdater::new(&input)?;
+            let update = requirements_and_cost_updater.run_fixed_point_cost(&mut input, &steiner_tree)?;
+            debug_assert!(
+                update.new_terminals.is_empty(),
+                "Fixed point cost algorithm should not return new terminals at initialization"
+            );
+            SolverState::SteinerTreeAlgorithm {
+                flac,
+                requirements_and_cost_updater,
+            }
         };
 
-        let update = solver
-            .requirements_and_cost_updater
-            .run_fixed_point_cost(&mut solver.input, &solver.steiner_tree)?;
-        debug_assert!(
-            update.new_terminals.is_empty(),
-            "Fixed point cost algorithm should not return new terminals at initialization"
-        );
+        let solver = Self {
+            ctx,
+            input,
+            steiner_tree,
+            state: algorithm,
+        };
 
-        tracing::debug!("Solver populated:\n{}", solver.to_pretty_dot_graph());
+        tracing::debug!("Steiner graph populated:\n{}", solver.to_pretty_dot_graph());
 
         Ok(solver)
     }
@@ -83,22 +96,31 @@ where
 
     /// Solves the Steiner tree problem for the resolvers of our operation graph.
     pub fn execute(&mut self) -> crate::Result<()> {
-        loop {
-            let growth = self.flac.run_once(&self.input.graph, &mut self.steiner_tree);
-            let update = self
-                .requirements_and_cost_updater
-                .run_fixed_point_cost(&mut self.input, &self.steiner_tree)?;
-
-            if !update.new_terminals.is_empty() {
-                update.new_terminals.sort_unstable();
-                self.flac.extend_terminals(update.new_terminals.drain(..).dedup());
-            } else if growth.is_break() {
-                break;
+        match std::mem::take(&mut self.state) {
+            SolverState::Solved => {
+                tracing::debug!("Steiner graph is already solved.");
             }
+            SolverState::SteinerTreeAlgorithm {
+                mut flac,
+                mut requirements_and_cost_updater,
+            } => {
+                loop {
+                    let growth = flac.run_once(&self.input.graph, &mut self.steiner_tree);
+                    let update =
+                        requirements_and_cost_updater.run_fixed_point_cost(&mut self.input, &self.steiner_tree)?;
 
-            tracing::trace!("Solver step:\n{}", self.to_pretty_dot_graph());
+                    if !update.new_terminals.is_empty() {
+                        update.new_terminals.sort_unstable();
+                        flac.extend_terminals(update.new_terminals.drain(..).dedup());
+                    } else if growth.is_break() {
+                        break;
+                    }
+
+                    tracing::trace!("Solver step:\n{}", self.to_pretty_dot_graph());
+                }
+                tracing::debug!("Solver finished:\n{}", self.to_pretty_dot_graph());
+            }
         }
-        tracing::debug!("Solver finished:\n{}", self.to_pretty_dot_graph());
 
         Ok(())
     }
@@ -112,10 +134,6 @@ where
 
     pub fn to_pretty_dot_graph(&self) -> String {
         use petgraph::dot::{Config, Dot};
-        let ctx = OperationContext {
-            schema: self.schema,
-            operation: self.operation,
-        };
         format!(
             "{:?}",
             Dot::with_attr_getters(
@@ -138,7 +156,7 @@ where
                         .graph
                         .node_weight(space_node_id)
                         .unwrap()
-                        .pretty_label(&self.input.space, ctx)
+                        .pretty_label(&self.input.space, self.ctx)
                         .with_if(!is_in_steiner_tree, "style=dashed")
                         .with_if(is_in_steiner_tree, "color=forestgreen")
                         .to_string()
@@ -152,10 +170,6 @@ where
     #[cfg(test)]
     pub fn to_dot_graph(&self) -> String {
         use petgraph::dot::{Config, Dot};
-        let ctx = OperationContext {
-            schema: self.schema,
-            operation: self.operation,
-        };
         format!(
             "{:?}",
             Dot::with_attr_getters(
@@ -175,7 +189,7 @@ where
                             .graph
                             .node_weight(space_node_id)
                             .unwrap()
-                            .label(&self.input.space, ctx),
+                            .label(&self.input.space, self.ctx),
                     )
                     .with(format!("steiner={}", is_in_steiner_tree as usize))
                     .to_string()

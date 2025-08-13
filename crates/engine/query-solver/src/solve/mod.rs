@@ -1,4 +1,3 @@
-mod context;
 mod input;
 mod solution;
 mod solver;
