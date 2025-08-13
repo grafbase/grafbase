@@ -1,0 +1,27 @@
+[extension]
+name = "hooks"
+type = "hooks"
+version = "0.1.0"
+description = "A new extension"
+# homepage_url = "https://example.com/my-extension"
+# repository_url = "https://github.com/my-username/my-extension"
+# license = "MIT"
+
+[hooks]
+# Specify the events you intend to read in the on_response hook.
+# Defaults to no events.
+#
+# events = "*"
+# events = ["operation", "http_request"]
+
+
+# === Default permissions ===
+#
+# These are the default permissions for the extension.
+# The user can enable or disable them as needed in the gateway configuration file.
+#
+# [permissions]
+# network = false
+# stdout = false
+# stderr = false
+# environment_variables = false

@@ -8,13 +8,17 @@ if [ $# -ne 2 ]; then
     exit 1
 fi
 
-old="since_$1"
-new="since_$2"
+old="since_${1//./_}"
+new="since_${2//./_}"
 
 find "$new/" -type f -exec bash -c '
       file="$1"
       old="$2"
       new="$3"
       relative="${file#$new/}"
-      [ -f "$old/$relative" ] && difft "$old/$relative" "$file"
+      if [ -f "$old/$relative" ]; then
+          if ! cmp -s "$old/$relative" "$file"; then
+              difft "$old/$relative" "$file"
+          fi
+      fi
   ' _ {} "$old" "$new" \;
