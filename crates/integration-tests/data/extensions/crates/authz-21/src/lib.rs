@@ -1,5 +1,6 @@
 use grafbase_sdk::{
     AuthorizationExtension, IntoAuthorizeQueryOutput,
+    host_io::logger::log,
     types::{
         AuthenticatedRequestContext, AuthorizationDecisions, AuthorizeQueryOutput, AuthorizedOperationContext,
         Configuration, Error, ErrorResponse, QueryElements, ResponseElements, SubgraphHeaders,
@@ -7,7 +8,17 @@ use grafbase_sdk::{
 };
 
 #[derive(AuthorizationExtension)]
-struct CustomAuthorization;
+struct CustomAuthorization {
+    config: Config,
+}
+
+#[derive(Default, serde::Deserialize)]
+#[serde(default, deny_unknown_fields)]
+struct Config {
+    context: Option<String>,
+    response_error_with_context: bool,
+    error_authorization_contexts: Option<Vec<String>>,
+}
 
 #[derive(serde::Deserialize)]
 struct DeniedIdsArgs {
@@ -40,8 +51,9 @@ impl ResponseArguments<'_> {
 }
 
 impl AuthorizationExtension for CustomAuthorization {
-    fn new(_: Configuration) -> Result<Self, Error> {
-        Ok(Self)
+    fn new(config: Configuration) -> Result<Self, Error> {
+        let config: Config = config.deserialize().unwrap_or_default();
+        Ok(Self { config })
     }
 
     fn authorize_query(
@@ -70,22 +82,56 @@ impl AuthorizationExtension for CustomAuthorization {
                         builder.deny_with_error_id(element, error_id);
                     }
                 }
+                "grant" => {}
                 _ => unreachable!(),
             }
         }
 
         let state = rkyv::api::high::to_bytes_in::<_, rkyv::rancor::Error>(&state, Vec::new()).unwrap();
+        let context = if let Some(context) = &self.config.context {
+            context.clone().into_bytes()
+        } else {
+            Vec::new()
+        };
         Ok(AuthorizeQueryOutput::new(builder.build())
             .state(state)
+            .context(context)
+            .header("hooks-context", ctx.hooks_context())
             .header("token", ctx.token().as_bytes().unwrap_or_default()))
     }
 
     fn authorize_response(
         &mut self,
-        _ctx: &AuthorizedOperationContext,
+        ctx: &AuthorizedOperationContext,
         state: Vec<u8>,
         elements: ResponseElements<'_>,
     ) -> Result<AuthorizationDecisions, Error> {
+        if self.config.response_error_with_context {
+            let authorization_context = self
+                .config
+                .error_authorization_contexts
+                .as_ref()
+                .map(|keys| {
+                    keys.iter()
+                        .map(|key| {
+                            ctx.authorization_icontext_by_key(key)
+                                .ok()
+                                .map(|context| String::from_utf8_lossy(&context).into_owned())
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_else(|| {
+                    vec![
+                        ctx.authorization_context()
+                            .ok()
+                            .map(|context| String::from_utf8_lossy(&context).into_owned()),
+                    ]
+                });
+            return Err(Error::new("Failure")
+                .extension("token", ctx.token().as_bytes().map(String::from_utf8_lossy))?
+                .extension("authorization_context", authorization_context)?
+                .extension("hooks_context", String::from_utf8_lossy(&ctx.hooks_context()))?);
+        }
         let state = rkyv::access::<ArchivedState, rkyv::rancor::Error>(&state).unwrap();
         let mut builder = AuthorizationDecisions::deny_some_builder();
         let error_id = builder.push_error(Error::new("Not authorized, response auth SDK021"));

@@ -1,3 +1,5 @@
 scalar JSON
 
-directive @resolve(data: JSON) on FIELD_DEFINITION
+directive @echoInput(data: JSON) on FIELD_DEFINITION
+directive @echoContext on FIELD_DEFINITION
+directive @echo(header: String) on FIELD_DEFINITION

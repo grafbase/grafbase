@@ -280,3 +280,68 @@ fn virtual_receives_header_from_on_request() {
         "#);
     })
 }
+
+#[test]
+fn graphql_subgraph_name() {
+    runtime().block_on(async move {
+        let gateway = Gateway::builder()
+            .with_extension("hooks-21")
+            .with_subgraph(EchoSchema::default())
+            .build()
+            .await;
+
+        let query = indoc! {r#"
+            query {
+                header(name: "subgraph-name")
+            }
+        "#};
+
+        let response = gateway.post(query).await;
+        insta::assert_snapshot!(response, @r#"
+        {
+          "data": {
+            "header": "echo"
+          }
+        }
+        "#);
+    });
+}
+
+#[test]
+fn virtual_subgraph_name() {
+    runtime().block_on(async move {
+        let gateway = Gateway::builder()
+            .with_extension("hooks-21")
+            .with_subgraph_sdl(
+                "a",
+                r#"
+                extend schema
+                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+
+                scalar JSON
+
+                type Query {
+                    header: JSON @resolve
+                }
+                "#,
+            )
+            .with_extension(ResolverExt::echo_header("subgraph-name"))
+            .build()
+            .await;
+
+        let query = indoc! {r#"
+            query {
+                header
+            }
+        "#};
+
+        let response = gateway.post(query).await;
+        insta::assert_snapshot!(response, @r#"
+        {
+          "data": {
+            "header": "a"
+          }
+        }
+        "#);
+    });
+}

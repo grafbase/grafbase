@@ -7,7 +7,6 @@ fn basic_request() {
             .with_toml_config(
                 r#"
                 [extensions.resolver-21.config]
-                type = "echo_input"
                 key = "test"
                 "#,
             )
@@ -15,12 +14,12 @@ fn basic_request() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-21-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver-21-1.0.0", import: ["@echoInput"])
 
                 scalar JSON
 
                 type Query {
-                    test(input: String): JSON @resolve(data: {value: 1})
+                    test(input: String): JSON @echoInput(data: {value: 1})
                 }
                 "#,
             )
@@ -58,7 +57,6 @@ fn basic_subscription() {
             .with_toml_config(
                 r#"
                 [extensions.resolver-21.config]
-                type = "echo_input"
                 key = "test"
                 "#,
             )
@@ -66,12 +64,12 @@ fn basic_subscription() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-21-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver-21-1.0.0", import: ["@echoInput"])
 
                 scalar JSON
 
                 type Subscription {
-                    test(input: String): JSON @resolve(data: {value: 1})
+                    test(input: String): JSON @echoInput(data: {value: 1})
                 }
                 "#,
             )

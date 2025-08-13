@@ -4,6 +4,7 @@ use grafbase_sdk::{
     host_io::{
         event_queue::{CacheStatus, Event, EventQueue, GraphqlResponseStatus, RequestExecution},
         http::{HeaderValue, Method, StatusCode},
+        logger::log,
     },
     types::{
         AuthorizedOperationContext, Configuration, Error, ErrorResponse, Headers, HttpRequestParts, OnRequestOutput,
@@ -23,7 +24,7 @@ struct TestConfig {
     incoming_header: Option<HeaderTest>,
     outgoing_header: Option<HeaderTest>,
     events_header_name: Option<String>,
-    on_subgraph_request: Option<OnSubgraphRequestConfig>,
+    on_subgraph_request: OnSubgraphRequestConfig,
 }
 
 #[derive(Default, serde::Deserialize)]
@@ -33,15 +34,19 @@ struct OnSubgraphRequestConfig {
     header_name: Option<String>,
     header_value: Option<String>,
     rename_header: Option<RenameHeader>,
+    #[serde(default)]
+    authorization_contexts: Option<Vec<String>>,
 }
 
 #[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 struct RenameHeader {
     from: String,
     to: String,
 }
 
 #[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 struct HeaderTest {
     key: String,
     value: String,
@@ -189,24 +194,49 @@ impl HooksExtension for Hooks {
         subgraph_name: &str,
         parts: &mut HttpRequestParts,
     ) -> Result<(), Error> {
-        if let Some(ref config) = self.config.on_subgraph_request {
-            if let Some(ref url) = config.url {
-                parts.url = url.clone();
-            }
-            if let Some((name, value)) = config.header_name.as_ref().zip(config.header_value.as_ref()) {
-                parts.headers.append(name, value);
-            }
-            if let Some(RenameHeader { from, to }) = &config.rename_header
-                && let Some(value) = parts.headers.remove(from)
-            {
-                parts.headers.append(to, value);
-            }
+        let config = &self.config.on_subgraph_request;
+        if let Some(ref url) = config.url {
+            parts.url = url.clone();
+        }
+        if let Some((name, value)) = config.header_name.as_ref().zip(config.header_value.as_ref()) {
+            parts.headers.append(name, value);
+        }
+        if let Some(RenameHeader { from, to }) = &config.rename_header
+            && let Some(value) = parts.headers.remove(from)
+        {
+            parts.headers.append(to, value);
         }
 
-        if !ctx.hooks_context().is_empty() {
-            parts.headers.append("hooks-context", ctx.hooks_context());
-        }
+        let authorization_context = config
+            .authorization_contexts
+            .as_ref()
+            .map(|keys| {
+                keys.iter()
+                    .map(|key| {
+                        ctx.authorization_icontext_by_key(key)
+                            .ok()
+                            .map(|context| String::from_utf8_lossy(&context).into_owned())
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_else(|| {
+                vec![
+                    ctx.authorization_context()
+                        .inspect_err(|err| log::error!("{err}"))
+                        .ok()
+                        .map(|context| String::from_utf8_lossy(&context).into_owned()),
+                ]
+            });
+
+        parts.headers.append("hooks-context", ctx.hooks_context());
         parts.headers.append("subgraph-name", subgraph_name);
+        parts
+            .headers
+            .append("token", ctx.token().as_bytes().unwrap_or_default());
+        parts.headers.append(
+            "authorization-context",
+            serde_json::to_vec(&authorization_context).unwrap(),
+        );
 
         Ok(())
     }
@@ -217,21 +247,43 @@ impl HooksExtension for Hooks {
         subgraph_name: &str,
         headers: &mut Headers,
     ) -> Result<(), Error> {
-        if let Some(ref config) = self.config.on_subgraph_request {
-            if let Some((name, value)) = config.header_name.as_ref().zip(config.header_value.as_ref()) {
-                headers.append(name, value);
-            }
-            if let Some(RenameHeader { from, to }) = &config.rename_header
-                && let Some(value) = headers.remove(from)
-            {
-                headers.append(to, value);
-            }
+        let config = &self.config.on_subgraph_request;
+        if let Some((name, value)) = config.header_name.as_ref().zip(config.header_value.as_ref()) {
+            headers.append(name, value);
+        }
+        if let Some(RenameHeader { from, to }) = &config.rename_header
+            && let Some(value) = headers.remove(from)
+        {
+            headers.append(to, value);
         }
 
-        if !ctx.hooks_context().is_empty() {
-            headers.append("hooks-context", ctx.hooks_context());
-        }
+        let authorization_context = config
+            .authorization_contexts
+            .as_ref()
+            .map(|keys| {
+                keys.iter()
+                    .map(|key| {
+                        ctx.authorization_icontext_by_key(key)
+                            .ok()
+                            .map(|context| String::from_utf8_lossy(&context).into_owned())
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_else(|| {
+                vec![
+                    ctx.authorization_context()
+                        .ok()
+                        .map(|context| String::from_utf8_lossy(&context).into_owned()),
+                ]
+            });
+
+        headers.append("hooks-context", ctx.hooks_context());
         headers.append("subgraph-name", subgraph_name);
+        headers.append("token", ctx.token().as_bytes().unwrap_or_default());
+        headers.append(
+            "authorization-context",
+            serde_json::to_vec(&authorization_context).unwrap(),
+        );
 
         Ok(())
     }

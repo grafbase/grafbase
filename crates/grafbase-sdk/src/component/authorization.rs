@@ -21,13 +21,15 @@ impl wit::AuthorizationGuest for Component {
                          decisions,
                          context,
                          state,
-                         additional_headers: extra_headers,
-                     }| wit::AuthorizationOutput {
-                        decisions: decisions.into(),
-                        context,
-                        state,
-                        subgraph_headers: subgraph_headers.into(),
-                        additional_headers: extra_headers.map(Into::into),
+                         additional_headers,
+                     }| {
+                        wit::AuthorizationOutput {
+                            decisions: decisions.into(),
+                            context,
+                            state,
+                            subgraph_headers: subgraph_headers.into(),
+                            additional_headers: additional_headers.map(Into::into),
+                        }
                     },
                 )
                 .map_err(Into::into)

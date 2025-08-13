@@ -6,25 +6,27 @@ fn basic_request() {
         let engine = Gateway::builder()
             .with_toml_config(
                 r#"
-                [extensions.resolver-21.config]
-                type = "echo_context"
+                [extensions.authz-21.config]
+                context = "authz context"
                 "#,
             )
             .with_subgraph_sdl(
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-21-1.0.0", import: ["@resolve"])
+                    @link(url: "authz-21-1.0.0", import: ["@grant"])
+                    @link(url: "resolver-21-1.0.0", import: ["@echoContext"])
 
                 scalar JSON
 
                 type Query {
-                    test: JSON @resolve
+                    test: JSON @echoContext @grant
                 }
                 "#,
             )
             .with_extension("hooks-21")
             .with_extension("auth-21")
+            .with_extension("authz-21")
             .with_extension("resolver-21")
             .build()
             .await;
@@ -39,10 +41,10 @@ fn basic_request() {
           "data": {
             "test": {
               "authorization_context": [
-                ""
+                "authz context"
               ],
               "hooks_context": "I'm hooked!",
-              "token": "sdk19:bearer:default"
+              "token": "sdk21:bearer:default"
             }
           }
         }
@@ -56,25 +58,27 @@ fn basic_subscription() {
         let engine = Gateway::builder()
             .with_toml_config(
                 r#"
-                [extensions.resolver-21.config]
-                type = "echo_context"
+                [extensions.authz-21.config]
+                context = "authz context"
                 "#,
             )
             .with_subgraph_sdl(
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-21-1.0.0", import: ["@resolve"])
+                    @link(url: "authz-21-1.0.0", import: ["@grant"])
+                    @link(url: "resolver-21-1.0.0", import: ["@echoContext"])
 
                 scalar JSON
 
                 type Subscription {
-                    test: JSON @resolve
+                    test: JSON @echoContext @grant
                 }
                 "#,
             )
             .with_extension("hooks-21")
             .with_extension("auth-21")
+            .with_extension("authz-21")
             .with_extension("resolver-21")
             .build()
             .await;
@@ -93,14 +97,69 @@ fn basic_subscription() {
             "data": {
               "test": {
                 "authorization_context": [
-                  ""
+                  "authz context"
                 ],
                 "hooks_context": "I'm hooked!",
-                "token": "sdk19:bearer:default"
+                "token": "sdk21:bearer:default"
               }
             }
           }
         ]
+        "#);
+    })
+}
+
+#[test]
+fn explicit_authz_context() {
+    runtime().block_on(async {
+        let engine = Gateway::builder()
+            .with_toml_config(
+                r#"
+                [extensions.resolver-21.config]
+                authorization_context = ["authz-21"]
+
+                [extensions.authz-21.config]
+                context = "authz context"
+                "#,
+            )
+            .with_subgraph_sdl(
+                "a",
+                r#"
+                extend schema
+                    @link(url: "authz-21-1.0.0", import: ["@grant"])
+                    @link(url: "resolver-21-1.0.0", import: ["@echoContext"])
+
+                scalar JSON
+
+                type Query {
+                    test: JSON @echoContext @grant
+                }
+                "#,
+            )
+            .with_extension("hooks-21")
+            .with_extension("auth-21")
+            .with_extension("authz-21")
+            .with_extension("resolver-21")
+            .build()
+            .await;
+
+        let response = engine
+            .post("query { test }")
+            .header("hooks-context", "I'm hooked!")
+            .header("Authorization", "bearer")
+            .await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "test": {
+              "authorization_context": [
+                "authz context"
+              ],
+              "hooks_context": "I'm hooked!",
+              "token": "sdk21:bearer:default"
+            }
+          }
+        }
         "#);
     })
 }

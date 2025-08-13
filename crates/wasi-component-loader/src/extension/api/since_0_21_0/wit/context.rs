@@ -127,7 +127,7 @@ pub fn add_to_linker_impl(linker: &mut wasmtime::component::Linker<InstanceState
                         .authorization_context()
                         .iter()
                         .find_map(|(id, bytes)| {
-                            if catalog[*id].manifest.name() == key {
+                            if catalog[*id].config_key == key {
                                 Some(bytes.clone())
                             } else {
                                 None
