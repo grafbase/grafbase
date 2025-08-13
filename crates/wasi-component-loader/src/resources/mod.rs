@@ -3,18 +3,20 @@ mod file_logger;
 mod headers;
 mod kafka_consumer;
 mod kafka_producer;
+mod legacy_context;
 mod legacy_sdk18;
 mod nats;
 
 use std::sync::Arc;
 
+use event_queue::EventQueue;
 use sqlx::Postgres;
 
-pub use crate::context::WasmContext;
 pub use cache::*;
 pub use headers::*;
 pub use kafka_consumer::*;
 pub use kafka_producer::*;
+pub use legacy_context::*;
 pub use legacy_sdk18::*;
 pub use nats::*;
 
@@ -34,7 +36,8 @@ pub type PgTransaction = sqlx::Transaction<'static, Postgres>;
 pub type PgRow = sqlx::postgres::PgRow;
 pub type FileLogger = file_logger::FileLogger;
 
-pub struct EventQueueProxy(pub(crate) WasmContext);
+pub type EventQueueResource = Arc<EventQueue>;
+
 pub type AccessLogSender = ();
 
 /// It's not possible to provide a reference to wasmtime, it must be static and there are too many
@@ -44,7 +47,7 @@ pub type AccessLogSender = ();
 pub enum OwnedOrShared<T> {
     Owned(T),
     Shared(Arc<T>),
-    SharedMut(Arc<tokio::sync::RwLock<T>>),
+    LegacySharedMut(Arc<tokio::sync::RwLock<T>>),
 }
 
 impl<T> OwnedOrShared<T> {
@@ -52,11 +55,38 @@ impl<T> OwnedOrShared<T> {
         match self {
             Self::Owned(v) => Some(v),
             Self::Shared(t) => Arc::into_inner(t),
-            Self::SharedMut(t) => Arc::into_inner(t).map(|t| t.into_inner()),
+            Self::LegacySharedMut(t) => Arc::into_inner(t).map(|t| t.into_inner()),
         }
     }
 
-    pub(crate) async fn with_ref<R>(&self, f: impl FnOnce(&T) -> R) -> R
+    pub(crate) fn clone_shared(&self) -> Option<Self> {
+        match self {
+            Self::Owned(_) => None,
+            Self::Shared(v) => Some(Self::Shared(Arc::clone(v))),
+            Self::LegacySharedMut(v) => Some(Self::LegacySharedMut(Arc::clone(v))),
+        }
+    }
+
+    #[allow(unused)]
+    pub(crate) fn as_ref(&self) -> &T {
+        match self {
+            Self::Owned(v) => v,
+            Self::Shared(v) => Arc::as_ref(v),
+            _ => unimplemented!("Not available anymore"),
+        }
+    }
+
+    #[allow(unused)]
+    pub(crate) fn as_mut(&mut self) -> Option<&mut T> {
+        match self {
+            Self::Owned(v) => Some(v),
+            Self::Shared(_) => None,
+            _ => unimplemented!("Not available anymore"),
+        }
+    }
+
+    /// == for legacy code up to SDK 0.19 ==
+    pub(crate) async fn legacy_with_ref<R>(&self, f: impl FnOnce(&T) -> R) -> R
     where
         T: Send + Sync + 'static,
     {
@@ -64,7 +94,7 @@ impl<T> OwnedOrShared<T> {
         let v = match self {
             Self::Owned(v) => v,
             Self::Shared(v) => v.as_ref(),
-            Self::SharedMut(v) => {
+            Self::LegacySharedMut(v) => {
                 _guard = Some(v.read().await);
                 _guard.as_deref().unwrap()
             }
@@ -72,7 +102,7 @@ impl<T> OwnedOrShared<T> {
         f(v)
     }
 
-    pub(crate) async fn with_ref_mut<R>(&mut self, f: impl FnOnce(Option<&mut T>) -> R) -> R
+    pub(crate) async fn legacy_with_ref_mut<R>(&mut self, f: impl FnOnce(Option<&mut T>) -> R) -> R
     where
         T: Send + Sync + 'static,
     {
@@ -80,7 +110,7 @@ impl<T> OwnedOrShared<T> {
         let v = match self {
             Self::Owned(v) => Some(v),
             Self::Shared(_) => None,
-            Self::SharedMut(v) => {
+            Self::LegacySharedMut(v) => {
                 _guard = Some(v.write().await);
                 _guard.as_deref_mut()
             }

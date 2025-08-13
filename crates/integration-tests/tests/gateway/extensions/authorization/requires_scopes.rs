@@ -1,7 +1,7 @@
 use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    gateway::{AuthenticationExt, AuthorizationExt, AuthorizationTestExtension, ExtContext, Gateway},
+    gateway::{AuthenticationExt, AuthorizationExt, AuthorizationTestExtension, Gateway},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
@@ -21,11 +21,11 @@ struct Arguments {
 impl AuthorizationTestExtension for RequiresScopes {
     async fn authorize_query(
         &self,
-        _ctx: &ExtContext,
+        _ctx: engine::EngineRequestContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+    ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
         let Some(bytes) = token.as_bytes() else {
             return Err(GraphqlError::new("No token found", ErrorCode::Unauthorized).into());
         };
@@ -49,10 +49,13 @@ impl AuthorizationTestExtension for RequiresScopes {
             }
         }
 
-        Ok(AuthorizationDecisions::DenySome {
-            element_to_error,
-            errors,
-        })
+        Ok((
+            AuthorizationDecisions::DenySome {
+                element_to_error,
+                errors,
+            },
+            Vec::new(),
+        ))
     }
 }
 

@@ -16,7 +16,7 @@ impl StaticAuth {
     }
 
     pub fn bytes(bytes: impl AsRef<[u8]>) -> Self {
-        Self(Ok(Token::Bytes(bytes.as_ref().to_vec())))
+        Self(Ok(Token::Bytes(bytes.as_ref().to_vec().into())))
     }
 
     pub fn error_response(resp: impl Into<ErrorResponse>) -> Self {
@@ -25,7 +25,7 @@ impl StaticAuth {
 
     pub fn claims(claims: &[(&'static str, &'static str)]) -> Self {
         let claims: HashMap<&str, &str> = claims.iter().copied().collect();
-        Self(Ok(Token::Bytes(serde_json::to_vec(&claims).unwrap())))
+        Self(Ok(Token::Bytes(serde_json::to_vec(&claims).unwrap().into())))
     }
 }
 

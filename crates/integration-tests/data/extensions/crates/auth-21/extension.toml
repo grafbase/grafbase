@@ -1,0 +1,17 @@
+[extension]
+name = "auth-21"
+type = "authentication"
+version = "0.1.0"
+description = "A new extension"
+# homepage_url = "https://example.com/my-extension"
+# repository_url = "https://github.com/my-username/my-extension"
+# license = "MIT"
+
+# These are the default permissions for the extension.
+# The user can enable or disable them as needed in the gateway
+# configuration file.
+[permissions]
+network = false
+stdout = false
+stderr = false
+environment_variables = false

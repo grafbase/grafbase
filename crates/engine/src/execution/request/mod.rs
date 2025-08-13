@@ -20,7 +20,6 @@ use std::{future::Future, sync::Arc};
 
 use crate::{
     Body, ContractAwareEngine, Engine, RequestExtensions, Runtime,
-    engine::ExtensionContext,
     graphql_over_http::{ContentType, ResponseFormat},
     mcp::McpRequestContext,
     response::Response,
@@ -29,10 +28,7 @@ use crate::{
 
 impl<R: Runtime> ContractAwareEngine<R> {
     #[allow(clippy::result_large_err)]
-    pub(crate) fn unpack_http_request<B>(
-        &self,
-        request: http::Request<B>,
-    ) -> Result<(Parts<R>, B), http::Response<Body>> {
+    pub(crate) fn unpack_http_request<B>(&self, request: http::Request<B>) -> Result<(Parts, B), http::Response<Body>> {
         let (mut parts, body) = request.into_parts();
 
         let Some(response_format) = ResponseFormat::extract_from(&parts.headers) else {
@@ -87,10 +83,10 @@ impl<R: Runtime> ContractAwareEngine<R> {
     }
 }
 
-pub(crate) struct Parts<R: Runtime> {
+pub(crate) struct Parts {
     pub ctx: EarlyHttpContext,
     pub headers: http::HeaderMap,
-    pub extensions: RequestExtensions<ExtensionContext<R>>,
+    pub extensions: RequestExtensions,
 }
 
 impl<R: Runtime> Engine<R> {
@@ -98,9 +94,9 @@ impl<R: Runtime> Engine<R> {
         self: &Arc<Self>,
         ctx: &EarlyHttpContext,
         headers: http::HeaderMap,
-        extensions: RequestExtensions<ExtensionContext<R>>,
+        extensions: RequestExtensions,
         websocket_init_payload: Option<InitPayload>,
-    ) -> Result<Arc<RequestContext<ExtensionContext<R>>>, Response> {
+    ) -> Result<Arc<RequestContext>, Response> {
         let client = Client::extract_from(&headers);
 
         // Currently it doesn't rely on authentication, but likely will at some point.
@@ -125,7 +121,8 @@ impl<R: Runtime> Engine<R> {
             subgraph_default_headers,
             include_grafbase_response_extension: ctx.include_grafbase_response_extension,
             include_mcp_response_extension: ctx.include_mcp_response_extension,
-            extension_context: extensions.context,
+            event_queue: extensions.event_queue,
+            hooks_context: extensions.hooks_context,
         };
 
         Ok(Arc::new(request_context))

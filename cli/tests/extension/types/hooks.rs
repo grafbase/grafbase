@@ -44,12 +44,12 @@ fn init() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.20.1"
+    grafbase-sdk = "0.21.0"
     serde = { version = "1", features = ["derive"] }
 
     [dev-dependencies]
     insta = { version = "1", features = ["json"] }
-    grafbase-sdk = { version = "0.20.1", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.21.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -88,10 +88,10 @@ fn init() {
 
     let lib_rs = std::fs::read_to_string(project_path.join("src/lib.rs")).unwrap();
 
-    insta::assert_snapshot!(&lib_rs, @r##"
+    insta::assert_snapshot!(&lib_rs, @r"
     use grafbase_sdk::{
         HooksExtension,
-        types::{Configuration, Error, ErrorResponse, GatewayHeaders},
+        types::{Configuration, Error, ErrorResponse, GatewayHeaders, RequestContext},
         host_io::event_queue::EventQueue,
         host_io::http::{Method, StatusCode},
     };
@@ -111,6 +111,7 @@ fn init() {
 
         fn on_response(
             &mut self,
+            ctx: &RequestContext,
             status: StatusCode,
             headers: &mut GatewayHeaders,
             event_queue: EventQueue,
@@ -118,7 +119,7 @@ fn init() {
             Ok(())
         }
     }
-    "##);
+    ");
 
     let tests_rs = std::fs::read_to_string(project_path.join("tests/integration_tests.rs")).unwrap();
 

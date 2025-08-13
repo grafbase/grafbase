@@ -123,8 +123,8 @@ impl GraphBuilder<'_> {
     pub(crate) fn get_subgraph_id(&self, id: ResolverDefinitionId) -> SubgraphId {
         match &self.graph[id] {
             ResolverDefinitionRecord::FieldResolverExtension(record) => self.graph[record.directive_id].subgraph_id,
-            ResolverDefinitionRecord::GraphqlFederationEntity(record) => record.endpoint_id.into(),
-            ResolverDefinitionRecord::GraphqlRootField(record) => record.endpoint_id.into(),
+            ResolverDefinitionRecord::GraphqlFederationEntity(record) => record.subgraph_id.into(),
+            ResolverDefinitionRecord::GraphqlRootField(record) => record.subgraph_id.into(),
             ResolverDefinitionRecord::Introspection => SubgraphId::Introspection,
             ResolverDefinitionRecord::Lookup(id) => self.get_subgraph_id(self.graph[*id].resolver_id),
             ResolverDefinitionRecord::Extension(record) => record.subgraph_id.into(),

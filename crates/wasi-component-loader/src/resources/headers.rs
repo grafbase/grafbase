@@ -4,7 +4,7 @@ pub type Headers = OwnedOrShared<http::HeaderMap>;
 
 impl Headers {
     pub async fn get(&self, name: &str) -> Vec<Vec<u8>> {
-        self.with_ref(|headers| {
+        self.legacy_with_ref(|headers| {
             headers
                 .get_all(name)
                 .into_iter()
@@ -15,11 +15,11 @@ impl Headers {
     }
 
     pub async fn has(&self, name: &str) -> bool {
-        self.with_ref(|headers| headers.contains_key(name)).await
+        self.legacy_with_ref(|headers| headers.contains_key(name)).await
     }
 
     pub async fn set(&mut self, name: String, value: Vec<Vec<u8>>) -> Result<(), HeaderError> {
-        self.with_ref_mut(|headers| {
+        self.legacy_with_ref_mut(|headers| {
             let Some(headers) = headers else {
                 return Err(HeaderError::Immutable);
             };
@@ -46,7 +46,7 @@ impl Headers {
     }
 
     pub async fn delete(&mut self, name: &str) -> Result<(), HeaderError> {
-        self.with_ref_mut(|headers| {
+        self.legacy_with_ref_mut(|headers| {
             let Some(headers) = headers else {
                 return Err(HeaderError::Immutable);
             };
@@ -57,7 +57,7 @@ impl Headers {
     }
 
     pub async fn get_and_delete(&mut self, name: &str) -> Result<Vec<Vec<u8>>, HeaderError> {
-        self.with_ref_mut(|headers| {
+        self.legacy_with_ref_mut(|headers| {
             let Some(headers) = headers else {
                 return Err(HeaderError::Immutable);
             };
@@ -74,7 +74,7 @@ impl Headers {
     }
 
     pub async fn append(&mut self, name: String, value: Vec<u8>) -> Result<(), HeaderError> {
-        self.with_ref_mut(|headers| {
+        self.legacy_with_ref_mut(|headers| {
             let Some(headers) = headers else {
                 return Err(HeaderError::Immutable);
             };
@@ -86,7 +86,7 @@ impl Headers {
     }
 
     pub async fn entries(&self) -> Vec<(String, Vec<u8>)> {
-        self.with_ref(|headers| {
+        self.legacy_with_ref(|headers| {
             headers
                 .iter()
                 .map(|(name, values)| {

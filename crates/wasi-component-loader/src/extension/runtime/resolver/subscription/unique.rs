@@ -2,10 +2,10 @@ use std::collections::VecDeque;
 
 use super::SubscriptionStream;
 use crate::{
-    WasmContext,
     extension::{ExtensionGuard, api::wit::SubscriptionItem},
     wasmsafe,
 };
+use engine::EngineOperationContext;
 use futures::{StreamExt as _, stream};
 use runtime::extension::Response;
 
@@ -17,7 +17,7 @@ pub struct UniqueSubscription {
 }
 
 impl UniqueSubscription {
-    pub async fn resolve(self, context: WasmContext) -> SubscriptionStream<'static> {
+    pub async fn resolve(self, context: EngineOperationContext) -> SubscriptionStream<'static> {
         let UniqueSubscription { instance } = self;
 
         stream::unfold(
@@ -30,7 +30,7 @@ impl UniqueSubscription {
                 }
 
                 loop {
-                    let next = wasmsafe!(instance.resolve_next_subscription_item(context.clone()).await);
+                    let next = wasmsafe!(instance.resolve_next_subscription_item(&context).await);
 
                     match next {
                         Ok(Some(item)) => match item {
@@ -44,14 +44,14 @@ impl UniqueSubscription {
                             }
                         },
                         Ok(None) => {
-                            if let Err(err) = wasmsafe!(instance.drop_subscription(context.clone()).await) {
+                            if let Err(err) = wasmsafe!(instance.drop_subscription(&context).await) {
                                 tracing::error!("Error dropping subscription: {err}");
                             }
                             instance.recyclable = true;
                             return None;
                         }
                         Err(err) => {
-                            if let Err(err) = wasmsafe!(instance.drop_subscription(context.clone()).await) {
+                            if let Err(err) = wasmsafe!(instance.drop_subscription(&context).await) {
                                 tracing::error!("Error dropping subscription: {err}");
                             }
                             instance.recyclable = true;

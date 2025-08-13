@@ -1,0 +1,40 @@
+use grafbase_sdk::test::{GraphqlSubgraph, TestGateway};
+
+#[tokio::test]
+async fn test_example() {
+    // You must have the CLI and Grafbase Gateway for this to work. If you do not have
+    // them in the PATH, you can specify the paths to the executables with the `.with_cli` and
+    // `.with_gateway` methods.
+    let gateway = TestGateway::builder()
+        .subgraph(
+            GraphqlSubgraph::with_schema(
+                r#"
+                type Query {
+                    hi: String
+                }
+                "#,
+            )
+            .with_resolver("Query", "hi", "Alice"),
+        )
+        .toml_config(
+            r#"
+            # The extension config is added automatically by the test runner.
+            # Add here any additional configuration for the Grafbase Gateway.
+            "#,
+        )
+        .build()
+        .await
+        .unwrap();
+
+    let response = gateway.query(r#"query { hi }"#).send().await;
+
+    // The result is compared against a snapshot.
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "hi": "Alice"
+      }
+    }
+    "#);
+}
+

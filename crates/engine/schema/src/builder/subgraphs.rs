@@ -8,7 +8,7 @@ use crate::{
 };
 
 use super::{
-    GraphqlEndpointId, GraphqlEndpointRecord, SubgraphId, VirtualSubgraphId, VirtualSubgraphRecord,
+    GraphqlSubgraphId, GraphqlSubgraphRecord, SubgraphId, VirtualSubgraphId, VirtualSubgraphRecord,
     context::Interners,
     error::Error,
     sdl::{self, GraphName, Sdl},
@@ -18,8 +18,8 @@ use super::{
 pub(crate) struct SubgraphsBuilder<'sdl> {
     pub all: Vec<SubgraphId>,
     pub mapping: RapidHashMap<GraphName<'sdl>, SubgraphId>,
-    #[indexed_by(GraphqlEndpointId)]
-    pub graphql_endpoints: Vec<GraphqlEndpointRecord>,
+    #[indexed_by(GraphqlSubgraphId)]
+    pub graphql_endpoints: Vec<GraphqlSubgraphRecord>,
     #[indexed_by(VirtualSubgraphId)]
     pub virtual_subgraphs: Vec<VirtualSubgraphRecord>,
     pub default_header_rules: IdRange<HeaderRuleId>,
@@ -69,8 +69,8 @@ impl<'sdl> SubgraphsBuilder<'sdl> {
 
             let header_rule_ids = ingest_header_rules(&mut subgraphs.header_rules, &headers, interners);
             let subgraph_id = if let Some(url) = url {
-                subgraphs.graphql_endpoints.push(GraphqlEndpointRecord {
-                    subgraph_name_id,
+                subgraphs.graphql_endpoints.push(GraphqlSubgraphRecord {
+                    name_id: subgraph_name_id,
                     url_id: interners.urls.insert(url),
                     subscription_protocol: match subscription_protocol {
                         Some(protocol) => protocol,
@@ -94,10 +94,10 @@ impl<'sdl> SubgraphsBuilder<'sdl> {
                     },
                     schema_directive_ids: Vec::new(),
                 });
-                SubgraphId::GraphqlEndpoint((subgraphs.graphql_endpoints.len() - 1).into())
+                SubgraphId::Graphql((subgraphs.graphql_endpoints.len() - 1).into())
             } else {
                 subgraphs.virtual_subgraphs.push(VirtualSubgraphRecord {
-                    subgraph_name_id,
+                    name_id: subgraph_name_id,
                     schema_directive_ids: Vec::new(),
                     header_rule_ids,
                 });

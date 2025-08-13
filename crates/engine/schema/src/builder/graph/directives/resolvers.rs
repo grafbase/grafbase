@@ -26,12 +26,13 @@ fn create_root_graphql_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
         let endpoint_ids = ingester.graph[root_object_id]
             .exists_in_subgraph_ids
             .iter()
-            .filter_map(|id| id.as_graphql_endpoint())
+            .filter_map(|id| id.as_graphql())
             .collect::<Vec<_>>();
         let mut resolvers = Vec::new();
         for endpoint_id in endpoint_ids {
-            let resolver =
-                ResolverDefinitionRecord::GraphqlRootField(GraphqlRootFieldResolverDefinitionRecord { endpoint_id });
+            let resolver = ResolverDefinitionRecord::GraphqlRootField(GraphqlRootFieldResolverDefinitionRecord {
+                subgraph_id: endpoint_id,
+            });
             let id = ingester.graph.resolver_definitions.len().into();
             ingester.builder.graph.resolver_definitions.push(resolver);
             resolvers.push((endpoint_id, id));
@@ -43,7 +44,7 @@ fn create_root_graphql_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
                 field
                     .exists_in_subgraph_ids
                     .iter()
-                    .filter_map(|id| id.as_graphql_endpoint())
+                    .filter_map(|id| id.as_graphql())
                     .filter_map(|id| {
                         resolvers.iter().find_map(
                             |(endpoint_id, resolver_id)| if id == *endpoint_id { Some(resolver_id) } else { None },
@@ -128,7 +129,7 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
                 return Err(format!(
                     "Selection Set Resolver extension {} cannot be mixed with other resolvers in subgraph '{}', found {}",
                     builder[id].manifest.id,
-                    builder[builder.subgraphs[subgraph_id].subgraph_name_id],
+                    builder[builder.subgraphs[subgraph_id].name_id],
                     builder[builder.graph[*directive_id].extension_id].manifest.id
                 ).into());
             }
@@ -226,7 +227,7 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
             }
 
             if join_type.resolvable {
-                let Some(endpoint_id) = subgraph_id.as_graphql_endpoint() else {
+                let Some(endpoint_id) = subgraph_id.as_graphql() else {
                     continue;
                 };
                 let id = ingester.graph.resolver_definitions.len().into();
@@ -245,7 +246,7 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
                 let resolver = ResolverDefinitionRecord::GraphqlFederationEntity(
                     GraphqlFederationEntityResolverDefinitionRecord {
                         key_fields_record: key,
-                        endpoint_id,
+                        subgraph_id: endpoint_id,
                     },
                 );
                 ingester.graph.resolver_definitions.push(resolver);

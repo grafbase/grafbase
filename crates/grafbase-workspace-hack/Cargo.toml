@@ -35,7 +35,6 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "serd
 clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
 combine = { version = "4", features = ["tokio"] }
-concurrent-queue = { version = "2" }
 cranelift-bitset = { version = "0.122", default-features = false, features = ["enable-serde"] }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-utils = { version = "0.8" }
@@ -161,7 +160,6 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "serd
 clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
 combine = { version = "4", features = ["tokio"] }
-concurrent-queue = { version = "2" }
 cranelift-bitset = { version = "0.122", default-features = false, features = ["enable-serde"] }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-utils = { version = "0.8" }

@@ -1,26 +1,21 @@
-use std::{future::Future, ops::Range};
+use std::{future::Future, ops::Range, sync::Arc};
 
 use engine_schema::{DirectiveSite, Subgraph};
 use error::{ErrorResponse, GraphqlError};
 use extension_catalog::ExtensionId;
 
-use super::{Anything, TokenRef};
+use super::Anything;
 
-pub trait AuthorizationExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
-    type State: Default + Send + Sync + 'static;
-
+pub trait AuthorizationExtension<RequestContext, OperationContext>: Send + Sync + 'static {
     fn authorize_query<'ctx, 'fut, Extensions, Arguments>(
         &'ctx self,
-        ctx: &'ctx Context,
+        ctx: RequestContext,
         subgraph_headers: http::HeaderMap,
-        token: TokenRef<'ctx>,
         extensions: Extensions,
         // (directive name, range within query_elements)
         directives: impl ExactSizeIterator<Item = (&'ctx str, Range<usize>)>,
         query_elements: impl ExactSizeIterator<Item = QueryElement<'ctx, Arguments>>,
-    ) -> impl Future<Output = Result<(Self::State, http::HeaderMap, Vec<QueryAuthorizationDecisions>), ErrorResponse>>
-           + Send
-           + 'fut
+    ) -> impl Future<Output = Result<AuthorizeQuery, ErrorResponse>> + Send + 'fut
     where
         'ctx: 'fut,
         // (extension id, range within directives, range within query_elements)
@@ -34,8 +29,7 @@ pub trait AuthorizationExtension<Context: Send + Sync + 'static>: Send + Sync + 
 
     fn authorize_response<'ctx, 'fut>(
         &'ctx self,
-        ctx: &'ctx Context,
-        state: &'ctx Self::State,
+        ctx: OperationContext,
         extension_id: ExtensionId,
         directive_name: &'ctx str,
         directive_site: DirectiveSite<'ctx>,
@@ -52,6 +46,20 @@ pub struct QueryElement<'a, A> {
     pub subgraph: Option<Subgraph<'a>>,
 }
 
+pub struct AuthorizeQuery {
+    pub headers: http::HeaderMap,
+    pub decisions: Vec<QueryAuthorizationDecisions>,
+    // Arc for Wasmtime because we can't return an non 'static value from a function.
+    pub context: Vec<(ExtensionId, Arc<[u8]>)>,
+    pub state: Vec<(ExtensionId, Vec<u8>)>,
+}
+
+pub struct QueryAuthorizationDecisions {
+    pub extension_id: ExtensionId,
+    pub query_elements_range: Range<usize>,
+    pub decisions: AuthorizationDecisions,
+}
+
 #[derive(Debug)]
 pub enum AuthorizationDecisions {
     GrantAll,
@@ -60,10 +68,4 @@ pub enum AuthorizationDecisions {
         element_to_error: Vec<(u32, u32)>,
         errors: Vec<GraphqlError>,
     },
-}
-
-pub struct QueryAuthorizationDecisions {
-    pub extension_id: ExtensionId,
-    pub query_elements_range: Range<usize>,
-    pub decisions: AuthorizationDecisions,
 }

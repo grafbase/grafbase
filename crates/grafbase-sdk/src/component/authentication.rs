@@ -4,10 +4,11 @@ use super::{Component, state};
 
 impl wit::AuthenticationGuest for Component {
     fn authenticate(
-        context: wit::SharedContext,
+        event_queue: wit::EventQueue,
+        ctx: wit::RequestContext,
         headers: wit::Headers,
     ) -> Result<(wit::Headers, wit::Token), wit::ErrorResponse> {
-        state::with_context(context, || {
+        state::with_event_queue(event_queue, || {
             let headers: Headers = headers.into();
             let result = state::extension()
                 .map_err(|err| wit::ErrorResponse {
@@ -15,7 +16,7 @@ impl wit::AuthenticationGuest for Component {
                     errors: vec![err],
                     headers: None,
                 })?
-                .authenticate(&headers);
+                .authenticate(&(ctx.into()), &headers);
 
             result.map(|token| (headers.into(), token.into())).map_err(Into::into)
         })

@@ -1,19 +1,21 @@
 use std::sync::Arc;
 
 use engine::ErrorResponse;
+use event_queue::EventQueue;
 use extension_catalog::{ExtensionId, Id};
 use futures::{StreamExt as _, stream::FuturesUnordered};
 use runtime::extension::{AuthenticationExtension, PublicMetadataEndpoint, Token};
 
 use crate::gateway::{
-    DispatchRule, ExtContext, ExtensionsBuilder, GatewayTestExtensions, TestExtensions, TestManifest,
+    DispatchRule, ExtensionsBuilder, GatewayTestExtensions, TestExtensions, TestManifest,
     runtime::extension::builder::AnyExtension,
 };
 
-impl AuthenticationExtension<ExtContext> for GatewayTestExtensions {
+impl AuthenticationExtension for GatewayTestExtensions {
     async fn authenticate(
         &self,
-        ctx: &ExtContext,
+        event_queue: &Arc<EventQueue>,
+        hooks_context: &Arc<[u8]>,
         headers: http::HeaderMap,
         ids: &[ExtensionId],
     ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
@@ -30,7 +32,10 @@ impl AuthenticationExtension<ExtContext> for GatewayTestExtensions {
         let (headers, wasm_error) = if wasm_extensions.is_empty() {
             (headers, None)
         } else {
-            let (headers, result) = self.wasm.authenticate(&ctx.wasm, headers, &wasm_extensions).await;
+            let (headers, result) = self
+                .wasm
+                .authenticate(event_queue, hooks_context, headers, &wasm_extensions)
+                .await;
             match result {
                 Ok(token) => return (headers, Ok(token)),
                 Err(err) => (headers, Some(err)),
@@ -40,7 +45,7 @@ impl AuthenticationExtension<ExtContext> for GatewayTestExtensions {
         let (headers, test_error) = if test_extensions.is_empty() {
             (headers, None)
         } else {
-            let (headers, result) = self.test.authenticate(ctx, headers, &test_extensions).await;
+            let (headers, result) = self.test.authenticate(headers, &test_extensions).await;
             match result {
                 Ok(token) => return (headers, Ok(token)),
                 Err(err) => (headers, Some(err)),
@@ -66,7 +71,6 @@ impl AuthenticationExtension<ExtContext> for GatewayTestExtensions {
 impl TestExtensions {
     async fn authenticate(
         &self,
-        _ctx: &ExtContext,
         headers: http::HeaderMap,
         ids: &[ExtensionId],
     ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {

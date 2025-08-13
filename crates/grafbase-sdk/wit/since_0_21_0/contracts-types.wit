@@ -1,0 +1,22 @@
+interface contracts-types {
+    record contract {
+        // Same order as the directive.
+        // absolute value is the priority with positive one being shifted by one.
+        // positive int means it's accessible
+        // So
+        // [0, 127] => accessible
+        // [-128, -1] => inaccessible
+        // Both 0 and -1 have priority 1, -128 and 127 priority 128.
+        // A higher priority directive overrides previous ones.
+        accessible: list<s8>,
+        accessible-by-default: bool,
+        hide-unreachable-types: bool,
+        // Any subgraph changes, identified by their name.
+        subgraphs: list<graphql-subgraph>,
+    }
+
+    record graphql-subgraph {
+        name: string,
+        url: string
+    }
+}

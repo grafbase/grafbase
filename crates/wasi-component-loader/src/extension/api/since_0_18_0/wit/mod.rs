@@ -18,7 +18,7 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/headers": crate::extension::api::since_0_17_0::wit::headers,
         "grafbase:sdk/authorization-types": crate::extension::api::since_0_17_0::wit::authorization_types,
         "grafbase:sdk/resolver-types": crate::extension::api::since_0_17_0::wit::resolver_types,
-        "grafbase:sdk/event-queue/event-queue": crate::resources::EventQueueProxy,
+        "grafbase:sdk/event-queue/event-queue": crate::resources::EventQueueResource,
         "grafbase:sdk/logger/file-logger": crate::resources::FileLogger,
         "grafbase:sdk/shared-context": crate::extension::api::since_0_17_0::wit::shared_context
     },

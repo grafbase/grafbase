@@ -3848,7 +3848,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.101.1"
+version = "0.102.0"
 dependencies = [
  "anyhow",
  "askama",
@@ -3952,7 +3952,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.46.2"
+version = "0.47.0"
 dependencies = [
  "anyhow",
  "ascii",
@@ -4063,7 +4063,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.20.1"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -4195,7 +4195,6 @@ dependencies = [
  "clap",
  "clap_builder",
  "combine",
- "concurrent-queue",
  "cranelift-bitset",
  "criterion",
  "crossbeam-utils",
@@ -11094,6 +11093,7 @@ dependencies = [
  "dashmap 6.1.0",
  "deadpool 0.12.2",
  "either",
+ "engine",
  "engine-error",
  "engine-id-newtypes",
  "engine-schema",

@@ -43,7 +43,7 @@ impl Default for GatewayWasmExtensionsInner {
 
 impl GatewayWasmExtensions {
     pub async fn new(
-        extension_catalog: &ExtensionCatalog,
+        extension_catalog: &Arc<ExtensionCatalog>,
         gateway_config: &Config,
         logging_filter: String,
     ) -> wasmtime::Result<Self> {
@@ -75,12 +75,24 @@ impl GatewayWasmExtensions {
                         .as_ref()
                         .or(manifiest.legacy_event_filter.as_ref())
                         .map(convert_event_filter);
-                    inner.hooks = Some(Pool::new(&inner.engine, &schema, Arc::new(ExtensionState::new(config))).await?);
+                    inner.hooks = Some(
+                        Pool::new(
+                            &inner.engine,
+                            &schema,
+                            Arc::new(ExtensionState::new(extension_catalog, config)),
+                        )
+                        .await?,
+                    );
                 }
                 extension_catalog::Type::Authentication(_) => {
-                    inner
-                        .authentication
-                        .push(Pool::new(&inner.engine, &schema, Arc::new(ExtensionState::new(config))).await?);
+                    inner.authentication.push(
+                        Pool::new(
+                            &inner.engine,
+                            &schema,
+                            Arc::new(ExtensionState::new(extension_catalog, config)),
+                        )
+                        .await?,
+                    );
                 }
                 _ => continue,
             }

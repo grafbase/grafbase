@@ -1,7 +1,7 @@
 use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    gateway::{AuthorizationExt, AuthorizationTestExtension, ExtContext, Gateway},
+    gateway::{AuthorizationExt, AuthorizationTestExtension, Gateway},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
@@ -14,11 +14,11 @@ impl AuthorizationTestExtension for MultiDirectives {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        _ctx: &ExtContext,
+        _ctx: engine::EngineRequestContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         _token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+    ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
         let mut element_to_error = Vec::new();
         let errors = vec![GraphqlError::new("Unauthorized", ErrorCode::Unauthorized)];
         let mut i = 0;
@@ -37,10 +37,13 @@ impl AuthorizationTestExtension for MultiDirectives {
             }
         }
 
-        Ok(AuthorizationDecisions::DenySome {
-            element_to_error,
-            errors,
-        })
+        Ok((
+            AuthorizationDecisions::DenySome {
+                element_to_error,
+                errors,
+            },
+            Vec::new(),
+        ))
     }
 }
 
@@ -52,11 +55,11 @@ impl AuthorizationTestExtension for MultiDirectivesBis {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        _ctx: &ExtContext,
+        _ctx: engine::EngineRequestContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         _token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+    ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
         let mut element_to_error = Vec::new();
         let errors = vec![GraphqlError::new("Unauthorized by bis", ErrorCode::Unauthorized)];
         let mut i = 0;
@@ -75,10 +78,13 @@ impl AuthorizationTestExtension for MultiDirectivesBis {
             }
         }
 
-        Ok(AuthorizationDecisions::DenySome {
-            element_to_error,
-            errors,
-        })
+        Ok((
+            AuthorizationDecisions::DenySome {
+                element_to_error,
+                errors,
+            },
+            Vec::new(),
+        ))
     }
 }
 

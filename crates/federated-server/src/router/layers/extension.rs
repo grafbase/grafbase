@@ -6,7 +6,7 @@ use event_queue::ExecutedHttpRequest;
 use extension_catalog::ExtensionId;
 use gateway_config::DefaultAuthenticationBehavior;
 use http::{Request, Response};
-use runtime::extension::{ExtensionContext, GatewayExtensions, OnRequest, Token};
+use runtime::extension::{GatewayExtensions, OnRequest, Token};
 use tower::Layer;
 
 use crate::engine::into_axum_response;
@@ -89,7 +89,8 @@ where
             let response_format = engine::ResponseFormat::extract_from(&parts.headers).unwrap_or_default();
 
             let OnRequest {
-                context,
+                event_queue,
+                hooks_context,
                 mut parts,
                 contract_key,
             } = match layer.extensions.on_request(parts).await {
@@ -112,7 +113,12 @@ where
                 let headers = std::mem::take(&mut parts.headers);
                 let (headers, result) = layer
                     .extensions
-                    .authenticate(&context, headers, &layer.authentication_extension_ids)
+                    .authenticate(
+                        &event_queue,
+                        &hooks_context,
+                        headers,
+                        &layer.authentication_extension_ids,
+                    )
                     .await;
                 parts.headers = headers;
                 match result {
@@ -126,13 +132,12 @@ where
 
             let response = match result {
                 Ok(token) => {
-                    parts
-                        .extensions
-                        .insert(RequestExtensions::<<Ext as GatewayExtensions>::Context> {
-                            context: context.clone(),
-                            token,
-                            contract_key: contract_key.or_else(|| layer.default_contract_key.clone()),
-                        });
+                    parts.extensions.insert(RequestExtensions {
+                        hooks_context: hooks_context.clone(),
+                        event_queue: event_queue.clone(),
+                        token,
+                        contract_key: contract_key.or_else(|| layer.default_contract_key.clone()),
+                    });
 
                     next.call(Request::from_parts(parts, body)).await?
                 }
@@ -148,9 +153,9 @@ where
                 .method(method)
                 .response_status(parts.status);
 
-            context.event_queue().push_http_request(builder);
+            event_queue.push_http_request(builder);
 
-            let parts = match layer.extensions.on_response(context, parts).await {
+            let parts = match layer.extensions.on_response(event_queue, hooks_context, parts).await {
                 Ok(parts) => parts,
                 Err(err) => {
                     let error_response = engine::http_error_response(

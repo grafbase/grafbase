@@ -161,7 +161,7 @@ impl From<(OperationPlanContext<'_>, &Resolver)> for QueryPlanNode {
             Resolver::SelectionSetExtension(resolver) => QueryPlanNode::Extension(ExtensionNode {
                 directive_name: None,
                 id: ctx.schema[resolver.definition.extension_id].clone(),
-                subgraph_name: resolver.definition.subgraph_id.walk(ctx).subgraph_name().to_string(),
+                subgraph_name: resolver.definition.subgraph_id.walk(ctx).name().to_string(),
             }),
         }
     }
@@ -170,7 +170,7 @@ impl From<(OperationPlanContext<'_>, &Resolver)> for QueryPlanNode {
 impl From<(OperationPlanContext<'_>, &GraphqlResolver)> for QueryPlanNode {
     fn from((ctx, resolver): (OperationPlanContext<'_>, &GraphqlResolver)) -> Self {
         QueryPlanNode::GraphqlResolver(GraphqlResolverNode {
-            subgraph_name: resolver.endpoint_id.walk(ctx).subgraph_name().to_string(),
+            subgraph_name: resolver.subgraph_id.walk(ctx).name().to_string(),
             request: GraphqlRequest {
                 query: resolver.subgraph_operation.query.clone(),
             },
@@ -181,7 +181,7 @@ impl From<(OperationPlanContext<'_>, &GraphqlResolver)> for QueryPlanNode {
 impl From<(OperationPlanContext<'_>, &FederationEntityResolver)> for QueryPlanNode {
     fn from((ctx, resolver): (OperationPlanContext<'_>, &FederationEntityResolver)) -> Self {
         QueryPlanNode::GraphqlResolver(GraphqlResolverNode {
-            subgraph_name: resolver.endpoint_id.walk(ctx).subgraph_name().to_string(),
+            subgraph_name: resolver.subgraph_id.walk(ctx).name().to_string(),
             request: GraphqlRequest {
                 query: resolver.subgraph_operation.query.clone(),
             },
@@ -205,7 +205,7 @@ impl From<(OperationPlanContext<'_>, &ExtensionResolver)> for QueryPlanNode {
         QueryPlanNode::Extension(ExtensionNode {
             directive_name: None,
             id: ctx.schema[resolver.definition.extension_id].clone(),
-            subgraph_name: resolver.definition.subgraph_id.walk(ctx).subgraph_name().to_string(),
+            subgraph_name: resolver.definition.subgraph_id.walk(ctx).name().to_string(),
         })
     }
 }
@@ -214,7 +214,7 @@ impl From<(OperationPlanContext<'_>, &SelectionSetExtensionResolver)> for QueryP
         QueryPlanNode::Extension(ExtensionNode {
             directive_name: None,
             id: ctx.schema[resolver.definition.extension_id].clone(),
-            subgraph_name: resolver.definition.subgraph_id.walk(ctx).subgraph_name().to_string(),
+            subgraph_name: resolver.definition.subgraph_id.walk(ctx).name().to_string(),
         })
     }
 }

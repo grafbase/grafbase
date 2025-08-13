@@ -15,8 +15,8 @@ impl<'a> ResolverDefinition<'a> {
 
     pub fn subgraph_id(&self) -> SubgraphId {
         match self.variant() {
-            ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.endpoint_id.into(),
-            ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.endpoint_id.into(),
+            ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.subgraph_id.into(),
+            ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.subgraph_id.into(),
             ResolverDefinitionVariant::Introspection(_) => SubgraphId::Introspection,
             ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.directive().subgraph_id,
             ResolverDefinitionVariant::Extension(resolver) => resolver.subgraph_id.into(),
@@ -55,13 +55,13 @@ impl FieldResolverExtensionDefinition<'_> {
 
 impl GraphqlRootFieldResolverDefinition<'_> {
     pub fn name(&self) -> String {
-        format!("Root#{}", self.endpoint().subgraph_name())
+        format!("Root#{}", self.subgraph().name())
     }
 }
 
 impl GraphqlFederationEntityResolverDefinition<'_> {
     pub fn name(&self) -> String {
-        format!("FedEntity#{}", self.endpoint().subgraph_name())
+        format!("FedEntity#{}", self.subgraph().name())
     }
 }
 
@@ -77,7 +77,7 @@ impl ExtensionResolverDefinition<'_> {
             "{}/{}#{}",
             self.directive().name(),
             self.schema[self.extension_id],
-            self.subgraph().subgraph_name()
+            self.subgraph().name()
         )
     }
 }
@@ -87,7 +87,7 @@ impl SelectionSetResolverExtensionDefinition<'_> {
         format!(
             "SelectionSetResolver#{}#{}",
             usize::from(self.extension_id),
-            self.subgraph().subgraph_name()
+            self.subgraph().name()
         )
     }
 }

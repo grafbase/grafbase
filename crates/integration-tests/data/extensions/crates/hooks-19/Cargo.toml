@@ -12,13 +12,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 base64 = "0.22"
-grafbase-sdk.workspace = true
+grafbase-sdk = "0.20.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-
-[dev-dependencies]
-grafbase-sdk = { workspace = true, features = ["test-utils"] }
-indoc = "2"
-insta = { version = "1", features = ["json"] }
-serde_json = "1"
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }

@@ -1,8 +1,8 @@
 use crate::{
     component::AnyExtension,
     types::{
-        AuthorizationDecisions, Configuration, Error, ErrorResponse, QueryElements, ResponseElements, SubgraphHeaders,
-        Token,
+        AuthenticatedRequestContext, AuthorizationDecisions, AuthorizeQueryOutput, AuthorizedOperationContext,
+        Configuration, Error, ErrorResponse, Headers, QueryElements, ResponseElements, SubgraphHeaders,
     },
 };
 
@@ -34,8 +34,8 @@ use crate::{
 ///
 /// ```rust
 /// use grafbase_sdk::{
-///     AuthorizationExtension, IntoQueryAuthorization,
-///     types::{SubgraphHeaders, Configuration, ErrorResponse, Token, Error, QueryElements, AuthorizationDecisions}
+///     AuthorizationExtension, IntoAuthorizeQueryOutput,
+///     types::{AuthenticatedRequestContext, SubgraphHeaders, Configuration, ErrorResponse, Error, QueryElements, AuthorizationDecisions}
 /// };
 ///
 /// #[derive(AuthorizationExtension)]
@@ -56,10 +56,10 @@ use crate::{
 ///
 ///     fn authorize_query(
 ///         &mut self,
-///         headers: &mut SubgraphHeaders,
-///         token: Token,
+///         ctx: &AuthenticatedRequestContext,
+///         headers: &SubgraphHeaders,
 ///         elements: QueryElements<'_>,
-///     ) -> Result<impl IntoQueryAuthorization, ErrorResponse> {
+///     ) -> Result<impl IntoAuthorizeQueryOutput, ErrorResponse> {
 ///         Ok(AuthorizationDecisions::deny_all("Unauthorized"))
 ///     }
 /// }
@@ -268,10 +268,10 @@ pub trait AuthorizationExtension: Sized + 'static {
     ///
     fn authorize_query(
         &mut self,
-        headers: &mut SubgraphHeaders,
-        token: Token,
+        ctx: &AuthenticatedRequestContext,
+        headers: &SubgraphHeaders,
         elements: QueryElements<'_>,
-    ) -> Result<impl IntoQueryAuthorization, ErrorResponse>;
+    ) -> Result<impl IntoAuthorizeQueryOutput, ErrorResponse>;
 
     /// Authorize response elements after receiving data from subgraphs. As of today this function
     /// will be called as soon as the data is available, so if multiple response elements need
@@ -317,6 +317,7 @@ pub trait AuthorizationExtension: Sized + 'static {
     /// That's why this method receives a `state` argument provided by [authorize_query()](AuthorizationExtension::authorize_query()).
     fn authorize_response(
         &mut self,
+        ctx: &AuthorizedOperationContext,
         state: Vec<u8>,
         elements: ResponseElements<'_>,
     ) -> Result<AuthorizationDecisions, Error> {
@@ -324,25 +325,33 @@ pub trait AuthorizationExtension: Sized + 'static {
     }
 }
 
-pub trait IntoQueryAuthorization {
-    fn into_query_authorization(self) -> (AuthorizationDecisions, Vec<u8>);
+pub trait IntoAuthorizeQueryOutput {
+    fn into_authorize_query_output(self) -> AuthorizeQueryOutput;
 }
 
-impl IntoQueryAuthorization for AuthorizationDecisions {
-    fn into_query_authorization(self) -> (AuthorizationDecisions, Vec<u8>) {
-        (self, Vec::new())
-    }
-}
-
-impl IntoQueryAuthorization for (Vec<u8>, AuthorizationDecisions) {
-    fn into_query_authorization(self) -> (AuthorizationDecisions, Vec<u8>) {
-        (self.1, self.0)
-    }
-}
-
-impl IntoQueryAuthorization for (AuthorizationDecisions, Vec<u8>) {
-    fn into_query_authorization(self) -> (AuthorizationDecisions, Vec<u8>) {
+impl IntoAuthorizeQueryOutput for AuthorizeQueryOutput {
+    fn into_authorize_query_output(self) -> AuthorizeQueryOutput {
         self
+    }
+}
+
+impl IntoAuthorizeQueryOutput for AuthorizationDecisions {
+    fn into_authorize_query_output(self) -> AuthorizeQueryOutput {
+        AuthorizeQueryOutput::new(self)
+    }
+}
+
+impl IntoAuthorizeQueryOutput for (Headers, AuthorizationDecisions) {
+    fn into_authorize_query_output(self) -> AuthorizeQueryOutput {
+        let (headers, decisions) = self;
+        AuthorizeQueryOutput::new(decisions).headers(headers)
+    }
+}
+
+impl IntoAuthorizeQueryOutput for (AuthorizationDecisions, Headers) {
+    fn into_authorize_query_output(self) -> AuthorizeQueryOutput {
+        let (decisions, headers) = self;
+        AuthorizeQueryOutput::new(decisions).headers(headers)
     }
 }
 
@@ -353,20 +362,22 @@ pub fn register<T: AuthorizationExtension>() {
     impl<T: AuthorizationExtension> AnyExtension for Proxy<T> {
         fn authorize_query(
             &mut self,
-            headers: &mut SubgraphHeaders,
-            token: Token,
+            ctx: &AuthenticatedRequestContext,
+            headers: &SubgraphHeaders,
             elements: QueryElements<'_>,
-        ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
-            AuthorizationExtension::authorize_query(&mut self.0, headers, token, elements)
-                .map(IntoQueryAuthorization::into_query_authorization)
+        ) -> Result<AuthorizeQueryOutput, ErrorResponse> {
+            self.0
+                .authorize_query(ctx, headers, elements)
+                .map(|output| output.into_authorize_query_output())
         }
 
         fn authorize_response(
             &mut self,
+            ctx: &AuthorizedOperationContext,
             state: Vec<u8>,
             elements: ResponseElements<'_>,
         ) -> Result<AuthorizationDecisions, Error> {
-            AuthorizationExtension::authorize_response(&mut self.0, state, elements)
+            self.0.authorize_response(ctx, state, elements)
         }
     }
 

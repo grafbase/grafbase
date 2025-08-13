@@ -32,7 +32,7 @@ where
     E: GatewayExtensions,
 {
     pub config: Config,
-    pub extension_catalog: ExtensionCatalog,
+    pub extension_catalog: Arc<ExtensionCatalog>,
     pub engine: EngineWatcher<R>,
     pub server_runtime: SR,
     pub extensions: E,

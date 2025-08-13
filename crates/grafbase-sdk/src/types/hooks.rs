@@ -31,14 +31,15 @@ impl From<HttpRequestParts> for wit::HttpRequestParts {
     }
 }
 
-/// Output type for the `on_request` hook.
+/// Output type for the [on_request()](crate::HooksExtension::on_request()) hook.
 #[derive(Default)]
 pub struct OnRequestOutput {
+    pub(crate) context: Vec<u8>,
     pub(crate) contract_key: Option<String>,
 }
 
 impl OnRequestOutput {
-    /// Creates a new `OnRequestOutput` instance with default values.
+    /// Creates a new [OnRequestOutput] instance with default values.
     pub fn new() -> Self {
         Self::default()
     }
@@ -46,6 +47,13 @@ impl OnRequestOutput {
     /// Sets the contract key for the request.
     pub fn contract_key(mut self, contract_key: impl Into<String>) -> Self {
         self.contract_key = Some(contract_key.into());
+        self
+    }
+
+    /// Set the Hooks context for the request.
+    /// Accessible by other extensions.
+    pub fn context(mut self, context: impl Into<Vec<u8>>) -> Self {
+        self.context = context.into();
         self
     }
 }

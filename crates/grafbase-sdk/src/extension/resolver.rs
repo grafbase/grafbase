@@ -1,8 +1,8 @@
 use crate::{
     component::AnyExtension,
     types::{
-        Configuration, Error, IndexedSchema, ResolvedField, Response, SubgraphHeaders, SubgraphSchema,
-        SubscriptionItem, Variables,
+        AuthorizedOperationContext, Configuration, Error, IndexedSchema, ResolvedField, Response, SubgraphHeaders,
+        SubgraphSchema, SubscriptionItem, Variables,
     },
 };
 
@@ -21,7 +21,7 @@ use crate::{
 /// ```rust
 /// use grafbase_sdk::{
 ///     ResolverExtension,
-///     types::{Configuration, Error, ResolvedField, Response, SubgraphHeaders, SubgraphSchema, Variables},
+///     types::{AuthorizedOperationContext, Configuration, Error, ResolvedField, Response, SubgraphHeaders, SubgraphSchema, Variables},
 /// };
 ///
 /// #[derive(ResolverExtension)]
@@ -44,6 +44,7 @@ use crate::{
 ///
 ///     fn resolve(
 ///         &mut self,
+///         ctx: &AuthorizedOperationContext,
 ///         prepared: &[u8],
 ///         headers: SubgraphHeaders,
 ///         variables: Variables,
@@ -183,7 +184,13 @@ pub trait ResolverExtension: Sized + 'static {
     /// with [Response::json] and [Response::cbor] respectively, directly to the gateway. The
     /// gateway will always validate the subgraph data and deal with error propagation. Otherwise
     /// use [Response::data] to use the fastest supported serialization format.
-    fn resolve(&mut self, prepared: &[u8], headers: SubgraphHeaders, variables: Variables) -> Result<Response, Error>;
+    fn resolve(
+        &mut self,
+        ctx: &AuthorizedOperationContext,
+        prepared: &[u8],
+        headers: SubgraphHeaders,
+        variables: Variables,
+    ) -> Result<Response, Error>;
 
     /// Resolves a subscription for the given prepared bytes, headers, and variables.
     /// Subscriptions must implement the [Subscription] trait. It's also possible to provide a
@@ -196,6 +203,7 @@ pub trait ResolverExtension: Sized + 'static {
     #[allow(unused_variables)]
     fn resolve_subscription<'s>(
         &'s mut self,
+        ctx: &'s AuthorizedOperationContext,
         prepared: &'s [u8],
         headers: SubgraphHeaders,
         variables: Variables,
@@ -352,19 +360,28 @@ pub fn register<T: ResolverExtension>() {
             self.0.prepare(field)
         }
 
-        fn resolve(&mut self, prepared: &[u8], headers: SubgraphHeaders, variables: Variables) -> Response {
-            self.0.resolve(prepared, headers, variables).into()
+        fn resolve(
+            &mut self,
+            ctx: &AuthorizedOperationContext,
+
+            prepared: &[u8],
+            headers: SubgraphHeaders,
+            variables: Variables,
+        ) -> Response {
+            self.0.resolve(ctx, prepared, headers, variables).into()
         }
 
         fn resolve_subscription<'a>(
             &'a mut self,
+            ctx: &'a AuthorizedOperationContext,
+
             prepared: &'a [u8],
             headers: SubgraphHeaders,
             variables: Variables,
         ) -> Result<(Option<Vec<u8>>, SubscriptionCallback<'a>), Error> {
             let (key, callback) = self
                 .0
-                .resolve_subscription(prepared, headers, variables)?
+                .resolve_subscription(ctx, prepared, headers, variables)?
                 .into_deduplication_key_and_subscription_callback();
             Ok((key, callback))
         }

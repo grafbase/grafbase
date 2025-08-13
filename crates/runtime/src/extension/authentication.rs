@@ -1,12 +1,14 @@
-use std::future::Future;
+use std::{future::Future, sync::Arc};
 
 use error::ErrorResponse;
+use event_queue::EventQueue;
 use extension_catalog::ExtensionId;
 
-pub trait AuthenticationExtension<Context: Send + Sync + 'static>: Send + Sync + 'static {
+pub trait AuthenticationExtension: Send + Sync + 'static {
     fn authenticate(
         &self,
-        ctx: &Context,
+        event_queue: &Arc<EventQueue>,
+        hooks_context: &Arc<[u8]>,
         gateway_headers: http::HeaderMap,
         ids: &[ExtensionId],
     ) -> impl Future<Output = (http::HeaderMap, Result<Token, ErrorResponse>)> + Send;
@@ -23,7 +25,8 @@ pub struct PublicMetadataEndpoint {
 #[derive(Clone, Debug)]
 pub enum Token {
     Anonymous,
-    Bytes(Vec<u8>),
+    // Arc for Wasmtime because we can't return an non 'static value from a function.
+    Bytes(Arc<[u8]>),
 }
 
 impl Token {
@@ -59,7 +62,7 @@ impl TokenRef<'_> {
     pub fn to_owned(&self) -> Token {
         match self {
             TokenRef::Anonymous => Token::Anonymous,
-            TokenRef::Bytes(bytes) => Token::Bytes(bytes.to_vec()),
+            TokenRef::Bytes(bytes) => Token::Bytes(bytes.to_vec().into()),
         }
     }
 }

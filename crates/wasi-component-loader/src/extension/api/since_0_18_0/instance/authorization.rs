@@ -1,30 +1,36 @@
-use engine_error::{ErrorCode, GraphqlError};
+use engine::{EngineOperationContext, EngineRequestContext};
+use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
 use futures::future::BoxFuture;
-use runtime::extension::{AuthorizationDecisions, TokenRef};
+use runtime::extension::AuthorizationDecisions;
 
 use crate::{
-    WasmContext,
     extension::{
-        AuthorizationExtensionInstance, QueryAuthorizationResult,
-        api::wit::{QueryElements, ResponseElements, TokenParam},
+        AuthorizationExtensionInstance, AuthorizeQueryOutput,
+        api::{
+            since_0_18_0::world as wit18,
+            wit::{QueryElements, ResponseElements},
+        },
     },
-    resources::{LegacyHeaders, OwnedOrShared},
+    resources::{LegacyHeaders, LegacyWasmContext, OwnedOrShared},
 };
 
 impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
     fn authorize_query<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        ctx: EngineRequestContext,
         headers: OwnedOrShared<http::HeaderMap>,
-        token: TokenRef<'a>,
         elements: QueryElements<'a>,
-    ) -> BoxFuture<'a, QueryAuthorizationResult> {
+    ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizeQueryOutput, ErrorResponse>>> {
         Box::pin(async move {
-            let context = self.store.data_mut().resources.push(context.clone())?;
+            let context = self.store.data_mut().resources.push(LegacyWasmContext::from(&ctx))?;
             let headers = self.store.data_mut().resources.push(LegacyHeaders::from(headers))?;
             let headers_rep = headers.rep();
 
-            let token_param = token.as_bytes().map(TokenParam::Bytes).unwrap_or(TokenParam::Anonymous);
+            let token_param = ctx
+                .token()
+                .as_bytes()
+                .map(wit18::TokenParam::Bytes)
+                .unwrap_or(wit18::TokenParam::Anonymous);
 
             let result = self
                 .inner
@@ -35,7 +41,13 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
             let headers = self.store.data_mut().take_leased_resource(headers_rep)?;
 
             let result = match result {
-                Ok((decisions, state)) => Ok((headers, decisions.into(), state)),
+                Ok((decisions, state)) => Ok(AuthorizeQueryOutput {
+                    subgraph_headers: headers,
+                    additional_headers: None,
+                    decisions: decisions.into(),
+                    context: Default::default(),
+                    state,
+                }),
                 Err(err) => Err(self
                     .store
                     .data_mut()
@@ -48,12 +60,12 @@ impl AuthorizationExtensionInstance for super::ExtensionInstanceSince0_18_0 {
 
     fn authorize_response<'a>(
         &'a mut self,
-        context: &'a WasmContext,
+        ctx: EngineOperationContext,
         state: &'a [u8],
         elements: ResponseElements<'a>,
     ) -> BoxFuture<'a, wasmtime::Result<Result<AuthorizationDecisions, GraphqlError>>> {
         Box::pin(async move {
-            let context = self.store.data_mut().resources.push(context.clone())?;
+            let context = self.store.data_mut().resources.push(LegacyWasmContext::from(&ctx))?;
 
             let result = self
                 .inner

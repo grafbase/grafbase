@@ -2,7 +2,7 @@ use engine::{ErrorResponse, GraphqlError};
 use engine_schema::DirectiveSite;
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    gateway::{AuthorizationExt, AuthorizationTestExtension, ExtContext, Gateway},
+    gateway::{AuthorizationExt, AuthorizationTestExtension, Gateway},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
@@ -15,17 +15,18 @@ impl AuthorizationTestExtension for GrantAll {
     #[allow(clippy::manual_async_fn)]
     async fn authorize_query(
         &self,
-        _ctx: &ExtContext,
+        _ctx: engine::EngineRequestContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         _token: TokenRef<'_>,
         _elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
-        Ok(AuthorizationDecisions::GrantAll)
+    ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
+        Ok((AuthorizationDecisions::GrantAll, vec![]))
     }
 
     async fn authorize_response(
         &self,
-        _ctx: &ExtContext,
+        _ctx: engine::EngineOperationContext,
+        _state: &[u8],
         _directive_name: &str,
         _directive_site: DirectiveSite<'_>,
         _items: Vec<serde_json::Value>,

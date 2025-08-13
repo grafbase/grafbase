@@ -1,7 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use crate::{
-    ExtensionState, WasmContext,
+    ExtensionState,
     extension::{ExtensionConfig, ExtensionLoader, WasmConfig, build_engine},
 };
 use engine_schema::Schema;
@@ -13,7 +13,7 @@ use futures::{
 use http::{HeaderMap, HeaderValue, Request, Response};
 use runtime::extension::Token;
 
-const LATEST_SDK: semver::Version = semver::Version::new(0, 19, 0);
+const LATEST_SDK: semver::Version = semver::Version::new(0, 21, 0);
 
 #[tokio::test]
 async fn single_call_caching_auth() {
@@ -48,13 +48,11 @@ async fn single_call_caching_auth() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
-    let context = WasmContext::default();
-
     let (headers, token) = loader
         .instantiate()
         .await
         .unwrap()
-        .authenticate(&context, headers.into())
+        .authenticate(&Default::default(), &Default::default(), headers.into())
         .await
         .unwrap()
         .unwrap();
@@ -108,13 +106,11 @@ async fn single_call_caching_auth_invalid() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("valid"));
 
-    let context = WasmContext::default();
-
     let err = loader
         .instantiate()
         .await
         .unwrap()
-        .authenticate(&context, http::HeaderMap::new().into())
+        .authenticate(&Default::default(), &Default::default(), http::HeaderMap::new().into())
         .await
         .unwrap()
         .err();
@@ -174,9 +170,11 @@ async fn multiple_cache_calls() {
             headers.insert("Authorization", HeaderValue::from_static("valid"));
             headers.insert("value", HeaderValue::from_str(&format!("value_{i}")).unwrap());
 
-            let context = WasmContext::default();
-
-            let (_, token) = extension.authenticate(&context, headers.into()).await.unwrap().unwrap();
+            let (_, token) = extension
+                .authenticate(&Default::default(), &Default::default(), headers.into())
+                .await
+                .unwrap()
+                .unwrap();
 
             let claims = match token {
                 Token::Anonymous => serde_json::Value::Null,
@@ -202,13 +200,11 @@ async fn multiple_cache_calls() {
     let mut headers = HeaderMap::new();
     headers.insert("Authorization", HeaderValue::from_static("nonvalid"));
 
-    let context = WasmContext::default();
-
     let (_, token) = loader
         .instantiate()
         .await
         .unwrap()
-        .authenticate(&context, headers.into())
+        .authenticate(&Default::default(), &Default::default(), headers.into())
         .await
         .unwrap()
         .unwrap();
@@ -259,7 +255,7 @@ async fn on_request_hook() {
         .instantiate()
         .await
         .unwrap()
-        .on_request(WasmContext::default(), parts)
+        .on_request(Default::default(), parts)
         .await
         .unwrap()
         .unwrap();
@@ -297,7 +293,7 @@ async fn on_response_hook() {
         .instantiate()
         .await
         .unwrap()
-        .on_response(WasmContext::default(), parts)
+        .on_response(Default::default(), Default::default(), parts)
         .await
         .unwrap()
         .unwrap();
@@ -308,7 +304,7 @@ async fn load(config: ExtensionConfig) -> ExtensionLoader {
     ExtensionLoader::new(
         &engine,
         Arc::new(Schema::from_sdl_or_panic("").await),
-        Arc::new(ExtensionState::new(config)),
+        Arc::new(ExtensionState::new(&Default::default(), config)),
     )
     .unwrap()
 }

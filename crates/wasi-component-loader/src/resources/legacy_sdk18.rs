@@ -33,7 +33,7 @@ impl<T> WasmOwnedOrLease<T> {
         let mut _guard = None;
         let v = match self {
             Self::Lease(OwnedOrShared::Shared(v)) => v.as_ref(),
-            Self::Lease(OwnedOrShared::SharedMut(v)) => {
+            Self::Lease(OwnedOrShared::LegacySharedMut(v)) => {
                 _guard = Some(v.read().await);
                 _guard.as_deref().unwrap()
             }
@@ -50,7 +50,7 @@ impl<T> WasmOwnedOrLease<T> {
         let mut _guard = None;
         let v = match self {
             Self::Lease(OwnedOrShared::Shared(_)) => None,
-            Self::Lease(OwnedOrShared::SharedMut(v)) => {
+            Self::Lease(OwnedOrShared::LegacySharedMut(v)) => {
                 _guard = Some(v.write().await);
                 _guard.as_deref_mut()
             }

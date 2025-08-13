@@ -3,22 +3,19 @@ use std::sync::Arc;
 use event_queue::EventQueue;
 use grafbase_telemetry::metrics::EngineMetrics;
 use operation::{InputValueContext, Variables};
-use runtime::extension::ExtensionContext as _;
 use schema::{HeaderRule, Schema};
 
 use crate::{
     Engine, Runtime,
-    engine::ExtensionContext,
-    execution::{GraphqlRequestContext, RequestContext, apply_header_rules},
+    execution::{RequestContext, apply_header_rules},
     prepare::{CachedOperationContext, OperationPlanContext, PreparedOperation, Shapes},
 };
 
 /// Context for a single prepared operation that only needs to be executed.
 pub(crate) struct ExecutionContext<'ctx, R: Runtime> {
     pub engine: &'ctx Arc<Engine<R>>,
-    pub request_context: &'ctx Arc<RequestContext<ExtensionContext<R>>>,
+    pub request_context: &'ctx Arc<RequestContext>,
     pub operation: &'ctx Arc<PreparedOperation>,
-    pub gql_context: &'ctx GraphqlRequestContext<R>,
 }
 
 impl<R: Runtime> Clone for ExecutionContext<'_, R> {
@@ -31,12 +28,15 @@ impl<R: Runtime> std::marker::Copy for ExecutionContext<'_, R> {}
 
 impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
     pub fn event_queue(&self) -> &'ctx EventQueue {
-        self.request_context.extension_context.event_queue()
+        &self.request_context.event_queue
     }
 
     pub fn subgraph_headers_with_rules(&self, rules: impl Iterator<Item = HeaderRule<'ctx>>) -> http::HeaderMap {
         let mut subgraph_headers = self
-            .gql_context
+            .operation
+            .plan
+            .query_modifications
+            .extension
             .subgraph_default_headers_override
             .as_ref()
             .unwrap_or(&self.request_context.subgraph_default_headers)

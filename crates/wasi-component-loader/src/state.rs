@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use dashmap::DashMap;
 use engine_error::{ErrorCode, ErrorResponse};
-use extension_catalog::ExtensionId;
+use extension_catalog::{ExtensionCatalog, ExtensionId};
 use grafbase_telemetry::{metrics::meter_from_global_provider, otel::opentelemetry::metrics::Histogram};
 use sqlx::Postgres;
 use wasmtime::component::Resource;
@@ -45,6 +45,8 @@ impl std::ops::Deref for InstanceState {
 
 /// Shared across extension instances and schema contracts.
 pub(crate) struct ExtensionState {
+    pub catalog: Arc<ExtensionCatalog>,
+
     /// The histogram for request durations.
     pub request_durations: Histogram<u64>,
 
@@ -72,11 +74,12 @@ pub(crate) struct ExtensionState {
 }
 
 impl ExtensionState {
-    pub fn new(config: ExtensionConfig) -> Self {
+    pub fn new(catalog: &Arc<ExtensionCatalog>, config: ExtensionConfig) -> Self {
         let meter = meter_from_global_provider();
         let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").build();
         let http_client = reqwest::Client::new();
         Self {
+            catalog: catalog.clone(),
             request_durations,
             http_client,
             legacy_cache: LegacyCache::new(),

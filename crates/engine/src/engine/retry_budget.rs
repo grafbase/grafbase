@@ -1,11 +1,11 @@
-use schema::{GraphqlEndpointId, Schema};
+use schema::{GraphqlSubgraphId, Schema};
 use tower::retry::budget::TpsBudget;
 
 use super::Runtime;
 
 #[derive(id_derives::IndexedFields)]
 pub(crate) struct RetryBudgets {
-    #[indexed_by(GraphqlEndpointId)]
+    #[indexed_by(GraphqlSubgraphId)]
     by_graphql_endpoints: Vec<Option<TpsBudget>>,
 }
 
@@ -30,11 +30,11 @@ impl RetryBudgets {
 }
 
 impl<R: Runtime> super::Engine<R> {
-    pub(crate) fn get_retry_budget_for_non_mutation(&self, endpoint_id: GraphqlEndpointId) -> Option<&TpsBudget> {
+    pub(crate) fn get_retry_budget_for_non_mutation(&self, endpoint_id: GraphqlSubgraphId) -> Option<&TpsBudget> {
         self.retry_budgets[endpoint_id].as_ref()
     }
 
-    pub(crate) fn get_retry_budget_for_mutation(&self, endpoint_id: GraphqlEndpointId) -> Option<&TpsBudget> {
+    pub(crate) fn get_retry_budget_for_mutation(&self, endpoint_id: GraphqlSubgraphId) -> Option<&TpsBudget> {
         if self
             .schema
             .walk(endpoint_id)

@@ -2,7 +2,7 @@ use wasmtime::component::{Resource, ResourceType, WasmList, WasmStr};
 
 use crate::InstanceState;
 
-pub(crate) use crate::WasmContext as SharedContext;
+pub(crate) use crate::resources::LegacyWasmContext as SharedContext;
 
 impl Host for InstanceState {}
 
@@ -36,7 +36,7 @@ pub fn add_to_linker_impl(linker: &mut wasmtime::component::Linker<InstanceState
                 let ctx = state.resources.get(&ctx)?;
                 // We use WasmStr & WasmList which are references into the instance's linear
                 // memory. So we only copy data if we really need it.
-                ctx.event_queue.push_extension_event::<wasmtime::Error>(|| {
+                ctx.push_extension_event::<wasmtime::Error>(|| {
                     Ok(event_queue::ExtensionEvent {
                         extension_name: state.extension_name().to_string(),
                         event_name: name.to_str(&caller)?.into_owned(),

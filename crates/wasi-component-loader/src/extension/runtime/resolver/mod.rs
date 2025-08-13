@@ -1,12 +1,16 @@
 mod subscription;
 
+use std::sync::Arc;
+
+use engine::EngineOperationContext;
 use engine_error::GraphqlError;
 use engine_schema::ExtensionDirective;
+use event_queue::EventQueue;
 use futures::{StreamExt as _, stream::BoxStream};
 use runtime::extension::{Anything, ArgumentsId, Field as _, ResolverExtension, Response, SelectionSet as _};
 
 use crate::{
-    WasmContext, cbor,
+    cbor,
     extension::{
         EngineWasmExtensions,
         api::wit::{self, Field, SelectionSet},
@@ -15,10 +19,10 @@ use crate::{
 };
 
 #[allow(clippy::manual_async_fn)]
-impl ResolverExtension<WasmContext> for EngineWasmExtensions {
+impl ResolverExtension<EngineOperationContext> for EngineWasmExtensions {
     async fn prepare<'ctx, F: runtime::extension::Field<'ctx>>(
         &'ctx self,
-        ctx: &'ctx WasmContext,
+        event_queue: Arc<EventQueue>,
         directive: ExtensionDirective<'ctx>,
         directive_arguments: impl Anything<'ctx>,
         field: F,
@@ -63,114 +67,107 @@ impl ResolverExtension<WasmContext> for EngineWasmExtensions {
 
         wasmsafe!(
             instance
-                .prepare(ctx, directive.subgraph().name(), dir, 0, &fields)
+                .prepare(event_queue, directive.subgraph().name(), dir, 0, &fields)
                 .await
         )
     }
 
-    fn resolve<'ctx, 'resp, 'f>(
-        &'ctx self,
-        ctx: &'ctx WasmContext,
-        directive: ExtensionDirective<'ctx>,
-        prepared_data: &'ctx [u8],
-        subgraph_headers: http::HeaderMap,
-        arguments: impl Iterator<Item = (ArgumentsId, impl Anything<'resp>)> + Send,
-    ) -> impl Future<Output = Response> + Send + 'f
-    where
-        'ctx: 'f,
-    {
-        let arguments = arguments
+    type Arguments = Vec<(wit::ArgumentsId, Vec<u8>)>;
+
+    fn prepare_arguments<'resp>(
+        &self,
+        arguments: impl IntoIterator<Item = (ArgumentsId, impl Anything<'resp>)> + Send,
+    ) -> Self::Arguments {
+        arguments
+            .into_iter()
             .map(|(id, value)| (id.into(), cbor::to_vec(&value).unwrap()))
-            .collect::<Vec<(wit::ArgumentsId, Vec<u8>)>>();
-
-        async move {
-            let mut instance = match self.get(directive.extension_id).await {
-                Ok(instance) => instance,
-                Err(err) => {
-                    tracing::error!("Error getting extension instance: {err}");
-                    return Response {
-                        data: None,
-                        errors: vec![GraphqlError::internal_extension_error()],
-                    };
-                }
-            };
-
-            let arguments_refs = arguments
-                .iter()
-                .map(|(id, value)| (*id, value.as_slice()))
-                .collect::<Vec<_>>();
-
-            wasmsafe!(
-                instance
-                    .resolve(ctx, subgraph_headers, prepared_data, &arguments_refs)
-                    .await
-            )
-        }
+            .collect()
     }
 
-    fn resolve_subscription<'ctx, 'resp, 'f>(
+    async fn resolve<'ctx>(
         &'ctx self,
-        ctx: &'ctx WasmContext,
+        ctx: EngineOperationContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
-        subgraph_headers: http::HeaderMap,
-        arguments: impl Iterator<Item = (ArgumentsId, impl Anything<'resp>)> + Send,
-    ) -> impl Future<Output = BoxStream<'f, Response>> + Send + 'f
+        headers: http::HeaderMap,
+        arguments: Self::Arguments,
+    ) -> Response {
+        let mut instance = match self.get(directive.extension_id).await {
+            Ok(instance) => instance,
+            Err(err) => {
+                tracing::error!("Error getting extension instance: {err}");
+                return Response {
+                    data: None,
+                    errors: vec![GraphqlError::internal_extension_error()],
+                };
+            }
+        };
+
+        let arguments_refs = arguments
+            .iter()
+            .map(|(id, value)| (*id, value.as_slice()))
+            .collect::<Vec<_>>();
+
+        wasmsafe!(instance.resolve(ctx, headers, prepared_data, &arguments_refs).await)
+    }
+
+    async fn resolve_subscription<'ctx, 's>(
+        &'ctx self,
+        ctx: EngineOperationContext,
+        directive: ExtensionDirective<'ctx>,
+        prepared_data: &'ctx [u8],
+        headers: http::HeaderMap,
+        arguments: Self::Arguments,
+    ) -> BoxStream<'s, Response>
     where
-        'ctx: 'f,
+        'ctx: 's,
     {
-        let arguments = arguments
-            .map(|(id, value)| (id.into(), cbor::to_vec(&value).unwrap()))
-            .collect::<Vec<(wit::ArgumentsId, Vec<u8>)>>();
+        let mut instance = match self.get(directive.extension_id).await {
+            Ok(instance) => instance,
+            Err(err) => {
+                tracing::error!("Error getting extension instance: {err}");
+                let response = Response {
+                    data: None,
+                    errors: vec![GraphqlError::internal_extension_error()],
+                };
+                return futures::stream::once(std::future::ready(response)).boxed();
+            }
+        };
 
-        async move {
-            let mut instance = match self.get(directive.extension_id).await {
-                Ok(instance) => instance,
-                Err(err) => {
-                    tracing::error!("Error getting extension instance: {err}");
-                    let response = Response {
-                        data: None,
-                        errors: vec![GraphqlError::internal_extension_error()],
-                    };
-                    return futures::stream::once(std::future::ready(response)).boxed();
-                }
-            };
+        let arguments_refs = arguments
+            .iter()
+            .map(|(id, value)| (*id, value.as_slice()))
+            .collect::<Vec<_>>();
 
-            let arguments_refs = arguments
-                .iter()
-                .map(|(id, value)| (*id, value.as_slice()))
-                .collect::<Vec<_>>();
+        // Ensure this instance cannot be recycled until we drop the subscription inside the
+        // guest.
+        instance.recyclable = false;
+        let result = wasmsafe!(
+            instance
+                .create_subscription(ctx.clone(), headers, prepared_data, &arguments_refs)
+                .await
+        );
 
-            // Ensure this instance cannot be recycled until we drop the subscription inside the
-            // guest.
-            instance.recyclable = false;
-            let result = wasmsafe!(
-                instance
-                    .create_subscription(ctx, subgraph_headers, prepared_data, &arguments_refs)
-                    .await
-            );
-
-            match result {
-                Ok(key) => match key {
-                    Some(key) => {
-                        subscription::DeduplicatedSubscription {
-                            extensions: self.clone(),
-                            key,
-                            instance,
-                            context: ctx.clone(),
-                        }
-                        .resolve()
-                        .await
+        match result {
+            Ok(key) => match key {
+                Some(key) => {
+                    subscription::DeduplicatedSubscription {
+                        extensions: self.clone(),
+                        key,
+                        instance,
+                        context: ctx,
                     }
-                    None => subscription::UniqueSubscription { instance }.resolve(ctx.clone()).await,
-                },
-                Err(err) => {
-                    let response = Response {
-                        data: None,
-                        errors: vec![err],
-                    };
-                    futures::stream::once(std::future::ready(response)).boxed()
+                    .resolve()
+                    .await
                 }
+                None => subscription::UniqueSubscription { instance }.resolve(ctx).await,
+            },
+            Err(err) => {
+                let response = Response {
+                    data: None,
+                    errors: vec![err],
+                };
+                futures::stream::once(std::future::ready(response)).boxed()
             }
         }
     }

@@ -35,13 +35,14 @@ pub struct EngineWasmExtensionsInner {
     pools: HashMap<ExtensionId, Pool, BuildHasherDefault<FxHasher32>>,
     contracts: Option<Pool>,
     subscriptions: Subscriptions,
+    pub(crate) use_mutable_headers_in_authorize_query: bool,
     pub(crate) gateway_extensions: GatewayWasmExtensions,
 }
 
 impl EngineWasmExtensions {
     pub async fn new(
         gateway_extensions: GatewayWasmExtensions,
-        extension_catalog: &ExtensionCatalog,
+        extension_catalog: &Arc<ExtensionCatalog>,
         gateway_config: &Config,
         schema: &Arc<Schema>,
         logging_filter: String,
@@ -61,6 +62,9 @@ impl EngineWasmExtensions {
             .iter()
             .position(|ext| matches!(ext.r#type, TypeDiscriminants::Contracts))
             .map(|i| extensions.swap_remove(i));
+        let use_mutable_headers_in_authorize_query = extensions.iter().any(|ext| {
+            matches!(ext.r#type, TypeDiscriminants::Authorization) && ext.sdk_version < semver::Version::new(0, 21, 0)
+        });
 
         if extensions
             .iter()
@@ -72,18 +76,19 @@ impl EngineWasmExtensions {
         }
 
         Ok(Self(Arc::new(EngineWasmExtensionsInner {
-            pools: create_pools(&gateway_extensions.engine, schema, extensions).await?,
+            pools: create_pools(&gateway_extensions.engine, schema, extension_catalog, extensions).await?,
             contracts: match contracts {
                 Some(config) => Some(
                     Pool::new(
                         &gateway_extensions.engine,
                         schema,
-                        Arc::new(ExtensionState::new(config)),
+                        Arc::new(ExtensionState::new(extension_catalog, config)),
                     )
                     .await?,
                 ),
                 None => None,
             },
+            use_mutable_headers_in_authorize_query,
             subscriptions: Default::default(),
             gateway_extensions,
         })))
@@ -132,6 +137,7 @@ impl EngineWasmExtensions {
             pools,
             contracts: None,
             subscriptions: Default::default(),
+            use_mutable_headers_in_authorize_query: self.use_mutable_headers_in_authorize_query,
             gateway_extensions: self.gateway_extensions.clone(),
         })))
     }
@@ -140,6 +146,7 @@ impl EngineWasmExtensions {
 async fn create_pools(
     engine: &Engine,
     schema: &Arc<Schema>,
+    catalog: &Arc<ExtensionCatalog>,
     extensions: Vec<ExtensionConfig>,
 ) -> wasmtime::Result<HashMap<ExtensionId, Pool, BuildHasherDefault<FxHasher32>>> {
     let parallelism = std::thread::available_parallelism()
@@ -157,7 +164,7 @@ async fn create_pools(
         std::future::ready(()).await;
 
         let id = config.id;
-        let pool = Pool::new(engine, schema, Arc::new(ExtensionState::new(config))).await?;
+        let pool = Pool::new(engine, schema, Arc::new(ExtensionState::new(catalog, config))).await?;
 
         Ok((id, pool))
     }))

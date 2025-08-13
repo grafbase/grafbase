@@ -1,13 +1,13 @@
 [package]
 name = "auth-19"
 version = "0.1.0"
-edition = "2024"
-license = "Apache-2.0"
+edition.workspace = true
+license.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-grafbase-sdk.workspace = true
+grafbase-sdk = "0.20.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

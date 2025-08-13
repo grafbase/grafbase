@@ -1,4 +1,3 @@
-mod context;
 mod extension;
 mod hooks;
 
@@ -15,7 +14,6 @@ use runtime_local::{
 };
 use tokio::sync::watch;
 
-pub use context::*;
 pub use extension::*;
 pub use hooks::*;
 
@@ -41,7 +39,7 @@ impl TestRuntimeBuilder {
         self,
         config: &mut Config,
         schema: &Arc<Schema>,
-    ) -> anyhow::Result<(TestRuntime, ExtensionCatalog)> {
+    ) -> anyhow::Result<(TestRuntime, Arc<ExtensionCatalog>)> {
         let TestRuntimeBuilder {
             trusted_documents,
             fetcher,

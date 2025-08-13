@@ -1,35 +1,50 @@
-use crate::{types::Headers, wit};
+use crate::{
+    types::{AuthorizeQueryOutput, Headers},
+    wit,
+};
 
 use super::{Component, state};
 
 impl wit::AuthorizationGuest for Component {
     fn authorize_query(
-        context: wit::SharedContext,
-        headers: wit::Headers,
-        token: wit::Token,
+        event_queue: wit::EventQueue,
+        ctx: wit::AuthenticatedRequestContext,
+        subgraph_headers: wit::Headers,
         elements: wit::QueryElements,
     ) -> Result<wit::AuthorizationOutput, wit::ErrorResponse> {
-        state::with_context(context, || {
-            let mut headers: Headers = headers.into();
+        state::with_event_queue(event_queue, || {
+            let subgraph_headers: Headers = subgraph_headers.into();
             state::extension()?
-                .authorize_query(&mut headers, token.into(), (&elements).into())
-                .map(|(decisions, state)| wit::AuthorizationOutput {
-                    decisions: decisions.into(),
-                    state,
-                    headers: headers.into(),
-                })
+                .authorize_query(&(ctx.into()), &subgraph_headers, (&elements).into())
+                .map(
+                    |AuthorizeQueryOutput {
+                         decisions,
+                         context,
+                         state,
+                         additional_headers,
+                     }| {
+                        wit::AuthorizationOutput {
+                            decisions: decisions.into(),
+                            context,
+                            state,
+                            subgraph_headers: subgraph_headers.into(),
+                            additional_headers: additional_headers.map(Into::into),
+                        }
+                    },
+                )
                 .map_err(Into::into)
         })
     }
 
     fn authorize_response(
-        context: wit::SharedContext,
+        event_queue: wit::EventQueue,
+        ctx: wit::AuthorizedOperationContext,
         state: Vec<u8>,
         elements: wit::ResponseElements,
     ) -> Result<wit::AuthorizationDecisions, wit::Error> {
-        state::with_context(context, || {
+        state::with_event_queue(event_queue, || {
             state::extension()?
-                .authorize_response(state, (&elements).into())
+                .authorize_response(&(ctx.into()), state, (&elements).into())
                 .map(Into::into)
                 .map_err(Into::into)
         })
