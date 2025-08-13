@@ -56,7 +56,7 @@ jobs:
   check:
     uses: ./.github/workflows/rust-prs.yml
     with:
-      base_ref: HEAD~1
+      base_ref: ${{ github.ref_name }}~1
     secrets: inherit
     permissions:
       packages: write
