@@ -779,7 +779,7 @@ dependencies = [
  "document-features",
  "env_filter",
  "fxhash",
- "grafbase-sdk-derive 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "grafbase-sdk-derive 0.6.0",
  "http",
  "log",
  "minicbor-serde 0.6.0",
@@ -801,6 +801,8 @@ dependencies = [
 [[package]]
 name = "grafbase-sdk"
 version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61739681206e6db5b27291669abeb484db5e2e6ad282474349600cc650802a75"
 dependencies = [
  "chrono",
  "document-features",
@@ -852,15 +854,6 @@ name = "grafbase-sdk-derive"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a24a373c1e36970214d3ca548e85943ce39042abf996c76d95f9f32bbec03805"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.104",
-]
-
-[[package]]
-name = "grafbase-sdk-derive"
-version = "0.6.0"
 dependencies = [
  "proc-macro2",
  "quote",

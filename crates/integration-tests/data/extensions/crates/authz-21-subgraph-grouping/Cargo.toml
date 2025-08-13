@@ -14,5 +14,5 @@ lto = true
 codegen-units = 1
 
 [dependencies]
-grafbase-sdk.workspace = true
+grafbase-sdk = "0.21"
 serde = { version = "1", features = ["derive"] }
