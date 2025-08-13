@@ -1,0 +1,195 @@
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+"""
+64 bit signed integer
+"""
+scalar I64
+
+"""
+64 bit unsigned integer
+"""
+scalar U64
+
+scalar join__FieldSet
+
+"""
+Points are represented as latitude-longitude pairs in the E7 representation
+(degrees multiplied by 10**7 and rounded to the nearest integer).
+Latitudes should be in the range +/- 90 degrees and longitude should be in
+the range +/- 180 degrees (inclusive).
+"""
+type routeguide_Point
+  @join__type(graph: ROUTEGUIDE)
+{
+  latitude: Int!
+  longitude: Int!
+}
+
+"""
+A feature names something at a given point.
+
+If a feature could not be named, the name is empty.
+"""
+type routeguide_Feature
+  @join__type(graph: ROUTEGUIDE)
+{
+  """
+  The point where the feature is detected.
+  """
+  location: routeguide_Point
+  """
+  The name of the feature.
+  """
+  name: String!
+}
+
+"""
+A RouteNote is a message sent while at a given point.
+"""
+type routeguide_RouteNote
+  @join__type(graph: ROUTEGUIDE)
+{
+  """
+  The location from which the message is sent.
+  """
+  location: routeguide_Point
+  """
+  The message to be sent.
+  """
+  message: String!
+}
+
+"""
+A RouteSummary is received in response to a RecordRoute rpc.
+
+It contains the number of individual points received, the number of
+detected features, and the total distance covered as the cumulative sum of
+the distance between each point.
+"""
+type routeguide_RouteSummary
+  @join__type(graph: ROUTEGUIDE)
+{
+  """
+  The distance covered in metres.
+  """
+  distance: Int!
+  """
+  The duration of the traversal in seconds.
+  """
+  elapsed_time: Int!
+  """
+  The number of known features passed while traversing the route.
+  """
+  feature_count: Int!
+  """
+  The number of points received.
+  """
+  point_count: Int!
+}
+
+type Mutation
+{
+  """
+  A simple RPC.
+  
+  Obtains the feature at a given position.
+  
+  A feature with an empty name is returned if there's no feature at the given
+  position.
+  """
+  routeguide_RouteGuide_GetFeature(input: routeguide_PointInput): routeguide_Feature @extension__directive(graph: ROUTEGUIDE, extension: GRPC, name: "grpcMethod", arguments: {service: "routeguide.RouteGuide", method: "GetFeature"}) @join__field(graph: ROUTEGUIDE)
+  """
+  A client-to-server streaming RPC.
+  
+  Accepts a stream of Points on a route being traversed, returning a
+  RouteSummary when traversal is completed.
+  """
+  routeguide_RouteGuide_RecordRoute(input: routeguide_PointInput): routeguide_RouteSummary @extension__directive(graph: ROUTEGUIDE, extension: GRPC, name: "grpcMethod", arguments: {service: "routeguide.RouteGuide", method: "RecordRoute"}) @join__field(graph: ROUTEGUIDE)
+}
+
+type Subscription
+{
+  """
+  A server-to-client streaming RPC.
+  
+  Obtains the Features available within the given Rectangle.  Results are
+  streamed rather than returned at once (e.g. in a response message with a
+  repeated field), as the rectangle may cover a large area and contain a
+  huge number of features.
+  """
+  routeguide_RouteGuide_ListFeatures(input: routeguide_RectangleInput): routeguide_Feature @extension__directive(graph: ROUTEGUIDE, extension: GRPC, name: "grpcMethod", arguments: {service: "routeguide.RouteGuide", method: "ListFeatures"}) @join__field(graph: ROUTEGUIDE)
+  """
+  A Bidirectional streaming RPC.
+  
+  Accepts a stream of RouteNotes sent while a route is being traversed,
+  while receiving other RouteNotes (e.g. from other users).
+  """
+  routeguide_RouteGuide_RouteChat(input: routeguide_RouteNoteInput): routeguide_RouteNote @extension__directive(graph: ROUTEGUIDE, extension: GRPC, name: "grpcMethod", arguments: {service: "routeguide.RouteGuide", method: "RouteChat"}) @join__field(graph: ROUTEGUIDE)
+}
+
+enum join__Graph
+{
+  ROUTEGUIDE @join__graph(name: "routeguide")
+}
+
+enum extension__Link
+{
+  GRPC @extension__link(url: "https://grafbase.com/extensions/grpc/0.2.0", schemaDirectives: [{graph: ROUTEGUIDE, name: "protoServices", arguments: {definitions: [{name: "routeguide.RouteGuide", methods: [{name: "GetFeature", inputType: ".routeguide.Point", outputType: ".routeguide.Feature"}, {name: "ListFeatures", inputType: ".routeguide.Rectangle", outputType: ".routeguide.Feature", serverStreaming: true}, {name: "RecordRoute", inputType: ".routeguide.Point", outputType: ".routeguide.RouteSummary"}, {name: "RouteChat", inputType: ".routeguide.RouteNote", outputType: ".routeguide.RouteNote", serverStreaming: true}]}]}}, {graph: ROUTEGUIDE, name: "protoMessages", arguments: {definitions: [{name: ".routeguide.Point", fields: [{name: "latitude", number: 1, repeated: false, type: "int32"}, {name: "longitude", number: 2, repeated: false, type: "int32"}]}, {name: ".routeguide.Rectangle", fields: [{name: "lo", number: 1, repeated: false, type: ".routeguide.Point"}, {name: "hi", number: 2, repeated: false, type: ".routeguide.Point"}]}, {name: ".routeguide.Feature", fields: [{name: "name", number: 1, repeated: false, type: "string"}, {name: "location", number: 2, repeated: false, type: ".routeguide.Point"}]}, {name: ".routeguide.RouteNote", fields: [{name: "location", number: 1, repeated: false, type: ".routeguide.Point"}, {name: "message", number: 2, repeated: false, type: "string"}]}, {name: ".routeguide.RouteSummary", fields: [{name: "point_count", number: 1, repeated: false, type: "int32"}, {name: "feature_count", number: 2, repeated: false, type: "int32"}, {name: "distance", number: 3, repeated: false, type: "int32"}, {name: "elapsed_time", number: 4, repeated: false, type: "int32"}]}]}}])
+}
+
+"""
+Points are represented as latitude-longitude pairs in the E7 representation
+(degrees multiplied by 10**7 and rounded to the nearest integer).
+Latitudes should be in the range +/- 90 degrees and longitude should be in
+the range +/- 180 degrees (inclusive).
+"""
+input routeguide_PointInput
+  @join__type(graph: ROUTEGUIDE)
+{
+  latitude: Int
+  longitude: Int
+}
+
+"""
+A latitude-longitude rectangle, represented as two diagonally opposite
+points "lo" and "hi".
+"""
+input routeguide_RectangleInput
+  @join__type(graph: ROUTEGUIDE)
+{
+  """
+  One corner of the rectangle.
+  """
+  lo: routeguide_PointInput
+  """
+  The other corner of the rectangle.
+  """
+  hi: routeguide_PointInput
+}
+
+"""
+A RouteNote is a message sent while at a given point.
+"""
+input routeguide_RouteNoteInput
+  @join__type(graph: ROUTEGUIDE)
+{
+  """
+  The location from which the message is sent.
+  """
+  location: routeguide_PointInput
+  """
+  The message to be sent.
+  """
+  message: String
+}
+
