@@ -1,4 +1,6 @@
 mod nested;
+mod sdk17;
+mod sdk21;
 mod subscription;
 
 use std::sync::Arc;
@@ -17,6 +19,7 @@ pub enum ResolverExt {
     Response(Response),
     Callback(Arc<dyn Fn(String, serde_json::Value) -> serde_json::Value + Send + Sync + 'static>),
     EchoData,
+    EchoHeader(String),
 }
 
 impl ResolverExt {
@@ -27,12 +30,15 @@ impl ResolverExt {
     pub fn echo_data() -> Self {
         Self::EchoData
     }
-
     pub fn callback<F>(callback: F) -> Self
     where
         F: Fn(String, serde_json::Value) -> serde_json::Value + Send + Sync + 'static,
     {
         Self::Callback(Arc::new(callback))
+    }
+
+    pub fn echo_header(name: impl Into<String>) -> Self {
+        Self::EchoHeader(name.into())
     }
 }
 
@@ -69,7 +75,7 @@ impl ResolverTestExtension for ResolverExt {
         field: Box<dyn DynField<'ctx>>,
     ) -> Result<Vec<u8>, GraphqlError> {
         match self {
-            Self::Response(_) | Self::EchoData => serde_json::to_vec(&directive_arguments),
+            Self::Response(_) | Self::EchoData | Self::EchoHeader(_) => serde_json::to_vec(&directive_arguments),
             Self::Callback(_) => serde_json::to_vec(&serde_json::json!({
                 "name": format!("{}.{}", field.definition().parent_entity().name(), field.definition().name()),
                 "arguments": directive_arguments,
@@ -87,7 +93,7 @@ impl ResolverTestExtension for ResolverExt {
         &self,
         _directive: ExtensionDirective<'_>,
         prepared_data: &[u8],
-        _subgraph_headers: http::HeaderMap,
+        headers: http::HeaderMap,
         _arguments: Vec<(ArgumentsId, serde_json::Value)>,
     ) -> Response {
         match self {
@@ -100,6 +106,10 @@ impl ResolverTestExtension for ResolverExt {
                 let value: serde_json::Value = serde_json::from_slice(prepared_data).unwrap();
                 let result = callback(value["name"].as_str().unwrap().to_string(), value["arguments"].clone());
                 Response::data(Data::Json(serde_json::to_vec(&result).unwrap().into()))
+            }
+            Self::EchoHeader(name) => {
+                let value = headers.get(name).map(|value| value.to_str().unwrap_or_default());
+                Response::data(Data::Json(serde_json::to_vec(&value).unwrap().into()))
             }
         }
     }
@@ -131,50 +141,6 @@ fn basic() {
         {
           "data": {
             "test": "hi!"
-          }
-        }
-        "#);
-    })
-}
-
-#[test]
-fn wasm_basic() {
-    runtime().block_on(async {
-        let engine = Gateway::builder()
-            .with_subgraph_sdl(
-                "a",
-                r#"
-                extend schema
-                    @link(url: "resolver-17-1.0.0", import: ["@resolve"])
-
-                scalar JSON
-
-                type Query {
-                    test(input: String): JSON @resolve(data: {value: 1})
-                }
-                "#,
-            )
-            .with_extension("resolver-17")
-            .build()
-            .await;
-
-        let response = engine.post("query { test(input: \"hi!\") }").await;
-        insta::assert_json_snapshot!(response, @r#"
-        {
-          "data": {
-            "test": {
-              "args": {
-                "input": "hi!"
-              },
-              "config": {
-                "key": null
-              },
-              "directive": {
-                "data": {
-                  "value": 1
-                }
-              }
-            }
           }
         }
         "#);

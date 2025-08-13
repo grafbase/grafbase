@@ -54,27 +54,31 @@ pub trait ResolverExtension<OperationContext>: Send + Sync + 'static {
         field: F,
     ) -> impl Future<Output = Result<Vec<u8>, GraphqlError>> + Send;
 
-    fn resolve<'ctx, 'resp, 'f>(
-        &'ctx self,
-        ctx: OperationContext,
-        directive: ExtensionDirective<'ctx>,
-        prepared_data: &'ctx [u8],
-        subgraph_headers: http::HeaderMap,
-        arguments: impl Iterator<Item = (ArgumentsId, impl Anything<'resp>)> + Send,
-    ) -> impl Future<Output = Response> + Send + 'f
-    where
-        'ctx: 'f;
+    type Arguments: Send + 'static;
+    fn prepare_arguments<'resp>(
+        &self,
+        arguments: impl IntoIterator<Item = (ArgumentsId, impl Anything<'resp>)> + Send,
+    ) -> Self::Arguments;
 
-    fn resolve_subscription<'ctx, 'resp, 'f>(
+    fn resolve<'ctx>(
         &'ctx self,
         ctx: OperationContext,
         directive: ExtensionDirective<'ctx>,
         prepared_data: &'ctx [u8],
         subgraph_headers: http::HeaderMap,
-        arguments: impl Iterator<Item = (ArgumentsId, impl Anything<'resp>)> + Send,
-    ) -> impl Future<Output = BoxStream<'f, Response>> + Send + 'f
+        arguments: Self::Arguments,
+    ) -> impl Future<Output = Response> + Send;
+
+    fn resolve_subscription<'ctx, 's>(
+        &'ctx self,
+        ctx: OperationContext,
+        directive: ExtensionDirective<'ctx>,
+        prepared_data: &'ctx [u8],
+        subgraph_headers: http::HeaderMap,
+        arguments: Self::Arguments,
+    ) -> impl Future<Output = BoxStream<'s, Response>> + Send
     where
-        'ctx: 'f;
+        'ctx: 's;
 }
 
 #[derive(Debug, Clone)]

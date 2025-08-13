@@ -1,5 +1,5 @@
 use futures::{FutureExt as _, StreamExt as _, stream::FuturesUnordered};
-use runtime::extension::{ResolverExtension, Response};
+use runtime::extension::{EngineHooksExtension as _, ResolverExtension, Response};
 use walker::Walk;
 
 use crate::{
@@ -17,7 +17,7 @@ impl super::ExtensionResolver {
         plan: Plan<'ctx>,
         namespace_key: Option<&'ctx str>,
         parent_objects: ParentObjects<'_>,
-        response_part: ResponsePartBuilder<'ctx>,
+        mut response_part: ResponsePartBuilder<'ctx>,
     ) -> impl Future<Output = ResponsePartBuilder<'ctx>> + Send + 'f
     where
         'ctx: 'f,
@@ -28,31 +28,44 @@ impl super::ExtensionResolver {
         );
 
         let definition = self.definition.walk(&ctx);
-        let subgraph_headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
+        let headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
         let prepared = self.prepared_fields.first().unwrap();
         let field = plan.get_field(prepared.id);
-
-        let fut = ctx
-            .runtime()
-            .extensions()
-            .resolve(
-                EngineOperationContext::from(&ctx),
-                definition.directive(),
-                &prepared.extension_data,
-                // TODO: use Arc instead of clone?
-                subgraph_headers.clone(),
-                prepared.arguments.iter().map(|(id, argument_ids)| {
-                    (
-                        *id,
-                        argument_ids.walk(&ctx).batch_view(ctx.variables(), &parent_objects),
-                    )
-                }),
+        let extensions = ctx.runtime().extensions();
+        let prepared_arguments = extensions.prepare_arguments(prepared.arguments.iter().map(|(id, argument_ids)| {
+            (
+                *id,
+                argument_ids.walk(&ctx).batch_view(ctx.variables(), &parent_objects),
             )
-            .boxed();
+        }));
 
         let parent_objects = parent_objects.into_object_set();
         async move {
-            let response = fut.await;
+            let headers = match extensions
+                .on_virtual_subgraph_request(
+                    EngineOperationContext::from(&ctx),
+                    self.definition.subgraph_id.walk(&ctx),
+                    headers,
+                )
+                .await
+            {
+                Ok(headers) => headers,
+                Err(err) => {
+                    tracing::error!("Error in on_virtual_subgraph_request: {}", err);
+                    response_part.insert_error_updates(&parent_objects, plan.shape().id, [err]);
+                    return response_part;
+                }
+            };
+            let response = extensions
+                .resolve(
+                    EngineOperationContext::from(&ctx),
+                    definition.directive(),
+                    &prepared.extension_data,
+                    headers,
+                    prepared_arguments,
+                )
+                .boxed()
+                .await;
             tracing::debug!("Received for '{}':\n{}", field.subgraph_response_key_str(), response);
 
             let state = response_part.into_seed_state(plan.shape().id);
@@ -93,7 +106,7 @@ impl super::ExtensionResolver {
         plan: Plan<'ctx>,
         namespace_key: Option<&'ctx str>,
         parent_objects: ParentObjects<'_>,
-        response_part: ResponsePartBuilder<'ctx>,
+        mut response_part: ResponsePartBuilder<'ctx>,
     ) -> impl Future<Output = ResponsePartBuilder<'ctx>> + Send + 'f
     where
         'ctx: 'f,
@@ -104,34 +117,56 @@ impl super::ExtensionResolver {
         );
 
         let definition = self.definition.walk(&ctx);
-        let subgraph_headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
+        let headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
         let prepared = self.prepared_fields.first().unwrap();
-
-        let mut futures = FuturesUnordered::new();
-        for (parent_object_id, parent_object_view) in parent_objects.iter_with_id() {
-            futures.push(
-                ctx.runtime()
-                    .extensions()
-                    .resolve(
-                        EngineOperationContext::from(&ctx),
-                        definition.directive(),
-                        &prepared.extension_data,
-                        // TODO: use Arc instead of clone?
-                        subgraph_headers.clone(),
-                        prepared.arguments.iter().map(|(id, argument_ids)| {
-                            let arguments = argument_ids.walk(&ctx);
-                            (*id, arguments.view(ctx.variables(), parent_object_view))
-                        }),
-                    )
-                    .boxed()
-                    .map(move |result| (parent_object_id, result)),
-            );
-        }
+        let extensions = ctx.runtime().extensions();
+        let prepared_arguments = parent_objects
+            .iter_with_id()
+            .map(|(parent_object_id, parent_object_view)| {
+                let arguments = prepared.arguments.iter().map(|(id, argument_ids)| {
+                    let arguments = argument_ids.walk(&ctx);
+                    (*id, arguments.view(ctx.variables(), parent_object_view))
+                });
+                (parent_object_id, extensions.prepare_arguments(arguments))
+            })
+            .collect::<Vec<_>>();
 
         let parent_objects = parent_objects.into_object_set();
         async move {
+            let headers = match extensions
+                .on_virtual_subgraph_request(
+                    EngineOperationContext::from(&ctx),
+                    self.definition.subgraph_id.walk(&ctx),
+                    headers,
+                )
+                .await
+            {
+                Ok(headers) => headers,
+                Err(err) => {
+                    tracing::error!("Error in on_virtual_subgraph_request: {}", err);
+                    response_part.insert_error_updates(&parent_objects, plan.shape().id, [err]);
+                    return response_part;
+                }
+            };
+
             let field = plan.get_field(prepared.id);
             let state = response_part.into_seed_state(plan.shape().id);
+            let mut futures = prepared_arguments
+                .into_iter()
+                .map(|(parent_object_id, arguments)| {
+                    extensions
+                        .resolve(
+                            EngineOperationContext::from(&ctx),
+                            definition.directive(),
+                            &prepared.extension_data,
+                            headers.clone(),
+                            arguments,
+                        )
+                        .boxed()
+                        .map(move |result| (parent_object_id, result))
+                })
+                .collect::<FuturesUnordered<_>>();
+
             while let Some((parent_object_id, response)) = futures.next().await {
                 let parent_object = &parent_objects[parent_object_id];
                 tracing::debug!(

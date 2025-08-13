@@ -65,6 +65,7 @@ impl SdkPre0_21_0 {
             unsafe { std::mem::transmute(subgraph_schemas) };
 
         super::wit::grafbase::sdk::context::add_to_linker_impl(&mut linker)?;
+        super::wit::grafbase::sdk::event_queue::add_to_linker_impl(&mut linker)?;
         super::wit::grafbase::sdk::cache::add_to_linker_impl(&mut linker)?;
         wit::Sdk::add_to_linker::<_, HasSelf<_>>(&mut linker, |state| state)?;
 

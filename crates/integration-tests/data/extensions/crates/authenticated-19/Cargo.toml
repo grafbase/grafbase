@@ -12,15 +12,5 @@ grafbase-sdk = "0.20.1"
 serde.workspace = true
 serde_json.workspace = true
 
-[dev-dependencies]
-grafbase-sdk = { version = "0.20.1", features = ["test-utils"] }
-indoc = "2"
-insta = { version = "1", features = ["json"] }
-openidconnect = "4"
-ory-client = "1.9"
-reqwest = "0.12"
-serde_json.workspace = true
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
-
 [lib]
 crate-type = ["cdylib"]

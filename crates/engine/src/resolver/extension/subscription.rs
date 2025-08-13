@@ -1,6 +1,6 @@
 use futures::stream::BoxStream;
 use futures_lite::{FutureExt, StreamExt};
-use runtime::extension::ResolverExtension as _;
+use runtime::extension::{EngineHooksExtension as _, ResolverExtension as _};
 use walker::Walk;
 
 use crate::{
@@ -18,22 +18,39 @@ impl super::ExtensionResolver {
         new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
     ) -> BoxStream<'ctx, (ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)> {
         let definition = self.definition.walk(&ctx);
-        let subgraph_headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
+        let headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
+        let extensions = ctx.runtime().extensions();
 
         let prepared = self.prepared_fields.first().unwrap();
+        let prepared_arguments = extensions.prepare_arguments(prepared.arguments.iter().map(|(id, argument_ids)| {
+            let arguments = argument_ids.walk(&ctx);
+            (*id, arguments.query_view(&schema::InputValueSet::All, ctx.variables()))
+        }));
 
-        let stream = ctx
-            .runtime()
-            .extensions()
+        let headers = match extensions
+            .on_virtual_subgraph_request(
+                EngineOperationContext::from(&ctx),
+                self.definition.subgraph_id.walk(&ctx),
+                headers,
+            )
+            .await
+        {
+            Ok(headers) => headers,
+            Err(err) => {
+                tracing::error!("Error in on_virtual_subgraph_request: {}", err);
+                let mut response = new_response();
+                let (parent_object, mut part) = response.create_root_part();
+                part.insert_error_update(&parent_object, plan.shape().id, [err]);
+                return futures_util::stream::iter([(response, part)]).boxed();
+            }
+        };
+        let stream = extensions
             .resolve_subscription(
                 EngineOperationContext::from(&ctx),
                 definition.directive(),
                 &prepared.extension_data,
-                subgraph_headers,
-                prepared.arguments.iter().map(|(id, argument_ids)| {
-                    let arguments = argument_ids.walk(&ctx);
-                    (*id, arguments.query_view(&schema::InputValueSet::All, ctx.variables()))
-                }),
+                headers,
+                prepared_arguments,
             )
             .boxed()
             .await;
