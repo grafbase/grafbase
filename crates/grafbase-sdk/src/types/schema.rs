@@ -1,7 +1,7 @@
-use fxhash::FxHasher32;
+use fxhash::FxBuildHasher;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::{fmt, hash::BuildHasherDefault};
+use std::fmt;
 
 use crate::{SdkError, cbor, wit};
 
@@ -9,8 +9,8 @@ use crate::{SdkError, cbor, wit};
 pub(crate) struct IndexedSchema {
     name: String,
     directives: Vec<wit::Directive>,
-    type_definitions: HashMap<DefinitionId, wit::TypeDefinition, BuildHasherDefault<FxHasher32>>,
-    field_definitions: HashMap<DefinitionId, wit::FieldDefinition, BuildHasherDefault<FxHasher32>>,
+    type_definitions: HashMap<DefinitionId, wit::TypeDefinition, FxBuildHasher>,
+    field_definitions: HashMap<DefinitionId, wit::FieldDefinition, FxBuildHasher>,
     root_types: wit::RootTypes,
 }
 
