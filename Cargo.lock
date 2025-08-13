@@ -4195,7 +4195,6 @@ dependencies = [
  "clap",
  "clap_builder",
  "combine",
- "concurrent-queue",
  "cranelift-bitset",
  "criterion",
  "crossbeam-utils",
