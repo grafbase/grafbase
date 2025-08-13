@@ -57,7 +57,7 @@ use crate::{
 ///     fn authorize_query(
 ///         &mut self,
 ///         ctx: &AuthenticatedRequestContext,
-///         headers: &mut SubgraphHeaders,
+///         headers: &SubgraphHeaders,
 ///         elements: QueryElements<'_>,
 ///     ) -> Result<impl IntoAuthorizeQueryOutput, ErrorResponse> {
 ///         Ok(AuthorizationDecisions::deny_all("Unauthorized"))
