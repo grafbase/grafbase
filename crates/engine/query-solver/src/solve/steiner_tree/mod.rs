@@ -9,7 +9,7 @@ use petgraph::{
     visit::NodeIndexable as _,
 };
 
-use crate::{Cost, solve::context::SteinerNodeId};
+use crate::{Cost, solve::input::SteinerNodeId};
 
 pub(crate) struct SteinerTree {
     pub nodes: FixedBitSet,

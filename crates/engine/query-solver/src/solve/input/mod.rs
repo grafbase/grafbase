@@ -1,11 +1,15 @@
 mod builder;
 
+use fxhash::FxHashMap;
 use id_newtypes::IdRange;
+use operation::OperationContext;
+use petgraph::{Graph, visit::GraphBase};
 
-use crate::{
-    Cost, QuerySolutionSpace, SpaceEdgeId, SpaceNodeId,
-    solve::context::{SteinerEdgeId, SteinerGraph, SteinerNodeId},
-};
+use crate::{Cost, QuerySolutionSpace, SpaceEdgeId, SpaceNodeId};
+
+pub(crate) type SteinerGraph = Graph<(), Cost>;
+pub(crate) type SteinerNodeId = <SteinerGraph as GraphBase>::NodeId;
+pub(crate) type SteinerEdgeId = <SteinerGraph as GraphBase>::EdgeId;
 
 pub(crate) struct SteinerInput<'schema> {
     pub space: QuerySolutionSpace<'schema>,
@@ -18,7 +22,8 @@ pub(crate) struct SteinerInput<'schema> {
 pub(crate) struct InputMap {
     pub node_id_to_space_node_id: Vec<SpaceNodeId>,
     pub edge_id_to_space_edge_id: Vec<SpaceEdgeId>,
-    pub space_node_id_to_node_id: Vec<SteinerNodeId>,
+    pub space_node_id_to_node_id: FxHashMap<SpaceNodeId, SteinerNodeId>,
+    pub space_edge_id_to_edge_id: FxHashMap<SpaceEdgeId, SteinerEdgeId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
@@ -51,20 +56,13 @@ pub(crate) struct RequirementsGroup {
 }
 
 pub fn build_input_and_terminals<'schema>(
+    ctx: OperationContext<'_>,
     space: QuerySolutionSpace<'schema>,
 ) -> (SteinerInput<'schema>, Vec<SteinerNodeId>) {
-    builder::SteinerInputBuilder::build(space)
+    builder::SteinerInputBuilder::build(ctx, space)
 }
 
 impl SteinerInput<'_> {
-    pub(crate) fn to_node_id(&self, space_node_id: SpaceNodeId) -> Option<SteinerNodeId> {
-        let id = self.map.space_node_id_to_node_id[space_node_id.index()];
-        if id.index() as u32 == u32::MAX {
-            return None;
-        }
-        Some(id)
-    }
-
     pub(crate) fn to_space_node_id(&self, node_id: SteinerNodeId) -> SpaceNodeId {
         self.map.node_id_to_space_node_id[node_id.index()]
     }
