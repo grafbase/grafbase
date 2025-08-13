@@ -1,4 +1,7 @@
-use crate::{types::Headers, wit};
+use crate::{
+    types::{AsHeaderName, AsHeaderValue, Headers},
+    wit,
+};
 
 use super::Error;
 
@@ -46,8 +49,15 @@ impl AuthorizeQueryOutput {
         self
     }
 
+    /// Add a single additional header to the subgraph headers.
+    pub fn header(mut self, name: impl AsHeaderName, value: impl AsHeaderValue) -> Self {
+        let headers = self.additional_headers.get_or_insert_default();
+        headers.append(name, value);
+        self
+    }
+
     /// Set additional headers to be added to the subgraph headers.
-    pub fn additional_headers(mut self, headers: Headers) -> Self {
+    pub fn headers(mut self, headers: Headers) -> Self {
         self.additional_headers = Some(headers);
         self
     }

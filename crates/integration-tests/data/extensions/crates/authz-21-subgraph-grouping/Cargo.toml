@@ -1,5 +1,5 @@
 [package]
-name = "auth-19"
+name = "authz-21-subgraph-grouping"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
@@ -7,7 +7,12 @@ license.workspace = true
 [lib]
 crate-type = ["cdylib"]
 
+[profile.release]
+opt-level = "z"
+strip = true
+lto = true
+codegen-units = 1
+
 [dependencies]
-grafbase-sdk = "0.20.1"
+grafbase-sdk.workspace = true
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"

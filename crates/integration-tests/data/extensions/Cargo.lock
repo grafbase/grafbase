@@ -113,6 +113,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "auth-21"
+version = "0.1.0"
+dependencies = [
+ "grafbase-sdk 0.21.0",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "authenticated-17"
 version = "0.1.0"
 dependencies = [
@@ -126,6 +135,15 @@ name = "authenticated-19"
 version = "0.1.0"
 dependencies = [
  "grafbase-sdk 0.20.1",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "authenticated-21"
+version = "0.1.0"
+dependencies = [
+ "grafbase-sdk 0.21.0",
  "serde",
  "serde_json",
 ]
@@ -160,6 +178,26 @@ version = "0.1.0"
 dependencies = [
  "grafbase-sdk 0.20.1",
  "log",
+ "serde",
+]
+
+[[package]]
+name = "authz-21"
+version = "0.1.0"
+dependencies = [
+ "grafbase-sdk 0.21.0",
+ "http",
+ "rkyv 0.8.10",
+ "serde",
+ "serde_json",
+ "serde_with",
+]
+
+[[package]]
+name = "authz-21-subgraph-grouping"
+version = "0.1.0"
+dependencies = [
+ "grafbase-sdk 0.21.0",
  "serde",
 ]
 
@@ -1578,6 +1616,15 @@ name = "resolver-17"
 version = "0.1.0"
 dependencies = [
  "grafbase-sdk 0.17.5",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "resolver-21"
+version = "0.1.0"
+dependencies = [
+ "grafbase-sdk 0.21.0",
  "serde",
  "serde_json",
 ]

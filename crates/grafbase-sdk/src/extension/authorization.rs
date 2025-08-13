@@ -269,7 +269,7 @@ pub trait AuthorizationExtension: Sized + 'static {
     fn authorize_query(
         &mut self,
         ctx: &AuthenticatedRequestContext,
-        headers: &mut SubgraphHeaders,
+        headers: &SubgraphHeaders,
         elements: QueryElements<'_>,
     ) -> Result<impl IntoAuthorizeQueryOutput, ErrorResponse>;
 
@@ -344,14 +344,14 @@ impl IntoAuthorizeQueryOutput for AuthorizationDecisions {
 impl IntoAuthorizeQueryOutput for (Headers, AuthorizationDecisions) {
     fn into_authorize_query_output(self) -> AuthorizeQueryOutput {
         let (headers, decisions) = self;
-        AuthorizeQueryOutput::new(decisions).additional_headers(headers)
+        AuthorizeQueryOutput::new(decisions).headers(headers)
     }
 }
 
 impl IntoAuthorizeQueryOutput for (AuthorizationDecisions, Headers) {
     fn into_authorize_query_output(self) -> AuthorizeQueryOutput {
         let (decisions, headers) = self;
-        AuthorizeQueryOutput::new(decisions).additional_headers(headers)
+        AuthorizeQueryOutput::new(decisions).headers(headers)
     }
 }
 
@@ -363,7 +363,7 @@ pub fn register<T: AuthorizationExtension>() {
         fn authorize_query(
             &mut self,
             ctx: &AuthenticatedRequestContext,
-            headers: &mut SubgraphHeaders,
+            headers: &SubgraphHeaders,
             elements: QueryElements<'_>,
         ) -> Result<AuthorizeQueryOutput, ErrorResponse> {
             self.0

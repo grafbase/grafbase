@@ -8,4 +8,5 @@ mod sdk10;
 mod sdk15;
 mod sdk17;
 mod sdk19;
+mod sdk21;
 pub mod static_auth;

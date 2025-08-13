@@ -1,13 +1,16 @@
 [package]
-name = "auth-19"
-version = "0.1.0"
+name = "resolver-21"
+version.workspace = true
 edition.workspace = true
 license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
 
 [dependencies]
-grafbase-sdk = "0.20.1"
+grafbase-sdk.workspace = true
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

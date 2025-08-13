@@ -1,0 +1,3 @@
+scalar JSON
+
+directive @resolve(data: JSON) on FIELD_DEFINITION

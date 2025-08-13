@@ -63,7 +63,7 @@ pub(crate) trait AnyExtension {
     fn authorize_query(
         &mut self,
         ctx: &AuthenticatedRequestContext,
-        headers: &mut Headers,
+        headers: &Headers,
         elements: QueryElements<'_>,
     ) -> Result<AuthorizeQueryOutput, ErrorResponse> {
         Err(ErrorResponse::internal_server_error()

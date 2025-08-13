@@ -9,13 +9,13 @@ impl wit::AuthorizationGuest for Component {
     fn authorize_query(
         event_queue: wit::EventQueue,
         ctx: wit::AuthenticatedRequestContext,
-        headers: wit::Headers,
+        subgraph_headers: wit::Headers,
         elements: wit::QueryElements,
     ) -> Result<wit::AuthorizationOutput, wit::ErrorResponse> {
         state::with_event_queue(event_queue, || {
-            let mut headers: Headers = headers.into();
+            let subgraph_headers: Headers = subgraph_headers.into();
             state::extension()?
-                .authorize_query(&(ctx.into()), &mut headers, (&elements).into())
+                .authorize_query(&(ctx.into()), &subgraph_headers, (&elements).into())
                 .map(
                     |AuthorizeQueryOutput {
                          decisions,
@@ -26,7 +26,7 @@ impl wit::AuthorizationGuest for Component {
                         decisions: decisions.into(),
                         context,
                         state,
-                        subgraph_headers: headers.into(),
+                        subgraph_headers: subgraph_headers.into(),
                         additional_headers: extra_headers.map(Into::into),
                     },
                 )
