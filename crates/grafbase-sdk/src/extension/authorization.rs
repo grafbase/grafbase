@@ -34,8 +34,8 @@ use crate::{
 ///
 /// ```rust
 /// use grafbase_sdk::{
-///     AuthorizationExtension, IntoQueryAuthorization,
-///     types::{SubgraphHeaders, Configuration, ErrorResponse, Token, Error, QueryElements, AuthorizationDecisions}
+///     AuthorizationExtension, IntoAuthorizeQueryOutput,
+///     types::{AuthenticatedRequestContext, SubgraphHeaders, Configuration, ErrorResponse, Error, QueryElements, AuthorizationDecisions}
 /// };
 ///
 /// #[derive(AuthorizationExtension)]
@@ -56,10 +56,10 @@ use crate::{
 ///
 ///     fn authorize_query(
 ///         &mut self,
+///         ctx: &AuthenticatedRequestContext,
 ///         headers: &mut SubgraphHeaders,
-///         token: Token,
 ///         elements: QueryElements<'_>,
-///     ) -> Result<impl IntoQueryAuthorization, ErrorResponse> {
+///     ) -> Result<impl IntoAuthorizeQueryOutput, ErrorResponse> {
 ///         Ok(AuthorizationDecisions::deny_all("Unauthorized"))
 ///     }
 /// }

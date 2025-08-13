@@ -19,7 +19,7 @@ use crate::{
 /// ```rust
 /// use grafbase_sdk::{
 ///     AuthenticationExtension,
-///     types::{GatewayHeaders, Configuration, ErrorResponse, Token, Error}
+///     types::{GatewayHeaders, Configuration, ErrorResponse, Token, Error, RequestContext}
 /// };
 ///
 /// #[derive(AuthenticationExtension)]
@@ -38,7 +38,7 @@ use crate::{
 ///         Ok(Self { config })
 ///     }
 ///
-///     fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
+///     fn authenticate(&mut self, ctx: &RequestContext, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
 ///         todo!()
 ///     }
 /// }

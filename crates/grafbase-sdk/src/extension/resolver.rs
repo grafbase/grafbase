@@ -21,7 +21,7 @@ use crate::{
 /// ```rust
 /// use grafbase_sdk::{
 ///     ResolverExtension,
-///     types::{Configuration, Error, ResolvedField, Response, SubgraphHeaders, SubgraphSchema, Variables},
+///     types::{AuthorizedOperationContext, Configuration, Error, ResolvedField, Response, SubgraphHeaders, SubgraphSchema, Variables},
 /// };
 ///
 /// #[derive(ResolverExtension)]
@@ -44,6 +44,7 @@ use crate::{
 ///
 ///     fn resolve(
 ///         &mut self,
+///         ctx: &AuthorizedOperationContext,
 ///         prepared: &[u8],
 ///         headers: SubgraphHeaders,
 ///         variables: Variables,

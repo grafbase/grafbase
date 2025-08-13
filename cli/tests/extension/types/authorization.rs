@@ -44,12 +44,12 @@ fn init() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.20.1"
+    grafbase-sdk = "0.21.0"
     serde = { version = "1", features = ["derive"] }
 
     [dev-dependencies]
     insta = { version = "1", features = ["json"] }
-    grafbase-sdk = { version = "0.20.1", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.21.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -98,10 +98,10 @@ fn init() {
 
     let lib_rs = std::fs::read_to_string(project_path.join("src/lib.rs")).unwrap();
 
-    insta::assert_snapshot!(&lib_rs, @r##"
+    insta::assert_snapshot!(&lib_rs, @r#"
     use grafbase_sdk::{
-        AuthorizationExtension, IntoQueryAuthorization,
-        types::{AuthorizationDecisions, Configuration, Error, ErrorResponse, QueryElements, SubgraphHeaders, Token},
+        AuthorizationExtension, IntoAuthorizeQueryOutput,
+        types::{AuthenticatedRequestContext, AuthorizationDecisions, Configuration, Error, ErrorResponse, QueryElements, SubgraphHeaders},
     };
 
     #[derive(AuthorizationExtension)]
@@ -114,14 +114,14 @@ fn init() {
 
         fn authorize_query(
             &mut self,
+            ctx: &AuthenticatedRequestContext,
             headers: &mut SubgraphHeaders,
-            token: Token,
             elements: QueryElements<'_>,
-        ) -> Result<impl IntoQueryAuthorization, ErrorResponse> {
+        ) -> Result<impl IntoAuthorizeQueryOutput, ErrorResponse> {
             Ok(AuthorizationDecisions::deny_all("Not authorized"))
         }
     }
-    "##);
+    "#);
 
     let definitions = std::fs::read_to_string(project_path.join("definitions.graphql")).unwrap();
 

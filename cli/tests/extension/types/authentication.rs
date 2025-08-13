@@ -44,12 +44,12 @@ fn init() {
     codegen-units = 1
 
     [dependencies]
-    grafbase-sdk = "0.20.1"
+    grafbase-sdk = "0.21.0"
     serde = { version = "1", features = ["derive"] }
 
     [dev-dependencies]
     insta = { version = "1", features = ["json"] }
-    grafbase-sdk = { version = "0.20.1", features = ["test-utils"] }
+    grafbase-sdk = { version = "0.21.0", features = ["test-utils"] }
     tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util"] }
     serde_json = "1"
     "#);
@@ -82,10 +82,10 @@ fn init() {
 
     let lib_rs = std::fs::read_to_string(project_path.join("src/lib.rs")).unwrap();
 
-    insta::assert_snapshot!(&lib_rs, @r##"
+    insta::assert_snapshot!(&lib_rs, @r"
     use grafbase_sdk::{
         AuthenticationExtension,
-        types::{Configuration, Error, ErrorResponse, GatewayHeaders, Token},
+        types::{Configuration, Error, ErrorResponse, GatewayHeaders, RequestContext, Token},
     };
 
     #[derive(AuthenticationExtension)]
@@ -96,11 +96,11 @@ fn init() {
             Ok(Self)
         }
 
-        fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
+        fn authenticate(&mut self, ctx: &RequestContext, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
             Err(ErrorResponse::unauthorized())
         }
     }
-    "##);
+    ");
 
     let tests_rs = std::fs::read_to_string(project_path.join("tests/integration_tests.rs")).unwrap();
 

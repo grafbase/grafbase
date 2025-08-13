@@ -19,7 +19,7 @@ use crate::{
 /// ```rust
 /// use grafbase_sdk::{
 ///     HooksExtension,
-///     types::{GatewayHeaders, Headers, Configuration, Error, ErrorResponse},
+///     types::{GatewayHeaders, Headers, Configuration, Error, ErrorResponse, RequestContext},
 ///     host_io::event_queue::EventQueue,
 /// };
 ///
@@ -49,6 +49,7 @@ use crate::{
 ///
 ///     fn on_response(
 ///         &mut self,
+///         ctx: &RequestContext,
 ///         status: http::StatusCode,
 ///         headers: &mut Headers,
 ///         event_queue: EventQueue,
