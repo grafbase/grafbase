@@ -43,18 +43,13 @@ jobs:
           # Seems like if it's not zero you dont get branches
           fetch-depth: 0
 
-      - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-      - uses: ./.github/actions/install-rust
-        with:
-          target: x86_64-unknown-linux-musl
-
       - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
         with:
           prefix-key: cargo-v1
 
       - name: Run what-rust-changed
         id: rust
-        uses: grafbase/what-rust-changed@3827ff3c909f05702f95dcb36721cb67a1e116e8 # v0.2.1
+        uses: grafbase/what-rust-changed@4bd103b30c18e07a48c08f7c891fb22e27ddcd8e # v0.2.1
         with:
           config: .github/what-rust-changed.toml
           base: ${{ inputs.base_ref || github.event.pull_request.base.ref || 'main' }}
