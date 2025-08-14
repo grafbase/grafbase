@@ -8,7 +8,7 @@ use petgraph::{prelude::StableGraph, visit::IntoNodeReferences};
 use crate::solve::steiner_tree::{GreedyFlac, SteinerTree};
 use report::*;
 
-/// Sanity check our GreedyFlac Steiner Tree algorithm against a graph with known optimal cost.
+/// Sanity check our GreedyFlac Steiner Tree algorithm against a graph with known optimal weight.
 #[test]
 fn greedy_flac_steinlib_gene() {
     let mut reports = Vec::new();
@@ -22,7 +22,7 @@ fn greedy_flac_steinlib_gene() {
 
         let start = Instant::now();
         greddy_flac.run(&gene.graph, &mut steiner_tree);
-        let total_cost = steiner_tree.total_weight;
+        let total_weight = steiner_tree.total_weight;
         let grow_duration = start.elapsed();
 
         let steiner_tree_node_count = gene
@@ -47,8 +47,8 @@ fn greedy_flac_steinlib_gene() {
         reports.push(AlgorithmRunReport {
             name: gene.name,
             algorithm: "GreedyFlac",
-            cost: total_cost,
-            optimal_cost: gene.optimal_cost,
+            weight: total_weight,
+            optimal_weight: gene.optimal_weight,
             node_count: steiner_tree_node_count,
             kept_nodes_percentage: ((steiner_tree_node_count * 100) as f64) / (gene.graph.node_count() as f64),
             prepare_duration,
@@ -64,8 +64,8 @@ fn greedy_flac_steinlib_gene() {
 
     for result in &report.reports {
         assert!(
-            (result.cost as f64 / result.optimal_cost as f64) <= 1.05,
-            "Cost difference is too big for {}",
+            (result.weight as f64 / result.optimal_weight as f64) <= 1.05,
+            "Weight difference is too big for {}",
             result.name,
         );
         assert!(

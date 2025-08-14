@@ -7,10 +7,10 @@ use itertools::Itertools as _;
 use petgraph::{Direction, visit::EdgeRef as _};
 
 use crate::{
-    Cost, SolutionSpaceGraph, SpaceEdge, SpaceEdgeId, SpaceNodeId,
+    SolutionSpaceGraph, SpaceEdge, SpaceEdgeId, SpaceNodeId,
     solve::input::{
-        DependentSteinerEdgeWithInherentCostId, DispensableRequirements, RequiredSteinerNodeId, RequirementsGroup,
-        SteinerEdgeId, SteinerNodeId, UnavoidableParentSteinerEdgeId, builder::SteinerInputBuilder,
+        DependentSteinerEdgeWithInherentWeightId, DispensableRequirements, RequiredSteinerNodeId, RequirementsGroup,
+        SteinerEdgeId, SteinerNodeId, SteinerWeight, UnavoidableParentSteinerEdgeId, builder::SteinerInputBuilder,
     },
 };
 
@@ -30,7 +30,6 @@ pub(crate) struct RequiredSpaceNodeId(u32);
 struct DependentEdgeWithDispensableRequirements {
     dependent_space_edge_source: SpaceNodeId,
     dependent_space_edge_id: SpaceEdgeId,
-    inherent_cost: Cost,
     required_space_node_ids: IdRange<RequiredSpaceNodeId>,
 }
 
@@ -172,15 +171,9 @@ impl DispensableRequirementsBuilder {
             self.free.push((node_id, required_space_node_ids));
         } else {
             for dependent_space_edge in space_graph.edges_directed(space_node_id, Direction::Incoming) {
-                let inherent_cost = match dependent_space_edge.weight() {
-                    SpaceEdge::CreateChildResolver => 1,
-                    SpaceEdge::CanProvide => 0,
-                    _ => continue,
-                };
                 self.dispensable.push(DependentEdgeWithDispensableRequirements {
                     dependent_space_edge_source: dependent_space_edge.source(),
                     required_space_node_ids: required_node_ids,
-                    inherent_cost,
                     dependent_space_edge_id: dependent_space_edge.id(),
                 });
             }
@@ -193,7 +186,7 @@ impl DispensableRequirementsBuilder {
             groups: Vec::with_capacity(self.dispensable.len()),
             required_nodes: Vec::with_capacity(self.required_space_nodes.len()),
             unavoidable_parent_edges: Vec::with_capacity(self.dispensable.len()),
-            dependent_edges_with_inherent_cost: Vec::with_capacity(self.dispensable.len()),
+            dependent_edges_with_inherent_weight: Vec::with_capacity(self.dispensable.len()),
         };
 
         for (node_id, required_space_node_ids) in std::mem::take(&mut self.free) {
@@ -226,12 +219,10 @@ impl DispensableRequirementsBuilder {
                 continue;
             }
 
-            let dependent_edge_with_inherent_cost_ids =
-                out.extend_dependent_edges_with_inherent_cost(chunk.into_iter().map(|item| {
-                    (
-                        builder.map.space_edge_id_to_edge_id[&item.dependent_space_edge_id],
-                        item.inherent_cost,
-                    )
+            let dependent_edge_with_inherent_weight_ids =
+                out.extend_dependent_edges_with_inherent_weight(chunk.into_iter().map(|item| {
+                    let edge_id = builder.map.space_edge_id_to_edge_id[&item.dependent_space_edge_id];
+                    (edge_id, builder.graph[edge_id])
                 }));
 
             let mut source_id = builder.map.space_node_id_to_node_id[&space_edge_source_id];
@@ -253,7 +244,7 @@ impl DispensableRequirementsBuilder {
             out.groups.push(RequirementsGroup {
                 unavoidable_parent_edge_ids,
                 required_node_ids,
-                dependent_edge_with_inherent_cost_ids,
+                dependent_edge_with_inherent_weight_ids,
             });
         }
 
@@ -289,12 +280,12 @@ impl DispensableRequirements {
         IdRange::from(start..self.unavoidable_parent_edges.len())
     }
 
-    fn extend_dependent_edges_with_inherent_cost(
+    fn extend_dependent_edges_with_inherent_weight(
         &mut self,
-        edge_costs: impl IntoIterator<Item = (SteinerEdgeId, Cost)>,
-    ) -> IdRange<DependentSteinerEdgeWithInherentCostId> {
-        let start = self.dependent_edges_with_inherent_cost.len();
-        self.dependent_edges_with_inherent_cost.extend(edge_costs);
-        IdRange::from(start..self.dependent_edges_with_inherent_cost.len())
+        edge_weights: impl IntoIterator<Item = (SteinerEdgeId, SteinerWeight)>,
+    ) -> IdRange<DependentSteinerEdgeWithInherentWeightId> {
+        let start = self.dependent_edges_with_inherent_weight.len();
+        self.dependent_edges_with_inherent_weight.extend(edge_weights);
+        IdRange::from(start..self.dependent_edges_with_inherent_weight.len())
     }
 }

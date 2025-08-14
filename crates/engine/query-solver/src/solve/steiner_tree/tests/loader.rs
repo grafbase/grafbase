@@ -3,15 +3,15 @@ use std::path::Path;
 use itertools::Itertools;
 use petgraph::{graph::Graph, graph::NodeIndex};
 
-use crate::Cost;
+use crate::solve::input::SteinerWeight;
 
-type SteinLibGraph = Graph<(), Cost>;
+type SteinLibGraph = Graph<(), SteinerWeight>;
 
 /// https://steinlib.zib.de/showset.php?GENE
 /// Directed acyclic graphs
 pub(super) struct GeneGraph {
     pub name: &'static str,
-    pub optimal_cost: Cost,
+    pub optimal_weight: SteinerWeight,
     pub graph: SteinLibGraph,
     pub root: NodeIndex,
     pub terminals: Vec<NodeIndex>,
@@ -26,10 +26,12 @@ pub(super) fn load_gene_dataset() -> impl Iterator<Item = GeneGraph> {
         ("gene61f.stp", 198),
     ];
 
-    cases.into_iter().map(|(name, cost)| load(name, cost))
+    cases
+        .into_iter()
+        .map(|(name, optimal_weight)| load(name, optimal_weight))
 }
 
-fn load(name: &'static str, optimal_cost: Cost) -> GeneGraph {
+fn load(name: &'static str, optimal_weight: SteinerWeight) -> GeneGraph {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("src/solve/steiner_tree/tests/steinlib/GENE")
         .join(name);
@@ -61,7 +63,7 @@ fn load(name: &'static str, optimal_cost: Cost) -> GeneGraph {
         };
         let source: usize = source.parse().unwrap();
         let target: usize = target.parse().unwrap();
-        let weight: Cost = weight.parse().unwrap();
+        let weight: SteinerWeight = weight.parse().unwrap();
         graph.add_edge(NodeIndex::new(source - 1), NodeIndex::new(target - 1), weight);
     }
 
@@ -93,7 +95,7 @@ fn load(name: &'static str, optimal_cost: Cost) -> GeneGraph {
 
     GeneGraph {
         name,
-        optimal_cost,
+        optimal_weight,
         graph,
         root,
         terminals,

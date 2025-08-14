@@ -9,12 +9,12 @@ use petgraph::{
     visit::NodeIndexable as _,
 };
 
-use crate::{Cost, solve::input::SteinerNodeId};
+use crate::solve::input::{SteinerNodeId, SteinerWeight};
 
 pub(crate) struct SteinerTree {
     pub nodes: FixedBitSet,
     pub edges: FixedBitSet,
-    pub total_weight: Cost,
+    pub total_weight: SteinerWeight,
 }
 
 impl std::ops::Index<NodeIndex> for SteinerTree {

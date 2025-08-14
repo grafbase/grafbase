@@ -1,13 +1,13 @@
 use std::{fmt, time::Duration};
 
-use crate::Cost;
+use crate::solve::input::SteinerWeight;
 
 #[derive(Debug)]
 pub(super) struct AlgorithmRunReport {
     pub name: &'static str,
     pub algorithm: &'static str,
-    pub cost: Cost,
-    pub optimal_cost: Cost,
+    pub weight: SteinerWeight,
+    pub optimal_weight: SteinerWeight,
     pub node_count: usize,
     pub kept_nodes_percentage: f64,
     pub prepare_duration: Duration,
@@ -18,12 +18,12 @@ impl fmt::Display for AlgorithmRunReport {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "\n{} - {}", self.algorithm, self.name)?;
         writeln!(f, "{}", "=".repeat(40))?;
-        let diff = self.cost - self.optimal_cost;
+        let diff = self.weight - self.optimal_weight;
         writeln!(
             f,
-            "  Cost difference:    {} ({:+.1}%)",
+            "  Weight difference:    {} ({:+.1}%)",
             diff,
-            (diff as f64 / self.optimal_cost as f64) * 100.0
+            (diff as f64 / self.optimal_weight as f64) * 100.0
         )?;
         writeln!(
             f,
@@ -61,14 +61,14 @@ impl fmt::Display for TestReport {
         let avg_diff: f64 = self
             .reports
             .iter()
-            .map(|r| (r.cost - r.optimal_cost) as f64)
+            .map(|r| (r.weight - r.optimal_weight) as f64)
             .sum::<f64>()
             / self.reports.len() as f64;
         let avg_optimal: f64 =
-            self.reports.iter().map(|r| r.optimal_cost as f64).sum::<f64>() / self.reports.len() as f64;
+            self.reports.iter().map(|r| r.optimal_weight as f64).sum::<f64>() / self.reports.len() as f64;
         writeln!(
             f,
-            "  Average cost difference: {:.1} ({:+.1}%)",
+            "  Average weight difference: {:.1} ({:+.1}%)",
             avg_diff,
             (avg_diff / avg_optimal) * 100.0
         )?;
