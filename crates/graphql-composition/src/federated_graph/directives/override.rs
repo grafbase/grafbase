@@ -8,15 +8,13 @@ pub struct Override {
     /// migrations between subgraphs.
     pub from: OverrideSource,
     #[serde(default)]
-    pub label: OverrideLabel,
+    pub label: Option<OverrideLabel>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Clone, Default, Debug, PartialEq, PartialOrd)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, PartialOrd)]
 pub enum OverrideLabel {
     Percent(u8),
-    #[serde(other)]
-    #[default]
-    Unknown,
+    Unknown(String),
 }
 
 impl OverrideLabel {
@@ -33,7 +31,7 @@ impl std::fmt::Display for OverrideLabel {
                 percent.fmt(f)?;
                 f.write_str(")")
             }
-            OverrideLabel::Unknown => Ok(()),
+            OverrideLabel::Unknown(unknown) => f.write_str(unknown),
         }
     }
 }
@@ -49,7 +47,7 @@ impl std::str::FromStr for OverrideLabel {
         {
             Ok(OverrideLabel::Percent(percent))
         } else {
-            Err(r#"Expected a field of the format "percent(<number>)" "#)
+            Ok(OverrideLabel::Unknown(s.to_owned()))
         }
     }
 }

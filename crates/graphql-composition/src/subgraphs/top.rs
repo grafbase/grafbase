@@ -33,7 +33,11 @@ impl Subgraphs {
             mutation_type: None,
             subscription_type: None,
 
-            federation_spec: FederationSpec::default(),
+            federation_spec: if url.is_some() {
+                FederationSpec::ApolloV1 // default to federation v1 until we see a relevant @link
+            } else {
+                FederationSpec::CompositeSchemas // for virtual subgraphs, default to composite schemas
+            },
         };
 
         SubgraphId::from(self.subgraphs.push_return_idx(subgraph))
@@ -117,10 +121,9 @@ impl<'a> SubgraphWalker<'a> {
 /// The federation spec used in a particular subgraph.
 //
 // /!\ The order of the enum variants matters for the `Ord` implementation! /!\
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum FederationSpec {
     /// Apollo Federation V1 is the default because it is what we use when no spec is imported with @link.
-    #[default]
     ApolloV1,
     ApolloV2,
     CompositeSchemas,
@@ -153,13 +156,5 @@ impl FederationSpec {
     #[must_use]
     pub(crate) fn is_apollo_v2(&self) -> bool {
         matches!(self, Self::ApolloV2)
-    }
-
-    /// Returns `true` if the federation spec is [`CompositeSchemas`].
-    ///
-    /// [`CompositeSchemas`]: FederationSpec::CompositeSchemas
-    #[must_use]
-    pub(crate) fn is_composite_schemas(&self) -> bool {
-        matches!(self, Self::CompositeSchemas)
     }
 }

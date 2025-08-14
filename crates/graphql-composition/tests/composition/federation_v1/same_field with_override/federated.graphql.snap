@@ -1,0 +1,31 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/federation_v1/same_field with_override/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar Type99
+
+scalar join__FieldSet
+
+type Query
+{
+  field1863(arg25: ID!): Type99 @join__field(graph: OVERRIDDEN) @join__field(graph: OVERRIDING, override: "overridden", overrideLabel: "service71")
+}
+
+enum join__Graph
+{
+  OVERRIDDEN @join__graph(name: "overridden", url: "http://example.com/overridden")
+  OVERRIDING @join__graph(name: "overriding", url: "http://example.com/overriding")
+}

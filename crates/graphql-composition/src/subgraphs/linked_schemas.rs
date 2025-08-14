@@ -14,8 +14,6 @@ pub(crate) struct LinkedSchemas {
 pub(crate) struct LinkedSchemaRecord {
     /// The subgraph where the schema is @link'ed (imported).
     pub(crate) subgraph_id: SubgraphId,
-    /// The url of the schema.
-    pub(crate) url: StringId,
     pub(crate) linked_schema_type: LinkedSchemaType,
     pub(crate) name_from_url: Option<StringId>,
     /// The namespace this schema is linked as.

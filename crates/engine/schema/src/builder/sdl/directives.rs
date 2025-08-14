@@ -201,16 +201,16 @@ pub(crate) struct JoinFieldDirective<'a> {
 #[derive(Debug)]
 pub enum OverrideLabel {
     Percent(u8),
+    Unknown(String),
 }
 
 impl<'de> ValueDeserialize<'de> for OverrideLabel {
     fn deserialize(input: DeserValue<'de>) -> Result<Self, cynic_parser_deser::Error> {
-        let s = input
-            .as_str()
-            .ok_or_else(|| cynic_parser_deser::Error::custom("Expected a string for overrideLabel", input.span()))?;
-        s.parse().map_err(|_| {
-            cynic_parser_deser::Error::custom("Expected overrideLabel in the format 'percent(<number>)'", input.span())
-        })
+        let s = input.as_str().ok_or_else(|| {
+            cynic_parser_deser::Error::custom("Expected a string for @override(label:)", input.span())
+        })?;
+
+        Ok(s.parse().unwrap_or_else(|_| OverrideLabel::Unknown(s.to_owned())))
     }
 }
 

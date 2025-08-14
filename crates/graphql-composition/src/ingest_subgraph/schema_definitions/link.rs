@@ -28,7 +28,6 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
                 subgraph_id,
                 linked_schema_type: subgraphs::LinkedSchemaType::Extension(extension_id),
                 name_from_url: Some(extension.name),
-                url: extension.url,
                 r#as,
             })
         }
@@ -43,11 +42,9 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
                 LinkedSchemaType::Other
             };
 
-            let url = subgraphs.strings.intern(url);
             let name = name.map(|name| subgraphs.strings.intern(name));
             subgraphs.push_linked_schema(subgraphs::LinkedSchemaRecord {
                 subgraph_id,
-                url,
                 r#as,
                 name_from_url: name,
                 linked_schema_type: schema_type,

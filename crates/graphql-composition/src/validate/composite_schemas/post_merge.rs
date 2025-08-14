@@ -1,12 +1,12 @@
 use itertools::Itertools;
 
 use crate::{
-    composition_ir as ir, diagnostics::CompositeSchemasPostMergeValidationErrorCode, subgraphs::FieldWalker,
+    composition_ir as ir, diagnostics::CompositeSchemasPostMergeValidationErrorCode, subgraphs,
     validate::ValidateContext,
 };
 
 // https://graphql.github.io/composite-schemas-spec/draft/#sec-Invalid-Field-Sharing
-pub(crate) fn invalid_field_sharing(ctx: &mut ValidateContext<'_>, fields: &[FieldWalker<'_>]) {
+pub(crate) fn invalid_field_sharing(ctx: &mut ValidateContext<'_>, fields: &[subgraphs::FieldWalker<'_>]) {
     if fields.iter().any(|field| {
         field.is_part_of_key() || field.directives().shareable() || field.parent_definition().directives().shareable()
     }) {
@@ -23,6 +23,8 @@ pub(crate) fn invalid_field_sharing(ctx: &mut ValidateContext<'_>, fields: &[Fie
                     .directives()
                     .iter_ir_directives()
                     .any(|d| matches!(d, ir::Directive::CompositeInternal(_)))
+                // Federation v1 subgraphs are excluded, since shareable rules were different.
+                && !field.parent_definition().subgraph().id.1.federation_spec.is_apollo_v1()
         })
         .peekable();
 
