@@ -30,6 +30,7 @@ macro_rules! make_ids {
 }
 
 make_ids! {
+    fields.arguments[ArgumentId] -> ArgumentRecord,
     definitions.definitions[DefinitionId] -> Definition,
     directives.extra_directives[DirectiveId] -> ExtraDirectiveRecord,
     extensions[ExtensionId] -> ExtensionRecord,
