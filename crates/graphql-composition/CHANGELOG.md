@@ -9,6 +9,10 @@
 - Implemented the composite schemas spec validation rules for `@shareable`. It makes the validation more relaxed: if any subgraph defines the field as shareable, then others don't need to annotate with `@shareable` as well. It should not make any schema that composes today fail to compose. The diagnostics have also been improved to list all the relevant subgraphs.
 - Better diagnostic message when you try to compose zero subgraphs.
 
+### Fixes
+
+- Fixed a panic in validation for `@provides` on fields returning a built-in scalar type, like `Int`.
+
 ## 0.10.0 - 2025-07-30
 
 ### Improvements

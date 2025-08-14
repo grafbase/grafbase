@@ -33,10 +33,13 @@ pub(super) fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraph
             )
         };
 
-        let field_type = field
-            .r#type()
-            .definition(field.parent_definition().subgraph_id())
-            .unwrap();
+        let Some(field_type) = field.r#type().definition(field.parent_definition().subgraph_id()) else {
+            ctx.diagnostics.push_fatal(format!(
+                "Invalid @provides at {}: no selection possible on this field type.",
+                directive_path()
+            ));
+            continue;
+        };
 
         validate_selection(ctx, selection, field_type, &directive_path, "provides");
     }
