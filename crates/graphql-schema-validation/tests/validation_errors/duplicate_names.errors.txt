@@ -1,4 +1,4 @@
-  × Duplicate definition. There can only be one typed name "Test"
+  × Duplicate definition. There can only be one type name "Test"
    ╭─[1:6]
  1 │ type Test {
    ·      ──┬─
