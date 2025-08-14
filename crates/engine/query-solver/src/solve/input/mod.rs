@@ -2,10 +2,11 @@ mod builder;
 
 use fxhash::FxHashMap;
 use id_newtypes::IdRange;
-use operation::OperationContext;
 use petgraph::{Graph, visit::GraphBase};
 
 use crate::{Cost, QuerySolutionSpace, SpaceEdgeId, SpaceNodeId};
+
+pub(crate) use builder::build_input_and_terminals;
 
 pub(crate) type SteinerGraph = Graph<(), Cost>;
 pub(crate) type SteinerNodeId = <SteinerGraph as GraphBase>::NodeId;
@@ -53,13 +54,6 @@ pub(crate) struct RequirementsGroup {
     pub unavoidable_parent_edge_ids: IdRange<UnavoidableParentSteinerEdgeId>,
     pub required_node_ids: IdRange<RequiredSteinerNodeId>,
     pub dependent_edge_with_inherent_cost_ids: IdRange<DependentSteinerEdgeWithInherentCostId>,
-}
-
-pub fn build_input_and_terminals<'schema>(
-    ctx: OperationContext<'_>,
-    space: QuerySolutionSpace<'schema>,
-) -> (SteinerInput<'schema>, Vec<SteinerNodeId>) {
-    builder::SteinerInputBuilder::build(ctx, space)
 }
 
 impl SteinerInput<'_> {

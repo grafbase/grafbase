@@ -1,35 +1,7 @@
 ---
 source: crates/engine/query-solver/src/tests/cycle.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Comment.id\", color=forestgreen ]\n    2 [ label = \"Author.id\", color=forestgreen ]\n    3 [ label = \"Root#C\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    4 [ label = \"feed#C\", shape=box, color=dodgerblue, color=forestgreen ]\n    5 [ label = \"FedEntity#A\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    6 [ label = \"comments#A\", shape=box, color=dodgerblue, color=forestgreen ]\n    7 [ label = \"id#A\", shape=box, color=dodgerblue, color=forestgreen ]\n    8 [ label = \"author#A\", shape=box, color=dodgerblue, color=forestgreen ]\n    9 [ label = \"id#A\", shape=box, color=dodgerblue, color=forestgreen ]\n    10 [ label = \"*Comment.authorId\", color=forestgreen ]\n    11 [ label = \"FedEntity#C\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    12 [ label = \"authorId#C\", shape=box, color=dodgerblue, color=forestgreen ]\n    13 [ label = \"*Post.id\", color=forestgreen ]\n    14 [ label = \"id#C\", shape=box, color=dodgerblue, color=forestgreen ]\n    0 -> 3 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    3 -> 4 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 5 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    5 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    6 -> 7 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    5 -> 8 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    8 -> 9 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    9 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    6 -> 11 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    11 -> 12 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    12 -> 10 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 14 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    14 -> 13 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
-    1 [ label = "Comment.id", steiner=1 ]
-    2 [ label = "Author.id", steiner=1 ]
-    3 [ label = "Root#C", steiner=1 ]
-    4 [ label = "feed#C", steiner=1 ]
-    5 [ label = "FedEntity#A", steiner=1 ]
-    6 [ label = "comments#A", steiner=1 ]
-    7 [ label = "id#A", steiner=1 ]
-    8 [ label = "author#A", steiner=1 ]
-    9 [ label = "id#A", steiner=1 ]
-    10 [ label = "*Comment.authorId", steiner=1 ]
-    11 [ label = "FedEntity#C", steiner=1 ]
-    12 [ label = "authorId#C", steiner=1 ]
-    13 [ label = "*Post.id", steiner=1 ]
-    14 [ label = "id#C", steiner=1 ]
-    0 -> 3 [ cost=1, steiner=1]
-    3 -> 4 [ cost=0, steiner=1]
-    4 -> 5 [ cost=1, steiner=1]
-    5 -> 6 [ cost=0, steiner=1]
-    6 -> 7 [ cost=0, steiner=1]
-    7 -> 1 [ cost=0, steiner=1]
-    5 -> 8 [ cost=1, steiner=1]
-    8 -> 9 [ cost=0, steiner=1]
-    9 -> 2 [ cost=0, steiner=1]
-    6 -> 11 [ cost=1, steiner=1]
-    11 -> 12 [ cost=0, steiner=1]
-    12 -> 10 [ cost=0, steiner=1]
-    4 -> 14 [ cost=0, steiner=1]
-    14 -> 13 [ cost=0, steiner=1]
 }
