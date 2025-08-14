@@ -1,0 +1,7 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Diagnostics
+input_file: crates/graphql-composition/tests/composition/composite_schemas/pre_merge_validations/override_source_has_override/test.md
+---
+- ❌ { PreMerge(OverrideSourceHasOverride) } Field "Mammoth.tuskLength" on subgraphs arctic and desert all override from "steppe" which itself has an @override directive. Only one @override directive is allowed per field.
+- ❌ { PreMerge(OverrideSourceHasOverride) } Field "Mammoth.tuskLength" on subgraphs mangrove and steppe all override from "tundra". Only one @override directive is allowed per field.

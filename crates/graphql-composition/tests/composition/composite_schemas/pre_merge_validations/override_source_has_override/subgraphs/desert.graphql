@@ -1,0 +1,16 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.3"
+    import: ["@interfaceObject", "@key", "@override", "@shareable"]
+  )
+
+type Query {
+  getDesertMammoth: Mammoth
+}
+
+type Mammoth @shareable {
+  weightGrams: Int
+  tuskLength: Int @override(from: "steppe") # Also overrides from steppe (which has override)
+  habitatType: String
+  age: Int
+}

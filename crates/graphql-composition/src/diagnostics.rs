@@ -168,12 +168,16 @@ impl From<CompositeSchemasPreMergeValidationErrorCode> for CompositeSchemasError
 pub enum CompositeSchemasPreMergeValidationErrorCode {
     /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Type-Kind-Mismatch
     TypeKindMismatch,
+    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Override-Source-Has-Override
+    OverrideSourceHasOverride,
 }
 
 impl CompositeSchemasPreMergeValidationErrorCode {
     fn severity(&self) -> Severity {
+        use CompositeSchemasPreMergeValidationErrorCode::*;
+
         match self {
-            CompositeSchemasPreMergeValidationErrorCode::TypeKindMismatch => Severity::Error,
+            TypeKindMismatch | OverrideSourceHasOverride => Severity::Error,
         }
     }
 }
@@ -186,13 +190,18 @@ pub enum CompositeSchemasSourceSchemaValidationErrorCode {
     QueryRootTypeInaccessible,
     /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Lookup-Returns-Non-Nullable-Type
     LookupReturnsNonNullableType,
+    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Override-from-Self
+    OverrideFromSelf,
 }
 
 impl CompositeSchemasSourceSchemaValidationErrorCode {
     fn severity(&self) -> Severity {
+        use CompositeSchemasSourceSchemaValidationErrorCode::*;
+
         match self {
-            CompositeSchemasSourceSchemaValidationErrorCode::QueryRootTypeInaccessible => Severity::Error,
-            CompositeSchemasSourceSchemaValidationErrorCode::LookupReturnsNonNullableType => Severity::Warning,
+            QueryRootTypeInaccessible | OverrideFromSelf => Severity::Error,
+
+            LookupReturnsNonNullableType => Severity::Warning,
         }
     }
 }
