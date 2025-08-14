@@ -170,12 +170,11 @@ pub(super) fn compose_fields<'a>(
     ctx: &mut Context<'a>,
     definitions: &[DefinitionWalker<'a>],
     parent_definition_name: federated::StringId,
-    is_shareable: bool,
 ) -> Vec<ir::FieldIr> {
     let mut field_irs = Vec::new();
     fields::for_each_field_group(definitions, |fields| {
         let Some(first) = fields.first() else { return };
-        let Some(field) = compose_field(parent_definition_name, is_shareable, *first, fields, ctx) else {
+        let Some(field) = compose_field(parent_definition_name, *first, fields, ctx) else {
             return;
         };
         field_irs.push(field)
@@ -185,37 +184,14 @@ pub(super) fn compose_fields<'a>(
 
 pub(super) fn compose_field<'a>(
     parent_definition_name: federated::StringId,
-    parent_is_shareable: bool,
     first: FieldWalker<'a>,
     fields: &[FieldWalker<'a>],
     ctx: &mut Context<'a>,
 ) -> Option<ir::FieldIr> {
     let field_name = first.name();
 
-    if !parent_is_shareable
-        && fields
-            .iter()
-            .filter(|f| {
-                let d = f.directives();
-                !(d.shareable()
-                    || f.is_external()
-                    || f.is_part_of_key()
-                    || d.iter_ir_directives()
-                        .any(|d| matches!(d, ir::Directive::CompositeInternal(_)))
-                    || d.r#override().is_some())
-            })
-            .count()
-            > 1
-    {
-        let next = &fields[1];
-
-        ctx.diagnostics.push_fatal(format!(
-            "The field `{}` on `{}` is defined in two subgraphs (`{}` and `{}`).",
-            first.name().as_str(),
-            first.parent_definition().name().as_str(),
-            first.parent_definition().subgraph().name().as_str(),
-            next.parent_definition().subgraph().name().as_str(),
-        ));
+    if let DefinitionKind::Object = first.parent_definition().kind() {
+        crate::validate::composite_schemas::post_merge::invalid_field_sharing(ctx, fields);
     }
 
     if fields.iter().any(|field| {

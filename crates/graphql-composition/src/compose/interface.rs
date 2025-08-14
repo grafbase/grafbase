@@ -29,7 +29,7 @@ pub(super) fn merge_interface_definitions<'a>(
         .flat_map(|def| def.fields())
         .map(|field| (ctx.insert_string(field.name().id), field.name().id))
         .collect::<HashMap<_, _>>();
-    let fields = object::compose_fields(ctx, definitions, interface_name, true);
+    let fields = object::compose_fields(ctx, definitions, interface_name);
     let field_names = fields
         .iter()
         .map(|field| field_name_mapping[&field.field_name])

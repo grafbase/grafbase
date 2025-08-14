@@ -1,6 +1,6 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: Federated SDL
+expression: Diagnostics
 input_file: crates/graphql-composition/tests/composition/composition_of_zero_subgraphs/test.md
 ---
-- ❌ No graphs found for composition build. You must have at least one active graph.
+- ❌ No subgraphs to compose. You must pass at least one subgraph.

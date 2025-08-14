@@ -33,7 +33,7 @@ pub fn compose(subgraphs: Subgraphs) -> CompositionResult {
     let mut diagnostics = Diagnostics::default();
 
     if subgraphs.iter_subgraphs().len() == 0 {
-        let error = "No graphs found for composition build. You must have at least one active graph.";
+        let error = "No subgraphs to compose. You must pass at least one subgraph.";
         diagnostics.push_fatal(error.to_owned());
 
         return CompositionResult {
@@ -44,7 +44,7 @@ pub fn compose(subgraphs: Subgraphs) -> CompositionResult {
 
     let mut context = ComposeContext::new(&subgraphs, &mut diagnostics);
 
-    validate::validate(&mut context);
+    validate::validate_pre_merge(&mut context);
 
     if context.diagnostics.any_fatal() {
         return CompositionResult {
