@@ -8,36 +8,30 @@ pub(crate) struct LinkedSchemas {
     /// Directives that have been `@import`ed, and can be used with their unqualified, maybe aliased name.
     pub(super) definitions: Vec<LinkedDefinitionRecord>,
     imported_definitions_by_name: HashMap<(SubgraphId, StringId), LinkedDefinitionId>,
-    subgraphs_with_federation_v2_link: HashSet<SubgraphId>,
 }
 
 /// A schema imported with `@link`.
 pub(crate) struct LinkedSchemaRecord {
     /// The subgraph where the schema is @link'ed (imported).
     pub(crate) subgraph_id: SubgraphId,
-    pub(crate) extension_id: Option<ExtensionId>,
     /// The url of the schema.
     pub(crate) url: StringId,
-    pub(crate) name: Option<StringId>,
-    #[expect(unused)]
-    pub(crate) version: Option<StringId>,
+    pub(crate) linked_schema_type: LinkedSchemaType,
+    pub(crate) name_from_url: Option<StringId>,
+    /// The namespace this schema is linked as.
     pub(crate) r#as: Option<StringId>,
+}
+
+pub(crate) enum LinkedSchemaType {
+    Extension(ExtensionId),
+    FederationSpec(FederationSpec),
+    Other,
 }
 
 impl LinkedSchemaRecord {
     /// The prefix for the qualified imports from this schema. This can be None, when the url is not a url, or it doesn't have a path segment representing the name, and no `as:` argument is provided. The definitions linked from that `@link()` are then not addressable.
     pub(crate) fn namespace(&self) -> Option<StringId> {
-        self.r#as.or(self.name)
-    }
-
-    pub(crate) fn is_federation_v2(&self, subgraphs: &Subgraphs) -> bool {
-        let url = subgraphs.strings.resolve(self.url);
-        url.contains("dev/federation/v2")
-    }
-
-    pub(crate) fn is_composite_schemas(&self, subgraphs: &Subgraphs) -> bool {
-        let url = subgraphs.strings.resolve(self.url);
-        url == "https://specs.grafbase.com/composite-schemas/v1"
+        self.r#as.or(self.name_from_url)
     }
 }
 
@@ -89,12 +83,6 @@ impl Subgraphs {
     pub(crate) fn push_linked_schema(&mut self, linked_schema: LinkedSchemaRecord) -> LinkedSchemaId {
         let id = LinkedSchemaId::from(self.linked_schemas.schemas.len());
 
-        if linked_schema.is_federation_v2(self) {
-            self.linked_schemas
-                .subgraphs_with_federation_v2_link
-                .insert(linked_schema.subgraph_id);
-        }
-
         if let Some(namespace) = linked_schema.namespace() {
             let previous = self
                 .linked_schemas
@@ -102,18 +90,20 @@ impl Subgraphs {
                 .insert((linked_schema.subgraph_id, namespace), id);
 
             if previous.is_some() {
-                todo!("linked schema namespace collision");
+                self.ingestion_diagnostics.push_warning(format!(
+                    "Linked schema namespace collision for subgraph {}: the \"{}\" namespace is defined at least twice",
+                    self[self[linked_schema.subgraph_id].name], self[namespace],
+                ));
             }
+        }
+
+        if let LinkedSchemaType::FederationSpec(federation_spec) = linked_schema.linked_schema_type {
+            let existing = &mut self[linked_schema.subgraph_id].federation_spec;
+            *existing = (*existing).max(federation_spec);
         }
 
         self.linked_schemas.schemas.push(linked_schema);
 
         id
-    }
-
-    pub(crate) fn subgraph_links_federation_v2(&self, subgraph_id: SubgraphId) -> bool {
-        self.linked_schemas
-            .subgraphs_with_federation_v2_link
-            .contains(&subgraph_id)
     }
 }

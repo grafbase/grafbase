@@ -1,3 +1,5 @@
+use crate::subgraphs::LinkedSchemaType;
+
 use super::*;
 
 pub(super) fn emit_extensions(ctx: &mut Context<'_>, ir: &CompositionIr) {
@@ -47,7 +49,12 @@ pub(super) fn emit_extensions(ctx: &mut Context<'_>, ir: &CompositionIr) {
                     return false;
                 };
 
-                ctx.subgraphs[linked_schema_id].extension_id == Some(extension.id)
+                let LinkedSchemaType::Extension(extension_id) = ctx.subgraphs[linked_schema_id].linked_schema_type
+                else {
+                    return false;
+                };
+
+                extension_id == extension.id
             })
             .map(|(subgraph_id, directive)| {
                 let arguments = directive

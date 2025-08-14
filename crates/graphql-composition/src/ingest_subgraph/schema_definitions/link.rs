@@ -1,5 +1,8 @@
 use super::*;
-use crate::federated_graph::{Import, LinkDirective, QualifiedImport};
+use crate::{
+    federated_graph::{Import, LinkDirective, QualifiedImport},
+    subgraphs::{FederationSpec, LinkedSchemaType},
+};
 use cynic_parser_deser::ConstDeserializer;
 
 pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: SubgraphId, subgraphs: &mut Subgraphs) {
@@ -18,32 +21,36 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
 
     let r#as = r#as.map(|r#as| subgraphs.strings.intern(r#as));
     let linked_schema_id = match subgraphs.find_matching_extension(url) {
-        Some(id) => {
-            let extension = &subgraphs[id];
+        Some(extension_id) => {
+            let extension = &subgraphs[extension_id];
+
             subgraphs.push_linked_schema(subgraphs::LinkedSchemaRecord {
                 subgraph_id,
-                extension_id: Some(id),
+                linked_schema_type: subgraphs::LinkedSchemaType::Extension(extension_id),
+                name_from_url: Some(extension.name),
                 url: extension.url,
                 r#as,
-                name: Some(extension.name),
-                version: Some(extension.version),
             })
         }
         None => {
-            let (name, version) = subgraphs::parse_link_url(url)
+            let (name, _version) = subgraphs::parse_link_url(url)
                 .map(|url| (url.name, url.version))
                 .unwrap_or_default();
 
+            let schema_type = if let Some(federation_spec) = FederationSpec::from_url(url) {
+                LinkedSchemaType::FederationSpec(federation_spec)
+            } else {
+                LinkedSchemaType::Other
+            };
+
             let url = subgraphs.strings.intern(url);
             let name = name.map(|name| subgraphs.strings.intern(name));
-            let version = version.map(|version| subgraphs.strings.intern(version));
             subgraphs.push_linked_schema(subgraphs::LinkedSchemaRecord {
                 subgraph_id,
-                extension_id: None,
                 url,
                 r#as,
-                name,
-                version,
+                name_from_url: name,
+                linked_schema_type: schema_type,
             })
         }
     };

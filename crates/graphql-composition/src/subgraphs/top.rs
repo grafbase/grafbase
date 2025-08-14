@@ -32,6 +32,8 @@ impl Subgraphs {
             query_type: None,
             mutation_type: None,
             subscription_type: None,
+
+            federation_spec: FederationSpec::default(),
         };
 
         SubgraphId::from(self.subgraphs.push_return_idx(subgraph))
@@ -66,6 +68,9 @@ pub(crate) struct Subgraph {
     pub(crate) query_type: Option<DefinitionId>,
     pub(crate) mutation_type: Option<DefinitionId>,
     pub(crate) subscription_type: Option<DefinitionId>,
+
+    /// The federation spec used in this subgraph. Determined by the use of `@link`.
+    pub(crate) federation_spec: FederationSpec,
 }
 
 impl Subgraph {
@@ -83,12 +88,6 @@ impl SubgraphId {
 pub(crate) type SubgraphWalker<'a> = Walker<'a, (SubgraphId, &'a Subgraph)>;
 
 impl<'a> SubgraphWalker<'a> {
-    #[expect(unused)]
-    pub(crate) fn subgraph_id(self) -> SubgraphId {
-        let (id, _) = self.id;
-        id
-    }
-
     fn subgraph(self) -> &'a Subgraph {
         let (_, subgraph) = self.id;
         subgraph
@@ -112,5 +111,55 @@ impl<'a> SubgraphWalker<'a> {
 
     pub(crate) fn url(self) -> Option<StringWalker<'a>> {
         self.subgraph().url.map(|url| self.walk(url))
+    }
+}
+
+/// The federation spec used in a particular subgraph.
+//
+// /!\ The order of the enum variants matters for the `Ord` implementation! /!\
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum FederationSpec {
+    /// Apollo Federation V1 is the default because it is what we use when no spec is imported with @link.
+    #[default]
+    ApolloV1,
+    ApolloV2,
+    CompositeSchemas,
+}
+
+impl FederationSpec {
+    pub(crate) fn from_url(url: &str) -> Option<Self> {
+        if url.contains("dev/federation/v2") {
+            return Some(Self::ApolloV2);
+        }
+
+        if url == "https://specs.grafbase.com/composite-schemas/v1" {
+            return Some(Self::CompositeSchemas);
+        }
+
+        None
+    }
+
+    /// Returns `true` if the federation spec is [`ApolloV1`].
+    ///
+    /// [`ApolloV1`]: FederationSpec::ApolloV1
+    #[must_use]
+    pub(crate) fn is_apollo_v1(&self) -> bool {
+        matches!(self, Self::ApolloV1)
+    }
+
+    /// Returns `true` if the federation spec is [`ApolloV2`].
+    ///
+    /// [`ApolloV2`]: FederationSpec::ApolloV2
+    #[must_use]
+    pub(crate) fn is_apollo_v2(&self) -> bool {
+        matches!(self, Self::ApolloV2)
+    }
+
+    /// Returns `true` if the federation spec is [`CompositeSchemas`].
+    ///
+    /// [`CompositeSchemas`]: FederationSpec::CompositeSchemas
+    #[must_use]
+    pub(crate) fn is_composite_schemas(&self) -> bool {
+        matches!(self, Self::CompositeSchemas)
     }
 }
