@@ -5,6 +5,7 @@
 ### Improvements
 
 - `Diagnostic::composite_schemas_error_code` is now exposed. Note that as the spec and this implementation evolve, more error codes will be added to this enum and its variants.
+- Implemented some composite schemas spec validations for the `@override` directive, resulting in more consistent logic and better diagnostics (https://github.com/grafbase/grafbase/pull/3374)
 
 ## 0.10.0 - 2025-07-30
 

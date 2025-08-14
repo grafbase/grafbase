@@ -33,6 +33,7 @@ make_ids! {
     definitions.definitions[DefinitionId] -> Definition,
     directives.extra_directives[DirectiveId] -> ExtraDirectiveRecord,
     extensions[ExtensionId] -> ExtensionRecord,
+    fields.fields[FieldId] -> FieldTuple,
     keys.keys[KeyId] -> Key,
     linked_schemas.definitions[LinkedDefinitionId] -> LinkedDefinitionRecord,
     linked_schemas.schemas[LinkedSchemaId] -> LinkedSchemaRecord,

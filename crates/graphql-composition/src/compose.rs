@@ -10,6 +10,7 @@ mod object;
 mod reserved_names;
 mod roots;
 mod scalar;
+mod validate;
 
 pub(crate) use self::context::Context as ComposeContext;
 

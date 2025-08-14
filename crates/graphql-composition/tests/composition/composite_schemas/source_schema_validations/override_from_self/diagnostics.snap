@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Diagnostics
+input_file: crates/graphql-composition/tests/composition/composite_schemas/source_schema_validations/override_from_self/test.md
+---
+- ❌ { SourceSchema(OverrideFromSelf) } [steppe] Source and destination subgraphs "steppe" are the same for overridden field "Mammoth.tuskLength"

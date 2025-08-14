@@ -32,6 +32,7 @@ fn validate_fields(ctx: &mut ValidateContext<'_>) {
         selection::validate_selections(ctx, field);
         validate_override_labels(ctx, field);
         composite_schemas::source_schema::lookup_returns_non_nullable_type(ctx, field);
+        composite_schemas::source_schema::override_from_self(ctx, field);
     }
 }
 

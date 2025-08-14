@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/override_errors/test.md
+---
+
