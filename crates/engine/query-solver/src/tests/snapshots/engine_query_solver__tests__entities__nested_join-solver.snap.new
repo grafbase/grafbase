@@ -1,0 +1,22 @@
+---
+source: crates/engine/query-solver/src/tests/entities.rs
+assertion_line: 41
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"*Product.id\" ]\n    2 [ label = \"Root#category\", shape=parallelogram, color=royalblue style=dashed ]\n    3 [ label = \"Root#name\", shape=parallelogram, color=royalblue style=dashed ]\n    4 [ label = \"Root#price\", shape=parallelogram, color=royalblue style=dashed ]\n    5 [ label = \"FedEntity#review\", shape=parallelogram ]\n    2 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    0 -> 2 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    0 -> 3 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    0 -> 4 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 5 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n    2 -> 5 [ label = <<b>1</b>>, color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+    1 [ label = "*Product.id", steiner=0 ]
+    2 [ label = "Root#category", steiner=0 ]
+    3 [ label = "Root#name", steiner=0 ]
+    4 [ label = "Root#price", steiner=0 ]
+    5 [ label = "FedEntity#review", steiner=0 ]
+    2 -> 1 [ cost=0, steiner=0]
+    0 -> 2 [ cost=1, steiner=0]
+    3 -> 1 [ cost=0, steiner=0]
+    0 -> 3 [ cost=1, steiner=0]
+    4 -> 1 [ cost=0, steiner=0]
+    0 -> 4 [ cost=1, steiner=0]
+    4 -> 5 [ cost=1, steiner=0]
+    3 -> 5 [ cost=1, steiner=0]
+    2 -> 5 [ cost=1, steiner=0]
+}

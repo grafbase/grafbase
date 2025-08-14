@@ -82,6 +82,10 @@ impl GreedyFlac {
         self.flow.terminals.extend(terminals);
     }
 
+    pub fn terminals(&self) -> &[NodeIndex] {
+        &self.flow.terminals
+    }
+
     pub fn run_once<N>(&mut self, graph: &Graph<N, Cost>, steiner_tree: &mut SteinerTree) -> ControlFlow<()>
     where
         N: std::fmt::Debug,

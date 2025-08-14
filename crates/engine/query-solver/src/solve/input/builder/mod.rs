@@ -33,7 +33,7 @@ pub(super) struct NodeToProcess {
 }
 
 impl NodeToProcess {
-    pub fn terminal(space_node_id: SpaceNodeId) -> Self {
+    fn terminal(space_node_id: SpaceNodeId) -> Self {
         Self {
             space_node_id,
             maybe_child_node_id: SteinerNodeId::new(u32::MAX as usize),
@@ -43,62 +43,74 @@ impl NodeToProcess {
     }
 }
 
-impl<'op> SteinerInputBuilder<'op> {
-    pub fn build<'schema>(
-        ctx: OperationContext<'op>,
-        mut space: QuerySolutionSpace<'schema>,
-    ) -> (super::SteinerInput<'schema>, Vec<SteinerNodeId>) {
-        // TODO: Figure out a good start size.
-        let n_nodes = space.graph.node_bound() >> 3;
-        let n_edges = space.graph.edge_count() >> 3;
-        let mut graph = Graph::with_capacity(n_nodes, n_edges);
-        let mut mapping = InputMap {
-            node_id_to_space_node_id: Vec::with_capacity(n_nodes),
-            edge_id_to_space_edge_id: Vec::with_capacity(n_edges),
-            space_node_id_to_node_id: FxHashMap::with_capacity_and_hasher(n_nodes, Default::default()),
-            space_edge_id_to_edge_id: FxHashMap::with_capacity_and_hasher(n_edges, Default::default()),
-        };
+pub(crate) fn build_input_and_terminals<'op, 'schema>(
+    ctx: OperationContext<'op>,
+    mut space: QuerySolutionSpace<'schema>,
+) -> crate::Result<(super::SteinerInput<'schema>, Vec<SteinerNodeId>)> {
+    // TODO: Figure out a good start size.
+    let n_nodes = space.graph.node_bound() >> 3;
+    let n_edges = space.graph.edge_count() >> 3;
+    let mut graph = Graph::with_capacity(n_nodes, n_edges);
+    let mut mapping = InputMap {
+        node_id_to_space_node_id: Vec::with_capacity(n_nodes),
+        edge_id_to_space_edge_id: Vec::with_capacity(n_edges),
+        space_node_id_to_node_id: FxHashMap::with_capacity_and_hasher(n_nodes, Default::default()),
+        space_edge_id_to_edge_id: FxHashMap::with_capacity_and_hasher(n_edges, Default::default()),
+    };
 
-        let root_node_id = graph.add_node(());
-        mapping.node_id_to_space_node_id.push(space.root_node_id);
-        mapping
-            .space_node_id_to_node_id
-            .insert(space.root_node_id, root_node_id);
+    let root_node_id = graph.add_node(());
+    mapping.node_id_to_space_node_id.push(space.root_node_id);
+    mapping
+        .space_node_id_to_node_id
+        .insert(space.root_node_id, root_node_id);
 
-        let mut builder = Self {
-            ctx,
-            terminal_space_node_ids_to_process_stack: std::mem::take(&mut space.step.indispensable_leaf_nodes),
-            graph,
-            root_node_id,
-            map: mapping,
-            nodes_to_process_stack: Vec::new(),
-        };
-        let mut requirements = DispensableRequirementsBuilder::new(&space.graph);
+    let mut builder = SteinerInputBuilder {
+        ctx,
+        terminal_space_node_ids_to_process_stack: std::mem::take(&mut space.step.indispensable_leaf_nodes),
+        graph,
+        root_node_id,
+        map: mapping,
+        nodes_to_process_stack: Vec::new(),
+    };
+    let mut requirements = DispensableRequirementsBuilder::new(&space.graph);
 
-        let mut terminals = Vec::with_capacity(builder.terminal_space_node_ids_to_process_stack.len());
-        while let Some(terminal_space_node_id) = builder.terminal_space_node_ids_to_process_stack.pop() {
-            let terminal_node_id =
-                builder.ingest_nodes_from_indispensable_terminal(&space, &mut requirements, terminal_space_node_id);
-            // If we reached root, it means there is only one path from the root to this terminal.
-            if terminal_node_id != root_node_id {
-                terminals.push(terminal_node_id);
-            }
+    let mut terminals = Vec::with_capacity(builder.terminal_space_node_ids_to_process_stack.len());
+    let mut i = 0;
+    while let Some(terminal_space_node_id) = builder.terminal_space_node_ids_to_process_stack.pop() {
+        // Sanity check to prevent infinite loops. At most we can have as many terminals as
+        // we have leaf nodes. With requirements we may have duplicates, hence the dedup
+        // afterwards, but in all cases we cannot have more terminals than edges in the
+        // graph.
+        // We could be smarter, but a properly composed schema should prevent cycles from being
+        // there in the first place.
+        if i > space.graph.edge_count() {
+            return Err(crate::Error::RequirementCycleDetected);
         }
+        i += 1;
 
-        terminals.sort_unstable();
-        terminals.dedup();
-
-        let requirements = requirements.build(&mut builder);
-        let input = super::SteinerInput {
-            space,
-            graph: builder.graph,
-            root_node_id: builder.root_node_id,
-            map: builder.map,
-            requirements,
-        };
-        (input, terminals)
+        let terminal_node_id =
+            builder.ingest_nodes_from_indispensable_terminal(&space, &mut requirements, terminal_space_node_id);
+        // If we reached root, it means there is only one path from the root to this terminal.
+        if terminal_node_id != root_node_id {
+            terminals.push(terminal_node_id);
+        }
     }
 
+    terminals.sort_unstable();
+    terminals.dedup();
+
+    let requirements = requirements.build(&mut builder);
+    let input = super::SteinerInput {
+        space,
+        graph: builder.graph,
+        root_node_id: builder.root_node_id,
+        map: builder.map,
+        requirements,
+    };
+    Ok((input, terminals))
+}
+
+impl SteinerInputBuilder<'_> {
     fn ingest_nodes_from_indispensable_terminal(
         &mut self,
         space: &QuerySolutionSpace<'_>,

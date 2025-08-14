@@ -5,7 +5,7 @@ use petgraph::visit::EdgeRef;
 use schema::Schema;
 
 use crate::{
-    QuerySolutionSpace,
+    QuerySolutionSpace, SpaceNode,
     dot_graph::Attrs,
     solve::{
         Solution,
@@ -34,12 +34,12 @@ pub(crate) struct Solver<'schema, 'op> {
     ctx: OperationContext<'op>,
     input: SteinerInput<'schema>,
     steiner_tree: SteinerTree,
-    state: SolverState,
+    state: State,
 }
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Default)]
-enum SolverState {
+enum State {
     Unsolved {
         flac: GreedyFlac,
         requirements_and_cost_updater: RequirementAndCostUpdater,
@@ -58,12 +58,12 @@ where
         query_solution_space: QuerySolutionSpace<'schema>,
     ) -> crate::Result<Self> {
         let ctx = OperationContext { schema, operation };
-        let (mut input, terminals) = build_input_and_terminals(ctx, query_solution_space);
+        let (mut input, terminals) = build_input_and_terminals(ctx, query_solution_space)?;
 
         let steiner_tree = SteinerTree::new(&input.graph, input.root_node_id);
 
         let state = if terminals.is_empty() {
-            SolverState::Solved
+            State::Solved
         } else {
             let flac = GreedyFlac::new(&input.graph, terminals);
             let mut requirements_and_cost_updater = RequirementAndCostUpdater::new(&input)?;
@@ -72,7 +72,7 @@ where
                 update.new_terminals.is_empty(),
                 "Fixed point cost algorithm should not return new terminals at initialization"
             );
-            SolverState::Unsolved {
+            State::Unsolved {
                 flac,
                 requirements_and_cost_updater,
             }
@@ -98,10 +98,10 @@ where
     /// Solves the Steiner tree problem for the resolvers of our operation graph.
     pub fn execute(&mut self) -> crate::Result<()> {
         match std::mem::take(&mut self.state) {
-            SolverState::Solved => {
+            State::Solved => {
                 tracing::debug!("Steiner graph is already solved.");
             }
-            SolverState::Unsolved {
+            State::Unsolved {
                 mut flac,
                 mut requirements_and_cost_updater,
             } => {
@@ -149,18 +149,35 @@ where
                         .with_if(!is_in_steiner_tree, "color=royalblue,fontcolor=royalblue,style=dashed")
                         .to_string()
                 },
-                &|_, (node_ix, _)| {
-                    let is_in_steiner_tree = self.steiner_tree[node_ix];
-                    let space_node_id = self.input.to_space_node_id(node_ix);
-                    self.input
-                        .space
+                &|_, (node_id, _)| {
+                    let is_in_steiner_tree = self.steiner_tree[node_id];
+                    let is_leaf = self
+                        .input
                         .graph
-                        .node_weight(space_node_id)
-                        .unwrap()
-                        .pretty_label(&self.input.space, self.ctx)
-                        .with_if(!is_in_steiner_tree, "style=dashed")
-                        .with_if(is_in_steiner_tree, "color=forestgreen")
-                        .to_string()
+                        .edges_directed(node_id, petgraph::Direction::Outgoing)
+                        .count()
+                        == 0;
+                    let is_terminal = if let State::Unsolved { flac, .. } = &self.state {
+                        flac.terminals().contains(&node_id)
+                    } else {
+                        false
+                    };
+                    let space_node_id = self.input.to_space_node_id(node_id);
+                    let weight = self.input.space.graph.node_weight(space_node_id).unwrap();
+                    let attrs = Attrs::label(weight.label(&self.input.space, self.ctx));
+                    let attrs = match weight {
+                        SpaceNode::ProvidableField(_) => attrs.with("shape=box"),
+                        SpaceNode::Resolver(_) => attrs.with("shape=parallelogram"),
+                        _ => attrs,
+                    };
+                    match (is_in_steiner_tree, is_leaf, is_terminal) {
+                        (true, _, true) => attrs.with("color=forestgreen style=bold"),
+                        (true, _, false) => attrs.with("color=forestgreen"),
+                        (false, _, true) => attrs,
+                        (false, true, false) => attrs.with("style=dashed"),
+                        (false, false, false) => attrs.with("color=royalblue style=dashed"),
+                    }
+                    .to_string()
                 }
             )
         )
@@ -181,9 +198,9 @@ where
                     let cost = *edge.weight();
                     format!("cost={cost}, steiner={}", is_in_steiner_tree as usize)
                 },
-                &|_, (node_ix, _)| {
-                    let is_in_steiner_tree = self.steiner_tree[node_ix];
-                    let space_node_id = self.input.to_space_node_id(node_ix);
+                &|_, (node_id, _)| {
+                    let is_in_steiner_tree = self.steiner_tree[node_id];
+                    let space_node_id = self.input.to_space_node_id(node_id);
                     Attrs::label(
                         self.input
                             .space
