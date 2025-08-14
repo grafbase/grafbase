@@ -1,7 +1,7 @@
 use ast::InputValueDefinition;
 
 use super::*;
-use crate::subgraphs::FieldId;
+use crate::subgraphs::FieldPath;
 
 pub(super) fn ingest_input_fields(
     ctx: &mut Context<'_>,
@@ -38,7 +38,7 @@ pub(super) fn ingest_input_fields(
 
 fn ingest_field_arguments(
     ctx: &mut Context<'_>,
-    field_id: FieldId,
+    field_id: FieldPath,
     arguments: ast::iter::Iter<'_, InputValueDefinition<'_>>,
 ) {
     for argument in arguments {
