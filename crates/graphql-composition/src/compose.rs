@@ -15,7 +15,9 @@ pub(crate) use self::context::Context as ComposeContext;
 
 use self::{context::Context, directives::collect_composed_directives, input_object::*};
 use crate::{
-    composition_ir as ir, federated_graph as federated,
+    composition_ir as ir,
+    diagnostics::CompositeSchemasPreMergeValidationErrorCode,
+    federated_graph as federated,
     subgraphs::{self, DefinitionKind, DefinitionWalker, FieldWalker, StringId},
 };
 use directives::create_join_type_from_definitions;
@@ -68,9 +70,9 @@ fn merge_object_definitions<'a>(
         let name = first.name().as_str();
         let first_subgraph = first.subgraph().name().as_str();
         let second_subgraph = incompatible.subgraph().name().as_str();
-        ctx.diagnostics.push_fatal(format!(
+        ctx.diagnostics.push_composite_schemas_pre_merge_validation_error(format!(
             "Cannot merge {first_kind:?} with {second_kind:?} (`{name}` in `{first_subgraph}` and `{second_subgraph}`)",
-        ));
+        ), CompositeSchemasPreMergeValidationErrorCode::TypeKindMismatch);
         return;
     }
 
