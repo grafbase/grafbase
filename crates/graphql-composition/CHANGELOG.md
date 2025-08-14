@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Improvements
+
+- `Diagnostic::composite_schemas_error_code` is now exposed. Note that as the spec and this implementation evolve, more error codes will be added to this enum and its variants.
+
 ## 0.10.0 - 2025-07-30
 
 ### Improvements
