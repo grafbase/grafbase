@@ -1,16 +1,13 @@
 use id_newtypes::IdRange;
 use petgraph::graph::NodeIndex;
 
-use crate::{
-    Cost,
-    solve::{
-        input::{RequiredSteinerNodeId, RequirementsGroup, SteinerInput, UnavoidableParentSteinerEdgeId},
-        steiner_tree::{GreedyFlac, SteinerTree},
-    },
+use crate::solve::{
+    input::{RequiredSteinerNodeId, RequirementsGroup, SteinerInput, SteinerWeight, UnavoidableParentSteinerEdgeId},
+    steiner_tree::{GreedyFlac, SteinerTree},
 };
 
-pub(crate) struct RequirementAndCostUpdater {
-    /// Keeps track of dispensable requirements to adjust edge cost, ideally we'd like to avoid
+pub(crate) struct RequirementAndWeightUpdater {
+    /// Keeps track of dispensable requirements to adjust edge weight, ideally we'd like to avoid
     /// them.
     independent_requirements: Option<bool>,
     /// Temporary storage for extra terminals to be added to the algorithm.
@@ -19,7 +16,7 @@ pub(crate) struct RequirementAndCostUpdater {
     tmp_flac: GreedyFlac,
 }
 
-impl RequirementAndCostUpdater {
+impl RequirementAndWeightUpdater {
     pub fn new(input: &SteinerInput<'_>) -> crate::Result<Self> {
         Ok(Self {
             independent_requirements: None,
@@ -29,36 +26,36 @@ impl RequirementAndCostUpdater {
         })
     }
 
-    pub fn run_fixed_point_cost<'s>(
+    pub fn run_fixed_point_weight<'s>(
         &'s mut self,
         input: &mut SteinerInput<'_>,
         steiner_tree: &SteinerTree,
     ) -> crate::Result<Update<'s>> {
-        FixedPointCostAlgorithm {
+        FixedPointWeightAlgorithm {
             state: self,
             steiner_tree,
             input,
-            has_updated_cost: false,
+            has_updated_weights: false,
         }
         .run()
     }
 }
 
-pub(crate) struct FixedPointCostAlgorithm<'s, 't, 'i, 'schema> {
-    pub state: &'s mut RequirementAndCostUpdater,
+pub(crate) struct FixedPointWeightAlgorithm<'s, 't, 'i, 'schema> {
+    pub state: &'s mut RequirementAndWeightUpdater,
     pub steiner_tree: &'t SteinerTree,
     pub input: &'i mut SteinerInput<'schema>,
-    has_updated_cost: bool,
+    has_updated_weights: bool,
 }
 
-impl std::ops::Deref for FixedPointCostAlgorithm<'_, '_, '_, '_> {
-    type Target = RequirementAndCostUpdater;
+impl std::ops::Deref for FixedPointWeightAlgorithm<'_, '_, '_, '_> {
+    type Target = RequirementAndWeightUpdater;
     fn deref(&self) -> &Self::Target {
         self.state
     }
 }
 
-impl std::ops::DerefMut for FixedPointCostAlgorithm<'_, '_, '_, '_> {
+impl std::ops::DerefMut for FixedPointWeightAlgorithm<'_, '_, '_, '_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.state
     }
@@ -67,23 +64,23 @@ impl std::ops::DerefMut for FixedPointCostAlgorithm<'_, '_, '_, '_> {
 pub(crate) struct Update<'a> {
     pub new_terminals: &'a mut Vec<NodeIndex>,
     #[allow(unused)]
-    pub has_updated_cost: bool,
+    pub has_updated_weight: bool,
 }
 
-impl<'state> FixedPointCostAlgorithm<'state, '_, '_, '_> {
-    /// Updates the cost of edges based on the requirements of the nodes.
-    /// We iterate until cost becomes stable or we exhausted the maximum number of iterations which
+impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_> {
+    /// Updates the weight of edges based on the requirements of the nodes.
+    /// We iterate until weight becomes stable or we exhausted the maximum number of iterations which
     /// likely indicates a requirement cycle.
     pub fn run(mut self) -> crate::Result<Update<'state>> {
         debug_assert!(self.tmp_extra_terminals.is_empty());
-        let mut has_updated_cost = false;
+        let mut has_updated_weight = false;
         let mut i = 0;
         loop {
             i += 1;
-            self.generate_cost_updates_based_on_requirements();
-            let has_updated_cost_this_iteration = std::mem::take(&mut self.has_updated_cost);
-            has_updated_cost |= has_updated_cost_this_iteration;
-            if !has_updated_cost_this_iteration || self.independent_requirements.unwrap_or_default() {
+            self.generate_weight_updates_based_on_requirements();
+            let has_updated_weight_this_iteration = std::mem::take(&mut self.has_updated_weights);
+            has_updated_weight |= has_updated_weight_this_iteration;
+            if !has_updated_weight_this_iteration || self.independent_requirements.unwrap_or_default() {
                 break;
             }
             if i > 100 {
@@ -92,18 +89,18 @@ impl<'state> FixedPointCostAlgorithm<'state, '_, '_, '_> {
         }
         // If it's the first time we do the fixed point iteration and we didn't do more than 2
         // iterations (one for updating, one for checking nothing changed). It means there is no
-        // dependency between requirements cost. So we can skip it in the next iterations.
+        // dependency between requirements weight. So we can skip it in the next iterations.
         self.independent_requirements.get_or_insert(i == 2);
         Ok(Update {
             new_terminals: &mut self.state.tmp_extra_terminals,
-            has_updated_cost,
+            has_updated_weight,
         })
     }
 
-    /// For all edges with dispensable requirements, we estimate the cost of the extra requirements
-    /// by computing cost of adding them to the current Steiner tree plus the base cost of the
+    /// For all edges with dispensable requirements, we estimate the weight of the extra requirements
+    /// by computing weight of adding them to the current Steiner tree plus the base weight of the
     /// edge.
-    fn generate_cost_updates_based_on_requirements(&mut self) {
+    fn generate_weight_updates_based_on_requirements(&mut self) {
         let mut i = 0;
         while let Some((node_id, extra_required_node_ids)) = self.input.requirements.free.get(i).copied() {
             if self.steiner_tree[node_id] {
@@ -123,20 +120,20 @@ impl<'state> FixedPointCostAlgorithm<'state, '_, '_, '_> {
         while let Some(RequirementsGroup {
             required_node_ids,
             unavoidable_parent_edge_ids,
-            dependent_edge_with_inherent_cost_ids,
+            dependent_edge_with_inherent_weight_ids,
         }) = self.input.requirements.groups.get(i).copied()
         {
-            if self.input.requirements[dependent_edge_with_inherent_cost_ids]
+            if self.input.requirements[dependent_edge_with_inherent_weight_ids]
                 .iter()
                 .any(|(edge_id, _)| self.steiner_tree[*edge_id])
             {
                 // One of the dependent edge is part of the steiner tree, so the requirements
                 // aren't optional anymore. Every edge that isn't part of the steiner tree is set back
-                // to its inherent cost.
-                for &(edge_id, inherent_cost) in &self.input.requirements[dependent_edge_with_inherent_cost_ids] {
+                // to its inherent weight.
+                for &(edge_id, inherent_weight) in &self.input.requirements[dependent_edge_with_inherent_weight_ids] {
                     if !self.steiner_tree[edge_id] {
-                        let old = std::mem::replace(&mut self.input.graph[edge_id], inherent_cost);
-                        self.has_updated_cost |= old != inherent_cost;
+                        let old = std::mem::replace(&mut self.input.graph[edge_id], inherent_weight);
+                        self.has_updated_weights |= old != inherent_weight;
                     }
                 }
                 self.state.tmp_extra_terminals.extend(
@@ -149,18 +146,18 @@ impl<'state> FixedPointCostAlgorithm<'state, '_, '_, '_> {
                 continue;
             }
 
-            let requirements_cost = self.state.estimate_requirements_cost(
+            let requirements_weight = self.state.estimate_requirements_weight(
                 self.input,
                 self.steiner_tree,
                 unavoidable_parent_edge_ids,
                 required_node_ids,
             );
 
-            let edges_and_costs = self.input.requirements[dependent_edge_with_inherent_cost_ids].to_vec();
-            for (edge_id, inherent_cost) in edges_and_costs {
-                let cost = inherent_cost + requirements_cost;
-                let old = std::mem::replace(&mut self.input.graph[edge_id], cost);
-                self.has_updated_cost |= old != cost;
+            let edges_and_weights = self.input.requirements[dependent_edge_with_inherent_weight_ids].to_vec();
+            for (edge_id, inherent_weight) in edges_and_weights {
+                let weight = inherent_weight + requirements_weight;
+                let old = std::mem::replace(&mut self.input.graph[edge_id], weight);
+                self.has_updated_weights |= old != weight;
             }
 
             i += 1;
@@ -168,14 +165,14 @@ impl<'state> FixedPointCostAlgorithm<'state, '_, '_, '_> {
     }
 }
 
-impl RequirementAndCostUpdater {
-    fn estimate_requirements_cost(
+impl RequirementAndWeightUpdater {
+    fn estimate_requirements_weight(
         &mut self,
         input: &mut SteinerInput<'_>,
         steiner_tree: &SteinerTree,
         unavoidable_parent_edge_ids: IdRange<UnavoidableParentSteinerEdgeId>,
         required_node_ids: IdRange<RequiredSteinerNodeId>,
-    ) -> Cost {
+    ) -> SteinerWeight {
         self.tmp_flac.reset_terminals();
         self.tmp_steiner_tree.nodes.clone_from(&steiner_tree.nodes);
         self.tmp_steiner_tree.edges.clone_from(&steiner_tree.edges);

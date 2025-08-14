@@ -5,14 +5,14 @@ https://www.researchgate.net/profile/Dimitri-Watel/publication/307916063_A_pract
 
 ## Overview
 
-The Query Solver uses the GreedyFLAC algorithm to find a good query resolution paths in GraphQL federation. This algorithm solves the Directed Steiner Tree problem - finding the minimum-cost tree that connects a root node to all required terminal nodes in a directed graph.
+The Query Solver uses the GreedyFLAC algorithm to find a good query resolution paths in GraphQL federation. This algorithm solves the Directed Steiner Tree problem - finding the minimum-weight tree that connects a root node to all required terminal nodes in a directed graph.
 
 ## The Water Flow Analogy
 
 FLAC (FLow Algorithm Computation) uses an intuitive water flow metaphor to build the Steiner tree:
 
 1. **Terminals as Water Sources**: Each terminal node acts as a water source, continuously pouring water at 1 unit/second
-2. **Edges as Pipes**: Each edge has a capacity equal to its cost/weight
+2. **Edges as Pipes**: Each edge has a capacity equal to its weight
 3. **Saturation**: When an edge is completely filled with water, it becomes "saturated" and part of the solution
 4. **Flow Propagation**: Water flows backward through the graph (from terminals toward the root) until reaching the root
 
@@ -39,9 +39,9 @@ T1      T2        T3
 **Step 1: Initialize Flow**
 
 - T1, T2, and T3 each start flowing water at 1 unit/second
-- T1 flows into edge (A→T1) with cost $2
-- T2 flows into edge (A→T2) with cost $3
-- T3 flows into edge (B→T3) with cost $7
+- T1 flows into edge (A→T1) with weight $2
+- T2 flows into edge (A→T2) with weight $3
+- T3 flows into edge (B→T3) with weight $7
 
 ```
         Root

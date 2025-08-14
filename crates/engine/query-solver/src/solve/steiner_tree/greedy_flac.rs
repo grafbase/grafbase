@@ -1,4 +1,4 @@
-use crate::{Cost, dot_graph::Attrs};
+use crate::{dot_graph::Attrs, solve::input::SteinerWeight};
 use fixedbitset::FixedBitSet;
 use fxhash::FxBuildHasher;
 use itertools::Itertools as _;
@@ -13,7 +13,7 @@ use std::{cmp::Ordering, ops::ControlFlow};
 use super::SteinerTree;
 
 type Time = f64;
-type FlowRate = u16;
+type FlowRate = SteinerWeight;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 struct Priority(Time);
@@ -62,7 +62,7 @@ pub(crate) struct GreedyFlac {
 }
 
 impl GreedyFlac {
-    pub fn new<N>(graph: &Graph<N, Cost>, terminals: Vec<NodeIndex>) -> Self {
+    pub fn new<N>(graph: &Graph<N, SteinerWeight>, terminals: Vec<NodeIndex>) -> Self {
         Self {
             flow: Flow {
                 saturated_edges: FixedBitSet::with_capacity(graph.edge_count()),
@@ -86,7 +86,7 @@ impl GreedyFlac {
         &self.flow.terminals
     }
 
-    pub fn run_once<N>(&mut self, graph: &Graph<N, Cost>, steiner_tree: &mut SteinerTree) -> ControlFlow<()>
+    pub fn run_once<N>(&mut self, graph: &Graph<N, SteinerWeight>, steiner_tree: &mut SteinerTree) -> ControlFlow<()>
     where
         N: std::fmt::Debug,
     {
@@ -98,7 +98,7 @@ impl GreedyFlac {
         .run()
     }
 
-    pub fn run<N>(&mut self, graph: &Graph<N, Cost>, steiner_tree: &mut SteinerTree)
+    pub fn run<N>(&mut self, graph: &Graph<N, SteinerWeight>, steiner_tree: &mut SteinerTree)
     where
         N: std::fmt::Debug,
     {
@@ -122,7 +122,7 @@ impl GreedyFlac {
 
 struct Flac<'s, 'g, 't, N> {
     state: &'s mut GreedyFlac,
-    graph: &'g Graph<N, Cost>,
+    graph: &'g Graph<N, SteinerWeight>,
     steiner_tree: &'t mut SteinerTree,
 }
 
@@ -250,15 +250,15 @@ where
     }
 
     #[allow(non_snake_case)]
-    fn find_next_edge_in_T_minus(&self, node: NodeIndex) -> Option<EdgeReference<'g, Cost>> {
+    fn find_next_edge_in_T_minus(&self, node: NodeIndex) -> Option<EdgeReference<'g, SteinerWeight>> {
         let mut min_edge = None;
-        let mut min_cost = Cost::MAX;
+        let mut min_weight = SteinerWeight::MAX;
 
         for edge in self.graph.edges_directed(node, petgraph::Direction::Incoming) {
             if !self.flow.marked_or_saturated_edges.contains(edge.id().index()) {
-                let cost = *edge.weight();
-                if cost < min_cost {
-                    min_cost = cost;
+                let weight = *edge.weight();
+                if weight < min_weight {
+                    min_weight = weight;
                     min_edge = Some(edge);
                 }
             }
@@ -465,7 +465,7 @@ where
 enum DegenerateFlow<'g> {
     Yes,
     No {
-        next_saturating_edges_in_T_u: Vec<EdgeReference<'g, Cost>>,
+        next_saturating_edges_in_T_u: Vec<EdgeReference<'g, SteinerWeight>>,
     },
 }
 
@@ -477,9 +477,7 @@ mod tests {
 
     use petgraph::{Graph, graph::NodeIndex};
 
-    use crate::Cost;
-
-    fn dot_graph(dot: &'static str) -> (Graph<String, Cost>, HashMap<String, NodeIndex>) {
+    fn dot_graph(dot: &'static str) -> (Graph<String, SteinerWeight>, HashMap<String, NodeIndex>) {
         let dot_graph: dot_parser::canonical::Graph<(&'static str, &'static str)> =
             dot_parser::ast::Graph::try_from(dot).unwrap().into();
         let node_number = dot_graph.nodes.set.len();
@@ -493,25 +491,25 @@ mod tests {
         for edge in dot_graph.edges.set {
             let from_ni = nodes.get(&edge.from).unwrap();
             let to_ni = nodes.get(&edge.to).unwrap();
-            let cost = edge
+            let weight = edge
                 .attr
                 .elems
                 .iter()
                 .find_map(|(name, value)| {
-                    if *name == "cost" {
-                        value.parse::<Cost>().ok()
+                    if *name == "w" {
+                        value.parse::<SteinerWeight>().ok()
                     } else {
                         None
                     }
                 })
                 .unwrap_or_default();
-            graph.add_edge(*from_ni, *to_ni, cost);
+            graph.add_edge(*from_ni, *to_ni, weight);
         }
 
         (graph, nodes)
     }
 
-    fn to_steiner_tree_graph(graph: &Graph<String, Cost>, steiner_tree: &SteinerTree) -> String {
+    fn to_steiner_tree_graph(graph: &Graph<String, SteinerWeight>, steiner_tree: &SteinerTree) -> String {
         use std::fmt::Write as _;
 
         let mut out = String::from("digraph {\n");
@@ -530,7 +528,7 @@ mod tests {
     }
 
     struct Runner {
-        graph: Graph<String, Cost>,
+        graph: Graph<String, SteinerWeight>,
         nodes: HashMap<String, NodeIndex>,
         greedy_flac: GreedyFlac,
         steiner_tree: SteinerTree,
@@ -565,7 +563,7 @@ mod tests {
             self.greedy_flac.run_once(&self.graph, &mut self.steiner_tree)
         }
 
-        fn run(&mut self) -> Cost {
+        fn run(&mut self) -> SteinerWeight {
             self.greedy_flac.run(&self.graph, &mut self.steiner_tree);
             self.steiner_tree.total_weight
         }
@@ -594,8 +592,8 @@ mod tests {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
             root -> a;
-            a -> t1 [cost=1];
-            a -> t2 [cost=2];
+            a -> t1 [w=1];
+            a -> t2 [w=2];
             }"#,
         );
 
@@ -623,12 +621,12 @@ mod tests {
     fn single_terminal_direct_path() {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> t1 [cost=5];
+            root -> t1 [w=5];
             }"#,
         );
 
-        let total_cost = runner.run();
-        assert_eq!(total_cost, 5, "\n{}", runner.debug_graph());
+        let total_weight = runner.run();
+        assert_eq!(total_weight, 5, "\n{}", runner.debug_graph());
         insta::assert_snapshot!(runner.steiner_graph(), @r"
         digraph {
           root -> t1
@@ -640,16 +638,16 @@ mod tests {
     fn multiple_terminals_shared_edges() {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> shared [cost=10];
-            shared -> t1 [cost=3];
-            shared -> t2 [cost=5];
-            shared -> t3 [cost=2];
+            root -> shared [w=10];
+            shared -> t1 [w=3];
+            shared -> t2 [w=5];
+            shared -> t3 [w=2];
             }"#,
         );
 
-        let total_cost = runner.run();
+        let total_weight = runner.run();
         assert_eq!(
-            total_cost,
+            total_weight,
             20, // 10 + 3 + 5 + 2
             "\n{}",
             runner.debug_graph()
@@ -669,17 +667,17 @@ mod tests {
         // Graph where t1 can reach a through two paths, which would create degenerate flow
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> a [cost=10];
-            a -> b [cost=2];
-            a -> c [cost=3];
-            b -> t1 [cost=1];
-            c -> t1 [cost=1];
+            root -> a [w=10];
+            a -> b [w=2];
+            a -> c [w=3];
+            b -> t1 [w=1];
+            c -> t1 [w=1];
             }"#,
         );
 
-        let total_cost = runner.run();
+        let total_weight = runner.run();
         assert_eq!(
-            total_cost,
+            total_weight,
             13, // Should pick one path: root -> a -> b -> t1 (10 + 2 + 1)
             "\n{}",
             runner.debug_graph()
@@ -698,20 +696,20 @@ mod tests {
     fn complex_graph_multiple_paths() {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> a [cost=5];
-            root -> b [cost=8];
-            a -> c [cost=3];
-            b -> c [cost=2];
-            c -> t1 [cost=4];
-            c -> t2 [cost=6];
-            a -> t2 [cost=10];
-            b -> t3 [cost=7];
+            root -> a [w=5];
+            root -> b [w=8];
+            a -> c [w=3];
+            b -> c [w=2];
+            c -> t1 [w=4];
+            c -> t2 [w=6];
+            a -> t2 [w=10];
+            b -> t3 [w=7];
             }"#,
         );
 
-        let total_cost = runner.run();
+        let total_weight = runner.run();
         assert_eq!(
-            total_cost,
+            total_weight,
             // root -> a -> c -> t1,t2: 5 + 3 + 6 + 4 = 18
             // root -> b -> t3: 8 + 7 = 15
             33,
@@ -735,11 +733,11 @@ mod tests {
         // Start with only t1 terminal by creating custom runner
         let (graph, nodes) = dot_graph(
             r#"digraph {
-            root -> a [cost=4];
-            root -> b [cost=6];
-            a -> t1 [cost=2];
-            b -> t2 [cost=3];
-            a -> t3 [cost=5];
+            root -> a [w=4];
+            root -> b [w=6];
+            a -> t1 [w=2];
+            b -> t2 [w=3];
+            a -> t3 [w=5];
             }"#,
         );
         let steiner_tree = SteinerTree::new(&graph, nodes["root"]);
@@ -752,9 +750,9 @@ mod tests {
         };
 
         // First run with only t1
-        let total_cost = runner.run();
+        let total_weight = runner.run();
         assert_eq!(
-            total_cost,
+            total_weight,
             6, // root -> a -> t1: 4 + 2
             "\n{}",
             runner.debug_graph()
@@ -762,9 +760,9 @@ mod tests {
 
         // Add t2 as a new terminal
         runner.extend_terminals(&["t2"]);
-        let total_cost = runner.run();
+        let total_weight = runner.run();
         assert_eq!(
-            total_cost,
+            total_weight,
             6 + 9, // root -> b -> t2: 6 + 3
             "\n{}",
             runner.debug_graph()
@@ -772,9 +770,9 @@ mod tests {
 
         // Add t3 as another terminal
         runner.extend_terminals(&["t3"]);
-        let total_cost = runner.run();
+        let total_weight = runner.run();
         assert_eq!(
-            total_cost,
+            total_weight,
             6 + 9 + 5, // a -> t3: 5 (root -> a already in tree)
             "\n{}",
             runner.debug_graph()
@@ -792,22 +790,22 @@ mod tests {
     }
 
     #[test]
-    fn weighted_edges_different_costs() {
+    fn weighted_edges_different_weights() {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> a [cost=1];
-            root -> b [cost=100];
-            a -> c [cost=50];
-            b -> c [cost=1];
-            c -> t1 [cost=1];
-            a -> t2 [cost=2];
-            b -> t3 [cost=2];
+            root -> a [w=1];
+            root -> b [w=100];
+            a -> c [w=50];
+            b -> c [w=1];
+            c -> t1 [w=1];
+            a -> t2 [w=2];
+            b -> t3 [w=2];
             }"#,
         );
 
-        let total_cost = runner.run();
+        let total_weight = runner.run();
         assert_eq!(
-            total_cost,
+            total_weight,
             // Optimal: root->a->t2 (3), root->b->c->t1 (102), root->b->t3 (102 already counted + 2 = 2)
             // But GreedyFLAC doesn't take the optimal path.
             156,
@@ -832,20 +830,20 @@ mod tests {
     fn diamond_shaped_graph() {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> top [cost=5];
-            top -> left [cost=3];
-            top -> right [cost=4];
-            left -> bottom [cost=6];
-            right -> bottom [cost=2];
-            bottom -> t1 [cost=1];
-            left -> t2 [cost=8];
-            right -> t3 [cost=7];
+            root -> top [w=5];
+            top -> left [w=3];
+            top -> right [w=4];
+            left -> bottom [w=6];
+            right -> bottom [w=2];
+            bottom -> t1 [w=1];
+            left -> t2 [w=8];
+            right -> t3 [w=7];
             }"#,
         );
 
-        let total_cost = runner.run();
+        let total_weight = runner.run();
         assert_eq!(
-            total_cost,
+            total_weight,
             30, // root->top->left->t2 (5+3+8=16) + top->right->bottom->t1 (4+2+1=7) + right->t3 (7-already have right)
             "\n{}",
             runner.debug_graph()
@@ -868,19 +866,19 @@ mod tests {
     fn linear_chain_graph() {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> n1 [cost=2];
-            n1 -> n2 [cost=3];
-            n2 -> n3 [cost=4];
-            n3 -> n4 [cost=5];
-            n4 -> t1 [cost=6];
-            n2 -> t2 [cost=10];
-            n3 -> t3 [cost=8];
+            root -> n1 [w=2];
+            n1 -> n2 [w=3];
+            n2 -> n3 [w=4];
+            n3 -> n4 [w=5];
+            n4 -> t1 [w=6];
+            n2 -> t2 [w=10];
+            n3 -> t3 [w=8];
             }"#,
         );
 
-        let total_cost = runner.run();
+        let total_weight = runner.run();
         assert_eq!(
-            total_cost,
+            total_weight,
             38, // root->n1->n2->n3->n4->t1 (2+3+4+5+6=20) + n2->t2 (10) + n3->t3 (8)
             "\n{}",
             runner.debug_graph()

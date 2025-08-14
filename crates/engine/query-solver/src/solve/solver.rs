@@ -11,7 +11,7 @@ use crate::{
         Solution,
         input::{SteinerInput, build_input_and_terminals},
         steiner_tree::SteinerTree,
-        updater::RequirementAndCostUpdater,
+        updater::RequirementAndWeightUpdater,
     },
 };
 
@@ -42,7 +42,7 @@ pub(crate) struct Solver<'schema, 'op> {
 enum State {
     Unsolved {
         flac: GreedyFlac,
-        requirements_and_cost_updater: RequirementAndCostUpdater,
+        updater: RequirementAndWeightUpdater,
     },
     #[default]
     Solved,
@@ -66,16 +66,13 @@ where
             State::Solved
         } else {
             let flac = GreedyFlac::new(&input.graph, terminals);
-            let mut requirements_and_cost_updater = RequirementAndCostUpdater::new(&input)?;
-            let update = requirements_and_cost_updater.run_fixed_point_cost(&mut input, &steiner_tree)?;
+            let mut updater = RequirementAndWeightUpdater::new(&input)?;
+            let update = updater.run_fixed_point_weight(&mut input, &steiner_tree)?;
             debug_assert!(
                 update.new_terminals.is_empty(),
-                "Fixed point cost algorithm should not return new terminals at initialization"
+                "Fixed point weight algorithm should not return new terminals at initialization"
             );
-            State::Unsolved {
-                flac,
-                requirements_and_cost_updater,
-            }
+            State::Unsolved { flac, updater }
         };
 
         let solver = Self {
@@ -101,14 +98,10 @@ where
             State::Solved => {
                 tracing::debug!("Steiner graph is already solved.");
             }
-            State::Unsolved {
-                mut flac,
-                mut requirements_and_cost_updater,
-            } => {
+            State::Unsolved { mut flac, mut updater } => {
                 loop {
                     let growth = flac.run_once(&self.input.graph, &mut self.steiner_tree);
-                    let update =
-                        requirements_and_cost_updater.run_fixed_point_cost(&mut self.input, &self.steiner_tree)?;
+                    let update = updater.run_fixed_point_weight(&mut self.input, &self.steiner_tree)?;
 
                     if !update.new_terminals.is_empty() {
                         update.new_terminals.sort_unstable();
@@ -142,8 +135,8 @@ where
                 &[Config::EdgeNoLabel, Config::NodeNoLabel],
                 &|_, edge| {
                     let is_in_steiner_tree = self.steiner_tree[edge.id()];
-                    let cost = *edge.weight();
-                    Attrs::label_if(cost > 0, cost.to_string())
+                    let weight = *edge.weight();
+                    Attrs::label_if(weight > 0, weight.to_string())
                         .bold()
                         .with_if(is_in_steiner_tree, "color=forestgreen,fontcolor=forestgreen")
                         .with_if(!is_in_steiner_tree, "color=royalblue,fontcolor=royalblue,style=dashed")
@@ -195,8 +188,8 @@ where
                 &[Config::EdgeNoLabel, Config::NodeNoLabel],
                 &|_, edge| {
                     let is_in_steiner_tree = self.steiner_tree[edge.id()];
-                    let cost = *edge.weight();
-                    format!("cost={cost}, steiner={}", is_in_steiner_tree as usize)
+                    let weight = *edge.weight();
+                    format!("cost={weight}, steiner={}", is_in_steiner_tree as usize)
                 },
                 &|_, (node_id, _)| {
                     let is_in_steiner_tree = self.steiner_tree[node_id];

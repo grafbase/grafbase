@@ -19,8 +19,6 @@ pub use query::*;
 use schema::Schema;
 pub(crate) use solution_space::*;
 
-pub(crate) type Cost = u16;
-
 pub fn solve(schema: &Schema, operation: &mut Operation) -> Result<SolvedQuery> {
     let query_solution_space = Query::generate_solution_space(schema, operation)?;
     let solution = solve::Solver::initialize(schema, operation, query_solution_space)?.solve()?;
