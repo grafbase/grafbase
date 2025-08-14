@@ -14,6 +14,10 @@ use crate::{
         InputMap, SteinerGraph, SteinerNodeId, SteinerWeight, builder::requirements::DispensableRequirementsBuilder,
     },
 };
+
+const RESOLVER_BASE_WEIGHT: u16 = 10;
+const DEPTH_WEIGHT: u16 = 1;
+
 pub(super) struct SteinerInputBuilder<'op> {
     // Useful for debugging and tracing.
     #[allow(unused)]
@@ -98,6 +102,22 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
         }
     }
 
+    // We want to favor parallel resolvers rather than sequential ones. So we increase the weight
+    // for every intermediate resolver that must be executed before the current one.
+    // let mut stack = vec![(0u16, root_node_id)];
+    // let graph = &mut builder.graph;
+    // while let Some((depth, node_id)) = stack.pop() {
+    //     let mut edges = graph.neighbors_directed(node_id, Direction::Outgoing).detach();
+    //     while let Some((edge_id, node_id)) = edges.next(graph) {
+    //         if graph[edge_id] > 0 {
+    //             graph[edge_id] += depth * DEPTH_WEIGHT;
+    //             stack.push((depth + 1, node_id));
+    //         } else {
+    //             stack.push((depth, node_id));
+    //         }
+    //     }
+    // }
+
     terminals.sort_unstable();
     terminals.dedup();
 
@@ -148,7 +168,7 @@ impl SteinerInputBuilder<'_> {
                 .graph
                 .edges_directed(space_node_id, Direction::Incoming)
                 .filter_map(|space_edge| match space_edge.weight() {
-                    SpaceEdge::CreateChildResolver => Some((space_edge, 1)),
+                    SpaceEdge::CreateChildResolver => Some((space_edge, RESOLVER_BASE_WEIGHT)),
                     SpaceEdge::CanProvide | SpaceEdge::Provides => Some((space_edge, 0)),
                     _ => None,
                 });

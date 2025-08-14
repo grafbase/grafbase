@@ -187,6 +187,7 @@ where
         }
 
         // Run the algorithm
+        tracing::trace!("FLAC:\n{}", self.debug_dot_graph());
         loop {
             let Some(edge) = self.get_next_saturating_edge() else {
                 unreachable!("Could not reach root?\n{}", self.debug_dot_graph());
@@ -233,12 +234,14 @@ where
                         }
                     }
                 }
-
+                tracing::trace!("FLAC:\n{}", self.debug_dot_graph());
                 return if self.flow.root_feeding_terminals.is_full() {
                     ControlFlow::Break(())
                 } else {
                     ControlFlow::Continue(())
                 };
+            } else {
+                tracing::trace!("FLAC:\n{}", self.debug_dot_graph());
             }
         }
     }
@@ -323,7 +326,8 @@ where
                             (*self.heap.get(&edge.id()).expect("Not in the heap?").1).into();
                         let next_saturate_time = self.time
                             + (current_saturate_time - self.time) * (old_flow_rate as Time / new_flow_rate as Time);
-                        self.heap.push_decrease(edge.id(), next_saturate_time.into());
+                        // We decrease the time, so we increase the priority.
+                        self.heap.push_increase(edge.id(), next_saturate_time.into());
                     }
                 }
                 self.flow.node_to_feeding_terminals[v.index()] = v_feeding_terminals;
@@ -412,16 +416,20 @@ where
                         (_, _, _) => "",
                     };
 
-                    let mut label = format!("${}", edge.weight());
-                    if let Some(suffix) = self.heap.iter().find_map(|(id, priority)| {
-                        if *id == edge.id() {
-                            Some(format!(" at {}", priority.0))
-                        } else {
-                            None
+                    let label = if *edge.weight() > 0 {
+                        let mut label = format!("${}", edge.weight());
+                        if let Some(priority) = self
+                            .heap
+                            .iter()
+                            .filter_map(|(id, priority)| if *id == edge.id() { Some(*priority) } else { None })
+                            .max()
+                        {
+                            label.push_str(&format!(" at {}", priority.0));
                         }
-                    }) {
-                        label.push_str(&suffix);
-                    }
+                        label
+                    } else {
+                        String::new()
+                    };
                     Attrs::label(label).with(attr).to_string()
                 },
                 &|_, (node_ix, _)| {
@@ -496,7 +504,7 @@ mod tests {
                 .elems
                 .iter()
                 .find_map(|(name, value)| {
-                    if *name == "w" {
+                    if *name == "label" {
                         value.parse::<SteinerWeight>().ok()
                     } else {
                         None
@@ -592,8 +600,8 @@ mod tests {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
             root -> a;
-            a -> t1 [w=1];
-            a -> t2 [w=2];
+            a -> t1 [label=1];
+            a -> t2 [label=2];
             }"#,
         );
 
@@ -621,7 +629,7 @@ mod tests {
     fn single_terminal_direct_path() {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> t1 [w=5];
+            root -> t1 [label=5];
             }"#,
         );
 
@@ -638,10 +646,10 @@ mod tests {
     fn multiple_terminals_shared_edges() {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> shared [w=10];
-            shared -> t1 [w=3];
-            shared -> t2 [w=5];
-            shared -> t3 [w=2];
+            root -> shared [label=10];
+            shared -> t1 [label=3];
+            shared -> t2 [label=5];
+            shared -> t3 [label=2];
             }"#,
         );
 
@@ -667,11 +675,11 @@ mod tests {
         // Graph where t1 can reach a through two paths, which would create degenerate flow
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> a [w=10];
-            a -> b [w=2];
-            a -> c [w=3];
-            b -> t1 [w=1];
-            c -> t1 [w=1];
+            root -> a [label=10];
+            a -> b [label=2];
+            a -> c [label=3];
+            b -> t1 [label=1];
+            c -> t1 [label=1];
             }"#,
         );
 
@@ -696,14 +704,14 @@ mod tests {
     fn complex_graph_multiple_paths() {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> a [w=5];
-            root -> b [w=8];
-            a -> c [w=3];
-            b -> c [w=2];
-            c -> t1 [w=4];
-            c -> t2 [w=6];
-            a -> t2 [w=10];
-            b -> t3 [w=7];
+            root -> a [label=5];
+            root -> b [label=8];
+            a -> c [label=3];
+            b -> c [label=2];
+            c -> t1 [label=4];
+            c -> t2 [label=6];
+            a -> t2 [label=10];
+            b -> t3 [label=7];
             }"#,
         );
 
@@ -733,11 +741,11 @@ mod tests {
         // Start with only t1 terminal by creating custom runner
         let (graph, nodes) = dot_graph(
             r#"digraph {
-            root -> a [w=4];
-            root -> b [w=6];
-            a -> t1 [w=2];
-            b -> t2 [w=3];
-            a -> t3 [w=5];
+            root -> a [label=4];
+            root -> b [label=6];
+            a -> t1 [label=2];
+            b -> t2 [label=3];
+            a -> t3 [label=5];
             }"#,
         );
         let steiner_tree = SteinerTree::new(&graph, nodes["root"]);
@@ -793,13 +801,13 @@ mod tests {
     fn weighted_edges_different_weights() {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> a [w=1];
-            root -> b [w=100];
-            a -> c [w=50];
-            b -> c [w=1];
-            c -> t1 [w=1];
-            a -> t2 [w=2];
-            b -> t3 [w=2];
+            root -> a [label=1];
+            root -> b [label=100];
+            a -> c [label=50];
+            b -> c [label=1];
+            c -> t1 [label=1];
+            a -> t2 [label=2];
+            b -> t3 [label=2];
             }"#,
         );
 
@@ -830,14 +838,14 @@ mod tests {
     fn diamond_shaped_graph() {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> top [w=5];
-            top -> left [w=3];
-            top -> right [w=4];
-            left -> bottom [w=6];
-            right -> bottom [w=2];
-            bottom -> t1 [w=1];
-            left -> t2 [w=8];
-            right -> t3 [w=7];
+            root -> top [label=5];
+            top -> left [label=3];
+            top -> right [label=4];
+            left -> bottom [label=6];
+            right -> bottom [label=2];
+            bottom -> t1 [label=1];
+            left -> t2 [label=8];
+            right -> t3 [label=7];
             }"#,
         );
 
@@ -866,13 +874,13 @@ mod tests {
     fn linear_chain_graph() {
         let mut runner = Runner::from_dot_graph(
             r#"digraph {
-            root -> n1 [w=2];
-            n1 -> n2 [w=3];
-            n2 -> n3 [w=4];
-            n3 -> n4 [w=5];
-            n4 -> t1 [w=6];
-            n2 -> t2 [w=10];
-            n3 -> t3 [w=8];
+            root -> n1 [label=2];
+            n1 -> n2 [label=3];
+            n2 -> n3 [label=4];
+            n3 -> n4 [label=5];
+            n4 -> t1 [label=6];
+            n2 -> t2 [label=10];
+            n3 -> t3 [label=8];
             }"#,
         );
 
@@ -893,6 +901,44 @@ mod tests {
           n3 -> t3
           n4 -> t1
           root -> n1
+        }
+        ");
+    }
+
+    #[test]
+    fn properly_decrease_saturating_time() {
+        let mut runner = Runner::from_dot_graph(
+            r#"digraph {
+            a -> t1;
+            root -> a [label=10];
+            b -> t1;
+            root -> b [label=10];
+            c -> t1;
+            root -> c [label=10];
+            c -> t2 [label=10];
+            b -> t2 [label=10];
+            a -> t2 [label=10];
+            d -> t3;
+            c -> d [label=10];
+            a -> d [label=10];
+            b -> t3;
+            }"#,
+        );
+
+        let total_weight = runner.run();
+        assert_eq!(
+            total_weight,
+            20, // root -> b (10) + b -> t2 (10)
+            "\n{}",
+            runner.debug_graph()
+        );
+
+        insta::assert_snapshot!(runner.steiner_graph(), @r"
+        digraph {
+          b -> t1
+          b -> t2
+          b -> t3
+          root -> b
         }
         ");
     }
