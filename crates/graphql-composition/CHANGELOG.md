@@ -12,6 +12,7 @@
 ### Fixes
 
 - Fixed a panic in validation for `@provides` on fields returning a built-in scalar type, like `Int`.
+- Fixed `Diagnostics::iter_warnings()` iterating over warnings instead of errors.
 
 ## 0.10.0 - 2025-07-30
 
