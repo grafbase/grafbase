@@ -1,8 +1,0 @@
----
-source: crates/engine/query-solver/src/tests/basic.rs
-assertion_line: 60
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n}\n"
----
-digraph {
-    0 [ label = "root", steiner=1 ]
-}

@@ -13,6 +13,8 @@ use crate::{
     solve::input::{InputMap, SteinerGraph, SteinerNodeId, builder::requirements::DispensableRequirementsBuilder},
 };
 pub(super) struct SteinerInputBuilder<'op> {
+    // Useful for debugging and tracing.
+    #[allow(unused)]
     pub ctx: OperationContext<'op>,
     pub graph: SteinerGraph,
     pub root_node_id: SteinerNodeId,
@@ -115,13 +117,8 @@ impl<'op> SteinerInputBuilder<'op> {
             maybe_child_edge_cost,
         }) = self.nodes_to_process_stack.pop()
         {
-            tracing::debug!("Processing node: {}", space.graph[space_node_id].label(space, self.ctx));
             // Already processed, just add the edge.
             if let Some(&existing_node_id) = self.map.space_node_id_to_node_id.get(&space_node_id) {
-                tracing::debug!(
-                    "Found existing node: {}",
-                    space.graph[self.map.node_id_to_space_node_id[existing_node_id.index()]].label(space, self.ctx)
-                );
                 if terminal_node_id.is_none() {
                     terminal_node_id = Some(existing_node_id);
                 }
@@ -142,14 +139,12 @@ impl<'op> SteinerInputBuilder<'op> {
                     _ => None,
                 });
             let Some((first_space_edge, first_edge_cost)) = space_edges.next() else {
-                tracing::debug!("Node without parent edges",);
                 unreachable!(
                     "Root node is initialized from the beginning, so should have left the loop at the beginning"
                 );
             };
 
             if let Some((second_space_edge, second_edge_cost)) = space_edges.next() {
-                tracing::debug!("Multiple edges");
                 let node_id = self.graph.add_node(());
                 self.map.node_id_to_space_node_id.push(space_node_id);
                 self.map.space_node_id_to_node_id.insert(space_node_id, node_id);
@@ -214,7 +209,6 @@ impl<'op> SteinerInputBuilder<'op> {
                         maybe_child_edge_cost,
                     });
                 } else if !requires.is_empty() || first_edge_cost > 0 {
-                    tracing::debug!("Has requirements or non-empty cost.");
                     let node_id = self.graph.add_node(());
                     self.map.node_id_to_space_node_id.push(space_node_id);
                     self.map.space_node_id_to_node_id.insert(space_node_id, node_id);
@@ -235,7 +229,6 @@ impl<'op> SteinerInputBuilder<'op> {
                         maybe_child_edge_cost: first_edge_cost,
                     });
                 } else {
-                    tracing::debug!("Single parent.");
                     // There isn't any requirement nor has this edge any cost and it's the only
                     // parent, so we can compact it with the previous node.
                     self.nodes_to_process_stack.push(NodeToProcess {

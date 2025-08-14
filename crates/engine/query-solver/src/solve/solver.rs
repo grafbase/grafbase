@@ -37,9 +37,10 @@ pub(crate) struct Solver<'schema, 'op> {
     state: SolverState,
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Default)]
 enum SolverState {
-    SteinerTreeAlgorithm {
+    Unsolved {
         flac: GreedyFlac,
         requirements_and_cost_updater: RequirementAndCostUpdater,
     },
@@ -61,7 +62,7 @@ where
 
         let steiner_tree = SteinerTree::new(&input.graph, input.root_node_id);
 
-        let algorithm = if terminals.is_empty() {
+        let state = if terminals.is_empty() {
             SolverState::Solved
         } else {
             let flac = GreedyFlac::new(&input.graph, terminals);
@@ -71,7 +72,7 @@ where
                 update.new_terminals.is_empty(),
                 "Fixed point cost algorithm should not return new terminals at initialization"
             );
-            SolverState::SteinerTreeAlgorithm {
+            SolverState::Unsolved {
                 flac,
                 requirements_and_cost_updater,
             }
@@ -81,7 +82,7 @@ where
             ctx,
             input,
             steiner_tree,
-            state: algorithm,
+            state,
         };
 
         tracing::debug!("Steiner graph populated:\n{}", solver.to_pretty_dot_graph());
@@ -100,7 +101,7 @@ where
             SolverState::Solved => {
                 tracing::debug!("Steiner graph is already solved.");
             }
-            SolverState::SteinerTreeAlgorithm {
+            SolverState::Unsolved {
                 mut flac,
                 mut requirements_and_cost_updater,
             } => {
