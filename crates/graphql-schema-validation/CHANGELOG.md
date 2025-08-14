@@ -16,6 +16,7 @@
 - Do not consider schema extensions as schema definitions for the purpose of duplicate schema definition validation.
 - Validation of the types of arguments inside directive definitions worked only for types defined before the directive definition. That would lead to incorrect validation errors about scalar or input types not existing. Validation of argument types in directive definitions now properly takes all types into account.
 - Fixed validation of directive locations on enum values — they were mistakenly treated as input value definitions.
+- Fixed typo in duplicate type validation diagnostic.
 
 ## [0.1.3] - 2024-02-06
 

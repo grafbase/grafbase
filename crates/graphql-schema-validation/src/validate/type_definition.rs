@@ -64,7 +64,7 @@ pub(crate) fn validate_type_definition<'a>(typedef: &'a Positioned<ast::TypeDefi
 
         ctx.push_error(miette::miette! {
             labels = labels,
-            r#"Duplicate definition. There can only be one typed name "{type_name}""#,
+            r#"Duplicate definition. There can only be one type name "{type_name}""#,
         });
     }
 }
