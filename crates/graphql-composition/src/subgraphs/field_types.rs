@@ -127,7 +127,7 @@ impl<'a> FieldTypeWalker<'a> {
 
 impl std::fmt::Display for FieldTypeWalker<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.id.wrapping.type_display(self.type_name().as_str()))
+        self.id.wrapping.type_display(self.type_name().as_str()).fmt(f)
     }
 }
 
