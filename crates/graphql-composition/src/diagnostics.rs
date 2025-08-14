@@ -26,7 +26,7 @@ impl Diagnostics {
     pub fn iter_warnings(&self) -> impl Iterator<Item = &str> {
         self.0
             .iter()
-            .filter(|diagnostic| !diagnostic.severity.is_warning())
+            .filter(|diagnostic| diagnostic.severity.is_warning())
             .map(|diagnostic| diagnostic.message.as_str())
     }
 
