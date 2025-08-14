@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: API SDL
+input_file: crates/graphql-composition/tests/composition/composite_schemas/post_merge_validations/invalid_field_sharing/test.md
+---
+

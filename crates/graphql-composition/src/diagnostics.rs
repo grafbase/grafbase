@@ -72,6 +72,18 @@ impl Diagnostics {
         });
     }
 
+    pub(crate) fn push_composite_schemas_post_merge_validation_error(
+        &mut self,
+        message: String,
+        error_code: CompositeSchemasPostMergeValidationErrorCode,
+    ) {
+        self.0.push(Diagnostic {
+            message,
+            severity: error_code.severity(),
+            error_code: Some(error_code.into()),
+        });
+    }
+
     pub(crate) fn push_fatal(&mut self, message: String) {
         self.0.push(Diagnostic {
             message,
@@ -145,10 +157,18 @@ impl Severity {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[non_exhaustive]
 pub enum CompositeSchemasErrorCode {
-    /// See [CompositeSchemasPreMergeValidationErrorCode]
-    PreMerge(CompositeSchemasPreMergeValidationErrorCode),
     /// See [CompositeSchemasSourceSchemaValidationErrorCode]
     SourceSchema(CompositeSchemasSourceSchemaValidationErrorCode),
+    /// See [CompositeSchemasPreMergeValidationErrorCode]
+    PreMerge(CompositeSchemasPreMergeValidationErrorCode),
+    /// See [CompositeSchemasPostMergeValidationErrorCode]
+    PostMerge(CompositeSchemasPostMergeValidationErrorCode),
+}
+
+impl From<CompositeSchemasPostMergeValidationErrorCode> for CompositeSchemasErrorCode {
+    fn from(v: CompositeSchemasPostMergeValidationErrorCode) -> Self {
+        Self::PostMerge(v)
+    }
 }
 
 impl From<CompositeSchemasSourceSchemaValidationErrorCode> for CompositeSchemasErrorCode {
@@ -160,25 +180,6 @@ impl From<CompositeSchemasSourceSchemaValidationErrorCode> for CompositeSchemasE
 impl From<CompositeSchemasPreMergeValidationErrorCode> for CompositeSchemasErrorCode {
     fn from(v: CompositeSchemasPreMergeValidationErrorCode) -> Self {
         Self::PreMerge(v)
-    }
-}
-
-/// Composite Schemas spec [pre-merge validation](https://graphql.github.io/composite-schemas-spec/draft/#sec-Pre-Merge-Validation) error codes.
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub enum CompositeSchemasPreMergeValidationErrorCode {
-    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Type-Kind-Mismatch
-    TypeKindMismatch,
-    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Override-Source-Has-Override
-    OverrideSourceHasOverride,
-}
-
-impl CompositeSchemasPreMergeValidationErrorCode {
-    fn severity(&self) -> Severity {
-        use CompositeSchemasPreMergeValidationErrorCode::*;
-
-        match self {
-            TypeKindMismatch | OverrideSourceHasOverride => Severity::Error,
-        }
     }
 }
 
@@ -202,6 +203,42 @@ impl CompositeSchemasSourceSchemaValidationErrorCode {
             QueryRootTypeInaccessible | OverrideFromSelf => Severity::Error,
 
             LookupReturnsNonNullableType => Severity::Warning,
+        }
+    }
+}
+
+/// Composite Schemas spec [pre-merge validation](https://graphql.github.io/composite-schemas-spec/draft/#sec-Pre-Merge-Validation) error codes.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CompositeSchemasPreMergeValidationErrorCode {
+    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Type-Kind-Mismatch
+    TypeKindMismatch,
+    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Override-Source-Has-Override
+    OverrideSourceHasOverride,
+}
+
+impl CompositeSchemasPreMergeValidationErrorCode {
+    fn severity(&self) -> Severity {
+        use CompositeSchemasPreMergeValidationErrorCode::*;
+
+        match self {
+            TypeKindMismatch | OverrideSourceHasOverride => Severity::Error,
+        }
+    }
+}
+
+/// Composite Schemas spec [post-merge validation](https://graphql.github.io/composite-schemas-spec/draft/#sec-Post-Merge-Validation) error codes.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CompositeSchemasPostMergeValidationErrorCode {
+    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Invalid-Field-Sharing
+    InvalidFieldSharing,
+}
+
+impl CompositeSchemasPostMergeValidationErrorCode {
+    fn severity(&self) -> Severity {
+        use CompositeSchemasPostMergeValidationErrorCode::*;
+
+        match self {
+            InvalidFieldSharing => Severity::Error,
         }
     }
 }

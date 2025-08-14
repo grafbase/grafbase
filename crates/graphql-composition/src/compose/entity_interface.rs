@@ -119,7 +119,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         .map(|field| (ctx.insert_string(field.name().id), field.name().id))
         .collect::<HashMap<_, _>>();
 
-    let fields = object::compose_fields(ctx, definitions, interface_name, false);
+    let fields = object::compose_fields(ctx, definitions, interface_name);
 
     let fields_to_add: Vec<(StringId, _)> = fields
         .into_iter()

@@ -1,0 +1,27 @@
+extend schema @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@shareable"])
+
+type Query {
+  fruits: [Fruit!]!
+}
+
+type Subscription @shareable {
+  fruitAdded: Fruit!
+}
+
+type Fruit {
+  id: ID!
+  name: String!
+  color: Color!
+  size: Size
+}
+
+type Color {
+  red: Int
+  green: Int
+  blue: Int
+}
+
+type Size {
+  width: Float!
+  height: Float!
+}

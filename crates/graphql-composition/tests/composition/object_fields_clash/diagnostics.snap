@@ -1,6 +1,6 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: Federated SDL
+expression: Diagnostics
 input_file: crates/graphql-composition/tests/composition/object_fields_clash/test.md
 ---
-- ❌ The field `name` on `Band` is defined in two subgraphs (`critics` and `label`).
+- ❌ { PostMerge(InvalidFieldSharing) } The field `Band.name` is resolved by multiple subgraphs, but not marked as `@shareable`. The field must be marked as `@shareable` in at least one of the subgraphs: critics, label

@@ -1,0 +1,28 @@
+extend schema @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@shareable", "@override"])
+
+type Query {
+  vegetable: Vegetable!
+}
+
+type Subscription {
+  "Get informed as soon as a new vegetable becomes available"
+  newVegetables(type: String!): Vegetable! @shareable
+}
+
+type Vegetable {
+  id: ID!
+  name: String!
+  size: Size!
+  color: Color!
+}
+
+type Color {
+  red: Int @shareable
+  green: Int @override(from: "shirt")
+  blue: Int
+}
+
+type Size @shareable {
+  width: Float!
+  height: Float!
+}

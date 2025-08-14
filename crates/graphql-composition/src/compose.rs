@@ -118,7 +118,7 @@ fn merge_object_definitions<'a>(
         object::validate_shareable_object_fields_match(definitions, ctx);
     }
 
-    let fields = object::compose_fields(ctx, definitions, object_name, is_shareable);
+    let fields = object::compose_fields(ctx, definitions, object_name);
     for field in fields {
         ctx.insert_field(field);
     }
