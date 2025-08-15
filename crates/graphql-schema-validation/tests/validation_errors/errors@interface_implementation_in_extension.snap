@@ -1,0 +1,6 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/interface_implementation_in_extension.graphql
+---
+  × Missing `email` field in `Supplier` (required by the `Account` interface)

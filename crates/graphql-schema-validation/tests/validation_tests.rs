@@ -1,14 +1,5 @@
 use graphql_schema_validation::Options;
-use std::{
-    fs,
-    path::Path,
-    sync::{Once, OnceLock},
-};
-
-fn update_expect() -> bool {
-    static UPDATE_EXPECT: OnceLock<bool> = OnceLock::new();
-    *UPDATE_EXPECT.get_or_init(|| std::env::var("UPDATE_EXPECT").is_ok())
-}
+use std::{fs, path::Path, sync::Once};
 
 fn init_miette() {
     static MIETTE_SETUP: Once = Once::new();
@@ -25,13 +16,13 @@ fn init_miette() {
     });
 }
 
-fn run_validation_error_test(graphql_file_path: &Path) -> datatest_stable::Result<()> {
+fn run_validation_error_test(graphql_file_path: &Path) {
     if cfg!(windows) {
-        return Ok(()); // newlines
+        return; // newlines
     }
 
     init_miette();
-    let schema = fs::read_to_string(graphql_file_path)?;
+    let schema = fs::read_to_string(graphql_file_path).unwrap();
     let diagnostics = graphql_schema_validation::validate_with_options(
         &schema,
         Options::FORBID_EXTENDING_UNKNOWN_TYPES | Options::DRAFT_VALIDATIONS,
@@ -41,52 +32,47 @@ fn run_validation_error_test(graphql_file_path: &Path) -> datatest_stable::Resul
         .map(|d| format!("{d:?}"))
         .collect::<Vec<_>>()
         .join("\n\n");
-    let snapshot_path = graphql_file_path.with_extension("errors.txt");
 
-    if update_expect() {
-        fs::write(snapshot_path, displayed)?;
-        return Ok(());
-    }
-
-    let snapshot = fs::read_to_string(snapshot_path).map_err(|_| {
-        miette::miette!(
-            "No snapshot found for {}\n\nErrors:\n\n{displayed}",
-            graphql_file_path.display()
-        )
-    })?;
-
-    if snapshot == displayed {
-        return Ok(());
-    }
-
-    Err(miette::miette! {
-        "The errors do not match the snapshot.\n\nExpected:\n{snapshot}\nGot:\n{displayed}\n\nhint: re-run the test with UPDATE_EXPECT=1 in the environment to update the snapshot"
-    }
-    .into())
+    insta::assert_snapshot!("errors", displayed);
 }
 
-fn run_valid_schema_test(graphql_file_path: &Path) -> datatest_stable::Result<()> {
-    let schema = fs::read_to_string(graphql_file_path)?;
+fn run_valid_schema_test(graphql_file_path: &Path) {
+    let schema = fs::read_to_string(graphql_file_path).unwrap();
 
     let diagnostics = graphql_schema_validation::validate_with_options(
         &schema,
         Options::FORBID_EXTENDING_UNKNOWN_TYPES | Options::DRAFT_VALIDATIONS,
     );
 
-    if diagnostics.has_errors() {
-        let displayed = diagnostics
+    assert!(
+        !diagnostics.has_errors(),
+        "Expected no errors, but got:\n{}",
+        diagnostics
             .iter()
             .map(|d| format!("{d:?}"))
             .collect::<Vec<_>>()
-            .join("\n\n");
-
-        return Err(miette::miette!("{displayed}").into());
-    }
-
-    Ok(())
+            .join("\n\n")
+    );
 }
 
-datatest_stable::harness! {
-    { test = run_validation_error_test, root = "./tests/validation_errors", pattern = r"^.*\.graphql$" },
-    { test = run_valid_schema_test, root = "./tests/valid_schemas", pattern = r"^.*\.graphql$" },
+#[test]
+fn validation_error_tests() {
+    insta::glob!("validation_errors/**/*.graphql", |graphql_file_path| {
+        let snapshot_path = graphql_file_path.parent().unwrap();
+        let test_name = graphql_file_path.file_stem().unwrap().to_str().unwrap();
+        insta::with_settings!({
+            snapshot_path => snapshot_path.to_str().unwrap(),
+            prepend_module_to_snapshot => false,
+            snapshot_suffix => test_name,
+        }, {
+            run_validation_error_test(graphql_file_path);
+        });
+    });
+}
+
+#[test]
+fn valid_schema_tests() {
+    insta::glob!("valid_schemas/**/*.graphql", |graphql_file_path| {
+        run_valid_schema_test(graphql_file_path);
+    });
 }

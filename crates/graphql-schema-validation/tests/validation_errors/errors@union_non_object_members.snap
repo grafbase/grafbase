@@ -1,0 +1,9 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/union_non_object_members.graphql
+---
+  × Cannot add non-object type Wow as member of union type AnyThing
+
+
+  × Cannot add non-object type Pew as member of union type AnyThing

@@ -1,6 +1,0 @@
-  × Syntax error:  --> 1:13
-  │   |
-  │ 1 | type Empty {}
-  │   |             ^---
-  │   |
-  │   = expected field_definition

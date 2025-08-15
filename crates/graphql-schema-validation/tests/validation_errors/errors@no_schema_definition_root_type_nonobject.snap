@@ -1,0 +1,12 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/no_schema_definition_root_type_nonobject.graphql
+---
+  × Query should be an object
+
+
+  × Mutation should be an object
+
+
+  × Subscription should be an object

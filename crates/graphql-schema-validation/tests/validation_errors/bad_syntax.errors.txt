@@ -1,6 +1,0 @@
-  × Syntax error:  --> 1:1
-  │   |
-  │ 1 | "No pos, wow"
-  │   | ^---
-  │   |
-  │   = expected type_system_definition

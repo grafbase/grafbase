@@ -1,6 +1,0 @@
-  × Syntax error:  --> 9:18
-  │   |
-  │ 9 | union AnyThing = [Test] | Wow!
-  │   |                  ^---
-  │   |
-  │   = expected name

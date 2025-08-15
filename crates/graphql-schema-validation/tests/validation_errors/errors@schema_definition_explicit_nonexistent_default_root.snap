@@ -1,0 +1,19 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/schema_definition_explicit_nonexistent_default_root.graphql
+---
+  × Cannot set schema query root to unknown type `Query`
+   ╭─[1:1]
+ 1 │ schema {
+   · ──────
+ 2 │     query: Query
+   ╰────
+
+
+  × Cannot set schema mutation root to unknown type `Mutation`
+   ╭─[1:1]
+ 1 │ schema {
+   · ──────
+ 2 │     query: Query
+   ╰────
