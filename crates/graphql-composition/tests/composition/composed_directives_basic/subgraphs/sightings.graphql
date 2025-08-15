@@ -9,7 +9,7 @@ type Bird @shareable @fieldMarks(plumage: "juvenile") @fieldMarks(plumage: "adul
   notes: String @deprecated(reason: "Use `birdSighting` field instead.")
 }
 
-type BirdSighting @key(field: "id") @deprecated(reason: "we haven't seen any birds in a while :(") {
+type BirdSighting @key(fields: "sightingID") @deprecated(reason: "we haven't seen any birds in a while :(") {
   sightingID: ID!
   bird: Bird! @pelagic
   observer: String!

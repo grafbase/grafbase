@@ -1,0 +1,9 @@
+extend schema @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@key"])
+
+type Query {
+  fruits: [Fruit!]
+}
+
+type Fruit @key(field: "id") {
+  id: ID!
+}
