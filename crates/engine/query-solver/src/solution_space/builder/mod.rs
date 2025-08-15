@@ -117,12 +117,8 @@ where
         }
 
         let query_field = SpaceNode::QueryField(QueryFieldNode { id, flags });
-        let id = self.query.graph.add_node(query_field);
-        if flags.contains(FieldFlags::LEAF_NODE) {
-            // FIXME: is this really indispensable?
-            self.query.step.indispensable_leaf_nodes.push(id);
-        }
-        id
+
+        self.query.graph.add_node(query_field)
     }
 
     fn ctx(&self) -> OperationContext<'op> {

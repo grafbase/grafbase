@@ -136,8 +136,17 @@ where
                 &|_, edge| {
                     let is_in_steiner_tree = self.steiner_tree[edge.id()];
                     let weight = *edge.weight();
-                    Attrs::label_if(weight > 0, weight.to_string())
-                        .bold()
+                    let label = if weight > 0 { format!("{weight}") } else { String::new() };
+                    // // Often useful for debugging, but makes the graph a lot harder to read.
+                    // let space_edge_id = self.input.map.edge_id_to_space_edge_id[edge.id().index()];
+                    // let (src, dst) = self.input.space.graph.edge_endpoints(space_edge_id).unwrap();
+                    // let label = format!(
+                    //     "{} {} -> {}",
+                    //     label,
+                    //     self.input.space.graph[src].label(&self.input.space, self.ctx),
+                    //     self.input.space.graph[dst].label(&self.input.space, self.ctx)
+                    // );
+                    Attrs::label(label)
                         .with_if(is_in_steiner_tree, "color=forestgreen,fontcolor=forestgreen")
                         .with_if(!is_in_steiner_tree, "color=royalblue,fontcolor=royalblue,style=dashed")
                         .to_string()

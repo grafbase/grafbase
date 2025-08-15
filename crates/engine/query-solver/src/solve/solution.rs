@@ -35,9 +35,38 @@ impl Solution<'_> {
 
         let excluded_space_edges = {
             let mut excluded = FixedBitSet::with_capacity(space.graph.edge_count());
+            let mut stack = Vec::new();
             for steiner_edge_ix in steiner_tree.edges.zeroes() {
                 let space_edge_id = steiner_input_map.edge_id_to_space_edge_id[steiner_edge_ix];
                 excluded.insert(space_edge_id.index());
+
+                let (src, dst) = space.graph.edge_endpoints(space_edge_id).unwrap();
+                stack.push(src);
+
+                // If the parent node has no other included child edges, we can remove it and check
+                // the next one.
+                while let Some(node_id) = stack.pop() {
+                    let has_any_included_outgoing_edges =
+                        space.graph.edges_directed(node_id, Direction::Outgoing).any(|edge| {
+                            matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide)
+                                && !excluded[edge.id().index()]
+                        });
+                    if has_any_included_outgoing_edges {
+                        continue;
+                    }
+                    stack.extend(
+                        space
+                            .graph
+                            .edges_directed(node_id, Direction::Incoming)
+                            .filter(|edge| {
+                                matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide)
+                            })
+                            .map(|edge| {
+                                excluded.insert(edge.id().index());
+                                edge.source()
+                            }),
+                    );
+                }
             }
             excluded
         };
@@ -70,6 +99,7 @@ impl Solution<'_> {
 
         let mut node_requires_space_node_tuples = Vec::new();
         let mut space_edges_to_remove = Vec::new();
+        // FIXME: doesn't take into account shared roots.
         let mut field_to_node = vec![root_node_id; space.fields.len()];
         while let Some((parent_node_id, space_parent_node_id, space_node_id)) = stack.pop() {
             let new_node_id = match &space.graph[space_node_id] {
@@ -82,11 +112,12 @@ impl Solution<'_> {
                     id
                 }
                 SpaceNode::ProvidableField(providable_field) => {
-                    let (field_space_node_id, &QueryFieldNode { id, flags }) = space
+                    let Some((field_space_node_id, &QueryFieldNode { id, flags })) = space
                         .graph
                         .edges_directed(space_node_id, Direction::Outgoing)
                         .find_map(|edge| {
-                            if matches!(edge.weight(), SpaceEdge::Provides) {
+                            if matches!(edge.weight(), SpaceEdge::Provides) && !excluded_space_edges[edge.id().index()]
+                            {
                                 if let SpaceNode::QueryField(field) = &space.graph[edge.target()] {
                                     Some((edge.target(), field))
                                 } else {
@@ -96,7 +127,9 @@ impl Solution<'_> {
                                 None
                             }
                         })
-                        .unwrap();
+                    else {
+                        continue;
+                    };
 
                     let field_node_id = graph.add_node(Node::Field { id, flags });
                     graph.add_edge(parent_node_id, field_node_id, Edge::Field);

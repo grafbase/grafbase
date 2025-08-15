@@ -184,8 +184,13 @@ impl RequirementAndWeightUpdater {
             self.tmp_steiner_tree.nodes.insert(dst.index());
         }
 
-        self.tmp_flac
-            .extend_terminals(input.requirements[required_node_ids].iter().copied());
+        self.tmp_flac.extend_terminals(
+            input.requirements[required_node_ids]
+                .iter()
+                .copied()
+                // FIXME: How come we have root here for sibling dependencies test?
+                .filter(|node_id| *node_id != input.root_node_id),
+        );
         self.tmp_flac.run(&input.graph, &mut self.tmp_steiner_tree);
 
         self.tmp_steiner_tree.total_weight

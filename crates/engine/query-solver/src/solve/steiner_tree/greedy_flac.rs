@@ -432,36 +432,42 @@ where
                     };
                     Attrs::label(label).with(attr).to_string()
                 },
-                &|_, (node_ix, _)| {
-                    let flow_rate = self.flow.node_to_flow_rates[node_ix.index()];
-                    let is_in_steiner_tree = self.steiner_tree.nodes[node_ix.index()];
+                &|_, (node_id, _)| {
+                    let is_terminal = self.flow.terminals.contains(&node_id);
+                    let flow_rate = self.flow.node_to_flow_rates[node_id.index()];
+                    let is_in_steiner_tree = self.steiner_tree.nodes[node_id.index()];
                     let n = self
                         .graph
-                        .edges_directed(node_ix, petgraph::Direction::Incoming)
+                        .edges_directed(node_id, petgraph::Direction::Incoming)
                         .count();
                     let all_edges_saturated = n > 0
                         && self
                             .graph
-                            .edges_directed(node_ix, petgraph::Direction::Incoming)
+                            .edges_directed(node_id, petgraph::Direction::Incoming)
                             .all(|edge| self.flow.saturated_edges[edge.id().index()]);
                     let all_edges_saturated_or_marked = n > 0
                         && self
                             .graph
-                            .edges_directed(node_ix, petgraph::Direction::Incoming)
+                            .edges_directed(node_id, petgraph::Direction::Incoming)
                             .all(|edge| self.flow.marked_or_saturated_edges[edge.id().index()]);
-                    let attr = match (is_in_steiner_tree, all_edges_saturated, all_edges_saturated_or_marked) {
-                        (true, _, _) => "color=forestgreen",
-                        (_, true, true) => "color=royalblue",
-                        (_, false, true) => "color=royalblue,style=dashed",
-                        (_, _, _) => "",
+                    let style = if is_in_steiner_tree {
+                        "color=forestgreen"
+                    } else if all_edges_saturated {
+                        "color=royalblue"
+                    } else if all_edges_saturated_or_marked {
+                        "color=royalblue,style=dashed"
+                    } else {
+                        ""
                     };
+                    let shape = if is_terminal { "shape=polygon" } else { "" };
                     Attrs::label(format!(
                         "<{:?} {}&#128167;<br/>{:b}>",
-                        &self.graph[node_ix],
+                        &self.graph[node_id],
                         flow_rate,
-                        &self.flow.node_to_feeding_terminals[node_ix.index()],
+                        &self.flow.node_to_feeding_terminals[node_id.index()],
                     ))
-                    .with(attr)
+                    .with(style)
+                    .with(shape)
                     .to_string()
                 }
             )
