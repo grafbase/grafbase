@@ -281,6 +281,7 @@ pub(super) fn ingest_directives(
             }
 
             DirectiveNameMatch::ComposeDirective
+            | DirectiveNameMatch::Extends
             | DirectiveNameMatch::Key
             | DirectiveNameMatch::KeyFromCompositeSchemas
             | DirectiveNameMatch::Link

@@ -1,0 +1,8 @@
+type Query {
+  furbies: [Furby!]!
+}
+
+type Furby @key(field: "id") {
+  id: ID!
+  name: String!
+}
