@@ -1,0 +1,27 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/unknown_type_in_schema_def.graphql
+---
+  × Cannot set schema query root to unknown type `Dunno`
+   ╭─[1:1]
+ 1 │ schema {
+   · ──────
+ 2 │     query: Dunno
+   ╰────
+
+
+  × Cannot set schema mutation root to unknown type `WhatdoIknow`
+   ╭─[1:1]
+ 1 │ schema {
+   · ──────
+ 2 │     query: Dunno
+   ╰────
+
+
+  × Cannot set schema subscription root to unknown type `ToWhat`
+   ╭─[1:1]
+ 1 │ schema {
+   · ──────
+ 2 │     query: Dunno
+   ╰────

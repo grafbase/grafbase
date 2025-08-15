@@ -1,0 +1,15 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/input_object_cycles.graphql
+---
+  × Cannot reference Input Object A within itself through a series of non-null fields: "otherA"
+
+
+  × Cannot reference Input Object Transitively within itself through a series of non-null fields: "other.second.back"
+
+
+  × Cannot reference Input Object Intermediate1 within itself through a series of non-null fields: "second.back.other"
+
+
+  × Cannot reference Input Object Intermediate2 within itself through a series of non-null fields: "back.other.second"

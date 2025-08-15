@@ -1,0 +1,11 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/union_required_member.graphql
+---
+  × Syntax error:  --> 9:28
+  │   |
+  │ 9 | union AnyThing = Test | Wow!
+  │   |                            ^---
+  │   |
+  │   = expected EOI or type_system_definition

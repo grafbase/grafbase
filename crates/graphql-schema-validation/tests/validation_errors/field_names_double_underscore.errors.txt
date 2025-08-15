@@ -1,8 +1,0 @@
-  × Field name "Stuff.__things" must not begin with "__", which is reserved by GraphQL introspection.
-   ╭─[3:3]
- 2 │   id: ID!
- 3 │   __things: Illegal
-   ·   ────┬───
-   ·       ╰── here
- 4 │ }
-   ╰────

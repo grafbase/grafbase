@@ -1,0 +1,15 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/object_implements_nonexisting_interface.graphql
+---
+  × "Test cannot implement unknown type "AND".
+
+
+  × Type "Test2" can only implement "B" once.
+
+
+  × Type "Test2" can only implement "A" once.
+
+
+  × "Test3" cannot implement non-interface type "Test".

@@ -1,0 +1,6 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/extend_unknown_enum.graphql
+---
+  × Cannot extend unknown enum Color

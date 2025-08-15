@@ -1,0 +1,6 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/input_type_in_output_position.graphql
+---
+  × The type of "Test.options" must be an output type, but got "Options", an input object.

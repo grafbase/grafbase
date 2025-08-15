@@ -1,0 +1,6 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/interface_in_schema_definition.graphql
+---
+  × Query root type must be an Object type, it cannot be set to Test

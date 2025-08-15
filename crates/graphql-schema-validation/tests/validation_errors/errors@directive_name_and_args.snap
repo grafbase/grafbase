@@ -1,0 +1,9 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/directive_name_and_args.graphql
+---
+  × Directive names must not start with "__"
+
+
+  × The type of "@myDirective(firstArg:)" must be an input type, but got "Test", an output type.

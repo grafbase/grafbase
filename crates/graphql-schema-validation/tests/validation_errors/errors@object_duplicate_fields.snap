@@ -1,0 +1,12 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/object_duplicate_fields.graphql
+---
+  × Duplicate field b already exists on Test
+
+
+  × Duplicate field a already exists on Test
+
+
+  × Duplicate field c already exists on Test

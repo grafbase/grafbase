@@ -1,6 +1,0 @@
-  × Syntax error:  --> 1:18
-  │   |
-  │ 1 | input AlsoEmpty {}
-  │   |                  ^---
-  │   |
-  │   = expected input_value_definition

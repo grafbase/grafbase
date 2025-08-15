@@ -1,0 +1,6 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/object_field_arguments_take_input_types.graphql
+---
+  × The type of "Query.doSomething(arg:)" must be an input type, but got "Shuchu", an output type.

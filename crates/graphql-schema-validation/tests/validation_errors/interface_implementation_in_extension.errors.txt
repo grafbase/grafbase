@@ -1,1 +1,0 @@
-  × Missing `email` field in `Supplier` (required by the `Account` interface)

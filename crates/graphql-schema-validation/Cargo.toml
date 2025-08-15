@@ -18,10 +18,5 @@ grafbase-workspace-hack.workspace = true
 miette.workspace = true
 
 [dev-dependencies]
-datatest-stable.workspace = true
+insta.workspace = true
 miette = { workspace = true, features = ["fancy"] }
-similar.workspace = true
-
-[[test]]
-name = "validation_tests"
-harness = false

@@ -4437,10 +4437,9 @@ dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
  "bitflags 2.9.1",
- "datatest-stable",
  "grafbase-workspace-hack",
+ "insta",
  "miette",
- "similar",
 ]
 
 [[package]]
