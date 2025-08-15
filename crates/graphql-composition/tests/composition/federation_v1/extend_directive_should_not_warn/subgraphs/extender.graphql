@@ -2,7 +2,7 @@ type Query {
   furby(id: ID!): Furby!
 }
 
-type Furby @key(field: "id") @extends {
+type Furby @key(fields: "id") @extends {
   id: ID!
   coat: String!
 }
