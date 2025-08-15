@@ -230,7 +230,7 @@ fn ingest_definition_bodies(ctx: &mut Context<'_>) {
                         ctx.subgraphs.push_ingestion_diagnostic(
                             subgraph_id,
                             format!(
-                                "Interface `{}` implementeds `{}`, but `{}` is not defined in the subgraph.",
+                                "Interface `{}` implements `{}`, but `{}` is not defined in the subgraph.",
                                 interface.name(),
                                 implemented_interface,
                                 implemented_interface
