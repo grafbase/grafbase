@@ -1,0 +1,36 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.3"
+    import: ["@key", "@external", "@requires", "@provides", "@shareable"]
+  )
+
+type Query {
+  t46: Type46
+}
+
+interface Interface58 {
+  fiftyEight: String!
+}
+
+interface Interface104 {
+  twentySeven(arg6: String!): Int
+}
+
+interface Interface13 implements Interface58 & Interface104 @key(fields: "id") {
+  id: ID!
+  fiftyEight: String!
+  twentySeven(arg6: String!): Int
+  field2920: [Int!]
+  field2713: Boolean
+  field2919: Boolean
+}
+
+type Type46 implements Interface58 & Interface104 & Interface13 @key(fields: "id") {
+  id: ID!
+  fiftyEight: String!
+  twentySeven(arg6: String!): Int
+  field2920: [Int!]
+  field2713: Boolean
+  field2919: Boolean
+  field2712: String
+}

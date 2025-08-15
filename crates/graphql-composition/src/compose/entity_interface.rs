@@ -9,7 +9,16 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 ) {
     let interface_name = first.name();
 
-    let interface_defs = || definitions.iter().filter(|def| def.kind() == DefinitionKind::Interface);
+    let interface_defs = || {
+        definitions.iter().filter(|def| {
+            def.kind() == DefinitionKind::Interface
+                && ctx
+                    .subgraphs
+                    .at(ctx.subgraphs[def.id].subgraph_id)
+                    .federation_spec
+                    .is_apollo_v2()
+        })
+    };
     let mut interfaces = interface_defs();
 
     let Some(interface_def) = interfaces.next() else {
