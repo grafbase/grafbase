@@ -16,8 +16,8 @@ fn greedy_flac_steinlib_gene() {
     for gene in loader::load_gene_dataset() {
         let start = Instant::now();
 
-        let mut steiner_tree = SteinerTree::new(&gene.graph, gene.root);
-        let mut greddy_flac = GreedyFlac::new(&gene.graph, gene.terminals.clone());
+        let mut steiner_tree = SteinerTree::new(&gene.graph, gene.root, gene.terminals.clone());
+        let mut greddy_flac = GreedyFlac::new(&gene.graph);
         let prepare_duration = start.elapsed();
 
         let start = Instant::now();

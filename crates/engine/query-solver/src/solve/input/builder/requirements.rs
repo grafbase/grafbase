@@ -22,6 +22,7 @@ pub(crate) struct DispensableRequirementsBuilder {
     interner: hashbrown::HashTable<IdRange<RequiredSpaceNodeId>>,
     #[indexed_by(RequiredSpaceNodeId)]
     required_space_nodes: Vec<SpaceNodeId>,
+    space_node_ids_buffer: Vec<SpaceNodeId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
@@ -73,6 +74,7 @@ impl DispensableRequirementsBuilder {
             hasher: FxBuildHasher::default(),
             interner: hashbrown::HashTable::with_capacity(n),
             required_space_nodes: Vec::with_capacity(n),
+            space_node_ids_buffer: Vec::new(),
         }
     }
 
@@ -82,7 +84,7 @@ impl DispensableRequirementsBuilder {
         space_node_id: SpaceNodeId,
     ) -> DetectedRequirements<'s> {
         // Retrieve all the node ids on which we depend.
-        let ids = self.extend_extra_required_nodes(
+        let ids = self.extend_extra_required_space_nodes(
             space_graph
                 .edges_directed(space_node_id, Direction::Outgoing)
                 .filter(|edge| {
@@ -191,18 +193,9 @@ impl DispensableRequirementsBuilder {
             unavoidable_parent_edges: Vec::with_capacity(self.dispensable.len()),
             dependent_edges_with_inherent_weight: Vec::with_capacity(self.dispensable.len()),
         };
-        let mut required_node_ids_buffer = Vec::new();
 
         for (node_id, required_space_node_ids) in std::mem::take(&mut self.free) {
-            required_node_ids_buffer.extend(
-                self[required_space_node_ids]
-                    .iter()
-                    .map(|id| builder.map.space_node_id_to_node_id[id.index()]),
-            );
-            required_node_ids_buffer.sort_unstable();
-            required_node_ids_buffer.dedup();
-
-            let required_node_ids = out.append_extra_required_nodes(&mut required_node_ids_buffer);
+            let required_node_ids = self.append_extra_required_nodes_to(builder, required_space_node_ids, &mut out);
             if !required_node_ids.is_empty() {
                 out.free.push((node_id, required_node_ids));
             }
@@ -218,15 +211,7 @@ impl DispensableRequirementsBuilder {
             .chunk_by(|item| (item.dependent_space_edge_source, item.required_space_node_ids))
             .into_iter()
         {
-            required_node_ids_buffer.extend(
-                self[required_space_node_ids]
-                    .iter()
-                    .map(|id| builder.map.space_node_id_to_node_id[id.index()]),
-            );
-            required_node_ids_buffer.sort_unstable();
-            required_node_ids_buffer.dedup();
-
-            let required_node_ids = out.append_extra_required_nodes(&mut required_node_ids_buffer);
+            let required_node_ids = self.append_extra_required_nodes_to(builder, required_space_node_ids, &mut out);
             if required_node_ids.is_empty() {
                 continue;
             }
@@ -279,7 +264,7 @@ impl DispensableRequirementsBuilder {
         out
     }
 
-    fn extend_extra_required_nodes(
+    fn extend_extra_required_space_nodes(
         &mut self,
         nodes: impl IntoIterator<Item = SpaceNodeId>,
     ) -> IdRange<RequiredSpaceNodeId> {
@@ -287,15 +272,30 @@ impl DispensableRequirementsBuilder {
         self.required_space_nodes.extend(nodes);
         IdRange::from(start..self.required_space_nodes.len())
     }
+
+    fn append_extra_required_nodes_to(
+        &mut self,
+        builder: &SteinerInputBuilder<'_, '_, '_>,
+        required_space_node_ids: IdRange<RequiredSpaceNodeId>,
+        out: &mut DispensableRequirements,
+    ) -> IdRange<RequiredSteinerNodeId> {
+        debug_assert!(self.space_node_ids_buffer.is_empty());
+        let buffer = &mut self.space_node_ids_buffer;
+        buffer.extend(
+            self.required_space_nodes[required_space_node_ids.as_usize()]
+                .iter()
+                .map(|id| builder.map.space_node_id_to_node_id[id.index()]),
+        );
+        buffer.sort_unstable();
+        buffer.dedup();
+
+        let start = out.required_nodes.len();
+        out.required_nodes.append(buffer);
+        IdRange::from(start..out.required_nodes.len())
+    }
 }
 
 impl DispensableRequirements {
-    fn append_extra_required_nodes(&mut self, nodes: &mut Vec<SteinerNodeId>) -> IdRange<RequiredSteinerNodeId> {
-        let start = self.required_nodes.len();
-        self.required_nodes.append(nodes);
-        IdRange::from(start..self.required_nodes.len())
-    }
-
     fn extend_unavoidable_parent_edges(
         &mut self,
         edges: impl IntoIterator<Item = SteinerEdgeId>,

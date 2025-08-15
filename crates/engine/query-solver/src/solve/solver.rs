@@ -58,14 +58,12 @@ where
         query_solution_space: QuerySolutionSpace<'schema>,
     ) -> crate::Result<Self> {
         let ctx = OperationContext { schema, operation };
-        let (mut input, terminals) = build_input_and_terminals(ctx, query_solution_space)?;
+        let (mut input, steiner_tree) = build_input_and_terminals(ctx, query_solution_space)?;
 
-        let steiner_tree = SteinerTree::new(&input.graph, input.root_node_id);
-
-        let state = if terminals.is_empty() {
+        let state = if steiner_tree.terminals.is_empty() {
             State::Solved
         } else {
-            let flac = GreedyFlac::new(&input.graph, terminals);
+            let flac = GreedyFlac::new(&input.graph);
             let mut updater = RequirementAndWeightUpdater::new(&input)?;
             let update = updater.run_fixed_point_weight(&mut input, &steiner_tree)?;
             debug_assert!(
@@ -103,10 +101,12 @@ where
                     let growth = flac.run_once(&self.input.graph, &mut self.steiner_tree);
                     let update = updater.run_fixed_point_weight(&mut self.input, &self.steiner_tree)?;
 
-                    if !update.new_terminals.is_empty() {
-                        update.new_terminals.sort_unstable();
-                        flac.extend_terminals(update.new_terminals.drain(..).dedup());
-                    } else if growth.is_break() {
+                    if self
+                        .steiner_tree
+                        .extend_terminals(update.new_terminals.drain(..))
+                        .is_break()
+                        && growth.is_break()
+                    {
                         break;
                     }
 
@@ -159,11 +159,7 @@ where
                         .edges_directed(node_id, petgraph::Direction::Outgoing)
                         .count()
                         == 0;
-                    let is_terminal = if let State::Unsolved { flac, .. } = &self.state {
-                        flac.terminals().contains(&node_id)
-                    } else {
-                        false
-                    };
+                    let is_terminal = self.steiner_tree.terminals.contains(&node_id);
                     let space_node_id = self.input.to_space_node_id(node_id);
                     let weight = self.input.space.graph.node_weight(space_node_id).unwrap();
                     let attrs = Attrs::label(weight.label(&self.input.space, self.ctx));

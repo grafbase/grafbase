@@ -33,6 +33,13 @@ impl Solution<'_> {
         let mut graph = Graph::with_capacity(n, n);
         let root_node_id = graph.add_node(Node::Root);
 
+        // let included_space_edges = {
+        //     let included = FixedBitSet::with_capacity(space.graph.edge_count());
+        //     let mut stack = steiner_tree.terminals.into_iter().map(|node_id| steiner_input_map.node_id_to_space_node_id[node_id]).collect::<Vec<_>>();
+        //
+        //
+        // };
+
         let excluded_space_edges = {
             let mut excluded = FixedBitSet::with_capacity(space.graph.edge_count());
             let mut stack = Vec::new();
@@ -40,7 +47,7 @@ impl Solution<'_> {
                 let space_edge_id = steiner_input_map.edge_id_to_space_edge_id[steiner_edge_ix];
                 excluded.insert(space_edge_id.index());
 
-                let (src, dst) = space.graph.edge_endpoints(space_edge_id).unwrap();
+                let (src, _) = space.graph.edge_endpoints(space_edge_id).unwrap();
                 stack.push(src);
 
                 // If the parent node has no other included child edges, we can remove it and check

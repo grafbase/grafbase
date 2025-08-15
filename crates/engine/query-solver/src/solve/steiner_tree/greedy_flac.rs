@@ -50,7 +50,6 @@ struct Flow {
     root_feeding_terminals: FixedBitSet,
     node_to_feeding_terminals: Vec<FixedBitSet>,
     node_to_flow_rates: Vec<FlowRate>,
-    terminals: Vec<NodeIndex>,
 }
 
 pub(crate) struct GreedyFlac {
@@ -62,7 +61,7 @@ pub(crate) struct GreedyFlac {
 }
 
 impl GreedyFlac {
-    pub fn new<N>(graph: &Graph<N, SteinerWeight>, terminals: Vec<NodeIndex>) -> Self {
+    pub fn new<N>(graph: &Graph<N, SteinerWeight>) -> Self {
         Self {
             flow: Flow {
                 saturated_edges: FixedBitSet::with_capacity(graph.edge_count()),
@@ -70,20 +69,11 @@ impl GreedyFlac {
                 root_feeding_terminals: FixedBitSet::new(),
                 node_to_feeding_terminals: vec![FixedBitSet::new(); graph.node_bound()],
                 node_to_flow_rates: vec![0; graph.node_bound()],
-                terminals,
             },
             time: 0.0,
             heap: PriorityQueue::default(),
             stack: Vec::new(),
         }
-    }
-
-    pub fn extend_terminals(&mut self, terminals: impl IntoIterator<Item = NodeIndex>) {
-        self.flow.terminals.extend(terminals);
-    }
-
-    pub fn terminals(&self) -> &[NodeIndex] {
-        &self.flow.terminals
     }
 
     pub fn run_once<N>(&mut self, graph: &Graph<N, SteinerWeight>, steiner_tree: &mut SteinerTree) -> ControlFlow<()>
@@ -114,9 +104,8 @@ impl GreedyFlac {
         }
     }
 
-    pub fn reset_terminals(&mut self) {
+    pub fn reset(&mut self) {
         self.flow.root_feeding_terminals.clear();
-        self.flow.terminals.clear();
     }
 }
 
@@ -144,46 +133,9 @@ where
     N: std::fmt::Debug,
 {
     fn run(&mut self) -> ControlFlow<()> {
-        if self.flow.terminals.is_empty() {
+        if !self.initialize_terminals() {
             // No terminals to process, nothing to do
             return ControlFlow::Break(());
-        }
-        self.time = 0.0;
-        self.heap.clear();
-        self.flow.saturated_edges.clear();
-        self.flow.marked_or_saturated_edges.clear();
-        self.flow
-            .node_to_feeding_terminals
-            .iter_mut()
-            .for_each(|set| set.clear());
-        self.flow.node_to_flow_rates.fill(0);
-
-        // Prepare the initial state
-        debug_assert!(
-            !self.steiner_tree.nodes.is_empty(),
-            "Root must be part of the steiner tree."
-        );
-        debug_assert!(self.stack.is_empty());
-
-        // Initialize the state with the current terminals. New ones may have been added since the
-        // last run.
-        let n_terminals = self.state.flow.terminals.len();
-        self.state.flow.root_feeding_terminals.grow(n_terminals);
-        // Can happen if we extend the terminals with nodes that are already part of the steiner
-        // tree.
-        if self.flow.root_feeding_terminals.is_full() {
-            return ControlFlow::Break(());
-        }
-        for ix in self.state.flow.root_feeding_terminals.zeroes() {
-            let terminal = self.state.flow.terminals[ix];
-            if let Some(edge) = self.find_next_edge_in_T_minus(terminal) {
-                let saturate_time = self.time + *edge.weight() as Time;
-                self.state.heap.push(edge.id(), saturate_time.into());
-                let feeding = &mut self.state.flow.node_to_feeding_terminals[terminal.index()];
-                feeding.grow(n_terminals);
-                feeding.insert(ix);
-                self.state.flow.node_to_flow_rates[terminal.index()] = 1;
-            }
         }
 
         // Run the algorithm
@@ -204,7 +156,7 @@ where
                 debug_assert!(
                     (new_feeding_terminals & (&self.flow.root_feeding_terminals)).is_clear(),
                     "New feeding terminals weren't distinct from the current ones. This means older ones were still flowing.\n{}\n{:b}\n{:b}\n{}",
-                    self.flow
+                    self.steiner_tree
                         .terminals
                         .iter()
                         .map(|idx| &self.graph[*idx])
@@ -235,15 +187,55 @@ where
                     }
                 }
                 tracing::trace!("FLAC:\n{}", self.debug_dot_graph());
-                return if self.flow.root_feeding_terminals.is_full() {
-                    ControlFlow::Break(())
-                } else {
-                    ControlFlow::Continue(())
-                };
+                break;
             } else {
                 tracing::trace!("FLAC:\n{}", self.debug_dot_graph());
             }
         }
+        if self.flow.root_feeding_terminals.is_full() {
+            ControlFlow::Break(())
+        } else {
+            ControlFlow::Continue(())
+        }
+    }
+
+    fn initialize_terminals(&mut self) -> bool {
+        self.time = 0.0;
+        self.heap.clear();
+        self.flow.saturated_edges.clear();
+        self.flow.marked_or_saturated_edges.clear();
+        self.flow
+            .node_to_feeding_terminals
+            .iter_mut()
+            .for_each(|set| set.clear());
+        self.flow.node_to_flow_rates.fill(0);
+
+        // Prepare the initial state
+        debug_assert!(
+            !self.steiner_tree.nodes.is_empty(),
+            "Root must be part of the steiner tree."
+        );
+        debug_assert!(self.stack.is_empty());
+
+        // Initialize the state with the current terminals. New ones may have been added since the
+        // last run.
+        let n_terminals = self.steiner_tree.terminals.len();
+        self.state.flow.root_feeding_terminals.grow(n_terminals);
+        let mut has_one_terminal = false;
+        for ix in self.state.flow.root_feeding_terminals.zeroes() {
+            let terminal = self.steiner_tree.terminals[ix];
+            has_one_terminal = true;
+            if let Some(edge) = self.find_next_edge_in_T_minus(terminal) {
+                let saturate_time = self.time + *edge.weight() as Time;
+                self.state.heap.push(edge.id(), saturate_time.into());
+                let feeding = &mut self.state.flow.node_to_feeding_terminals[terminal.index()];
+                feeding.grow(n_terminals);
+                feeding.insert(ix);
+                self.state.flow.node_to_flow_rates[terminal.index()] = 1;
+            }
+        }
+
+        has_one_terminal
     }
 
     fn get_next_saturating_edge(&mut self) -> Option<EdgeIndex> {
@@ -433,7 +425,7 @@ where
                     Attrs::label(label).with(attr).to_string()
                 },
                 &|_, (node_id, _)| {
-                    let is_terminal = self.flow.terminals.contains(&node_id);
+                    let is_terminal = self.steiner_tree.terminals.contains(&node_id);
                     let flow_rate = self.flow.node_to_flow_rates[node_id.index()];
                     let is_in_steiner_tree = self.steiner_tree.nodes[node_id.index()];
                     let n = self
@@ -459,10 +451,16 @@ where
                     } else {
                         ""
                     };
-                    let shape = if is_terminal { "shape=polygon" } else { "" };
+                    let shape = if is_terminal { "shape=rectangle" } else { "" };
+                    let mut label = format!("{:?}", &self.graph[node_id]);
+                    if label == "()" {
+                        label.clear();
+                    } else {
+                        label.push(' ');
+                    }
                     Attrs::label(format!(
-                        "<{:?} {}&#128167;<br/>{:b}>",
-                        &self.graph[node_id],
+                        "<{}{}&#128167;<br/>{:b}>",
+                        label,
                         flow_rate,
                         &self.flow.node_to_feeding_terminals[node_id.index()],
                     ))
@@ -551,7 +549,6 @@ mod tests {
     impl Runner {
         fn from_dot_graph(dot: &'static str) -> Self {
             let (graph, nodes) = dot_graph(dot);
-            let steiner_tree = SteinerTree::new(&graph, nodes["root"]);
             // Collect terminals: nodes starting with 't' (t1, t2, terminal, etc.) but not "top"
             let terminals = nodes
                 .iter()
@@ -564,7 +561,8 @@ mod tests {
                     }
                 })
                 .collect();
-            let greedy_flac = GreedyFlac::new(&graph, terminals);
+            let steiner_tree = SteinerTree::new(&graph, nodes["root"], terminals);
+            let greedy_flac = GreedyFlac::new(&graph);
             Self {
                 graph,
                 nodes,
@@ -596,8 +594,9 @@ mod tests {
         }
 
         fn extend_terminals(&mut self, terminal_names: &[&str]) {
-            let terminals: Vec<NodeIndex> = terminal_names.iter().map(|name| self.nodes[*name]).collect();
-            self.greedy_flac.extend_terminals(terminals);
+            let _ = self
+                .steiner_tree
+                .extend_terminals(terminal_names.iter().map(|name| self.nodes[*name]));
         }
     }
 
@@ -754,8 +753,8 @@ mod tests {
             a -> t3 [label=5];
             }"#,
         );
-        let steiner_tree = SteinerTree::new(&graph, nodes["root"]);
-        let greedy_flac = GreedyFlac::new(&graph, vec![nodes["t1"]]);
+        let steiner_tree = SteinerTree::new(&graph, nodes["root"], vec![nodes["t1"]]);
+        let greedy_flac = GreedyFlac::new(&graph);
         let mut runner = Runner {
             graph,
             nodes,
@@ -929,6 +928,129 @@ mod tests {
             a -> d [label=10];
             b -> t3;
             }"#,
+        );
+
+        let total_weight = runner.run();
+        assert_eq!(
+            total_weight,
+            20, // root -> b (10) + b -> t2 (10)
+            "\n{}",
+            runner.debug_graph()
+        );
+
+        insta::assert_snapshot!(runner.steiner_graph(), @r"
+        digraph {
+          b -> t1
+          b -> t2
+          b -> t3
+          root -> b
+        }
+        ");
+    }
+
+    #[test]
+    fn bench1_case() {
+        let mut runner = Runner::from_dot_graph(
+            r#"
+            digraph {
+            root;
+            a -> t1;
+            b -> a [label=10];
+            c -> b [label=10];
+            d -> c [label=10];
+            root -> d [label=10];
+            e -> c [label=10];
+            root -> e [label=10];
+            d -> b [label=10];
+            f -> b [label=10];
+            e -> f [label=10];
+            g -> f [label=10];
+            root -> g [label=10];
+            g -> b [label=10];
+            h -> t1;
+            b -> h [label=10];
+            c -> h [label=10];
+            i -> h [label=10];
+            d -> i [label=10];
+            f -> i [label=10];
+            g -> h [label=10];
+            c -> t1;
+            i -> t1;
+            g -> t1;
+            b -> t2;
+            h -> t2;
+            j -> t2;
+            c -> j [label=10];
+            i -> j [label=10];
+            g -> j [label=10];
+            k -> t3;
+            l -> k [label=10];
+            c -> l [label=10];
+            g -> l [label=10];
+            b -> k [label=10];
+            d -> k [label=10];
+            f -> k [label=10];
+            m -> t3;
+            l -> m [label=10];
+            d -> m [label=10];
+            f -> m [label=10];
+            b -> t3;
+            l -> t4;
+            k -> t4;
+            n -> t4;
+            b -> n [label=10];
+            d -> t4;
+            f -> t4;
+            o -> t5;
+            p -> o [label=10];
+            d -> p [label=10];
+            g -> p [label=10];
+            d -> o [label=10];
+            f -> o [label=10];
+            e -> o [label=10];
+            q -> t5;
+            o -> q [label=10];
+            p -> q [label=10];
+            r -> q [label=10];
+            d -> r [label=10];
+            f -> r [label=10];
+            e -> q [label=10];
+            s -> t5;
+            p -> s [label=10];
+            r -> s [label=10];
+            e -> s [label=10];
+            t -> t6;
+            o -> t [label=10];
+            q -> t6;
+            p -> t6;
+            r -> t6;
+            e -> t6;
+            u -> t7;
+            v -> u [label=10];
+            p -> v [label=10];
+            e -> v [label=10];
+            p -> u [label=10];
+            r -> u [label=10];
+            d -> u [label=10];
+            f -> u [label=10];
+            e -> u [label=10];
+            w -> t7;
+            v -> w [label=10];
+            d -> w [label=10];
+            f -> w [label=10];
+            p -> t7;
+            r -> t7;
+            e -> t7;
+            v -> t8;
+            u -> t8;
+            x -> t8;
+            p -> x [label=10];
+            r -> x [label=10];
+            e -> x [label=10];
+            d -> t8;
+            f -> t8;
+            }
+            "#,
         );
 
         let total_weight = runner.run();

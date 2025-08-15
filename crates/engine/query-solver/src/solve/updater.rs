@@ -21,8 +21,8 @@ impl RequirementAndWeightUpdater {
         Ok(Self {
             independent_requirements: None,
             tmp_extra_terminals: Vec::new(),
-            tmp_steiner_tree: SteinerTree::new(&input.graph, input.root_node_id),
-            tmp_flac: GreedyFlac::new(&input.graph, Vec::new()),
+            tmp_steiner_tree: SteinerTree::new(&input.graph, input.root_node_id, Vec::new()),
+            tmp_flac: GreedyFlac::new(&input.graph),
         })
     }
 
@@ -97,19 +97,20 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_> {
         })
     }
 
+    fn extend_terminals(&mut self, required_node_ids: IdRange<RequiredSteinerNodeId>) {
+        self.state
+            .tmp_extra_terminals
+            .extend(self.input.requirements[required_node_ids].iter().copied());
+    }
+
     /// For all edges with dispensable requirements, we estimate the weight of the extra requirements
     /// by computing weight of adding them to the current Steiner tree plus the base weight of the
     /// edge.
     fn generate_weight_updates_based_on_requirements(&mut self) {
         let mut i = 0;
-        while let Some((node_id, extra_required_node_ids)) = self.input.requirements.free.get(i).copied() {
+        while let Some((node_id, required_node_ids)) = self.input.requirements.free.get(i).copied() {
             if self.steiner_tree[node_id] {
-                self.state.tmp_extra_terminals.extend(
-                    self.input.requirements[extra_required_node_ids]
-                        .iter()
-                        .copied()
-                        .filter(|&n| !self.steiner_tree[n]),
-                );
+                self.extend_terminals(required_node_ids);
                 self.input.requirements.free.swap_remove(i);
             } else {
                 i += 1;
@@ -136,12 +137,7 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_> {
                         self.has_updated_weights |= old != inherent_weight;
                     }
                 }
-                self.state.tmp_extra_terminals.extend(
-                    self.input.requirements[required_node_ids]
-                        .iter()
-                        .copied()
-                        .filter(|&n| !self.steiner_tree[n]),
-                );
+                self.extend_terminals(required_node_ids);
                 self.input.requirements.groups.swap_remove(i);
                 continue;
             }
@@ -173,10 +169,10 @@ impl RequirementAndWeightUpdater {
         unavoidable_parent_edge_ids: IdRange<UnavoidableParentSteinerEdgeId>,
         required_node_ids: IdRange<RequiredSteinerNodeId>,
     ) -> SteinerWeight {
-        self.tmp_flac.reset_terminals();
-        self.tmp_steiner_tree.nodes.clone_from(&steiner_tree.nodes);
-        self.tmp_steiner_tree.edges.clone_from(&steiner_tree.edges);
-        self.tmp_steiner_tree.total_weight = 0;
+        self.tmp_flac.reset();
+        // TODO: could avoid cloning so much if a single FLAC run is enough.
+        self.tmp_steiner_tree
+            .clone_from_with_new_terminals(steiner_tree, input.requirements[required_node_ids].iter().copied());
 
         for &edge_id in &input.requirements[unavoidable_parent_edge_ids] {
             self.tmp_steiner_tree.edges.insert(edge_id.index());
@@ -184,13 +180,6 @@ impl RequirementAndWeightUpdater {
             self.tmp_steiner_tree.nodes.insert(dst.index());
         }
 
-        self.tmp_flac.extend_terminals(
-            input.requirements[required_node_ids]
-                .iter()
-                .copied()
-                // FIXME: How come we have root here for sibling dependencies test?
-                .filter(|node_id| *node_id != input.root_node_id),
-        );
         self.tmp_flac.run(&input.graph, &mut self.tmp_steiner_tree);
 
         self.tmp_steiner_tree.total_weight

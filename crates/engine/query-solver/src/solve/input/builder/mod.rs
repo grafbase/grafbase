@@ -1,17 +1,22 @@
 mod requirements;
 
+use fixedbitset::FixedBitSet;
 use fxhash::FxHashMap;
 use operation::OperationContext;
 use petgraph::{
     Direction,
+    algo::steiner_tree,
     graph::Graph,
     visit::{EdgeRef, IntoNodeReferences, NodeIndexable},
 };
 
 use crate::{
     FieldFlags, QuerySolutionSpace, SpaceEdge, SpaceEdgeId, SpaceNode, SpaceNodeId,
-    solve::input::{
-        InputMap, SteinerGraph, SteinerNodeId, SteinerWeight, builder::requirements::DispensableRequirementsBuilder,
+    solve::{
+        input::{
+            InputMap, SteinerGraph, SteinerNodeId, SteinerWeight, builder::requirements::DispensableRequirementsBuilder,
+        },
+        steiner_tree::SteinerTree,
     },
 };
 
@@ -55,10 +60,10 @@ impl NodeToProcess {
 pub(crate) fn build_input_and_terminals<'op, 'schema>(
     ctx: OperationContext<'op>,
     mut space: QuerySolutionSpace<'schema>,
-) -> crate::Result<(super::SteinerInput<'schema>, Vec<SteinerNodeId>)> {
+) -> crate::Result<(super::SteinerInput<'schema>, SteinerTree)> {
     // TODO: Figure out a good start size.
-    let n_nodes = space.graph.node_bound() >> 3;
-    let n_edges = space.graph.edge_count() >> 3;
+    let n_nodes = space.graph.node_bound() >> 4;
+    let n_edges = space.graph.edge_count() >> 4;
     let mut graph = Graph::with_capacity(n_nodes, n_edges);
     let mut mapping = InputMap {
         node_id_to_space_node_id: Vec::with_capacity(n_nodes),
@@ -96,7 +101,15 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
     };
     let mut requirements = DispensableRequirementsBuilder::new(&space.graph);
 
-    let mut terminals = Vec::with_capacity(builder.terminal_space_node_ids_to_process_stack.len());
+    let mut tree = SteinerTree {
+        nodes: FixedBitSet::new(),
+        edges: FixedBitSet::new(),
+        total_weight: 0,
+        terminals: Vec::with_capacity(builder.terminal_space_node_ids_to_process_stack.len()),
+        is_terminal: FixedBitSet::with_capacity(builder.graph.node_bound()),
+    };
+    tree.is_terminal.insert(builder.root_node_id.index());
+
     let mut i = 0;
     while let Some(terminal_space_node_id) = builder.terminal_space_node_ids_to_process_stack.pop() {
         // Sanity check to prevent infinite loops. At most we can have as many terminals as
@@ -113,8 +126,9 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
         let terminal_node_id =
             builder.ingest_nodes_from_indispensable_terminal(&mut requirements, terminal_space_node_id);
         // If we reached root, it means there is only one path from the root to this terminal.
-        if terminal_node_id != root_node_id {
-            terminals.push(terminal_node_id);
+        if terminal_node_id != root_node_id && !tree.is_terminal[terminal_node_id.index()] {
+            tree.is_terminal.grow_and_insert(terminal_node_id.index());
+            tree.terminals.push(terminal_node_id);
         }
     }
 
@@ -134,9 +148,6 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
     //     }
     // }
 
-    terminals.sort_unstable();
-    terminals.dedup();
-
     let requirements = requirements.build(&builder);
     let SteinerInputBuilder {
         graph,
@@ -144,6 +155,10 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
         map,
         ..
     } = builder;
+    tree.nodes = FixedBitSet::with_capacity(graph.node_bound());
+    tree.nodes.insert(root_node_id.index());
+    tree.edges = FixedBitSet::with_capacity(graph.edge_count());
+
     let input = super::SteinerInput {
         space,
         graph,
@@ -151,7 +166,7 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
         map,
         requirements,
     };
-    Ok((input, terminals))
+    Ok((input, tree))
 }
 
 impl SteinerInputBuilder<'_, '_, '_> {
