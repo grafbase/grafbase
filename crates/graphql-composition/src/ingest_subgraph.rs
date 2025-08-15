@@ -63,24 +63,16 @@ fn ingest_top_level_definitions(ctx: &mut Context<'_>) {
                     .description()
                     .map(|description| ctx.subgraphs.strings.intern(description.to_cow()));
 
-                let directive_site_id = ctx.subgraphs.new_directive_site();
-
-                // Order matters: we ingest enum values in the following block. We have to ingest the enum's directives first, so directives are ingested in order of directive site id.
-                directives::ingest_directives(ctx, directive_site_id, type_definition.directives(), |_| {
-                    type_name.to_owned()
-                });
-
                 let definition_id = match type_definition {
                     ast::TypeDefinition::Object(_) if type_name == SERVICE_TYPE_NAME => continue,
                     ast::TypeDefinition::Union(_) if type_name == ENTITY_UNION_NAME => continue,
 
                     ast::TypeDefinition::Object(_) => {
-                        let definition_id = ctx.subgraphs.push_definition(
+                        let definition_id = ctx.subgraphs.get_or_push_definition(
                             subgraph_id,
                             type_name,
                             DefinitionKind::Object,
                             description,
-                            directive_site_id,
                         );
 
                         match ctx.root_type_matcher.match_name(type_name) {
@@ -101,49 +93,40 @@ fn ingest_top_level_definitions(ctx: &mut Context<'_>) {
 
                         definition_id
                     }
-                    ast::TypeDefinition::Interface(_interface_type) => ctx.subgraphs.push_definition(
+                    ast::TypeDefinition::Interface(_interface_type) => ctx.subgraphs.get_or_push_definition(
                         subgraph_id,
                         type_name,
                         DefinitionKind::Interface,
                         description,
-                        directive_site_id,
                     ),
-                    ast::TypeDefinition::Union(_) => ctx.subgraphs.push_definition(
-                        subgraph_id,
-                        type_name,
-                        DefinitionKind::Union,
-                        description,
-                        directive_site_id,
-                    ),
-                    ast::TypeDefinition::InputObject(_) => ctx.subgraphs.push_definition(
+                    ast::TypeDefinition::Union(_) => {
+                        ctx.subgraphs
+                            .get_or_push_definition(subgraph_id, type_name, DefinitionKind::Union, description)
+                    }
+                    ast::TypeDefinition::InputObject(_) => ctx.subgraphs.get_or_push_definition(
                         subgraph_id,
                         type_name,
                         DefinitionKind::InputObject,
                         description,
-                        directive_site_id,
                     ),
 
-                    ast::TypeDefinition::Scalar(_) => ctx.subgraphs.push_definition(
+                    ast::TypeDefinition::Scalar(_) => ctx.subgraphs.get_or_push_definition(
                         subgraph_id,
                         type_name,
                         DefinitionKind::Scalar,
                         description,
-                        directive_site_id,
                     ),
 
-                    ast::TypeDefinition::Enum(enum_type) => {
-                        let definition_id = ctx.subgraphs.push_definition(
-                            subgraph_id,
-                            type_name,
-                            DefinitionKind::Enum,
-                            description,
-                            directive_site_id,
-                        );
-                        enums::ingest_enum(ctx, definition_id, enum_type);
-
-                        definition_id
+                    ast::TypeDefinition::Enum(_enum_type) => {
+                        ctx.subgraphs
+                            .get_or_push_definition(subgraph_id, type_name, DefinitionKind::Enum, description)
                     }
                 };
+
+                let directive_site_id = ctx.subgraphs.at(definition_id).directives;
+                directives::ingest_directives(ctx, directive_site_id, type_definition.directives(), |_| {
+                    type_name.to_owned()
+                });
 
                 directives::ingest_keys(definition_id, type_definition.directives(), ctx);
             }
@@ -281,6 +264,20 @@ fn ingest_definition_bodies(ctx: &mut Context<'_>) {
                 let is_query_root_type = ctx.root_type_matcher.is_query(definition.name());
 
                 fields::ingest_fields(ctx, definition_id, object_type.fields(), is_query_root_type);
+            }
+            ast::TypeDefinition::Enum(enum_definition) => {
+                let Some(enum_id) = ctx.subgraphs.definition_by_name(definition.name(), subgraph_id) else {
+                    ctx.subgraphs.push_ingestion_diagnostic(
+                        subgraph_id,
+                        format!(
+                            "Union type `{}` is used but not defined in the subgraph.",
+                            definition.name()
+                        ),
+                    );
+                    continue;
+                };
+
+                enums::ingest_enum_values(ctx, enum_id, enum_definition);
             }
             _ => (),
         }
