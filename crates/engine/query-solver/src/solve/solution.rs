@@ -5,7 +5,7 @@ use schema::Schema;
 use walker::Walk;
 
 use crate::{
-    Derive, QueryField, QueryFieldNode,
+    Derive, QueryField, QueryFieldNode, SpaceNodeId,
     query::{Edge, Node},
     solution_space::{SpaceEdge, SpaceNode},
     solve::{input::SteinerInput, steiner_tree::SteinerTree},
@@ -25,6 +25,7 @@ impl Solution<'_> {
                 SteinerInput {
                     mut space,
                     map: steiner_input_map,
+                    space_node_is_terminal,
                     ..
                 },
             steiner_tree,
@@ -33,14 +34,30 @@ impl Solution<'_> {
         let mut graph = Graph::with_capacity(n, n);
         let root_node_id = graph.add_node(Node::Root);
 
-        // let included_space_edges = {
-        //     let included = FixedBitSet::with_capacity(space.graph.edge_count());
-        //     let mut stack = steiner_tree.terminals.into_iter().map(|node_id| steiner_input_map.node_id_to_space_node_id[node_id]).collect::<Vec<_>>();
-        //
-        //
-        // };
+        let included_space_nodes = {
+            let mut stack = space_node_is_terminal.ones().map(SpaceNodeId::new).collect::<Vec<_>>();
+            let mut included = space_node_is_terminal;
+            while let Some(space_node_id) = stack.pop() {
+                included.insert(space_node_id.index());
+                for space_edge in space.graph.edges_directed(space_node_id, Direction::Incoming) {
+                    if matches!(
+                        space_edge.weight(),
+                        SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide | SpaceEdge::Provides
+                    ) && steiner_input_map
+                        .space_edge_id_to_edge_id
+                        .get(&space_edge.id())
+                        .map(|id| steiner_tree.edges[id.index()])
+                        .unwrap_or(true)
+                    {
+                        stack.push(space_edge.source());
+                    }
+                }
+            }
 
-        let excluded_space_edges = {
+            included
+        };
+
+        let _ = {
             let mut excluded = FixedBitSet::with_capacity(space.graph.edge_count());
             let mut stack = Vec::new();
             for steiner_edge_ix in steiner_tree.edges.zeroes() {
@@ -81,7 +98,7 @@ impl Solution<'_> {
         let mut stack = Vec::new();
         for edge in space.graph.edges(space.root_node_id) {
             match edge.weight() {
-                SpaceEdge::CreateChildResolver if !excluded_space_edges[edge.id().index()] => {
+                SpaceEdge::CreateChildResolver if included_space_nodes[edge.target().index()] => {
                     stack.push((root_node_id, edge.source(), edge.target()));
                 }
                 // For now assign __typename fields to the root node, they will be later be added
@@ -123,8 +140,7 @@ impl Solution<'_> {
                         .graph
                         .edges_directed(space_node_id, Direction::Outgoing)
                         .find_map(|edge| {
-                            if matches!(edge.weight(), SpaceEdge::Provides) && !excluded_space_edges[edge.id().index()]
-                            {
+                            if matches!(edge.weight(), SpaceEdge::Provides) {
                                 if let SpaceNode::QueryField(field) = &space.graph[edge.target()] {
                                     Some((edge.target(), field))
                                 } else {
@@ -340,13 +356,11 @@ impl Solution<'_> {
                     .graph
                     .edges(space_node_id)
                     .filter(|edge| {
-                        matches!(
+                        (matches!(
                             edge.weight(),
-                            SpaceEdge::CreateChildResolver
-                                | SpaceEdge::CanProvide
-                                | SpaceEdge::Field
-                                | SpaceEdge::TypenameField
-                        ) && !excluded_space_edges[edge.id().index()]
+                            SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide | SpaceEdge::Provides
+                        ) && included_space_nodes[edge.target().index()])
+                            || matches!(edge.weight(), SpaceEdge::TypenameField)
                     })
                     .map(|edge| (new_node_id, edge.source(), edge.target())),
             );

@@ -14,7 +14,8 @@ use crate::{
     FieldFlags, QuerySolutionSpace, SpaceEdge, SpaceEdgeId, SpaceNode, SpaceNodeId,
     solve::{
         input::{
-            InputMap, SteinerGraph, SteinerNodeId, SteinerWeight, builder::requirements::DispensableRequirementsBuilder,
+            SteinerGraph, SteinerInputMap, SteinerNodeId, SteinerWeight,
+            builder::requirements::DispensableRequirementsBuilder,
         },
         steiner_tree::SteinerTree,
     },
@@ -30,8 +31,9 @@ pub(super) struct SteinerInputBuilder<'schema, 'op, 'space> {
     pub ctx: OperationContext<'op>,
     pub graph: SteinerGraph,
     pub root_node_id: SteinerNodeId,
-    pub map: InputMap,
-    pub terminal_space_node_ids_to_process_stack: Vec<SpaceNodeId>,
+    pub map: SteinerInputMap,
+    pub indispensable_terminal_space_node_ids: Vec<SpaceNodeId>,
+    pub dispensable_terminal_space_node_ids: Vec<SpaceNodeId>,
     pub nodes_to_process_stack: Vec<NodeToProcess>,
     pub space_node_path_stack: Vec<SpaceNodeId>,
     pub space_node_relative_depth_weight_to_steiner_node: Vec<SteinerWeight>,
@@ -65,7 +67,7 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
     let n_nodes = space.graph.node_bound() >> 4;
     let n_edges = space.graph.edge_count() >> 4;
     let mut graph = Graph::with_capacity(n_nodes, n_edges);
-    let mut mapping = InputMap {
+    let mut mapping = SteinerInputMap {
         node_id_to_space_node_id: Vec::with_capacity(n_nodes),
         edge_id_to_space_edge_id: Vec::with_capacity(n_edges),
         space_node_id_to_node_id: vec![SpaceNodeId::new(u32::MAX as usize); space.graph.node_bound()],
@@ -76,7 +78,7 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
     mapping.node_id_to_space_node_id.push(space.root_node_id);
     mapping.space_node_id_to_node_id[space.root_node_id.index()] = root_node_id;
 
-    let mut terminal_space_node_ids_to_process_stack = space
+    let indispensable_terminal_space_node_ids = space
         .graph
         .node_references()
         .filter_map(|(node_id, node)| match node {
@@ -91,7 +93,8 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
     let mut builder = SteinerInputBuilder {
         space: &space,
         ctx,
-        terminal_space_node_ids_to_process_stack,
+        indispensable_terminal_space_node_ids,
+        dispensable_terminal_space_node_ids: Vec::new(),
         graph,
         root_node_id,
         map: mapping,
@@ -105,13 +108,14 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
         nodes: FixedBitSet::new(),
         edges: FixedBitSet::new(),
         total_weight: 0,
-        terminals: Vec::with_capacity(builder.terminal_space_node_ids_to_process_stack.len()),
+        terminals: Vec::with_capacity(builder.dispensable_terminal_space_node_ids.len()),
         is_terminal: FixedBitSet::with_capacity(builder.graph.node_bound()),
     };
     tree.is_terminal.insert(builder.root_node_id.index());
 
+    let mut space_node_is_terminal = FixedBitSet::with_capacity(space.graph.node_bound());
     let mut i = 0;
-    while let Some(terminal_space_node_id) = builder.terminal_space_node_ids_to_process_stack.pop() {
+    while let Some(terminal_space_node_id) = builder.indispensable_terminal_space_node_ids.pop() {
         // Sanity check to prevent infinite loops. At most we can have as many terminals as
         // we have leaf nodes. With requirements we may have duplicates, hence the dedup
         // afterwards, but in all cases we cannot have more terminals than edges in the
@@ -123,13 +127,17 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
         }
         i += 1;
 
-        let terminal_node_id =
-            builder.ingest_nodes_from_indispensable_terminal(&mut requirements, terminal_space_node_id);
+        space_node_is_terminal.insert(terminal_space_node_id.index());
+        let terminal_node_id = builder.ingest_nodes_from_terminal(&mut requirements, terminal_space_node_id, true);
         // If we reached root, it means there is only one path from the root to this terminal.
         if terminal_node_id != root_node_id && !tree.is_terminal[terminal_node_id.index()] {
             tree.is_terminal.grow_and_insert(terminal_node_id.index());
             tree.terminals.push(terminal_node_id);
         }
+    }
+
+    while let Some(space_node_id) = builder.dispensable_terminal_space_node_ids.pop() {
+        builder.ingest_nodes_from_terminal(&mut requirements, space_node_id, false);
     }
 
     // We want to favor parallel resolvers rather than sequential ones. So we increase the weight
@@ -158,9 +166,11 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
     tree.nodes = FixedBitSet::with_capacity(graph.node_bound());
     tree.nodes.insert(root_node_id.index());
     tree.edges = FixedBitSet::with_capacity(graph.edge_count());
+    tree.is_terminal.grow(graph.node_bound());
 
     let input = super::SteinerInput {
         space,
+        space_node_is_terminal,
         graph,
         root_node_id,
         map,
@@ -170,12 +180,17 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
 }
 
 impl SteinerInputBuilder<'_, '_, '_> {
-    fn ingest_nodes_from_indispensable_terminal(
+    fn ingest_nodes_from_terminal(
         &mut self,
         requirements: &mut DispensableRequirementsBuilder,
         terminal_space_node_id: SpaceNodeId,
+        indispensable: bool,
     ) -> SteinerNodeId {
-        let mut terminal_node_id = None;
+        let mut terminal_node_id = if indispensable {
+            None
+        } else {
+            Some(SteinerNodeId::new(u32::MAX as usize))
+        };
         debug_assert!(self.nodes_to_process_stack.is_empty() && self.space_node_path_stack.is_empty());
         self.nodes_to_process_stack
             .push(NodeToProcess::terminal(terminal_space_node_id));
@@ -236,13 +251,15 @@ impl SteinerInputBuilder<'_, '_, '_> {
                     requirements
                         .collect(&self.space.graph, space_node_id)
                         .forget_because_indispensable(|required_space_node_ids| {
-                            self.terminal_space_node_ids_to_process_stack
+                            self.indispensable_terminal_space_node_ids
                                 .extend_from_slice(required_space_node_ids);
                         });
                 } else {
-                    requirements
-                        .collect(&self.space.graph, space_node_id)
-                        .ingest_as_dispensable(&self.space.graph, node_id);
+                    self.dispensable_terminal_space_node_ids.extend_from_slice(
+                        requirements
+                            .collect(&self.space.graph, space_node_id)
+                            .ingest_as_dispensable(&self.space.graph, node_id),
+                    );
                 }
 
                 self.nodes_to_process_stack.push(NodeToProcess {
@@ -273,7 +290,7 @@ impl SteinerInputBuilder<'_, '_, '_> {
                     // indispensable and the only parent. weight doesn't matter  either since we need to take
                     // that edge in all cases.
                     requires.forget_because_indispensable(|required_space_node_ids| {
-                        self.terminal_space_node_ids_to_process_stack
+                        self.indispensable_terminal_space_node_ids
                             .extend_from_slice(required_space_node_ids);
                     });
 
@@ -292,7 +309,8 @@ impl SteinerInputBuilder<'_, '_, '_> {
                         maybe_child_edge_weight,
                     });
 
-                    requires.ingest_as_dispensable(&self.space.graph, node_id);
+                    self.dispensable_terminal_space_node_ids
+                        .extend_from_slice(requires.ingest_as_dispensable(&self.space.graph, node_id));
 
                     self.nodes_to_process_stack.push(NodeToProcess {
                         space_node_id: first_space_edge.source(),

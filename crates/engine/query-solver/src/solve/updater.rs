@@ -1,8 +1,13 @@
+use std::ops::ControlFlow;
+
 use id_newtypes::IdRange;
 use petgraph::graph::NodeIndex;
 
 use crate::solve::{
-    input::{RequiredSteinerNodeId, RequirementsGroup, SteinerInput, SteinerWeight, UnavoidableParentSteinerEdgeId},
+    input::{
+        FreeRequirement, RequiredSpaceNodeId, RequiredSteinerNodeId, RequirementsGroup, SteinerInput, SteinerWeight,
+        UnavoidableParentSteinerEdgeId,
+    },
     steiner_tree::{GreedyFlac, SteinerTree},
 };
 
@@ -11,7 +16,8 @@ pub(crate) struct RequirementAndWeightUpdater {
     /// them.
     independent_requirements: Option<bool>,
     /// Temporary storage for extra terminals to be added to the algorithm.
-    tmp_extra_terminals: Vec<NodeIndex>,
+    tmp_new_terminals: Vec<NodeIndex>,
+    tmp_new_space_terminals: Vec<NodeIndex>,
     tmp_steiner_tree: SteinerTree,
     tmp_flac: GreedyFlac,
 }
@@ -20,17 +26,18 @@ impl RequirementAndWeightUpdater {
     pub fn new(input: &SteinerInput<'_>) -> crate::Result<Self> {
         Ok(Self {
             independent_requirements: None,
-            tmp_extra_terminals: Vec::new(),
+            tmp_new_terminals: Vec::new(),
+            tmp_new_space_terminals: Vec::new(),
             tmp_steiner_tree: SteinerTree::new(&input.graph, input.root_node_id, Vec::new()),
             tmp_flac: GreedyFlac::new(&input.graph),
         })
     }
 
-    pub fn run_fixed_point_weight<'s>(
-        &'s mut self,
+    pub fn run_fixed_point_weight(
+        &mut self,
         input: &mut SteinerInput<'_>,
-        steiner_tree: &SteinerTree,
-    ) -> crate::Result<Update<'s>> {
+        steiner_tree: &mut SteinerTree,
+    ) -> crate::Result<ControlFlow<()>> {
         FixedPointWeightAlgorithm {
             state: self,
             steiner_tree,
@@ -43,7 +50,7 @@ impl RequirementAndWeightUpdater {
 
 pub(crate) struct FixedPointWeightAlgorithm<'s, 't, 'i, 'schema> {
     pub state: &'s mut RequirementAndWeightUpdater,
-    pub steiner_tree: &'t SteinerTree,
+    pub steiner_tree: &'t mut SteinerTree,
     pub input: &'i mut SteinerInput<'schema>,
     has_updated_weights: bool,
 }
@@ -61,25 +68,17 @@ impl std::ops::DerefMut for FixedPointWeightAlgorithm<'_, '_, '_, '_> {
     }
 }
 
-pub(crate) struct Update<'a> {
-    pub new_terminals: &'a mut Vec<NodeIndex>,
-    #[allow(unused)]
-    pub has_updated_weight: bool,
-}
-
 impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_> {
     /// Updates the weight of edges based on the requirements of the nodes.
     /// We iterate until weight becomes stable or we exhausted the maximum number of iterations which
     /// likely indicates a requirement cycle.
-    pub fn run(mut self) -> crate::Result<Update<'state>> {
-        debug_assert!(self.tmp_extra_terminals.is_empty());
-        let mut has_updated_weight = false;
+    pub fn run(mut self) -> crate::Result<ControlFlow<()>> {
+        debug_assert!(self.tmp_new_terminals.is_empty());
         let mut i = 0;
         loop {
             i += 1;
             self.generate_weight_updates_based_on_requirements();
             let has_updated_weight_this_iteration = std::mem::take(&mut self.has_updated_weights);
-            has_updated_weight |= has_updated_weight_this_iteration;
             if !has_updated_weight_this_iteration || self.independent_requirements.unwrap_or_default() {
                 break;
             }
@@ -91,15 +90,29 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_> {
         // iterations (one for updating, one for checking nothing changed). It means there is no
         // dependency between requirements weight. So we can skip it in the next iterations.
         self.independent_requirements.get_or_insert(i == 2);
-        Ok(Update {
-            new_terminals: &mut self.state.tmp_extra_terminals,
-            has_updated_weight,
-        })
+
+        for id in self.state.tmp_new_space_terminals.drain(..) {
+            self.input.space_node_is_terminal.insert(id.index());
+        }
+
+        Ok(self
+            .steiner_tree
+            .extend_terminals(self.state.tmp_new_terminals.drain(..).inspect(|id| {
+                let space_node_id = self.input.map.node_id_to_space_node_id[id.index()];
+                self.input.space_node_is_terminal.insert(space_node_id.index())
+            })))
     }
 
-    fn extend_terminals(&mut self, required_node_ids: IdRange<RequiredSteinerNodeId>) {
+    fn extend_terminals(
+        &mut self,
+        required_node_ids: IdRange<RequiredSteinerNodeId>,
+        required_space_node_ids: IdRange<RequiredSpaceNodeId>,
+    ) {
         self.state
-            .tmp_extra_terminals
+            .tmp_new_space_terminals
+            .extend(self.input.requirements[required_space_node_ids].iter().copied());
+        self.state
+            .tmp_new_terminals
             .extend(self.input.requirements[required_node_ids].iter().copied());
     }
 
@@ -108,9 +121,14 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_> {
     /// edge.
     fn generate_weight_updates_based_on_requirements(&mut self) {
         let mut i = 0;
-        while let Some((node_id, required_node_ids)) = self.input.requirements.free.get(i).copied() {
+        while let Some(FreeRequirement {
+            node_id,
+            required_node_ids,
+            required_space_node_ids,
+        }) = self.input.requirements.free.get(i).copied()
+        {
             if self.steiner_tree[node_id] {
-                self.extend_terminals(required_node_ids);
+                self.extend_terminals(required_node_ids, required_space_node_ids);
                 self.input.requirements.free.swap_remove(i);
             } else {
                 i += 1;
@@ -119,8 +137,9 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_> {
 
         i = 0;
         while let Some(RequirementsGroup {
-            required_node_ids,
             unavoidable_parent_edge_ids,
+            required_space_node_ids,
+            required_node_ids,
             dependent_edge_with_inherent_weight_ids,
         }) = self.input.requirements.groups.get(i).copied()
         {
@@ -137,7 +156,7 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_> {
                         self.has_updated_weights |= old != inherent_weight;
                     }
                 }
-                self.extend_terminals(required_node_ids);
+                self.extend_terminals(required_node_ids, required_space_node_ids);
                 self.input.requirements.groups.swap_remove(i);
                 continue;
             }

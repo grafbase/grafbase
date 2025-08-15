@@ -31,12 +31,14 @@ async fn alternating_subgraphs_1() {
           node {
             n0 {
               n0 {
+                f0
                 f1
                 f2
               }
               n2 {
                 f0
                 f1
+                f2
               }
             }
           }
