@@ -25,7 +25,7 @@ where
 {
     pub(super) fn ingest_operation_fields(&mut self) -> crate::Result<()> {
         let queue = vec![IngestSelectionSet {
-            parent_query_field_node_ix: self.query.root_node_ix,
+            parent_query_field_node_ix: self.query.root_node_id,
             parent_output_type: CompositeTypeId::Object(self.operation.root_object_id),
             selection_set: OperationContext {
                 schema: self.schema,

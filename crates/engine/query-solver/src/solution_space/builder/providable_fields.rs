@@ -620,13 +620,13 @@ where
         query_field_node_ix: NodeIndex,
         query_field_id: QueryFieldId,
     ) {
-        if parent_query_field_node_ix == self.query.root_node_ix {
+        if parent_query_field_node_ix == self.query.root_node_id {
             self.create_provideable_fields_task_stack
                 .push(CreateProvidableFieldsTask {
                     parent: Parent {
                         query_field_node_ix: parent_query_field_node_ix,
                         output_type: parent_output_type,
-                        providable_field_or_root_ix: self.query.root_node_ix,
+                        providable_field_or_root_ix: self.query.root_node_id,
                     },
                     query_field_node_ix,
                     query_field_id,

@@ -37,27 +37,30 @@ impl<'a> Attrs<'a> {
 
     #[must_use]
     pub fn with(mut self, attr: impl Into<Cow<'a, str>>) -> Self {
-        self.others.push(attr.into());
+        let attr: Cow<'a, str> = attr.into();
+        if !attr.trim().is_empty() {
+            self.others.push(attr);
+        }
         self
     }
 
     #[must_use]
-    pub fn with_if(mut self, cond: bool, attr: impl Into<Cow<'a, str>>) -> Self {
-        if cond {
-            self.others.push(attr.into());
-        }
-        self
+    pub fn with_if(self, cond: bool, attr: impl Into<Cow<'a, str>>) -> Self {
+        if cond { self.with(attr) } else { self }
     }
 }
 
 impl std::fmt::Display for Attrs<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut has_label = false;
         if self.label.starts_with("<") {
+            has_label = true;
             write!(f, "label = {}", self.label,)?;
-        } else {
+        } else if !self.label.trim().is_empty() {
+            has_label = true;
             write!(f, "label = \"{}\"", self.label,)?;
         }
-        if !self.others.is_empty() {
+        if has_label && !self.others.is_empty() {
             write!(f, ", ")?;
         }
 

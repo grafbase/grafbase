@@ -31,13 +31,15 @@ pub(crate) enum SpaceEdge {
 impl SpaceEdge {
     /// Meant to be as readable as possible for large graphs with colors.
     pub(crate) fn pretty_label(&self) -> Attrs<'static> {
+        // let label: &'static str = self.into();
+        let label = "";
         match self {
-            SpaceEdge::CreateChildResolver => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
-            SpaceEdge::CanProvide => Attrs::default().with("color=royalblue,fontcolor=royalblue"),
-            SpaceEdge::Provides => Attrs::default().with("color=violet,arrowhead=none"),
-            SpaceEdge::Field | SpaceEdge::TypenameField => Attrs::default(),
-            SpaceEdge::Requires => Attrs::default().with("color=orangered,arrowhead=inv"),
-            SpaceEdge::HasChildResolver => Attrs::default().with("style=dashed,arrowhead=none"),
+            SpaceEdge::CreateChildResolver => Attrs::label(label).with("color=royalblue,fontcolor=royalblue"),
+            SpaceEdge::CanProvide => Attrs::label(label).with("color=royalblue,fontcolor=royalblue"),
+            SpaceEdge::Provides => Attrs::label(label).with("color=violet,arrowhead=none"),
+            SpaceEdge::Field | SpaceEdge::TypenameField => Attrs::label(label),
+            SpaceEdge::Requires => Attrs::label(label).with("color=orangered,arrowhead=inv"),
+            SpaceEdge::HasChildResolver => Attrs::label(label).with("style=dashed,arrowhead=none"),
         }
     }
 }
