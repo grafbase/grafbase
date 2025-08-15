@@ -6,7 +6,7 @@ use crate::federated_graph::{
 };
 
 use super::{
-    display_utils::{AnyValue, DirectiveWriter, InputValueDefinitionSetDisplay, SelectionSetDisplay},
+    display_utils::{AnyValue, DirectiveWriter, SelectionSetDisplay},
     render_federated_sdl::ListSizeRender,
 };
 
@@ -111,9 +111,6 @@ pub(crate) fn write_directive<'a, 'b: 'a>(
         }
         Directive::JoinImplements(directive) => {
             render_join_implements_directive(f, directive, graph)?;
-        }
-        Directive::Authorized(directive) => {
-            render_authorized_directive(f, directive, graph)?;
         }
         Directive::ListSize(list_size) => {
             f.write_fmt(format_args!("{}", ListSizeRender { list_size, graph }))?;
@@ -240,27 +237,6 @@ fn render_join_implements_directive(
         )?
         .arg("interface", Value::String(graph.view(directive.interface_id).name))?;
 
-    Ok(())
-}
-
-fn render_authorized_directive(
-    f: &mut fmt::Formatter<'_>,
-    directive: &AuthorizedDirective,
-    graph: &FederatedGraph,
-) -> fmt::Result {
-    let mut writer = DirectiveWriter::new("authorized", f, graph)?;
-    if let Some(fields) = directive.fields.as_ref() {
-        writer = writer.arg("fields", SelectionSetDisplay(fields, graph))?;
-    }
-    if let Some(node) = directive.node.as_ref() {
-        writer = writer.arg("node", SelectionSetDisplay(node, graph))?;
-    }
-    if let Some(arguments) = directive.arguments.as_ref() {
-        writer = writer.arg("arguments", InputValueDefinitionSetDisplay(arguments, graph))?;
-    }
-    if let Some(metadata) = directive.metadata.as_ref() {
-        writer.arg("metadata", metadata.clone())?;
-    }
     Ok(())
 }
 

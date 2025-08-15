@@ -1,4 +1,3 @@
-mod authorized;
 mod complexity_control;
 mod deprecated;
 mod extension;
@@ -12,7 +11,6 @@ mod require;
 use crate::federated_graph::{StringId, SubgraphId, Value};
 
 pub(crate) use self::{
-    authorized::*,
     complexity_control::{CostDirective, ListSizeDirective},
     deprecated::DeprecatedDirective,
     extension::*,
@@ -59,7 +57,6 @@ pub enum Directive {
     JoinType(JoinTypeDirective),
     JoinUnionMember(JoinUnionMemberDirective),
     JoinImplements(JoinImplementsDirective),
-    Authorized(AuthorizedDirective),
     Other {
         name: StringId,
         arguments: Vec<(StringId, Value)>,
