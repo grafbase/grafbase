@@ -49,7 +49,7 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
             .map_err(|err| anyhow::anyhow!("Error parsing {}: \n{err:#}", path.display()))?;
     }
 
-    let result = graphql_composition::compose(subgraphs);
+    let result = graphql_composition::compose(&subgraphs);
 
     let diagnostics = result.diagnostics();
     let mut rendered_diagnostics = String::new();

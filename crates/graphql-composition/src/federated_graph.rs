@@ -44,7 +44,7 @@ use std::{fmt, ops::Range};
 #[derive(Clone, Default)]
 pub struct FederatedGraph {
     pub(crate) subgraphs: Vec<Subgraph>,
-    pub(crate) extensions: Vec<Extension>,
+    pub extensions: Vec<Extension>,
     pub(crate) objects: Vec<Object>,
     pub(crate) interfaces: Vec<Interface>,
     pub(crate) fields: Vec<Field>,
@@ -61,7 +61,7 @@ pub struct FederatedGraph {
     pub(crate) input_value_definitions: Vec<InputValueDefinition>,
 
     /// All the strings in the federated graph, deduplicated.
-    pub(crate) strings: Vec<String>,
+    pub strings: Vec<String>,
 }
 
 impl FederatedGraph {

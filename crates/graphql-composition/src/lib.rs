@@ -30,8 +30,7 @@ use self::{
 };
 
 /// Compose subgraphs into a federated graph.
-pub fn compose(subgraphs: Subgraphs) -> CompositionResult {
-    let subgraphs = subgraphs.finalize();
+pub fn compose(subgraphs: &Subgraphs) -> CompositionResult {
     let mut diagnostics = Diagnostics::default();
 
     if subgraphs.iter_subgraphs().len() == 0 {
@@ -44,7 +43,7 @@ pub fn compose(subgraphs: Subgraphs) -> CompositionResult {
         };
     }
 
-    let mut context = ComposeContext::new(&subgraphs, &mut diagnostics);
+    let mut context = ComposeContext::new(subgraphs, &mut diagnostics);
 
     validate::validate_pre_merge(&mut context);
 
@@ -81,7 +80,7 @@ pub fn compose(subgraphs: Subgraphs) -> CompositionResult {
             diagnostics,
         }
     } else {
-        let federated_graph = emit_federated_graph(context.into_ir(), &subgraphs);
+        let federated_graph = emit_federated_graph(context.into_ir(), subgraphs);
 
         CompositionResult {
             federated_graph: Some(federated_graph),
@@ -116,7 +115,7 @@ mod tests {
         subgraphs
             .ingest_str(&schema, "grafbase-api", Some("https://api.grafbase.com"))
             .unwrap();
-        let result = compose(subgraphs);
+        let result = compose(&subgraphs);
         assert!(!result.diagnostics().any_fatal());
     }
 }
