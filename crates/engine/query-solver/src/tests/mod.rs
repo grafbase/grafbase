@@ -1,5 +1,6 @@
 mod abstract_types;
 mod basic;
+mod benchmarks;
 mod cycle;
 mod derive;
 mod entities;
