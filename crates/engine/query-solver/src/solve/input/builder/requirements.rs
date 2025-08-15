@@ -9,8 +9,9 @@ use petgraph::{Direction, visit::EdgeRef as _};
 use crate::{
     SolutionSpaceGraph, SpaceEdge, SpaceEdgeId, SpaceNodeId,
     solve::input::{
-        DependentSteinerEdgeWithInherentWeightId, DispensableRequirements, RequiredSteinerNodeId, RequirementsGroup,
-        SteinerEdgeId, SteinerNodeId, SteinerWeight, UnavoidableParentSteinerEdgeId, builder::SteinerInputBuilder,
+        DependentSteinerEdgeWithInherentWeightId, DispensableRequirements, FreeRequirement, RequiredSpaceNodeId,
+        RequiredSteinerNodeId, RequirementsGroup, SteinerEdgeId, SteinerInputMap, SteinerNodeId, SteinerWeight,
+        UnavoidableParentSteinerEdgeId, builder::SteinerInputBuilder,
     },
 };
 
@@ -24,9 +25,6 @@ pub(crate) struct DispensableRequirementsBuilder {
     required_space_nodes: Vec<SpaceNodeId>,
     space_node_ids_buffer: Vec<SpaceNodeId>,
 }
-
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
-pub(crate) struct RequiredSpaceNodeId(u32);
 
 struct DependentEdgeWithDispensableRequirements {
     dependent_space_edge_source: SpaceNodeId,
@@ -55,7 +53,11 @@ impl<'s> DetectedRequirements<'s> {
         builder.required_space_nodes.truncate(ids.start.into());
     }
 
-    pub fn ingest_as_dispensable(self, space_graph: &SolutionSpaceGraph<'_>, node_id: SteinerNodeId) {
+    pub fn ingest_as_dispensable(
+        self,
+        space_graph: &SolutionSpaceGraph<'_>,
+        node_id: SteinerNodeId,
+    ) -> &'s [SpaceNodeId] {
         let Self {
             builder,
             required_space_node_ids: ids,
@@ -119,9 +121,9 @@ impl DispensableRequirementsBuilder {
         node_id: SteinerNodeId,
         space_node_id: SpaceNodeId,
         required_space_node_ids: IdRange<RequiredSpaceNodeId>,
-    ) {
+    ) -> &[SpaceNodeId] {
         if required_space_node_ids.is_empty() {
-            return;
+            return &[];
         }
 
         // De-duplicate the requirements
@@ -183,22 +185,38 @@ impl DispensableRequirementsBuilder {
                 });
             }
         }
+
+        &self[required_space_node_ids]
+    }
+
+    fn extend_extra_required_space_nodes(
+        &mut self,
+        nodes: impl IntoIterator<Item = SpaceNodeId>,
+    ) -> IdRange<RequiredSpaceNodeId> {
+        let start = self.required_space_nodes.len();
+        self.required_space_nodes.extend(nodes);
+        IdRange::from(start..self.required_space_nodes.len())
     }
 
     pub fn build(mut self, builder: &SteinerInputBuilder<'_, '_, '_>) -> DispensableRequirements {
         let mut out = DispensableRequirements {
             free: Vec::with_capacity(self.free.len()),
             groups: Vec::with_capacity(self.dispensable.len()),
+            required_space_nodes: std::mem::take(&mut self.required_space_nodes),
             required_nodes: Vec::with_capacity(self.required_space_nodes.len()),
             unavoidable_parent_edges: Vec::with_capacity(self.dispensable.len()),
             dependent_edges_with_inherent_weight: Vec::with_capacity(self.dispensable.len()),
         };
 
+        let mut buffer = Vec::new();
         for (node_id, required_space_node_ids) in std::mem::take(&mut self.free) {
-            let required_node_ids = self.append_extra_required_nodes_to(builder, required_space_node_ids, &mut out);
-            if !required_node_ids.is_empty() {
-                out.free.push((node_id, required_node_ids));
-            }
+            let required_node_ids = out.extend_extra_required_nodes(&builder.map, required_space_node_ids, &mut buffer);
+
+            out.free.push(FreeRequirement {
+                node_id,
+                required_node_ids,
+                required_space_node_ids,
+            })
         }
 
         self.dispensable.sort_unstable_by(|a, b| {
@@ -211,10 +229,7 @@ impl DispensableRequirementsBuilder {
             .chunk_by(|item| (item.dependent_space_edge_source, item.required_space_node_ids))
             .into_iter()
         {
-            let required_node_ids = self.append_extra_required_nodes_to(builder, required_space_node_ids, &mut out);
-            if required_node_ids.is_empty() {
-                continue;
-            }
+            let required_node_ids = out.extend_extra_required_nodes(&builder.map, required_space_node_ids, &mut buffer);
 
             let dependent_edge_with_inherent_weight_ids =
                 out.extend_dependent_edges_with_inherent_weight(chunk.into_iter().map(|item| {
@@ -256,42 +271,13 @@ impl DispensableRequirementsBuilder {
 
             out.groups.push(RequirementsGroup {
                 unavoidable_parent_edge_ids,
+                required_space_node_ids,
                 required_node_ids,
                 dependent_edge_with_inherent_weight_ids,
             });
         }
 
         out
-    }
-
-    fn extend_extra_required_space_nodes(
-        &mut self,
-        nodes: impl IntoIterator<Item = SpaceNodeId>,
-    ) -> IdRange<RequiredSpaceNodeId> {
-        let start = self.required_space_nodes.len();
-        self.required_space_nodes.extend(nodes);
-        IdRange::from(start..self.required_space_nodes.len())
-    }
-
-    fn append_extra_required_nodes_to(
-        &mut self,
-        builder: &SteinerInputBuilder<'_, '_, '_>,
-        required_space_node_ids: IdRange<RequiredSpaceNodeId>,
-        out: &mut DispensableRequirements,
-    ) -> IdRange<RequiredSteinerNodeId> {
-        debug_assert!(self.space_node_ids_buffer.is_empty());
-        let buffer = &mut self.space_node_ids_buffer;
-        buffer.extend(
-            self.required_space_nodes[required_space_node_ids.as_usize()]
-                .iter()
-                .map(|id| builder.map.space_node_id_to_node_id[id.index()]),
-        );
-        buffer.sort_unstable();
-        buffer.dedup();
-
-        let start = out.required_nodes.len();
-        out.required_nodes.append(buffer);
-        IdRange::from(start..out.required_nodes.len())
     }
 }
 
@@ -312,5 +298,24 @@ impl DispensableRequirements {
         let start = self.dependent_edges_with_inherent_weight.len();
         self.dependent_edges_with_inherent_weight.extend(edge_weights);
         IdRange::from(start..self.dependent_edges_with_inherent_weight.len())
+    }
+
+    fn extend_extra_required_nodes(
+        &mut self,
+        map: &SteinerInputMap,
+        required_space_node_ids: IdRange<RequiredSpaceNodeId>,
+        buffer: &mut Vec<SteinerNodeId>,
+    ) -> IdRange<RequiredSteinerNodeId> {
+        buffer.extend(
+            self.required_space_nodes[required_space_node_ids.as_usize()]
+                .iter()
+                .map(|id| map.space_node_id_to_node_id[id.index()]),
+        );
+        buffer.sort_unstable();
+        buffer.dedup();
+
+        let start = self.required_nodes.len();
+        self.required_nodes.append(buffer);
+        IdRange::from(start..self.required_nodes.len())
     }
 }

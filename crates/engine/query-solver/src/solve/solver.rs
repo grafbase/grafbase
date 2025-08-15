@@ -1,5 +1,4 @@
 use ::operation::Operation;
-use itertools::Itertools as _;
 use operation::OperationContext;
 use petgraph::visit::EdgeRef;
 use schema::Schema;
@@ -58,18 +57,14 @@ where
         query_solution_space: QuerySolutionSpace<'schema>,
     ) -> crate::Result<Self> {
         let ctx = OperationContext { schema, operation };
-        let (mut input, steiner_tree) = build_input_and_terminals(ctx, query_solution_space)?;
+        let (mut input, mut steiner_tree) = build_input_and_terminals(ctx, query_solution_space)?;
 
         let state = if steiner_tree.terminals.is_empty() {
             State::Solved
         } else {
             let flac = GreedyFlac::new(&input.graph);
             let mut updater = RequirementAndWeightUpdater::new(&input)?;
-            let update = updater.run_fixed_point_weight(&mut input, &steiner_tree)?;
-            debug_assert!(
-                update.new_terminals.is_empty(),
-                "Fixed point weight algorithm should not return new terminals at initialization"
-            );
+            let _ = updater.run_fixed_point_weight(&mut input, &mut steiner_tree)?;
             State::Unsolved { flac, updater }
         };
 
@@ -99,14 +94,9 @@ where
             State::Unsolved { mut flac, mut updater } => {
                 loop {
                     let growth = flac.run_once(&self.input.graph, &mut self.steiner_tree);
-                    let update = updater.run_fixed_point_weight(&mut self.input, &self.steiner_tree)?;
+                    let update = updater.run_fixed_point_weight(&mut self.input, &mut self.steiner_tree)?;
 
-                    if self
-                        .steiner_tree
-                        .extend_terminals(update.new_terminals.drain(..))
-                        .is_break()
-                        && growth.is_break()
-                    {
+                    if update.is_break() && growth.is_break() {
                         break;
                     }
 

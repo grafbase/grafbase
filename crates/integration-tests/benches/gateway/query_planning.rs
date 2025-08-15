@@ -13,10 +13,7 @@ pub fn query_plan1(c: &mut Criterion) {
     let cases = runtime().block_on(
         SchemaAndQuery::cases()
             .iter()
-            .map(|(params, case)| async {
-                println!("{}\n{}", case.schema, case.query);
-                (*params, case.query.len(), case.to_engine().await)
-            })
+            .map(|(params, case)| async { (*params, case.query.len(), case.to_engine().await) })
             .collect::<FuturesUnordered<_>>()
             .collect::<Vec<_>>(),
     );
@@ -64,30 +61,30 @@ impl SchemaAndQuery {
                     depth: 2,
                     keys: 1,
                 },
-                // Params {
-                //     n_subgraphs: 4,
-                //     n_fields: 3,
-                //     depth: 4,
-                //     keys: 1,
-                // },
-                // Params {
-                //     n_subgraphs: 5,
-                //     n_fields: 4,
-                //     depth: 4,
-                //     keys: 1,
-                // },
-                // Params {
-                //     n_subgraphs: 7,
-                //     n_fields: 4,
-                //     depth: 4,
-                //     keys: 1,
-                // },
-                // Params {
-                //     n_subgraphs: 9,
-                //     n_fields: 3,
-                //     depth: 4,
-                //     keys: 3,
-                // },
+                Params {
+                    n_subgraphs: 4,
+                    n_fields: 3,
+                    depth: 4,
+                    keys: 1,
+                },
+                Params {
+                    n_subgraphs: 5,
+                    n_fields: 4,
+                    depth: 4,
+                    keys: 1,
+                },
+                Params {
+                    n_subgraphs: 7,
+                    n_fields: 4,
+                    depth: 4,
+                    keys: 1,
+                },
+                Params {
+                    n_subgraphs: 9,
+                    n_fields: 3,
+                    depth: 4,
+                    keys: 3,
+                },
             ]
             .into_iter()
             .map(|params| {
