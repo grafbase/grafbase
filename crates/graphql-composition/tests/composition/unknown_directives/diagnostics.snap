@@ -5,4 +5,4 @@ input_file: crates/graphql-composition/tests/composition/unknown_directives/test
 ---
 - ⚠️ [test]: Unknown directive `@doesNotExist` on schema definition or extension.
 - ⚠️ [test]: Unknown directive `@whose` at `ChiliVariety.name`
-- ❌ Error in @requires at Farm.chiliDetails: the nonExistent field does not exist on Farm
+- ❌ [test] Error in @requires at Farm.chiliDetails: the nonExistent field does not exist on Farm

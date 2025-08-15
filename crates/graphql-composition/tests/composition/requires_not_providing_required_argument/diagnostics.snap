@@ -1,6 +1,6 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: Federated SDL
+expression: Diagnostics
 input_file: crates/graphql-composition/tests/composition/requires_not_providing_required_argument/test.md
 ---
-- ❌ Error in @requires on Farm.chiliDetails: the chiliId.format argument is required but not provided.
+- ❌ [faulty] Error in @requires on Farm.chiliDetails: the chiliId.format argument is required but not provided.
