@@ -296,20 +296,3 @@ pub const NO_FIELDS: Fields = Range {
     start: FieldId::const_from_usize(0),
     end: FieldId::const_from_usize(0),
 };
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn override_label() {
-        assert!("".parse::<OverrideLabel>().is_err());
-        assert!("percent(heh)".parse::<OverrideLabel>().is_err());
-        assert!("percent(30".parse::<OverrideLabel>().is_err());
-
-        assert_eq!(
-            "percent(30)".parse::<OverrideLabel>().unwrap().as_percent().unwrap(),
-            30
-        );
-    }
-}

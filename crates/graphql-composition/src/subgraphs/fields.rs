@@ -1,7 +1,7 @@
 use super::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct FieldPath(pub(super) DefinitionId, pub(super) StringId);
+pub(crate) struct FieldPath(pub(crate) DefinitionId, pub(crate) StringId);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct ArgumentPath(DefinitionId, StringId, StringId);

@@ -1,0 +1,10 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: API SDL
+input_file: crates/graphql-composition/tests/composition/federation_v1/same_field with_override/test.md
+---
+type Query {
+  field1863(arg25: ID!): Type99
+}
+
+scalar Type99

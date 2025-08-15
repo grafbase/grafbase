@@ -25,6 +25,12 @@ macro_rules! make_ids {
                 &self$(.$path)*[index.0]
             }
         }
+
+        impl std::ops::IndexMut<$id_type_name> for Subgraphs {
+            fn index_mut(&mut self, index: $id_type_name) -> &mut $out {
+                &mut self$(.$path)*[index.0]
+            }
+        }
         )*
     };
 }

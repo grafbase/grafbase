@@ -1,0 +1,14 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: API SDL
+input_file: crates/graphql-composition/tests/composition/federation_v1/object_fields_clash/test.md
+---
+type Band {
+  genre: String
+  name: String!
+  revenue: Int
+}
+
+type Query {
+  todaysBand: Band!
+}

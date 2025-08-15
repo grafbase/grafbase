@@ -196,7 +196,7 @@ fn render_join_field_directive(
     if let Some(override_label) = &directive.override_label {
         match override_label {
             OverrideLabel::Percent(_) => writer.arg("overrideLabel", format!("{override_label}")),
-            OverrideLabel::Unknown => writer.arg("overrideLabel", ""),
+            OverrideLabel::Unknown(unknown) => writer.arg("overrideLabel", unknown.clone()),
         }?;
     }
 

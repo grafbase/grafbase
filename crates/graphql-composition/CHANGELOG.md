@@ -8,6 +8,7 @@
 - Implemented some composite schemas spec validations for the `@override` directive, resulting in more consistent logic and better diagnostics (https://github.com/grafbase/grafbase/pull/3374)
 - Implemented the composite schemas spec validation rules for `@shareable`. It makes the validation more relaxed: if any subgraph defines the field as shareable, then others don't need to annotate with `@shareable` as well. It should not make any schema that composes today fail to compose. The diagnostics have also been improved to list all the relevant subgraphs.
 - Better diagnostic message when you try to compose zero subgraphs.
+- Unknown override labels are no longer an error.
 
 ### Fixes
 

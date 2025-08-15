@@ -1,0 +1,5 @@
+type Query {
+  field1863(arg25: ID!): Type99 @directive10
+}
+
+scalar Type99

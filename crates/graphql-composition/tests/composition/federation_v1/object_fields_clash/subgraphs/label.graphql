@@ -1,6 +1,6 @@
 type Band {
-    name: String!
-    revenue: Int
+  name: String!
+  revenue: Int
 }
 
 type Query {
