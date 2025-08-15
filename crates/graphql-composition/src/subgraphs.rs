@@ -227,11 +227,4 @@ impl Subgraphs {
     pub(crate) fn emit_ingestion_diagnostics(&self, diagnostics: &mut crate::Diagnostics) {
         diagnostics.clone_all_from(&self.ingestion_diagnostics);
     }
-
-    pub(crate) fn finalize(mut self) -> Self {
-        self.directives
-            .extra_directives
-            .sort_unstable_by_key(|dir| dir.directive_site_id);
-        self
-    }
 }

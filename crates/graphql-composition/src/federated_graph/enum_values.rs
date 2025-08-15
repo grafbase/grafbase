@@ -13,10 +13,10 @@ impl std::fmt::Debug for EnumValue<'_> {
 
 #[derive(Clone, Debug)]
 pub struct EnumValueRecord {
-    pub enum_id: EnumDefinitionId,
-    pub value: StringId,
-    pub directives: Vec<Directive>,
-    pub description: Option<StringId>,
+    pub(crate) enum_id: EnumDefinitionId,
+    pub(crate) value: StringId,
+    pub(crate) directives: Vec<Directive>,
+    pub(crate) description: Option<StringId>,
 }
 
 impl FederatedGraph {

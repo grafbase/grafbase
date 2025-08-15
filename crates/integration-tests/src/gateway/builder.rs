@@ -167,7 +167,7 @@ impl GatewayBuilder {
                             )?;
                         }
 
-                        graphql_composition::compose(composed_subgraphs)
+                        graphql_composition::compose(&composed_subgraphs)
                             .warnings_are_fatal()
                             .into_result()
                             .expect("schemas to compose succesfully")

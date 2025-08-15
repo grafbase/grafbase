@@ -248,7 +248,6 @@ fn public_directives_filter(directive: &Directive) -> bool {
         | Directive::JoinType(_)
         | Directive::JoinUnionMember(_)
         | Directive::JoinImplements(_)
-        | Directive::Authorized(_)
         | Directive::ListSize(_)
         | Directive::JoinGraph(_)
         | Directive::CompositeLookup { .. }

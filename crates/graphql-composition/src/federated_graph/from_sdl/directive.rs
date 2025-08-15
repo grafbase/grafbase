@@ -4,11 +4,11 @@ use cynic_parser::type_system::{self as ast};
 use cynic_parser_deser::ConstDeserializer;
 
 use super::{
-    AuthorizedDirective, CostDirective, Definition, DeprecatedDirective, Directive, DomainError,
-    EXTENSION_DIRECTIVE_DIRECTIVE, ExtensionDirective, ExtensionLinkSchemaDirective, FieldId, GetArgumentsExt,
-    InputValueDefinitionId, IntoJson, JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective,
-    JoinUnionMemberDirective, ListSize, ListSizeDirective, OverrideLabel, OverrideSource, State, StringId, Value,
-    attach_input_value_set_to_field_arguments, attach_selection_set, parse_selection_set,
+    CostDirective, Definition, DeprecatedDirective, Directive, DomainError, EXTENSION_DIRECTIVE_DIRECTIVE,
+    ExtensionDirective, ExtensionLinkSchemaDirective, FieldId, GetArgumentsExt, InputValueDefinitionId, IntoJson,
+    JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective, ListSize,
+    ListSizeDirective, OverrideLabel, OverrideSource, State, StringId, Value, attach_selection_set,
+    parse_selection_set,
 };
 
 pub(super) fn collect_definition_directives<'a>(
@@ -19,9 +19,6 @@ pub(super) fn collect_definition_directives<'a>(
     let mut out = Vec::new();
     for directive in directives {
         match directive.name() {
-            "authorized" => {
-                out.push(parse_authorized_type_directive(definition_id, directive, state)?);
-            }
             "join__type" => {
                 out.push(parse_join_type_directive(definition_id, directive, state)?);
             }
@@ -44,9 +41,6 @@ pub(super) fn collect_field_directives<'a>(
         match directive.name() {
             "join__field" => {
                 out.extend(parse_join_field_directive(parent_id, field_id, directive, state)?);
-            }
-            "authorized" => {
-                out.extend(parse_authorized_field_directive(parent_id, field_id, directive, state));
             }
             "listSize" => {
                 out.extend(parse_list_size_directive(field_id, directive, state)?);
@@ -208,30 +202,6 @@ fn parse_other<'a>(directive: ast::Directive<'a>, state: &mut State<'a>) -> Dire
     Directive::Other { name, arguments }
 }
 
-fn parse_authorized_type_directive<'a>(
-    definition_id: Definition,
-    directive: ast::Directive<'a>,
-    state: &mut State<'a>,
-) -> Result<Directive, DomainError> {
-    let fields = directive
-        .get_argument("fields")
-        .and_then(|arg| arg.as_str())
-        .map(|fields| parse_selection_set(fields).and_then(|doc| attach_selection_set(&doc, definition_id, state)))
-        .transpose()?
-        .filter(|fields| !fields.is_empty());
-
-    let metadata = directive
-        .get_argument("metadata")
-        .map(|metadata| state.insert_value(metadata, None));
-
-    Ok(Directive::Authorized(AuthorizedDirective {
-        fields,
-        node: None,
-        arguments: None,
-        metadata,
-    }))
-}
-
 fn parse_join_type_directive<'a>(
     definition_id: Definition,
     directive: ast::Directive<'a>,
@@ -343,47 +313,6 @@ fn parse_join_field_directive<'a>(
         r#override,
         override_label,
     })))
-}
-
-fn parse_authorized_field_directive<'a>(
-    parent_id: Definition,
-    field_id: FieldId,
-    directive: ast::Directive<'a>,
-    state: &mut State<'a>,
-) -> Result<Directive, DomainError> {
-    let field_type = state.graph[field_id].r#type;
-
-    Ok(Directive::Authorized(AuthorizedDirective {
-        arguments: directive
-            .get_argument("arguments")
-            .and_then(|value| value.as_str())
-            .map(|arguments| {
-                parse_selection_set(arguments)
-                    .and_then(|fields| attach_input_value_set_to_field_arguments(fields, parent_id, field_id, state))
-            })
-            .transpose()?
-            .filter(|arguments| !arguments.is_empty()),
-        fields: directive
-            .get_argument("fields")
-            .and_then(|value| value.as_str())
-            .map(|fields| {
-                parse_selection_set(fields).and_then(|fields| attach_selection_set(&fields, parent_id, state))
-            })
-            .transpose()?
-            .filter(|fields| !fields.is_empty()),
-        node: directive
-            .get_argument("node")
-            .and_then(|value| value.as_str())
-            .map(|fields| {
-                parse_selection_set(fields)
-                    .and_then(|fields| attach_selection_set(&fields, field_type.definition, state))
-            })
-            .transpose()?
-            .filter(|node| !node.is_empty()),
-        metadata: directive
-            .get_argument("metadata")
-            .map(|metadata| state.insert_value(metadata, None)),
-    }))
 }
 
 fn parse_list_size_directive<'a>(

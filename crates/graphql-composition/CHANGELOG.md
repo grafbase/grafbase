@@ -15,6 +15,10 @@
 - Fixed a panic in validation for `@provides` on fields returning a built-in scalar type, like `Int`.
 - Fixed `Diagnostics::iter_warnings()` iterating over warnings instead of errors.
 
+## Breaking changes
+
+- Many types, fields and methods that are part of the `FederatedGraph` data structure are now private. `FederatedGraph` as a whole will become private as well, since the scope of this crate is only to render the federated SDL.
+
 ## 0.10.0 - 2025-07-30
 
 ### Improvements

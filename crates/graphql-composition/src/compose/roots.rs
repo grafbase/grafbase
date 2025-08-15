@@ -48,26 +48,6 @@ fn merge_fields<'a>(
 
     let object_id = ctx.insert_object(type_name, None, directives);
 
-    if let "Query" = root {
-        for field_name in ["__schema", "__type"] {
-            let field_name = ctx.insert_static_str(field_name);
-
-            // Use a dummy field type
-            let Some(field_type) = ctx.subgraphs.iter_all_fields().next().map(|f| f.r#type().id) else {
-                break;
-            };
-
-            ctx.insert_field(ir::FieldIr {
-                parent_definition_name: type_name,
-                field_name,
-                field_type,
-                arguments: federated::NO_INPUT_VALUE_DEFINITION,
-                description: None,
-                directives: Vec::new(),
-            });
-        }
-    }
-
     if let "Subscription" = root {
         for definition in definitions {
             if definition.directives().shareable() {
