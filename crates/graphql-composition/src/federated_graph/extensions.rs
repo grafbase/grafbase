@@ -4,13 +4,13 @@ use super::*;
 pub struct Extension {
     /// Name of the extension within the federated graph. It does NOT necessarily matches the extension's name
     /// in its manifest, see the `id` field for this.
-    pub enum_value_id: EnumValueId,
-    pub url: StringId,
-    pub schema_directives: Vec<ExtensionLinkSchemaDirective>,
+    pub(crate) enum_value_id: EnumValueId,
+    pub(crate) url: StringId,
+    pub(crate) schema_directives: Vec<ExtensionLinkSchemaDirective>,
 }
 
 impl FederatedGraph {
-    pub fn push_extension(&mut self, extension: Extension) -> ExtensionId {
+    pub(crate) fn push_extension(&mut self, extension: Extension) -> ExtensionId {
         let id = self.extensions.len().into();
         self.extensions.push(extension);
         id

@@ -23,7 +23,7 @@ pub(crate) use self::{
 };
 
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
-pub enum Directive {
+pub(crate) enum Directive {
     Authenticated,
     CompositeLookup {
         graph: SubgraphId,
@@ -79,44 +79,9 @@ impl From<JoinTypeDirective> for Directive {
 }
 
 impl Directive {
-    pub fn as_join_field(&self) -> Option<&JoinFieldDirective> {
-        match self {
-            Directive::JoinField(d) => Some(d),
-            _ => None,
-        }
-    }
-
-    pub fn as_join_field_mut(&mut self) -> Option<&mut JoinFieldDirective> {
-        match self {
-            Directive::JoinField(d) => Some(d),
-            _ => None,
-        }
-    }
-
     pub fn as_join_type(&self) -> Option<&JoinTypeDirective> {
         match self {
             Directive::JoinType(d) => Some(d),
-            _ => None,
-        }
-    }
-
-    pub fn as_join_union_member(&self) -> Option<&JoinUnionMemberDirective> {
-        match self {
-            Directive::JoinUnionMember(d) => Some(d),
-            _ => None,
-        }
-    }
-
-    pub fn as_extension_directive(&self) -> Option<&ExtensionDirective> {
-        match self {
-            Directive::ExtensionDirective(d) => Some(d),
-            _ => None,
-        }
-    }
-
-    pub fn as_join_implements(&self) -> Option<&JoinImplementsDirective> {
-        match self {
-            Directive::JoinImplements(d) => Some(d),
             _ => None,
         }
     }

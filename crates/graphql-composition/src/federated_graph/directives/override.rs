@@ -17,12 +17,6 @@ pub enum OverrideLabel {
     Unknown(String),
 }
 
-impl OverrideLabel {
-    pub fn as_percent(&self) -> Option<u8> {
-        if let Self::Percent(v) = self { Some(*v) } else { None }
-    }
-}
-
 impl std::fmt::Display for OverrideLabel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

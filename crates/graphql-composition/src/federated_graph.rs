@@ -44,7 +44,7 @@ use std::{fmt, ops::Range};
 #[derive(Clone, Default)]
 pub struct FederatedGraph {
     pub(crate) subgraphs: Vec<Subgraph>,
-    pub extensions: Vec<Extension>,
+    pub(crate) extensions: Vec<Extension>,
     pub(crate) objects: Vec<Object>,
     pub(crate) interfaces: Vec<Interface>,
     pub(crate) fields: Vec<Field>,
@@ -61,7 +61,7 @@ pub struct FederatedGraph {
     pub(crate) input_value_definitions: Vec<InputValueDefinition>,
 
     /// All the strings in the federated graph, deduplicated.
-    pub strings: Vec<String>,
+    pub(crate) strings: Vec<String>,
 }
 
 impl FederatedGraph {
@@ -72,7 +72,7 @@ impl FederatedGraph {
         from_sdl::from_sdl(sdl)
     }
 
-    pub fn definition_name(&self, definition: Definition) -> &str {
+    pub(crate) fn definition_name(&self, definition: Definition) -> &str {
         let name_id = match definition {
             Definition::Scalar(scalar_id) => self[scalar_id].name,
             Definition::Object(object_id) => self.at(object_id).name,
@@ -117,23 +117,23 @@ pub struct Subgraph {
 
 #[derive(Clone, Debug)]
 pub struct Union {
-    pub name: StringId,
-    pub description: Option<StringId>,
-    pub members: Vec<ObjectId>,
-    pub directives: Vec<Directive>,
+    pub(crate) name: StringId,
+    pub(crate) description: Option<StringId>,
+    pub(crate) members: Vec<ObjectId>,
+    pub(crate) directives: Vec<Directive>,
 }
 
 #[derive(Clone, Debug)]
 pub struct InputObject {
-    pub name: StringId,
-    pub description: Option<StringId>,
-    pub fields: InputValueDefinitions,
-    pub directives: Vec<Directive>,
+    pub(crate) name: StringId,
+    pub(crate) description: Option<StringId>,
+    pub(crate) fields: InputValueDefinitions,
+    pub(crate) directives: Vec<Directive>,
 }
 
 #[derive(Default, Clone, PartialEq, PartialOrd, Debug)]
 #[allow(clippy::enum_variant_names)]
-pub enum Value {
+pub(crate) enum Value {
     #[default]
     Null,
     String(StringId),
@@ -153,53 +153,43 @@ pub enum Value {
 
 #[derive(Clone, Debug)]
 pub struct Object {
-    pub name: StringId,
-    pub directives: Vec<Directive>,
-    pub description: Option<StringId>,
-    pub implements_interfaces: Vec<InterfaceId>,
-    pub fields: Fields,
+    pub(crate) name: StringId,
+    pub(crate) directives: Vec<Directive>,
+    pub(crate) description: Option<StringId>,
+    pub(crate) implements_interfaces: Vec<InterfaceId>,
+    pub(crate) fields: Fields,
 }
 
 #[derive(Clone, Debug)]
 pub struct Interface {
-    pub name: StringId,
-    pub directives: Vec<Directive>,
-    pub description: Option<StringId>,
-    pub implements_interfaces: Vec<InterfaceId>,
-    pub fields: Fields,
+    pub(crate) name: StringId,
+    pub(crate) directives: Vec<Directive>,
+    pub(crate) description: Option<StringId>,
+    pub(crate) implements_interfaces: Vec<InterfaceId>,
+    pub(crate) fields: Fields,
 }
 
 #[derive(Clone, Debug)]
 pub struct Field {
-    pub parent_entity_id: EntityDefinitionId,
-    pub name: StringId,
-    pub description: Option<StringId>,
-    pub r#type: Type,
-    pub arguments: InputValueDefinitions,
-    pub directives: Vec<Directive>,
-}
-
-impl Value {
-    pub fn is_list(&self) -> bool {
-        matches!(self, Value::List(_))
-    }
-
-    pub fn is_null(&self) -> bool {
-        matches!(self, Value::Null)
-    }
+    pub(crate) parent_entity_id: EntityDefinitionId,
+    pub(crate) name: StringId,
+    pub(crate) description: Option<StringId>,
+    pub(crate) r#type: Type,
+    pub(crate) arguments: InputValueDefinitions,
+    pub(crate) directives: Vec<Directive>,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct InputValueDefinition {
-    pub name: StringId,
-    pub r#type: Type,
-    pub directives: Vec<Directive>,
-    pub description: Option<StringId>,
-    pub default: Option<Value>,
+    pub(crate) name: StringId,
+    pub(crate) r#type: Type,
+    pub(crate) directives: Vec<Directive>,
+    pub(crate) description: Option<StringId>,
+    pub(crate) default: Option<Value>,
 }
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub struct SelectionSet(pub Vec<Selection>);
+pub(crate) struct SelectionSet(pub(crate) Vec<Selection>);
 
 impl From<Vec<Selection>> for SelectionSet {
     fn from(selections: Vec<Selection>) -> Self {
@@ -226,29 +216,8 @@ impl std::ops::DerefMut for SelectionSet {
     }
 }
 
-impl SelectionSet {
-    pub fn find_field(&self, field_id: FieldId) -> Option<&FieldSelection> {
-        for selection in &self.0 {
-            match selection {
-                Selection::Field(field) => {
-                    if field.field_id == field_id {
-                        return Some(field);
-                    }
-                }
-                Selection::InlineFragment { subselection, .. } => {
-                    if let Some(found) = subselection.find_field(field_id) {
-                        return Some(found);
-                    }
-                }
-                Selection::Typename => {}
-            }
-        }
-        None
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub enum Selection {
+pub(crate) enum Selection {
     Typename,
     Field(FieldSelection),
     InlineFragment { on: Definition, subselection: SelectionSet },
