@@ -16,7 +16,7 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use cynic::{QueryBuilder, http::ReqwestExt};
-use futures::TryStreamExt as _;
+use futures::{StreamExt as _, TryStreamExt as _};
 use gateway_config::{Config, SubgraphConfig};
 use grafbase_graphql_introspection::introspect;
 use std::{
@@ -173,21 +173,21 @@ impl SubgraphCache {
                 let diagnostics = graphql_schema_validation::validate(&subgraph.sdl);
 
                 if diagnostics.has_errors() {
-                    return Err(anyhow::anyhow!(
-                        "The schema of subgraph `{}` is invalid: {}",
-                        subgraph.name,
-                        diagnostics
-                            .iter()
-                            .map(|diagnostic| diagnostic.to_string())
-                            .collect::<Vec<_>>()
-                            .join("\n\n")
-                    ));
+                    let errors = diagnostics
+                        .iter()
+                        .map(|diagnostic| format!("[{}] {}\n", subgraph.name, diagnostic))
+                        .collect::<Vec<_>>();
+                    return Err((subgraph.name.clone(), errors));
                 }
 
-                let parsed_schema = cynic_parser::parse_type_system_document(&subgraph.sdl)
-                    .map_err(|err| anyhow::anyhow!("Failed to parse subgraph SDL for `{}`: {err}", subgraph.name))?;
+                let parsed_schema = cynic_parser::parse_type_system_document(&subgraph.sdl).map_err(|err| {
+                    (
+                        subgraph.name.clone(),
+                        vec![format!("[{}] Failed to parse subgraph SDL: {err}\n", subgraph.name)],
+                    )
+                })?;
 
-                anyhow::Result::Ok((subgraph, parsed_schema))
+                Ok((subgraph, parsed_schema))
             });
         })
         .await;
@@ -195,11 +195,26 @@ impl SubgraphCache {
         let mut stream = futs.into_stream();
         let mut subgraphs = graphql_composition::Subgraphs::default()
             .with_current_dir(config.parent_dir_path().map(|p| p.to_path_buf()));
+        let mut validation_errors = Vec::new();
 
-        while let Some((subgraph, parsed_schema)) = stream.try_next().await? {
-            let extensions = detect_extensions(config, &parsed_schema).await;
-            subgraphs.ingest_loaded_extensions(extensions);
-            subgraphs.ingest(&parsed_schema, &subgraph.name, subgraph.url.as_deref());
+        while let Some(result) = stream.next().await {
+            match result {
+                Ok((subgraph, parsed_schema)) => {
+                    let extensions = detect_extensions(config, &parsed_schema).await;
+                    subgraphs.ingest_loaded_extensions(extensions);
+                    subgraphs.ingest(&parsed_schema, &subgraph.name, subgraph.url.as_deref());
+                }
+                Err((_, mut errors)) => {
+                    validation_errors.append(&mut errors);
+                }
+            }
+        }
+
+        if !validation_errors.is_empty() {
+            return Err(anyhow::anyhow!(
+                "Schema validation errors found:\n{}",
+                validation_errors.join("")
+            ));
         }
 
         let result = graphql_composition::compose(&subgraphs);
