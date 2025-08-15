@@ -1,5 +1,7 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key"])
+
 type Query {
-    groceryList: [GroceryItem]
+  groceryList: [GroceryItem]
 }
 
 interface GroceryItem @key(fields: "id") {

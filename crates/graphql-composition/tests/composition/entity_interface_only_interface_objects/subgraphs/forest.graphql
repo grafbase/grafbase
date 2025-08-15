@@ -1,7 +1,0 @@
-type Squirrel {
-  favouriteFood: String
-}
-
-type Animal @interfaceObject {
-  favouriteFood: String
-}

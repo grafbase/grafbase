@@ -1,0 +1,76 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Mixing specs.
+input_file: crates/graphql-composition/tests/composition/federation_v2/entity_interfaces/entity_interface_with_federation_v1_subgraph/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Type46 implements Interface58 & Interface104 & Interface13
+  @join__type(graph: SERVICE1, key: "id")
+  @join__implements(graph: SERVICE1, interface: "Interface58")
+  @join__implements(graph: SERVICE1, interface: "Interface104")
+  @join__implements(graph: SERVICE1, interface: "Interface13")
+{
+  field18: Int! @join__field
+  field2712: String
+  field2713: Boolean
+  field2919: Boolean
+  field2920: [Int!]
+  fiftyEight: String!
+  id: ID!
+  twentySeven(arg6: String!): Int
+}
+
+type Query
+{
+  t46: Type46 @join__field(graph: SERVICE1)
+}
+
+interface Interface58
+  @join__type(graph: SERVICE1)
+  @join__type(graph: SERVICE5)
+{
+  fiftyEight: String!
+}
+
+interface Interface104
+  @join__type(graph: SERVICE1)
+{
+  twentySeven(arg6: String!): Int
+}
+
+interface Interface13 implements Interface58 & Interface104
+  @join__type(graph: SERVICE1, key: "id")
+  @join__implements(graph: SERVICE1, interface: "Interface58")
+  @join__implements(graph: SERVICE5, interface: "Interface58")
+  @join__implements(graph: SERVICE1, interface: "Interface104")
+{
+  field18: Int! @join__field(graph: SERVICE28) @join__field(graph: SERVICE50) @join__field(graph: SERVICE66, external: true)
+  field2713: Boolean
+  field2919: Boolean
+  field2920: [Int!]
+  fiftyEight: String! @join__field(graph: SERVICE1) @join__field(graph: SERVICE5)
+  id: ID! @join__field(graph: SERVICE1) @join__field(graph: SERVICE5)
+  twentySeven(arg6: String!): Int
+}
+
+enum join__Graph
+{
+  SERVICE1 @join__graph(name: "service1", url: "http://example.com/service1")
+  SERVICE28 @join__graph(name: "service28", url: "http://example.com/service28")
+  SERVICE5 @join__graph(name: "service5", url: "http://example.com/service5")
+  SERVICE50 @join__graph(name: "service50", url: "http://example.com/service50")
+  SERVICE66 @join__graph(name: "service66", url: "http://example.com/service66")
+}

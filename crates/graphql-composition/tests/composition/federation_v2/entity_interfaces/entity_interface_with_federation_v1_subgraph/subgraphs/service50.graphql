@@ -1,0 +1,3 @@
+interface Interface13 @key(fields: "field18") @extends {
+  field18: Int! @external
+}
