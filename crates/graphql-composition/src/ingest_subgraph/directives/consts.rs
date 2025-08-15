@@ -2,6 +2,7 @@ pub(super) const AUTHENTICATED: &str = "authenticated";
 pub(super) const COMPOSE_DIRECTIVE: &str = "composeDirective";
 pub(super) const COST: &str = "cost";
 pub(super) const EXTERNAL: &str = "external";
+pub(super) const EXTENDS: &str = "extends";
 pub(super) const INACCESSIBLE: &str = "inaccessible";
 pub(super) const INTERFACE_OBJECT: &str = "interfaceObject";
 pub(super) const INTERNAL: &str = "internal";

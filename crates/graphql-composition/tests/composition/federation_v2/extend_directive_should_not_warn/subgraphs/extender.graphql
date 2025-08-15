@@ -1,0 +1,10 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@extends", "@key"])
+
+type Query {
+  furby(id: ID!): Furby!
+}
+
+type Furby @key(fields: "id") @extends {
+  id: ID!
+  coat: String!
+}

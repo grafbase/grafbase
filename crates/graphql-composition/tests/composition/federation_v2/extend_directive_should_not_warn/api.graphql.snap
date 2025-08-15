@@ -1,0 +1,15 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: API SDL
+input_file: crates/graphql-composition/tests/composition/federation_v2/extend_directive_should_not_warn/test.md
+---
+type Furby {
+  coat: String!
+  id: ID!
+  name: String!
+}
+
+type Query {
+  furbies: [Furby!]!
+  furby(id: ID!): Furby!
+}

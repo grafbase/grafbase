@@ -1,0 +1,39 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/federation_v1/extend_directive_should_not_warn/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Furby
+  @join__type(graph: EXTENDER)
+  @join__type(graph: MAIN)
+{
+  coat: String! @join__field(graph: EXTENDER)
+  id: ID!
+  name: String! @join__field(graph: MAIN)
+}
+
+type Query
+{
+  furbies: [Furby!]! @join__field(graph: MAIN)
+  furby(id: ID!): Furby! @join__field(graph: EXTENDER)
+}
+
+enum join__Graph
+{
+  EXTENDER @join__graph(name: "extender", url: "http://example.com/extender")
+  MAIN @join__graph(name: "main", url: "http://example.com/main")
+}
