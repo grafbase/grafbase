@@ -13,9 +13,18 @@ type Product
   @join__type(graph: PRICE)
 {
   id: ID!
+  nested: Nested!
   category: String @join__field(graph: CATEGORY)
   name: String @join__field(graph: NAME)
   price: Float @join__field(graph: PRICE)
+}
+
+type Nested
+  @join__type(graph: CATEGORY)
+  @join__type(graph: NAME)
+  @join__type(graph: PRICE)
+{
+  id: ID!
 }
 
 type Query
@@ -40,6 +49,24 @@ async fn all_fields() {
             category
             id
             name
+          }
+        }
+        "#
+    );
+}
+
+#[tokio::test]
+async fn nested_id_field_with_all_fields() {
+    assert_solving_snapshots!(
+        "nested_id_with_all_fields",
+        SCHEMA,
+        r#"
+        query {
+          products {
+            price
+            category
+            name
+            nested { id }
           }
         }
         "#

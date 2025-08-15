@@ -1,0 +1,29 @@
+---
+source: crates/engine/query-solver/src/tests/shared_root.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#category\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.category\" ]\n    4 [ label = \"Product.nested\" ]\n    5 [ label = \"Nested.id\" ]\n    6 [ label = \"Root#name\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"Query.products\" ]\n    8 [ label = \"Product.name\" ]\n    9 [ label = \"Root#price\", color=royalblue,shape=parallelogram ]\n    10 [ label = \"Query.products\" ]\n    11 [ label = \"Product.price\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    2 -> 4 [ label = \"\" ]\n    4 -> 5 [ label = \"\" ]\n    0 -> 6 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    6 -> 7 [ label = \"\" ]\n    7 -> 8 [ label = \"\" ]\n    0 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 10 [ label = \"\" ]\n    10 -> 11 [ label = \"\" ]\n}\n"
+---
+digraph {
+    0 [ label = "root" ]
+    1 [ label = "Root#category" ]
+    2 [ label = "Query.products" ]
+    3 [ label = "Product.category" ]
+    4 [ label = "Product.nested" ]
+    5 [ label = "Nested.id" ]
+    6 [ label = "Root#name" ]
+    7 [ label = "Query.products" ]
+    8 [ label = "Product.name" ]
+    9 [ label = "Root#price" ]
+    10 [ label = "Query.products" ]
+    11 [ label = "Product.price" ]
+    0 -> 1 [ label = "QueryPartition" ]
+    1 -> 2 [ label = "Field" ]
+    2 -> 3 [ label = "Field" ]
+    2 -> 4 [ label = "Field" ]
+    4 -> 5 [ label = "Field" ]
+    0 -> 6 [ label = "QueryPartition" ]
+    6 -> 7 [ label = "Field" ]
+    7 -> 8 [ label = "Field" ]
+    0 -> 9 [ label = "QueryPartition" ]
+    9 -> 10 [ label = "Field" ]
+    10 -> 11 [ label = "Field" ]
+}

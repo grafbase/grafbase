@@ -24,7 +24,7 @@ pub(crate) struct SteinerInput<'schema> {
 pub(crate) struct InputMap {
     pub node_id_to_space_node_id: Vec<SpaceNodeId>,
     pub edge_id_to_space_edge_id: Vec<SpaceEdgeId>,
-    pub space_node_id_to_node_id: FxHashMap<SpaceNodeId, SteinerNodeId>,
+    pub space_node_id_to_node_id: Vec<SteinerNodeId>,
     pub space_edge_id_to_edge_id: FxHashMap<SpaceEdgeId, SteinerEdgeId>,
 }
 
