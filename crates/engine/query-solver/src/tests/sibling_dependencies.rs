@@ -178,8 +178,8 @@ enum Trustworthiness {
 }
 "###;
 
-#[tokio::test]
-async fn sibling_dependency() {
+#[test]
+fn sibling_dependency() {
     assert_solving_snapshots!(
         "sibling_dependencies",
         SCHEMA,

@@ -1,9 +1,9 @@
 use schema::Schema;
 
-use crate::assert_solving_snapshots;
+use crate::{assert_solving_snapshots, tests::runtime};
 
-#[tokio::test]
-async fn direct_lookup_call() {
+#[test]
+fn direct_lookup_call() {
     let tmpdir = tempfile::tempdir().unwrap();
     let manifest = extension_catalog::Manifest {
         id: "ext-1.0.0".parse().unwrap(),
@@ -63,7 +63,9 @@ async fn direct_lookup_call() {
         url::Url::from_file_path(tmpdir.path()).unwrap()
     );
 
-    let schema = Schema::builder(&sdl).extensions(&catalog).build().await.unwrap();
+    let schema = runtime()
+        .block_on(Schema::builder(&sdl).extensions(&catalog).build())
+        .unwrap();
 
     // The tricky part here is that one can easily end up using the lookup variant even though the
     // field is resolvable because we need special treatment to handle nested resolvers.

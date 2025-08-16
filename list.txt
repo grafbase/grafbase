@@ -1,6 +1,0 @@
-            FAIL [   0.103s] engine-query-solver tests::provides::provides_with_entity_join
-        FAIL [   0.103s] engine-query-solver tests::shared_root::all_fields
-        FAIL [   0.101s] engine-query-solver tests::shared_root::single_field
-        FAIL [   0.098s] engine-query-solver tests::sibling_dependencies::sibling_dependency
-        FAIL [   0.105s] engine-query-solver tests::tea_shop::missing_style_enum
-        FAIL [   0.095s] engine-query-solver tests::typename::only_typename

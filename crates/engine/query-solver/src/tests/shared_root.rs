@@ -37,8 +37,8 @@ type Query
 }
 "###;
 
-#[tokio::test]
-async fn all_fields() {
+#[test]
+fn all_fields() {
     assert_solving_snapshots!(
         "all_fields",
         SCHEMA,
@@ -55,8 +55,8 @@ async fn all_fields() {
     );
 }
 
-#[tokio::test]
-async fn nested_id_field_with_all_fields() {
+#[test]
+fn nested_id_field_with_all_fields() {
     assert_solving_snapshots!(
         "nested_id_with_all_fields",
         SCHEMA,
@@ -73,8 +73,8 @@ async fn nested_id_field_with_all_fields() {
     );
 }
 
-#[tokio::test]
-async fn single_field() {
+#[test]
+fn single_field() {
     assert_solving_snapshots!(
         "single_field",
         SCHEMA,

@@ -23,7 +23,6 @@ pub(crate) struct DispensableRequirementsBuilder {
     interner: hashbrown::HashTable<IdRange<RequiredSpaceNodeId>>,
     #[indexed_by(RequiredSpaceNodeId)]
     required_space_nodes: Vec<SpaceNodeId>,
-    space_node_ids_buffer: Vec<SpaceNodeId>,
 }
 
 struct DependentEdgeWithDispensableRequirements {
@@ -76,7 +75,6 @@ impl DispensableRequirementsBuilder {
             hasher: FxBuildHasher::default(),
             interner: hashbrown::HashTable::with_capacity(n),
             required_space_nodes: Vec::with_capacity(n),
-            space_node_ids_buffer: Vec::new(),
         }
     }
 

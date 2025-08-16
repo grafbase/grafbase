@@ -97,10 +97,7 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_> {
 
         Ok(self
             .steiner_tree
-            .extend_terminals(self.state.tmp_new_terminals.drain(..).inspect(|id| {
-                let space_node_id = self.input.map.node_id_to_space_node_id[id.index()];
-                self.input.space_node_is_terminal.insert(space_node_id.index())
-            })))
+            .extend_terminals(self.state.tmp_new_terminals.drain(..)))
     }
 
     fn extend_terminals(

@@ -1,6 +1,6 @@
 use schema::Schema;
 
-use crate::assert_solving_snapshots;
+use crate::{assert_solving_snapshots, tests::runtime};
 
 const SCHEMA: &str = r#"
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
@@ -241,8 +241,8 @@ enum HttpMethod {
 }
 "#;
 
-#[tokio::test]
-async fn mix_of_look_derive_require() {
+#[test]
+fn mix_of_look_derive_require() {
     let tmpdir = tempfile::tempdir().unwrap();
     let manifest = extension_catalog::Manifest {
         id: "rest-1.0.0".parse().unwrap(),
@@ -274,14 +274,16 @@ async fn mix_of_look_derive_require() {
         wasm_path,
     });
 
-    let schema = Schema::builder(&SCHEMA.replace(
-        "file:///rest/build",
-        url::Url::from_file_path(tmpdir.path()).unwrap().as_str(),
-    ))
-    .extensions(&catalog)
-    .build()
-    .await
-    .unwrap();
+    let schema = runtime()
+        .block_on(
+            Schema::builder(&SCHEMA.replace(
+                "file:///rest/build",
+                url::Url::from_file_path(tmpdir.path()).unwrap().as_str(),
+            ))
+            .extensions(&catalog)
+            .build(),
+        )
+        .unwrap();
 
     // Extension resolver can be placed on arbitrary fields, its presence indicates that it must be
     // used to resolve the field. We're taking this into account when computing the providable

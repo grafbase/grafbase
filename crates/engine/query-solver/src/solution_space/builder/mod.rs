@@ -41,9 +41,7 @@ impl<'schema> QuerySolutionSpace<'schema> {
             schema,
             operation,
             query: Query {
-                step: SolutionSpace {
-                    indispensable_leaf_nodes: Vec::new(),
-                },
+                step: SolutionSpace {},
                 root_node_id: root_ix,
                 graph,
                 fields: Vec::with_capacity(n),

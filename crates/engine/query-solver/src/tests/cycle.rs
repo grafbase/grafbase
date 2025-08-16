@@ -1,7 +1,7 @@
 use operation::{Operation, OperationContext};
 use schema::Schema;
 
-use crate::{Query, assert_solving_snapshots, solve::Solver};
+use crate::{Query, assert_solving_snapshots, solve::Solver, tests::runtime};
 
 const SCHEMA: &str = r###"
 enum join__Graph {
@@ -65,9 +65,9 @@ type Query
 }
 "###;
 
-#[tokio::test]
-async fn requirements_cycle() {
-    let schema = Schema::from_sdl_or_panic(SCHEMA).await;
+#[test]
+fn requirements_cycle() {
+    let schema = runtime().block_on(Schema::from_sdl_or_panic(SCHEMA));
     let operation = Operation::parse(
         &schema,
         None,
@@ -96,8 +96,8 @@ async fn requirements_cycle() {
     assert!(matches!(err, crate::Error::RequirementCycleDetected));
 }
 
-#[tokio::test]
-async fn query_partitions_cycle() {
+#[test]
+fn query_partitions_cycle() {
     // 'first' and 'third' cannot be in the same query partitions as it would lead to a cyclic
     // dependency between query partitions.
     assert_solving_snapshots!(
@@ -115,8 +115,8 @@ async fn query_partitions_cycle() {
     );
 }
 
-#[tokio::test]
-async fn query_partitions_nested_cycle_1() {
+#[test]
+fn query_partitions_nested_cycle_1() {
     // 'first' and 'third' cannot be in the same query partitions as it would lead to a cyclic
     // dependency between query partitions.
     assert_solving_snapshots!(
@@ -139,8 +139,8 @@ async fn query_partitions_nested_cycle_1() {
 
 // As we use a direct graph, ordering of edges matter. This query will process fields in the
 // reverse order ensuring we handle the directed edge correctly.
-#[tokio::test]
-async fn query_partitions_nested_cycle_2() {
+#[test]
+fn query_partitions_nested_cycle_2() {
     // 'first' and 'third' cannot be in the same query partitions as it would lead to a cyclic
     // dependency between query partitions.
     assert_solving_snapshots!(

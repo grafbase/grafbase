@@ -48,6 +48,11 @@ impl GraphqlResolver {
                     PlanError::Internal
                 },
             )?;
+        tracing::info!(
+            "{}\n{}",
+            definition.endpoint().subgraph_name(),
+            subgraph_operation.query
+        );
         Ok(Self {
             subgraph_id: definition.subgraph().id,
             subgraph_operation,

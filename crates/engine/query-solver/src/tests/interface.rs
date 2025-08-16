@@ -67,8 +67,8 @@ interface NodeWithName
 }
 "#;
 
-#[tokio::test]
-async fn interface_field_providing_object_field() {
+#[test]
+fn interface_field_providing_object_field() {
     // age is coming from subgraph A, but needs User.id for this. `anotherUsers` returns an
     // interface though, so need to retrieve the `NodeWithName.id` as an alternative for `User.id`
     assert_solving_snapshots!(
@@ -86,8 +86,8 @@ async fn interface_field_providing_object_field() {
     );
 }
 
-#[tokio::test]
-async fn entity_interface_field() {
+#[test]
+fn entity_interface_field() {
     // username  comes from the subgraph B and requires the NodeWithName.id
     assert_solving_snapshots!(
         "entity_interface_field",

@@ -1,6 +1,6 @@
 use ::operation::Operation;
 use operation::OperationContext;
-use petgraph::visit::EdgeRef;
+use petgraph::{prelude::StableGraph, visit::EdgeRef};
 use schema::Schema;
 
 use crate::{
@@ -75,7 +75,7 @@ where
             state,
         };
 
-        tracing::debug!("Steiner graph populated:\n{}", solver.to_pretty_dot_graph());
+        tracing::debug!("Steiner graph populated:\n{}", solver.to_pretty_dot_graph(false));
 
         Ok(solver)
     }
@@ -100,9 +100,9 @@ where
                         break;
                     }
 
-                    tracing::trace!("Solver step:\n{}", self.to_pretty_dot_graph());
+                    tracing::trace!("Solver step:\n{}", self.to_pretty_dot_graph(false));
                 }
-                tracing::debug!("Solver finished:\n{}", self.to_pretty_dot_graph());
+                tracing::debug!("Solver finished:\n{}", self.to_pretty_dot_graph(true));
             }
         }
 
@@ -116,12 +116,19 @@ where
         }
     }
 
-    pub fn to_pretty_dot_graph(&self) -> String {
+    pub fn to_pretty_dot_graph(&self, steiner_tree_only: bool) -> String {
         use petgraph::dot::{Config, Dot};
+        let mut graph: StableGraph<_, _> = self.input.graph.clone().into();
+        if steiner_tree_only {
+            graph = graph.filter_map(
+                |node_id, _| if self.steiner_tree[node_id] { Some(()) } else { None },
+                |edge_id, edge| if self.steiner_tree[edge_id] { Some(*edge) } else { None },
+            );
+        }
         format!(
             "{:?}",
             Dot::with_attr_getters(
-                &self.input.graph,
+                &graph,
                 &[Config::EdgeNoLabel, Config::NodeNoLabel],
                 &|_, edge| {
                     let is_in_steiner_tree = self.steiner_tree[edge.id()];
@@ -174,34 +181,65 @@ where
     /// Use https://dreampuf.github.io/GraphvizOnline
     /// or `echo '..." | dot -Tsvg` from graphviz
     #[cfg(test)]
-    pub fn to_dot_graph(&self) -> String {
+    pub fn to_dot_graph(&self, steiner_tree_only: bool) -> String {
         use petgraph::dot::{Config, Dot};
-        format!(
-            "{:?}",
-            Dot::with_attr_getters(
-                &self.input.graph,
-                &[Config::EdgeNoLabel, Config::NodeNoLabel],
-                &|_, edge| {
-                    let is_in_steiner_tree = self.steiner_tree[edge.id()];
-                    let weight = *edge.weight();
-                    format!("cost={weight}, steiner={}", is_in_steiner_tree as usize)
-                },
-                &|_, (node_id, _)| {
-                    let is_in_steiner_tree = self.steiner_tree[node_id];
-                    let space_node_id = self.input.to_space_node_id(node_id);
-                    Attrs::label(
-                        self.input
-                            .space
-                            .graph
-                            .node_weight(space_node_id)
-                            .unwrap()
-                            .label(&self.input.space, self.ctx),
-                    )
-                    .with(format!("steiner={}", is_in_steiner_tree as usize))
-                    .to_string()
-                }
+        if steiner_tree_only {
+            let mut graph: StableGraph<_, _> = self.input.graph.clone().into();
+            graph = graph.filter_map(
+                |node_id, _| if self.steiner_tree[node_id] { Some(()) } else { None },
+                |edge_id, edge| if self.steiner_tree[edge_id] { Some(*edge) } else { None },
+            );
+            format!(
+                "{:?}",
+                Dot::with_attr_getters(
+                    &graph,
+                    &[Config::EdgeNoLabel, Config::NodeNoLabel],
+                    &|_, edge| {
+                        let weight = *edge.weight();
+                        format!("cost={weight}")
+                    },
+                    &|_, (node_id, _)| {
+                        let space_node_id = self.input.to_space_node_id(node_id);
+                        Attrs::label(
+                            self.input
+                                .space
+                                .graph
+                                .node_weight(space_node_id)
+                                .unwrap()
+                                .label(&self.input.space, self.ctx),
+                        )
+                        .to_string()
+                    }
+                )
             )
-        )
+        } else {
+            format!(
+                "{:?}",
+                Dot::with_attr_getters(
+                    &self.input.graph,
+                    &[Config::EdgeNoLabel, Config::NodeNoLabel],
+                    &|_, edge| {
+                        let is_in_steiner_tree = self.steiner_tree[edge.id()];
+                        let weight = *edge.weight();
+                        format!("cost={weight}, steiner={}", is_in_steiner_tree as usize)
+                    },
+                    &|_, (node_id, _)| {
+                        let is_in_steiner_tree = self.steiner_tree[node_id];
+                        let space_node_id = self.input.to_space_node_id(node_id);
+                        Attrs::label(
+                            self.input
+                                .space
+                                .graph
+                                .node_weight(space_node_id)
+                                .unwrap()
+                                .label(&self.input.space, self.ctx),
+                        )
+                        .with(format!("steiner={}", is_in_steiner_tree as usize))
+                        .to_string()
+                    }
+                )
+            )
+        }
     }
 }
 

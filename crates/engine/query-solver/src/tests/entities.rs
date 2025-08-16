@@ -36,8 +36,8 @@ type Query
 }
 "###;
 
-#[tokio::test]
-async fn nested_join() {
+#[test]
+fn nested_join() {
     assert_solving_snapshots!(
         "nested_join",
         SCHEMA,
@@ -53,8 +53,8 @@ async fn nested_join() {
     );
 }
 
-#[tokio::test]
-async fn nested_join_with_name() {
+#[test]
+fn nested_join_with_name() {
     assert_solving_snapshots!(
         "nested_join_with_name",
         SCHEMA,

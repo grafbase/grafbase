@@ -16,17 +16,7 @@ impl<'a> Attrs<'a> {
         }
     }
 
-    pub fn label_if(cond: bool, label: impl Into<Cow<'a, str>>) -> Self {
-        if cond {
-            Self {
-                label: label.into(),
-                others: vec![],
-            }
-        } else {
-            Self::default()
-        }
-    }
-
+    #[allow(unused)]
     #[must_use]
     pub fn bold(mut self) -> Self {
         if !self.label.is_empty() {

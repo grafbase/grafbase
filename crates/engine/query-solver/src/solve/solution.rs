@@ -34,11 +34,13 @@ impl Solution<'_> {
         let mut graph = Graph::with_capacity(n, n);
         let root_node_id = graph.add_node(Node::Root);
 
-        let included_space_nodes = {
-            let mut stack = space_node_is_terminal.ones().map(SpaceNodeId::new).collect::<Vec<_>>();
-            let mut included = space_node_is_terminal;
+        let included_space_edges = {
+            let mut stack = space_node_is_terminal
+                .into_ones()
+                .map(SpaceNodeId::new)
+                .collect::<Vec<_>>();
+            let mut included = FixedBitSet::with_capacity(space.graph.edge_count());
             while let Some(space_node_id) = stack.pop() {
-                included.insert(space_node_id.index());
                 for space_edge in space.graph.edges_directed(space_node_id, Direction::Incoming) {
                     if matches!(
                         space_edge.weight(),
@@ -49,6 +51,7 @@ impl Solution<'_> {
                         .map(|id| steiner_tree.edges[id.index()])
                         .unwrap_or(true)
                     {
+                        included.insert(space_edge.id().index());
                         stack.push(space_edge.source());
                     }
                 }
@@ -98,7 +101,7 @@ impl Solution<'_> {
         let mut stack = Vec::new();
         for edge in space.graph.edges(space.root_node_id) {
             match edge.weight() {
-                SpaceEdge::CreateChildResolver if included_space_nodes[edge.target().index()] => {
+                SpaceEdge::CreateChildResolver if included_space_edges[edge.id().index()] => {
                     stack.push((root_node_id, edge.source(), edge.target()));
                 }
                 // For now assign __typename fields to the root node, they will be later be added
@@ -126,6 +129,9 @@ impl Solution<'_> {
         // FIXME: doesn't take into account shared roots.
         let mut field_to_node = vec![root_node_id; space.fields.len()];
         while let Some((parent_node_id, space_parent_node_id, space_node_id)) = stack.pop() {
+            debug_assert!(
+                steiner_tree.nodes[steiner_input_map.space_node_id_to_node_id[space_node_id.index()].index()]
+            );
             let new_node_id = match &space.graph[space_node_id] {
                 SpaceNode::Resolver(resolver) => {
                     let id = graph.add_node(Node::QueryPartition {
@@ -136,7 +142,7 @@ impl Solution<'_> {
                     id
                 }
                 SpaceNode::ProvidableField(providable_field) => {
-                    let Some((field_space_node_id, &QueryFieldNode { id, flags })) = space
+                    let (field_space_node_id, &QueryFieldNode { id, flags }) = space
                         .graph
                         .edges_directed(space_node_id, Direction::Outgoing)
                         .find_map(|edge| {
@@ -150,9 +156,7 @@ impl Solution<'_> {
                                 None
                             }
                         })
-                    else {
-                        continue;
-                    };
+                        .expect("Providable field should have at least one outgoing provides edge");
 
                     let field_node_id = graph.add_node(Node::Field { id, flags });
                     graph.add_edge(parent_node_id, field_node_id, Edge::Field);
@@ -359,7 +363,7 @@ impl Solution<'_> {
                         (matches!(
                             edge.weight(),
                             SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide | SpaceEdge::Provides
-                        ) && included_space_nodes[edge.target().index()])
+                        ) && included_space_edges[edge.id().index()])
                             || matches!(edge.weight(), SpaceEdge::TypenameField)
                     })
                     .map(|edge| (new_node_id, edge.source(), edge.target())),

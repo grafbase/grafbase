@@ -13,8 +13,8 @@ type Query
 
 "###;
 
-#[tokio::test]
-async fn schema() {
+#[test]
+fn schema() {
     assert_solving_snapshots!(
         "schema",
         SCHEMA,

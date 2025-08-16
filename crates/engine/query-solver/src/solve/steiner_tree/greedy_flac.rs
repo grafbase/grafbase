@@ -92,20 +92,24 @@ impl GreedyFlac {
     where
         N: std::fmt::Debug,
     {
-        let mut runner = Flac {
+        let mut flac = Flac {
             state: self,
             graph,
             steiner_tree,
         };
-        loop {
-            if runner.run().is_break() {
-                return;
-            }
-        }
+        while flac.run().is_continue() {}
     }
 
     pub fn reset(&mut self) {
         self.flow.root_feeding_terminals.clear();
+    }
+
+    #[cfg(test)]
+    pub fn debug_dot_graph<N>(&self, graph: &Graph<N, SteinerWeight>, steiner_tree: &SteinerTree) -> String
+    where
+        N: std::fmt::Debug,
+    {
+        debug_dot_graph(self, graph, steiner_tree)
     }
 }
 
@@ -311,15 +315,26 @@ where
 
                     // Algorithm 7
                     if old_flow_rate == 0 {
-                        let saturate_time = self.time + (*edge.weight() as Time / extra_flow_rate as Time);
+                        let saturate_time = self.time + (*edge.weight() as Time / new_flow_rate as Time);
                         self.heap.push(edge.id(), saturate_time.into());
                     } else {
-                        let current_saturate_time: Time =
-                            (*self.heap.get(&edge.id()).expect("Not in the heap?").1).into();
-                        let next_saturate_time = self.time
-                            + (current_saturate_time - self.time) * (old_flow_rate as Time / new_flow_rate as Time);
-                        // We decrease the time, so we increase the priority.
-                        self.heap.push_increase(edge.id(), next_saturate_time.into());
+                        let time = self.time;
+                        self.heap.change_priority_by(&edge.id(), |priority| {
+                            let current_saturate_time: Time = (*priority).into();
+                            let next_saturate_time =
+                                time + (current_saturate_time - time) * (old_flow_rate as Time / new_flow_rate as Time);
+                            debug_assert!(
+                                next_saturate_time <= current_saturate_time
+                                    && Priority::from(next_saturate_time) >= Priority::from(current_saturate_time),
+                                "{} < {} ({} => {} at {})",
+                                next_saturate_time,
+                                current_saturate_time,
+                                old_flow_rate,
+                                new_flow_rate,
+                                time
+                            );
+                            *priority = Priority::from(next_saturate_time);
+                        });
                     }
                 }
                 self.flow.node_to_feeding_terminals[v.index()] = v_feeding_terminals;
@@ -379,97 +394,7 @@ where
     }
 
     fn debug_dot_graph(&self) -> String {
-        use petgraph::dot::{Config, Dot};
-        let legend = format!(
-            r#"
-    legend [shape=none, margin=0, label=<
-      <table border="1" cellborder="1" cellspacing="0" cellpadding="4">
-        <tr><td colspan="2">Time {}</td></tr>
-        <tr><td><font color="forestgreen">&#448;</font></td><td>steiner tree</td></tr>
-        <tr><td><font color="royalblue">&#448;</font></td><td>saturated</td></tr>
-        <tr><td><font color="royalblue">&#119044;</font></td><td>marked</td></tr>
-      </table>
-    >];"#,
-            self.time
-        );
-        format!(
-            "digraph {{\n{:?}{legend}\n}}",
-            Dot::with_attr_getters(
-                &self.graph,
-                &[Config::EdgeNoLabel, Config::NodeNoLabel, Config::GraphContentOnly],
-                &|_, edge| {
-                    let is_in_steiner_tree = self.steiner_tree.edges[edge.id().index()];
-                    let is_saturated = self.flow.saturated_edges[edge.id().index()];
-                    let is_marked = self.flow.marked_or_saturated_edges[edge.id().index()] && !is_saturated;
-                    let attr = match (is_in_steiner_tree, is_saturated, is_marked) {
-                        (true, _, _) => "color=forestgreen,fontcolor=forestgreen",
-                        (_, true, _) => "color=royalblue,fontcolor=royalblue",
-                        (_, false, true) => "color=royalblue,fontcolor=royalblue,style=dashed",
-                        (_, _, _) => "",
-                    };
-
-                    let label = if *edge.weight() > 0 {
-                        let mut label = format!("${}", edge.weight());
-                        if let Some(priority) = self
-                            .heap
-                            .iter()
-                            .filter_map(|(id, priority)| if *id == edge.id() { Some(*priority) } else { None })
-                            .max()
-                        {
-                            label.push_str(&format!(" at {}", priority.0));
-                        }
-                        label
-                    } else {
-                        String::new()
-                    };
-                    Attrs::label(label).with(attr).to_string()
-                },
-                &|_, (node_id, _)| {
-                    let is_terminal = self.steiner_tree.terminals.contains(&node_id);
-                    let flow_rate = self.flow.node_to_flow_rates[node_id.index()];
-                    let is_in_steiner_tree = self.steiner_tree.nodes[node_id.index()];
-                    let n = self
-                        .graph
-                        .edges_directed(node_id, petgraph::Direction::Incoming)
-                        .count();
-                    let all_edges_saturated = n > 0
-                        && self
-                            .graph
-                            .edges_directed(node_id, petgraph::Direction::Incoming)
-                            .all(|edge| self.flow.saturated_edges[edge.id().index()]);
-                    let all_edges_saturated_or_marked = n > 0
-                        && self
-                            .graph
-                            .edges_directed(node_id, petgraph::Direction::Incoming)
-                            .all(|edge| self.flow.marked_or_saturated_edges[edge.id().index()]);
-                    let style = if is_in_steiner_tree {
-                        "color=forestgreen"
-                    } else if all_edges_saturated {
-                        "color=royalblue"
-                    } else if all_edges_saturated_or_marked {
-                        "color=royalblue,style=dashed"
-                    } else {
-                        ""
-                    };
-                    let shape = if is_terminal { "shape=rectangle" } else { "" };
-                    let mut label = format!("{:?}", &self.graph[node_id]);
-                    if label == "()" {
-                        label.clear();
-                    } else {
-                        label.push(' ');
-                    }
-                    Attrs::label(format!(
-                        "<{}{}&#128167;<br/>{:b}>",
-                        label,
-                        flow_rate,
-                        &self.flow.node_to_feeding_terminals[node_id.index()],
-                    ))
-                    .with(style)
-                    .with(shape)
-                    .to_string()
-                }
-            )
-        )
+        debug_dot_graph(self, self.graph, self.steiner_tree)
     }
 }
 
@@ -481,470 +406,95 @@ enum DegenerateFlow<'g> {
     },
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use pretty_assertions::assert_eq;
-    use std::collections::HashMap;
+fn debug_dot_graph<N: std::fmt::Debug>(
+    greedy_flac: &GreedyFlac,
+    graph: &Graph<N, SteinerWeight>,
+    steiner_tree: &SteinerTree,
+) -> String {
+    use petgraph::dot::{Config, Dot};
+    let legend = format!(
+        r#"
+    legend [shape=none, margin=0, label=<
+      <table border="1" cellborder="1" cellspacing="0" cellpadding="4">
+        <tr><td colspan="2">Time {}</td></tr>
+        <tr><td><font color="forestgreen">&#448;</font></td><td>steiner tree</td></tr>
+        <tr><td><font color="royalblue">&#448;</font></td><td>saturated</td></tr>
+        <tr><td><font color="royalblue">&#119044;</font></td><td>marked</td></tr>
+      </table>
+    >];"#,
+        greedy_flac.time
+    );
+    format!(
+        "digraph {{\n{:?}{legend}\n}}",
+        Dot::with_attr_getters(
+            &graph,
+            &[Config::EdgeNoLabel, Config::NodeNoLabel, Config::GraphContentOnly],
+            &|_, edge| {
+                let is_in_steiner_tree = steiner_tree.edges[edge.id().index()];
+                let is_saturated = greedy_flac.flow.saturated_edges[edge.id().index()];
+                let is_marked = greedy_flac.flow.marked_or_saturated_edges[edge.id().index()] && !is_saturated;
+                let attr = match (is_in_steiner_tree, is_saturated, is_marked) {
+                    (true, _, _) => "color=forestgreen,fontcolor=forestgreen",
+                    (_, true, _) => "color=royalblue,fontcolor=royalblue",
+                    (_, false, true) => "color=royalblue,fontcolor=royalblue,style=dashed",
+                    (_, _, _) => "",
+                };
 
-    use petgraph::{Graph, graph::NodeIndex};
-
-    fn dot_graph(dot: &'static str) -> (Graph<String, SteinerWeight>, HashMap<String, NodeIndex>) {
-        let dot_graph: dot_parser::canonical::Graph<(&'static str, &'static str)> =
-            dot_parser::ast::Graph::try_from(dot).unwrap().into();
-        let node_number = dot_graph.nodes.set.len();
-        let edge_number = dot_graph.edges.set.len();
-        let mut graph = Graph::with_capacity(node_number, edge_number);
-        let mut nodes = HashMap::new();
-        for (node, attrs) in dot_graph.nodes.set {
-            let id = graph.add_node(attrs.id);
-            nodes.insert(node, id);
-        }
-        for edge in dot_graph.edges.set {
-            let from_ni = nodes.get(&edge.from).unwrap();
-            let to_ni = nodes.get(&edge.to).unwrap();
-            let weight = edge
-                .attr
-                .elems
-                .iter()
-                .find_map(|(name, value)| {
-                    if *name == "label" {
-                        value.parse::<SteinerWeight>().ok()
-                    } else {
-                        None
+                let label = if *edge.weight() > 0 {
+                    let mut label = format!("${}", edge.weight());
+                    if let Some(priority) = greedy_flac
+                        .heap
+                        .iter()
+                        .filter_map(|(id, priority)| if *id == edge.id() { Some(*priority) } else { None })
+                        .max()
+                    {
+                        label.push_str(&format!(" at {}", priority.0));
                     }
-                })
-                .unwrap_or_default();
-            graph.add_edge(*from_ni, *to_ni, weight);
-        }
-
-        (graph, nodes)
-    }
-
-    fn to_steiner_tree_graph(graph: &Graph<String, SteinerWeight>, steiner_tree: &SteinerTree) -> String {
-        use std::fmt::Write as _;
-
-        let mut out = String::from("digraph {\n");
-        let mut steiner_edges = Vec::new();
-        for edge in graph.edge_references() {
-            if steiner_tree.edges[edge.id().index()] {
-                steiner_edges.push(edge);
+                    label
+                } else {
+                    String::new()
+                };
+                Attrs::label(label).with(attr).to_string()
+            },
+            &|_, (node_id, _)| {
+                let is_terminal = steiner_tree.terminals.contains(&node_id);
+                let flow_rate = greedy_flac.flow.node_to_flow_rates[node_id.index()];
+                let is_in_steiner_tree = steiner_tree.nodes[node_id.index()];
+                let n = graph.edges_directed(node_id, petgraph::Direction::Incoming).count();
+                let all_edges_saturated = n > 0
+                    && graph
+                        .edges_directed(node_id, petgraph::Direction::Incoming)
+                        .all(|edge| greedy_flac.flow.saturated_edges[edge.id().index()]);
+                let all_edges_saturated_or_marked = n > 0
+                    && graph
+                        .edges_directed(node_id, petgraph::Direction::Incoming)
+                        .all(|edge| greedy_flac.flow.marked_or_saturated_edges[edge.id().index()]);
+                let style = if is_in_steiner_tree {
+                    "color=forestgreen"
+                } else if all_edges_saturated {
+                    "color=royalblue"
+                } else if all_edges_saturated_or_marked {
+                    "color=royalblue,style=dashed"
+                } else {
+                    ""
+                };
+                let shape = if is_terminal { "shape=rectangle" } else { "" };
+                let mut label = format!("{:?}", &graph[node_id]);
+                if label == "()" {
+                    label.clear();
+                } else {
+                    label.push(' ');
+                }
+                Attrs::label(format!(
+                    "<{}{}&#128167;<br/>{:b}>",
+                    label,
+                    flow_rate,
+                    &greedy_flac.flow.node_to_feeding_terminals[node_id.index()],
+                ))
+                .with(style)
+                .with(shape)
+                .to_string()
             }
-        }
-        steiner_edges.sort_by_key(|edge| (&graph[edge.source()], &graph[edge.target()]));
-        for edge in steiner_edges {
-            writeln!(&mut out, "  {} -> {}", &graph[edge.source()], &graph[edge.target()]).unwrap();
-        }
-        out.push('}');
-        out
-    }
-
-    struct Runner {
-        graph: Graph<String, SteinerWeight>,
-        nodes: HashMap<String, NodeIndex>,
-        greedy_flac: GreedyFlac,
-        steiner_tree: SteinerTree,
-    }
-
-    impl Runner {
-        fn from_dot_graph(dot: &'static str) -> Self {
-            let (graph, nodes) = dot_graph(dot);
-            // Collect terminals: nodes starting with 't' (t1, t2, terminal, etc.) but not "top"
-            let terminals = nodes
-                .iter()
-                .filter_map(|(k, v)| {
-                    let mut chars = k.chars();
-                    if chars.next() == Some('t') && chars.all(|c| c.is_ascii_digit()) {
-                        Some(*v)
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            let steiner_tree = SteinerTree::new(&graph, nodes["root"], terminals);
-            let greedy_flac = GreedyFlac::new(&graph);
-            Self {
-                graph,
-                nodes,
-                greedy_flac,
-                steiner_tree,
-            }
-        }
-
-        fn run_once(&mut self) -> ControlFlow<()> {
-            self.greedy_flac.run_once(&self.graph, &mut self.steiner_tree)
-        }
-
-        fn run(&mut self) -> SteinerWeight {
-            self.greedy_flac.run(&self.graph, &mut self.steiner_tree);
-            self.steiner_tree.total_weight
-        }
-
-        fn debug_graph(&mut self) -> String {
-            Flac {
-                state: &mut self.greedy_flac,
-                graph: &self.graph,
-                steiner_tree: &mut self.steiner_tree,
-            }
-            .debug_dot_graph()
-        }
-
-        fn steiner_graph(&self) -> String {
-            to_steiner_tree_graph(&self.graph, &self.steiner_tree)
-        }
-
-        fn extend_terminals(&mut self, terminal_names: &[&str]) {
-            let _ = self
-                .steiner_tree
-                .extend_terminals(terminal_names.iter().map(|name| self.nodes[*name]));
-        }
-    }
-
-    #[test]
-    fn step_by_step() {
-        let mut runner = Runner::from_dot_graph(
-            r#"digraph {
-            root -> a;
-            a -> t1 [label=1];
-            a -> t2 [label=2];
-            }"#,
-        );
-
-        let outcome = runner.run_once();
-        assert!(outcome.is_continue(), "\n{}", runner.debug_graph());
-        insta::assert_snapshot!(runner.steiner_graph(), @r"
-        digraph {
-          a -> t1
-          root -> a
-        }
-        ");
-
-        let outcome = runner.run_once();
-        assert!(outcome.is_break(), "\n{}", runner.debug_graph());
-        insta::assert_snapshot!(runner.steiner_graph(), @r"
-        digraph {
-          a -> t1
-          a -> t2
-          root -> a
-        }
-        ");
-    }
-
-    #[test]
-    fn single_terminal_direct_path() {
-        let mut runner = Runner::from_dot_graph(
-            r#"digraph {
-            root -> t1 [label=5];
-            }"#,
-        );
-
-        let total_weight = runner.run();
-        assert_eq!(total_weight, 5, "\n{}", runner.debug_graph());
-        insta::assert_snapshot!(runner.steiner_graph(), @r"
-        digraph {
-          root -> t1
-        }
-        ");
-    }
-
-    #[test]
-    fn multiple_terminals_shared_edges() {
-        let mut runner = Runner::from_dot_graph(
-            r#"digraph {
-            root -> shared [label=10];
-            shared -> t1 [label=3];
-            shared -> t2 [label=5];
-            shared -> t3 [label=2];
-            }"#,
-        );
-
-        let total_weight = runner.run();
-        assert_eq!(
-            total_weight,
-            20, // 10 + 3 + 5 + 2
-            "\n{}",
-            runner.debug_graph()
-        );
-        insta::assert_snapshot!(runner.steiner_graph(), @r"
-        digraph {
-          root -> shared
-          shared -> t1
-          shared -> t2
-          shared -> t3
-        }
-        ");
-    }
-
-    #[test]
-    fn degenerate_flow_detection() {
-        // Graph where t1 can reach a through two paths, which would create degenerate flow
-        let mut runner = Runner::from_dot_graph(
-            r#"digraph {
-            root -> a [label=10];
-            a -> b [label=2];
-            a -> c [label=3];
-            b -> t1 [label=1];
-            c -> t1 [label=1];
-            }"#,
-        );
-
-        let total_weight = runner.run();
-        assert_eq!(
-            total_weight,
-            13, // Should pick one path: root -> a -> b -> t1 (10 + 2 + 1)
-            "\n{}",
-            runner.debug_graph()
-        );
-        // The algorithm should mark one edge to avoid degenerate flow
-        insta::assert_snapshot!(runner.steiner_graph(), @r"
-        digraph {
-          a -> b
-          b -> t1
-          root -> a
-        }
-        ");
-    }
-
-    #[test]
-    fn complex_graph_multiple_paths() {
-        let mut runner = Runner::from_dot_graph(
-            r#"digraph {
-            root -> a [label=5];
-            root -> b [label=8];
-            a -> c [label=3];
-            b -> c [label=2];
-            c -> t1 [label=4];
-            c -> t2 [label=6];
-            a -> t2 [label=10];
-            b -> t3 [label=7];
-            }"#,
-        );
-
-        let total_weight = runner.run();
-        assert_eq!(
-            total_weight,
-            // root -> a -> c -> t1,t2: 5 + 3 + 6 + 4 = 18
-            // root -> b -> t3: 8 + 7 = 15
-            33,
-            "\n{}",
-            runner.debug_graph()
-        );
-        insta::assert_snapshot!(runner.steiner_graph(), @r"
-        digraph {
-          a -> c
-          b -> t3
-          c -> t1
-          c -> t2
-          root -> a
-          root -> b
-        }
-        ");
-    }
-
-    #[test]
-    fn incremental_terminal_addition() {
-        // Start with only t1 terminal by creating custom runner
-        let (graph, nodes) = dot_graph(
-            r#"digraph {
-            root -> a [label=4];
-            root -> b [label=6];
-            a -> t1 [label=2];
-            b -> t2 [label=3];
-            a -> t3 [label=5];
-            }"#,
-        );
-        let steiner_tree = SteinerTree::new(&graph, nodes["root"], vec![nodes["t1"]]);
-        let greedy_flac = GreedyFlac::new(&graph);
-        let mut runner = Runner {
-            graph,
-            nodes,
-            greedy_flac,
-            steiner_tree,
-        };
-
-        // First run with only t1
-        let total_weight = runner.run();
-        assert_eq!(
-            total_weight,
-            6, // root -> a -> t1: 4 + 2
-            "\n{}",
-            runner.debug_graph()
-        );
-
-        // Add t2 as a new terminal
-        runner.extend_terminals(&["t2"]);
-        let total_weight = runner.run();
-        assert_eq!(
-            total_weight,
-            6 + 9, // root -> b -> t2: 6 + 3
-            "\n{}",
-            runner.debug_graph()
-        );
-
-        // Add t3 as another terminal
-        runner.extend_terminals(&["t3"]);
-        let total_weight = runner.run();
-        assert_eq!(
-            total_weight,
-            6 + 9 + 5, // a -> t3: 5 (root -> a already in tree)
-            "\n{}",
-            runner.debug_graph()
-        );
-
-        insta::assert_snapshot!(runner.steiner_graph(), @r"
-        digraph {
-          a -> t1
-          a -> t3
-          b -> t2
-          root -> a
-          root -> b
-        }
-        ");
-    }
-
-    #[test]
-    fn weighted_edges_different_weights() {
-        let mut runner = Runner::from_dot_graph(
-            r#"digraph {
-            root -> a [label=1];
-            root -> b [label=100];
-            a -> c [label=50];
-            b -> c [label=1];
-            c -> t1 [label=1];
-            a -> t2 [label=2];
-            b -> t3 [label=2];
-            }"#,
-        );
-
-        let total_weight = runner.run();
-        assert_eq!(
-            total_weight,
-            // Optimal: root->a->t2 (3), root->b->c->t1 (102), root->b->t3 (102 already counted + 2 = 2)
-            // But GreedyFLAC doesn't take the optimal path.
-            156,
-            "\n{}",
-            runner.debug_graph()
-        );
-
-        // The algorithm should prefer the cheaper paths
-        insta::assert_snapshot!(runner.steiner_graph(), @r"
-        digraph {
-          a -> c
-          a -> t2
-          b -> t3
-          c -> t1
-          root -> a
-          root -> b
-        }
-        ");
-    }
-
-    #[test]
-    fn diamond_shaped_graph() {
-        let mut runner = Runner::from_dot_graph(
-            r#"digraph {
-            root -> top [label=5];
-            top -> left [label=3];
-            top -> right [label=4];
-            left -> bottom [label=6];
-            right -> bottom [label=2];
-            bottom -> t1 [label=1];
-            left -> t2 [label=8];
-            right -> t3 [label=7];
-            }"#,
-        );
-
-        let total_weight = runner.run();
-        assert_eq!(
-            total_weight,
-            30, // root->top->left->t2 (5+3+8=16) + top->right->bottom->t1 (4+2+1=7) + right->t3 (7-already have right)
-            "\n{}",
-            runner.debug_graph()
-        );
-
-        insta::assert_snapshot!(runner.steiner_graph(), @r"
-        digraph {
-          bottom -> t1
-          left -> t2
-          right -> bottom
-          right -> t3
-          root -> top
-          top -> left
-          top -> right
-        }
-        ");
-    }
-
-    #[test]
-    fn linear_chain_graph() {
-        let mut runner = Runner::from_dot_graph(
-            r#"digraph {
-            root -> n1 [label=2];
-            n1 -> n2 [label=3];
-            n2 -> n3 [label=4];
-            n3 -> n4 [label=5];
-            n4 -> t1 [label=6];
-            n2 -> t2 [label=10];
-            n3 -> t3 [label=8];
-            }"#,
-        );
-
-        let total_weight = runner.run();
-        assert_eq!(
-            total_weight,
-            38, // root->n1->n2->n3->n4->t1 (2+3+4+5+6=20) + n2->t2 (10) + n3->t3 (8)
-            "\n{}",
-            runner.debug_graph()
-        );
-
-        insta::assert_snapshot!(runner.steiner_graph(), @r"
-        digraph {
-          n1 -> n2
-          n2 -> n3
-          n2 -> t2
-          n3 -> n4
-          n3 -> t3
-          n4 -> t1
-          root -> n1
-        }
-        ");
-    }
-
-    #[test]
-    fn properly_decrease_saturating_time() {
-        let mut runner = Runner::from_dot_graph(
-            r#"digraph {
-            a -> t1;
-            root -> a [label=10];
-            b -> t1;
-            root -> b [label=10];
-            c -> t1;
-            root -> c [label=10];
-            c -> t2 [label=10];
-            b -> t2 [label=10];
-            a -> t2 [label=10];
-            d -> t3;
-            c -> d [label=10];
-            a -> d [label=10];
-            b -> t3;
-            }"#,
-        );
-
-        let total_weight = runner.run();
-        assert_eq!(
-            total_weight,
-            20, // root -> b (10) + b -> t2 (10)
-            "\n{}",
-            runner.debug_graph()
-        );
-
-        insta::assert_snapshot!(runner.steiner_graph(), @r"
-        digraph {
-          b -> t1
-          b -> t2
-          b -> t3
-          root -> b
-        }
-        ");
-    }
+        )
+    )
 }

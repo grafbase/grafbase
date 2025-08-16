@@ -41,6 +41,11 @@ impl FederationEntityResolver {
                 PlanError::Internal
             })?;
 
+        tracing::info!(
+            "{}\n{}",
+            definition.endpoint().subgraph_name(),
+            subgraph_operation.query
+        );
         Ok(Self {
             subgraph_id: definition.subgraph().id,
             shape_id: plan_query_partition.shape_id(),

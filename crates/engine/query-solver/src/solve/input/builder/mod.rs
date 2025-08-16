@@ -5,7 +5,6 @@ use fxhash::FxHashMap;
 use operation::OperationContext;
 use petgraph::{
     Direction,
-    algo::steiner_tree,
     graph::Graph,
     visit::{EdgeRef, IntoNodeReferences, NodeIndexable},
 };
@@ -61,7 +60,7 @@ impl NodeToProcess {
 
 pub(crate) fn build_input_and_terminals<'op, 'schema>(
     ctx: OperationContext<'op>,
-    mut space: QuerySolutionSpace<'schema>,
+    space: QuerySolutionSpace<'schema>,
 ) -> crate::Result<(super::SteinerInput<'schema>, SteinerTree)> {
     // TODO: Figure out a good start size.
     let n_nodes = space.graph.node_bound() >> 4;
@@ -139,22 +138,6 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
     while let Some(space_node_id) = builder.dispensable_terminal_space_node_ids.pop() {
         builder.ingest_nodes_from_terminal(&mut requirements, space_node_id, false);
     }
-
-    // We want to favor parallel resolvers rather than sequential ones. So we increase the weight
-    // for every intermediate resolver that must be executed before the current one.
-    // let mut stack = vec![(0u16, root_node_id)];
-    // let graph = &mut builder.graph;
-    // while let Some((depth, node_id)) = stack.pop() {
-    //     let mut edges = graph.neighbors_directed(node_id, Direction::Outgoing).detach();
-    //     while let Some((edge_id, node_id)) = edges.next(graph) {
-    //         if graph[edge_id] > 0 {
-    //             graph[edge_id] += depth * DEPTH_WEIGHT;
-    //             stack.push((depth + 1, node_id));
-    //         } else {
-    //             stack.push((depth, node_id));
-    //         }
-    //     }
-    // }
 
     let requirements = requirements.build(&builder);
     let SteinerInputBuilder {
@@ -295,11 +278,13 @@ impl SteinerInputBuilder<'_, '_, '_> {
                     });
 
                     self.space_node_path_stack.push(space_node_id);
+                    // should not have any child since we have yet to map the terminal to any node.
+                    debug_assert!(maybe_child_node_id == SpaceNodeId::new(u32::MAX as usize));
                     self.nodes_to_process_stack.push(NodeToProcess {
                         space_node_id: first_space_edge.source(),
                         maybe_child_node_id,
                         maybe_child_space_edge_id,
-                        maybe_child_edge_weight: maybe_child_edge_weight + first_edge_weight,
+                        maybe_child_edge_weight,
                     });
                 } else if !requires.is_empty() || first_edge_weight > 0 {
                     let node_id = self.add(NodeToProcess {
@@ -326,7 +311,7 @@ impl SteinerInputBuilder<'_, '_, '_> {
                         space_node_id: first_space_edge.source(),
                         maybe_child_node_id,
                         maybe_child_space_edge_id,
-                        maybe_child_edge_weight: maybe_child_edge_weight + first_edge_weight,
+                        maybe_child_edge_weight,
                     });
                 }
             }
