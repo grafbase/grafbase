@@ -11,6 +11,7 @@
 - Unknown override labels are no longer an error.
 - `@extends` no longer triggers unknown directive warnings.
 - Instances of `@key(field: "...")` (instead of "fields") now triggers a warning.
+- Selection set validation errors now include the subgraph name.
 
 ### Fixes
 

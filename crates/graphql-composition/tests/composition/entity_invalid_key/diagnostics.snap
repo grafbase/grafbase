@@ -3,4 +3,4 @@ source: crates/graphql-composition/tests/composition_tests.rs
 expression: The key on Policy references a field that does not exist.
 input_file: crates/graphql-composition/tests/composition/entity_invalid_key/test.md
 ---
-- ❌ Error in @key at Policy: the claims field does not exist on Policy
+- ❌ [policies] Error in @key at Policy: the claims field does not exist on Policy

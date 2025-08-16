@@ -36,9 +36,11 @@ pub(crate) struct ArgumentRecord {
 /// A field in an object, interface or input object type.
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub(crate) struct FieldTuple {
-    r#type: FieldType,
-    description: Option<StringId>,
-    directives: DirectiveSiteId,
+    pub(crate) name: StringId,
+    pub(crate) parent_definition_id: DefinitionId,
+    pub(crate) r#type: FieldType,
+    pub(crate) description: Option<StringId>,
+    pub(crate) directives: DirectiveSiteId,
 }
 
 impl Subgraphs {
@@ -66,6 +68,8 @@ impl Subgraphs {
         let name = self.strings.intern(field_name);
         let field_id = self.fields.fields.len().into();
         self.fields.fields.push(FieldTuple {
+            name,
+            parent_definition_id,
             r#type: field_type,
             directives,
             description,
