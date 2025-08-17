@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/tea_shop.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#tea-shop\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.recommendedTeas\" ]\n    3 [ label = \"Tea.id\" ]\n    4 [ label = \"Tea.name\" ]\n    5 [ label = \"Tea.style\" ]\n    6 [ label = \"Query.teaWithInaccessibleStyle\" ]\n    7 [ label = \"StyleContainer.name\" ]\n    8 [ label = \"StyleContainer.style\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    2 -> 4 [ label = \"\" ]\n    2 -> 5 [ label = \"\" ]\n    1 -> 6 [ label = \"\" ]\n    6 -> 7 [ label = \"\" ]\n    6 -> 8 [ label = \"\" ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#tea-shop\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.recommendedTeas\" ]\n    3 [ label = \"Tea.id\" ]\n    4 [ label = \"Tea.name\" ]\n    5 [ label = \"Tea.style\" ]\n    6 [ label = \"Query.teaWithInaccessibleStyle\" ]\n    7 [ label = \"StyleContainer.name\" ]\n    8 [ label = \"StyleContainer.style\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [  ]\n    2 -> 3 [  ]\n    2 -> 4 [  ]\n    2 -> 5 [  ]\n    1 -> 6 [  ]\n    6 -> 7 [  ]\n    6 -> 8 [  ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]

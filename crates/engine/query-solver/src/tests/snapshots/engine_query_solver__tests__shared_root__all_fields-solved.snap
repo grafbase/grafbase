@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/shared_root.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Product.id\", color=forestgreen ]\n    2 [ label = \"Root#price\", shape=parallelogram, color=forestgreen ]\n    3 [ label = \"Root#category\", shape=parallelogram, color=forestgreen ]\n    2 -> 1 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    0 -> 2 [ label = \"10\", color=forestgreen,fontcolor=forestgreen ]\n    0 -> 1 [ label = \"1\", color=forestgreen,fontcolor=forestgreen ]\n    3 -> 1 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    0 -> 3 [ label = \"10\", color=forestgreen,fontcolor=forestgreen ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Product.id\", color=forestgreen style=bold ]\n    2 [ label = \"Root#price\", shape=parallelogram, color=forestgreen style=bold ]\n    3 [ label = \"Root#category\", shape=parallelogram, color=forestgreen style=bold ]\n    2 -> 1 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    0 -> 2 [ label = \"10\", color=forestgreen,fontcolor=forestgreen ]\n    0 -> 1 [ label = \"1\", color=forestgreen,fontcolor=forestgreen ]\n    3 -> 1 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    0 -> 3 [ label = \"10\", color=forestgreen,fontcolor=forestgreen ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]

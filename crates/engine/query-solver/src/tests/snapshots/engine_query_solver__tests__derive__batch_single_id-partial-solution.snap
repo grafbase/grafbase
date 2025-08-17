@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/derive.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#ext\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.comments\" ]\n    4 [ label = \"Product.commentIds\" ]\n    5 [ label = \"Comment.id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    2 -> 4 [ label = \"\" ]\n    4 -> 3 [ label = \"\", color=darkorchid,arrowhead=halfopen,style=dashed ]\n    3 -> 5 [ label = \"\" ]\n    4 -> 5 [ label = \"\", color=darkorchid,arrowhead=halfopen,style=dashed ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#ext\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.comments\" ]\n    4 [ label = \"Product.commentIds\" ]\n    5 [ label = \"Comment.id\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [  ]\n    2 -> 3 [  ]\n    2 -> 4 [  ]\n    4 -> 3 [ color=darkorchid,arrowhead=halfopen,style=dashed ]\n    3 -> 5 [  ]\n    4 -> 5 [ color=darkorchid,arrowhead=halfopen,style=dashed ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
