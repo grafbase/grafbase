@@ -1,0 +1,18 @@
+---
+source: crates/engine/query-solver/src/tests/requirements.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#gql\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.id\" ]\n    4 [ label = \"Lookup/echo/echo-1.0.0#ext\", color=royalblue,shape=parallelogram ]\n    5 [ label = \"Product.args\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    4 -> 3 [ color=orangered,arrowhead=inv ]\n    2 -> 3 [  ]\n    2 -> 4 [ color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [  ]\n    4 -> 5 [  ]\n}\n"
+---
+digraph {
+    0 [ label = "root" ]
+    1 [ label = "Root#gql" ]
+    2 [ label = "Query.products" ]
+    3 [ label = "Product.id" ]
+    4 [ label = "Lookup/echo/echo-1.0.0#ext" ]
+    5 [ label = "Product.args" ]
+    0 -> 1 [ label = "QueryPartition" ]
+    4 -> 3 [ label = "RequiredBySubgraph" ]
+    2 -> 3 [ label = "Field" ]
+    2 -> 4 [ label = "QueryPartition" ]
+    1 -> 2 [ label = "Field" ]
+    4 -> 5 [ label = "Field" ]
+}

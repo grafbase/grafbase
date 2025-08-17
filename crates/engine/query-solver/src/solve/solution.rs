@@ -1,6 +1,9 @@
 use fixedbitset::FixedBitSet;
 use operation::{Operation, OperationContext};
-use petgraph::{Direction, Graph, visit::EdgeRef};
+use petgraph::{
+    Direction, Graph,
+    visit::{EdgeIndexable, EdgeRef},
+};
 use schema::Schema;
 use walker::Walk;
 
@@ -39,7 +42,7 @@ impl Solution<'_> {
                 .into_ones()
                 .map(SpaceNodeId::new)
                 .collect::<Vec<_>>();
-            let mut included = FixedBitSet::with_capacity(space.graph.edge_count());
+            let mut included = FixedBitSet::with_capacity(space.graph.edge_bound());
             while let Some(space_node_id) = stack.pop() {
                 for space_edge in space.graph.edges_directed(space_node_id, Direction::Incoming) {
                     if matches!(
@@ -58,44 +61,6 @@ impl Solution<'_> {
             }
 
             included
-        };
-
-        let _ = {
-            let mut excluded = FixedBitSet::with_capacity(space.graph.edge_count());
-            let mut stack = Vec::new();
-            for steiner_edge_ix in steiner_tree.edges.zeroes() {
-                let space_edge_id = steiner_input_map.edge_id_to_space_edge_id[steiner_edge_ix];
-                excluded.insert(space_edge_id.index());
-
-                let (src, _) = space.graph.edge_endpoints(space_edge_id).unwrap();
-                stack.push(src);
-
-                // If the parent node has no other included child edges, we can remove it and check
-                // the next one.
-                while let Some(node_id) = stack.pop() {
-                    let has_any_included_outgoing_edges =
-                        space.graph.edges_directed(node_id, Direction::Outgoing).any(|edge| {
-                            matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide)
-                                && !excluded[edge.id().index()]
-                        });
-                    if has_any_included_outgoing_edges {
-                        continue;
-                    }
-                    stack.extend(
-                        space
-                            .graph
-                            .edges_directed(node_id, Direction::Incoming)
-                            .filter(|edge| {
-                                matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide)
-                            })
-                            .map(|edge| {
-                                excluded.insert(edge.id().index());
-                                edge.source()
-                            }),
-                    );
-                }
-            }
-            excluded
         };
 
         let mut stack = Vec::new();

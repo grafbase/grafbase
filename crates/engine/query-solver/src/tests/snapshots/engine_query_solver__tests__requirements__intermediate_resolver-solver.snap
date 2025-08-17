@@ -1,0 +1,19 @@
+---
+source: crates/engine/query-solver/src/tests/requirements.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Product.args\" ]\n    2 [ label = \"Lookup/echo/echo-1.0.0#ext\", shape=parallelogram, color=royalblue style=dashed ]\n    3 [ label = \"Root#gql\", shape=parallelogram, color=royalblue style=dashed ]\n    4 [ label = \"Lookup/echo/echo-1.0.0#ext\", shape=parallelogram, color=royalblue style=dashed ]\n    5 [ label = \"Product.id\" ]\n    2 -> 1 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 2 [ label = \"10\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    0 -> 3 [ label = \"10\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 1 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 4 [ label = \"20\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 5 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+    1 [ label = "Product.args", steiner=0 ]
+    2 [ label = "Lookup/echo/echo-1.0.0#ext", steiner=0 ]
+    3 [ label = "Root#gql", steiner=0 ]
+    4 [ label = "Lookup/echo/echo-1.0.0#ext", steiner=0 ]
+    5 [ label = "Product.id", steiner=0 ]
+    2 -> 1 [ cost=0, steiner=0]
+    3 -> 2 [ cost=10, steiner=0]
+    0 -> 3 [ cost=10, steiner=0]
+    4 -> 1 [ cost=0, steiner=0]
+    3 -> 4 [ cost=20, steiner=0]
+    3 -> 5 [ cost=0, steiner=0]
+    4 -> 5 [ cost=0, steiner=0]
+}

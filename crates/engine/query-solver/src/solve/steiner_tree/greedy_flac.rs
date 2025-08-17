@@ -5,7 +5,7 @@ use itertools::Itertools as _;
 use petgraph::{
     Graph,
     graph::{EdgeIndex, EdgeReference, NodeIndex},
-    visit::{EdgeRef, NodeIndexable},
+    visit::{EdgeIndexable, EdgeRef, NodeIndexable},
 };
 use priority_queue::PriorityQueue;
 use std::{cmp::Ordering, ops::ControlFlow};
@@ -64,8 +64,8 @@ impl GreedyFlac {
     pub fn new<N>(graph: &Graph<N, SteinerWeight>) -> Self {
         Self {
             flow: Flow {
-                saturated_edges: FixedBitSet::with_capacity(graph.edge_count()),
-                marked_or_saturated_edges: FixedBitSet::with_capacity(graph.edge_count()),
+                saturated_edges: FixedBitSet::with_capacity(graph.edge_bound()),
+                marked_or_saturated_edges: FixedBitSet::with_capacity(graph.edge_bound()),
                 root_feeding_terminals: FixedBitSet::new(),
                 node_to_feeding_terminals: vec![FixedBitSet::new(); graph.node_bound()],
                 node_to_flow_rates: vec![0; graph.node_bound()],

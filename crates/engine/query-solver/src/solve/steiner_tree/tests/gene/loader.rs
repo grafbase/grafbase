@@ -33,7 +33,7 @@ pub(super) fn load_gene_dataset() -> impl Iterator<Item = GeneGraph> {
 
 fn load(name: &'static str, optimal_weight: SteinerWeight) -> GeneGraph {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("src/solve/steiner_tree/tests/steinlib/GENE")
+        .join("src/solve/steiner_tree/tests/gene/steinlib/GENE")
         .join(name);
 
     let content = std::fs::read_to_string(path).unwrap();

@@ -1,6 +1,7 @@
 use std::ops::ControlFlow;
 
 use id_newtypes::IdRange;
+use operation::OperationContext;
 use petgraph::graph::NodeIndex;
 
 use crate::solve::{
@@ -35,10 +36,12 @@ impl RequirementAndWeightUpdater {
 
     pub fn run_fixed_point_weight(
         &mut self,
+        ctx: OperationContext<'_>,
         input: &mut SteinerInput<'_>,
         steiner_tree: &mut SteinerTree,
     ) -> crate::Result<ControlFlow<()>> {
         FixedPointWeightAlgorithm {
+            ctx,
             state: self,
             steiner_tree,
             input,
@@ -48,32 +51,33 @@ impl RequirementAndWeightUpdater {
     }
 }
 
-pub(crate) struct FixedPointWeightAlgorithm<'s, 't, 'i, 'schema> {
+pub(crate) struct FixedPointWeightAlgorithm<'s, 't, 'i, 'schema, 'op> {
+    pub ctx: OperationContext<'op>,
     pub state: &'s mut RequirementAndWeightUpdater,
     pub steiner_tree: &'t mut SteinerTree,
     pub input: &'i mut SteinerInput<'schema>,
     has_updated_weights: bool,
 }
 
-impl std::ops::Deref for FixedPointWeightAlgorithm<'_, '_, '_, '_> {
+impl std::ops::Deref for FixedPointWeightAlgorithm<'_, '_, '_, '_, '_> {
     type Target = RequirementAndWeightUpdater;
     fn deref(&self) -> &Self::Target {
         self.state
     }
 }
 
-impl std::ops::DerefMut for FixedPointWeightAlgorithm<'_, '_, '_, '_> {
+impl std::ops::DerefMut for FixedPointWeightAlgorithm<'_, '_, '_, '_, '_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.state
     }
 }
 
-impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_> {
+impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_, '_> {
     /// Updates the weight of edges based on the requirements of the nodes.
     /// We iterate until weight becomes stable or we exhausted the maximum number of iterations which
     /// likely indicates a requirement cycle.
     pub fn run(mut self) -> crate::Result<ControlFlow<()>> {
-        debug_assert!(self.tmp_new_terminals.is_empty());
+        debug_assert!(self.tmp_new_terminals.is_empty() && self.tmp_new_space_terminals.is_empty());
         let mut i = 0;
         loop {
             i += 1;
@@ -156,20 +160,46 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_> {
                 self.extend_terminals(required_node_ids, required_space_node_ids);
                 self.input.requirements.groups.swap_remove(i);
                 continue;
-            }
+            } else if !required_node_ids.is_empty() {
+                // The required nodes in the Steiner Graph may be empty because there's no choice
+                // to be made on how to retrieve them. If that's the case, we can skip the weight
+                // update.
+                let requirements_weight = self.state.estimate_requirements_weight(
+                    self.input,
+                    self.steiner_tree,
+                    unavoidable_parent_edge_ids,
+                    required_node_ids,
+                );
 
-            let requirements_weight = self.state.estimate_requirements_weight(
-                self.input,
-                self.steiner_tree,
-                unavoidable_parent_edge_ids,
-                required_node_ids,
-            );
+                tracing::debug!(
+                    "Updating requirement cost for edges:\n{}",
+                    self.input.requirements[dependent_edge_with_inherent_weight_ids]
+                        .iter()
+                        .map(|(edge_id, inherent_weight)| {
+                            let (src, dst) = self.input.graph.edge_endpoints(*edge_id).unwrap();
+                            let src = self.input.map.node_id_to_space_node_id[src.index()];
+                            let dst = self.input.map.node_id_to_space_node_id[dst.index()];
+                            let new_weight = *inherent_weight + requirements_weight;
+                            let old_weight = self.input.graph[*edge_id];
+                            format!(
+                                "{} -> {} with {} = {} + {} from {}",
+                                self.input.space.graph[src].label(&self.input.space, self.ctx),
+                                self.input.space.graph[dst].label(&self.input.space, self.ctx),
+                                new_weight,
+                                inherent_weight,
+                                requirements_weight,
+                                old_weight
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                );
 
-            let edges_and_weights = self.input.requirements[dependent_edge_with_inherent_weight_ids].to_vec();
-            for (edge_id, inherent_weight) in edges_and_weights {
-                let weight = inherent_weight + requirements_weight;
-                let old = std::mem::replace(&mut self.input.graph[edge_id], weight);
-                self.has_updated_weights |= old != weight;
+                for (edge_id, inherent_weight) in &self.input.requirements[dependent_edge_with_inherent_weight_ids] {
+                    let weight = *inherent_weight + requirements_weight;
+                    let old = std::mem::replace(&mut self.input.graph[*edge_id], weight);
+                    self.has_updated_weights |= old != weight;
+                }
             }
 
             i += 1;
@@ -187,8 +217,14 @@ impl RequirementAndWeightUpdater {
     ) -> SteinerWeight {
         self.tmp_flac.reset();
         // TODO: could avoid cloning so much if a single FLAC run is enough.
-        self.tmp_steiner_tree
-            .clone_from_with_new_terminals(steiner_tree, input.requirements[required_node_ids].iter().copied());
+        if self
+            .tmp_steiner_tree
+            .clone_from_with_new_terminals(steiner_tree, input.requirements[required_node_ids].iter().copied())
+            .is_break()
+        {
+            // Required nodes are already part of the steiner tree.
+            return 0;
+        }
 
         for &edge_id in &input.requirements[unavoidable_parent_edge_ids] {
             self.tmp_steiner_tree.edges.insert(edge_id.index());

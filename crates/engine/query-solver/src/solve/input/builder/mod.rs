@@ -6,7 +6,7 @@ use operation::OperationContext;
 use petgraph::{
     Direction,
     graph::Graph,
-    visit::{EdgeRef, IntoNodeReferences, NodeIndexable},
+    visit::{EdgeIndexable as _, EdgeRef, IntoNodeReferences, NodeIndexable},
 };
 
 use crate::{
@@ -58,12 +58,12 @@ impl NodeToProcess {
     }
 }
 
-pub(crate) fn build_input_and_terminals<'op, 'schema>(
+pub(crate) fn build_input_and_terminals<'schema, 'op>(
     ctx: OperationContext<'op>,
     space: QuerySolutionSpace<'schema>,
 ) -> crate::Result<(super::SteinerInput<'schema>, SteinerTree)> {
     // TODO: Figure out a good start size.
-    let n_nodes = space.graph.node_bound() >> 4;
+    let n_nodes = space.graph.node_count() >> 4;
     let n_edges = space.graph.edge_count() >> 4;
     let mut graph = Graph::with_capacity(n_nodes, n_edges);
     let mut mapping = SteinerInputMap {
@@ -139,17 +139,34 @@ pub(crate) fn build_input_and_terminals<'op, 'schema>(
         builder.ingest_nodes_from_terminal(&mut requirements, space_node_id, false);
     }
 
-    let requirements = requirements.build(&builder);
+    // We want to favor parallel resolvers rather than sequential ones. So we increase the weight
+    // for every intermediate resolver that must be executed before the current one.
+    // let mut stack = vec![(SteinerWeight::default(), root_node_id)];
+    // let graph = &mut builder.graph;
+    // while let Some((depth, node_id)) = stack.pop() {
+    //     let mut edges = graph.neighbors_directed(node_id, Direction::Outgoing).detach();
+    //     while let Some((edge_id, node_id)) = edges.next(graph) {
+    //         if graph[edge_id] > 0 {
+    //             graph[edge_id] += depth * DEPTH_WEIGHT;
+    //             stack.push((depth + 1, node_id));
+    //         } else {
+    //             stack.push((depth, node_id));
+    //         }
+    //     }
+    // }
+
+    tree.nodes = FixedBitSet::with_capacity(builder.graph.node_bound());
+    tree.nodes.insert(root_node_id.index());
+    tree.edges = FixedBitSet::with_capacity(builder.graph.edge_bound());
+    tree.is_terminal.grow(builder.graph.node_bound());
+
+    let requirements = requirements.build(&builder, &tree);
     let SteinerInputBuilder {
         graph,
         root_node_id,
         map,
         ..
     } = builder;
-    tree.nodes = FixedBitSet::with_capacity(graph.node_bound());
-    tree.nodes.insert(root_node_id.index());
-    tree.edges = FixedBitSet::with_capacity(graph.edge_count());
-    tree.is_terminal.grow(graph.node_bound());
 
     let input = super::SteinerInput {
         space,

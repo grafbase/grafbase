@@ -8,10 +8,13 @@ use petgraph::{Direction, visit::EdgeRef as _};
 
 use crate::{
     SolutionSpaceGraph, SpaceEdge, SpaceEdgeId, SpaceNodeId,
-    solve::input::{
-        DependentSteinerEdgeWithInherentWeightId, DispensableRequirements, FreeRequirement, RequiredSpaceNodeId,
-        RequiredSteinerNodeId, RequirementsGroup, SteinerEdgeId, SteinerInputMap, SteinerNodeId, SteinerWeight,
-        UnavoidableParentSteinerEdgeId, builder::SteinerInputBuilder,
+    solve::{
+        input::{
+            DependentSteinerEdgeWithInherentWeightId, DispensableRequirements, FreeRequirement, RequiredSpaceNodeId,
+            RequiredSteinerNodeId, RequirementsGroup, SteinerEdgeId, SteinerInputMap, SteinerNodeId, SteinerWeight,
+            UnavoidableParentSteinerEdgeId, builder::SteinerInputBuilder,
+        },
+        steiner_tree::SteinerTree,
     },
 };
 
@@ -196,7 +199,11 @@ impl DispensableRequirementsBuilder {
         IdRange::from(start..self.required_space_nodes.len())
     }
 
-    pub fn build(mut self, builder: &SteinerInputBuilder<'_, '_, '_>) -> DispensableRequirements {
+    pub fn build(
+        mut self,
+        builder: &SteinerInputBuilder<'_, '_, '_>,
+        steiner_tree: &SteinerTree,
+    ) -> DispensableRequirements {
         let mut out = DispensableRequirements {
             free: Vec::with_capacity(self.free.len()),
             groups: Vec::with_capacity(self.dispensable.len()),
@@ -208,7 +215,8 @@ impl DispensableRequirementsBuilder {
 
         let mut buffer = Vec::new();
         for (node_id, required_space_node_ids) in std::mem::take(&mut self.free) {
-            let required_node_ids = out.extend_extra_required_nodes(&builder.map, required_space_node_ids, &mut buffer);
+            let required_node_ids =
+                out.extend_extra_required_nodes(&builder.map, steiner_tree, required_space_node_ids, &mut buffer);
 
             out.free.push(FreeRequirement {
                 node_id,
@@ -227,7 +235,8 @@ impl DispensableRequirementsBuilder {
             .chunk_by(|item| (item.dependent_space_edge_source, item.required_space_node_ids))
             .into_iter()
         {
-            let required_node_ids = out.extend_extra_required_nodes(&builder.map, required_space_node_ids, &mut buffer);
+            let required_node_ids =
+                out.extend_extra_required_nodes(&builder.map, steiner_tree, required_space_node_ids, &mut buffer);
 
             let dependent_edge_with_inherent_weight_ids =
                 out.extend_dependent_edges_with_inherent_weight(chunk.into_iter().map(|item| {
@@ -301,13 +310,16 @@ impl DispensableRequirements {
     fn extend_extra_required_nodes(
         &mut self,
         map: &SteinerInputMap,
+        steiner_tree: &SteinerTree,
         required_space_node_ids: IdRange<RequiredSpaceNodeId>,
         buffer: &mut Vec<SteinerNodeId>,
     ) -> IdRange<RequiredSteinerNodeId> {
         buffer.extend(
             self.required_space_nodes[required_space_node_ids.as_usize()]
                 .iter()
-                .map(|id| map.space_node_id_to_node_id[id.index()]),
+                .map(|id| map.space_node_id_to_node_id[id.index()])
+                // If already a terminal, the requirement doesn't matter.
+                .filter(|&id| !steiner_tree.is_terminal[id.index()]),
         );
         buffer.sort_unstable();
         buffer.dedup();

@@ -6,7 +6,10 @@ use std::ops::ControlFlow;
 
 use fixedbitset::FixedBitSet;
 pub(crate) use greedy_flac::*;
-use petgraph::graph::{EdgeIndex, NodeIndex};
+use petgraph::{
+    graph::{EdgeIndex, NodeIndex},
+    visit::EdgeIndexable as _,
+};
 
 use crate::solve::input::{SteinerNodeId, SteinerWeight};
 
@@ -42,7 +45,7 @@ impl SteinerTree {
 
         let mut tree = Self {
             nodes: FixedBitSet::with_capacity(graph.node_bound()),
-            edges: FixedBitSet::with_capacity(graph.edge_count()),
+            edges: FixedBitSet::with_capacity(graph.edge_bound()),
             total_weight: 0,
             terminals,
             is_terminal: FixedBitSet::with_capacity(graph.node_bound()),
@@ -70,11 +73,16 @@ impl SteinerTree {
         }
     }
 
-    pub fn clone_from_with_new_terminals(&mut self, other: &Self, terminals: impl IntoIterator<Item = SteinerNodeId>) {
+    pub fn clone_from_with_new_terminals(
+        &mut self,
+        other: &Self,
+        terminals: impl IntoIterator<Item = SteinerNodeId>,
+    ) -> ControlFlow<()> {
         self.nodes.clone_from(&other.nodes);
         self.edges.clone_from(&other.edges);
         self.total_weight = 0;
         self.terminals.clear();
-        let _ = self.extend_terminals(terminals);
+        self.is_terminal.clear();
+        self.extend_terminals(terminals)
     }
 }

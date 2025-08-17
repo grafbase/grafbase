@@ -64,7 +64,7 @@ where
         } else {
             let flac = GreedyFlac::new(&input.graph);
             let mut updater = RequirementAndWeightUpdater::new(&input)?;
-            let _ = updater.run_fixed_point_weight(&mut input, &mut steiner_tree)?;
+            let _ = updater.run_fixed_point_weight(ctx, &mut input, &mut steiner_tree)?;
             State::Unsolved { flac, updater }
         };
 
@@ -94,7 +94,7 @@ where
             State::Unsolved { mut flac, mut updater } => {
                 loop {
                     let growth = flac.run_once(&self.input.graph, &mut self.steiner_tree);
-                    let update = updater.run_fixed_point_weight(&mut self.input, &mut self.steiner_tree)?;
+                    let update = updater.run_fixed_point_weight(self.ctx, &mut self.input, &mut self.steiner_tree)?;
 
                     if update.is_break() && growth.is_break() {
                         break;
