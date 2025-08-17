@@ -21,7 +21,6 @@ use crate::{
 };
 
 const RESOLVER_BASE_WEIGHT: SteinerWeight = 10;
-const DEPTH_WEIGHT: SteinerWeight = 1;
 
 pub(super) struct SteinerInputBuilder<'schema, 'op, 'space> {
     pub space: &'space QuerySolutionSpace<'schema>,
@@ -34,8 +33,8 @@ pub(super) struct SteinerInputBuilder<'schema, 'op, 'space> {
     pub indispensable_terminal_space_node_ids: Vec<SpaceNodeId>,
     pub dispensable_terminal_space_node_ids: Vec<SpaceNodeId>,
     pub nodes_to_process_stack: Vec<NodeToProcess>,
-    pub space_node_path_stack: Vec<SpaceNodeId>,
-    pub space_node_relative_depth_weight_to_steiner_node: Vec<SteinerWeight>,
+    pub space_node_relative_depth_weight_to_steiner_node: Vec<u8>,
+    pub tmp_space_node_path_stack: Vec<(SpaceNodeId, u8)>,
 }
 
 pub(super) struct NodeToProcess {
@@ -65,7 +64,7 @@ pub(crate) fn build_input_and_terminals<'schema, 'op>(
     let n_nodes = space.graph.node_count() >> 3;
     let n_edges = space.graph.edge_count() >> 3;
     let mut graph = Graph::with_capacity(n_nodes, n_edges);
-    let mut mapping = SteinerInputMap {
+    let mut map = SteinerInputMap {
         node_id_to_space_node_id: Vec::with_capacity(n_nodes),
         edge_id_to_space_edge_id: Vec::with_capacity(n_edges),
         space_node_id_to_node_id: vec![SpaceNodeId::new(u32::MAX as usize); space.graph.node_bound()],
@@ -73,8 +72,8 @@ pub(crate) fn build_input_and_terminals<'schema, 'op>(
     };
 
     let root_node_id = graph.add_node(());
-    mapping.node_id_to_space_node_id.push(space.root_node_id);
-    mapping.space_node_id_to_node_id[space.root_node_id.index()] = root_node_id;
+    map.node_id_to_space_node_id.push(space.root_node_id);
+    map.space_node_id_to_node_id[space.root_node_id.index()] = root_node_id;
 
     let indispensable_terminal_space_node_ids = space
         .graph
@@ -91,13 +90,13 @@ pub(crate) fn build_input_and_terminals<'schema, 'op>(
     let mut builder = SteinerInputBuilder {
         space: &space,
         ctx,
+        dispensable_terminal_space_node_ids: Vec::with_capacity(indispensable_terminal_space_node_ids.len() >> 2),
         indispensable_terminal_space_node_ids,
-        dispensable_terminal_space_node_ids: Vec::new(),
         graph,
         root_node_id,
-        map: mapping,
+        map,
         nodes_to_process_stack: Vec::new(),
-        space_node_path_stack: Vec::new(),
+        tmp_space_node_path_stack: Vec::new(),
         space_node_relative_depth_weight_to_steiner_node: vec![0; space.graph.node_bound()],
     };
     let mut requirements = DispensableRequirementsBuilder::new(&space.graph);
@@ -175,7 +174,7 @@ impl SteinerInputBuilder<'_, '_, '_> {
         } else {
             Some(SteinerNodeId::new(u32::MAX as usize))
         };
-        debug_assert!(self.nodes_to_process_stack.is_empty() && self.space_node_path_stack.is_empty());
+        debug_assert!(self.nodes_to_process_stack.is_empty() && self.tmp_space_node_path_stack.is_empty());
         self.nodes_to_process_stack
             .push(NodeToProcess::terminal(terminal_space_node_id));
 
@@ -278,7 +277,8 @@ impl SteinerInputBuilder<'_, '_, '_> {
                             .extend_from_slice(required_space_node_ids);
                     });
 
-                    self.space_node_path_stack.push(space_node_id);
+                    self.tmp_space_node_path_stack
+                        .push((space_node_id, (first_edge_weight > 0) as u8));
                     // should not have any child since we have yet to map the terminal to any node.
                     debug_assert!(maybe_child_node_id == SpaceNodeId::new(u32::MAX as usize));
                     self.nodes_to_process_stack.push(NodeToProcess {
@@ -307,7 +307,8 @@ impl SteinerInputBuilder<'_, '_, '_> {
                 } else {
                     // There isn't any requirement nor has this edge any weight and it's the only
                     // parent, so we can compact it with the previous node.
-                    self.space_node_path_stack.push(space_node_id);
+                    self.tmp_space_node_path_stack
+                        .push((space_node_id, (first_edge_weight > 0) as u8));
                     self.nodes_to_process_stack.push(NodeToProcess {
                         space_node_id: first_space_edge.source(),
                         maybe_child_node_id,
@@ -354,19 +355,18 @@ impl SteinerInputBuilder<'_, '_, '_> {
             maybe_child_edge_weight,
         }: NodeToProcess,
     ) {
-        let mut weight = 0;
-        while let Some(space_node_id) = self.space_node_path_stack.pop() {
+        let mut depth_weight = 0;
+        while let Some((space_node_id, weight)) = self.tmp_space_node_path_stack.pop() {
             self.map.space_node_id_to_node_id[space_node_id.index()] = node_id;
-            let is_resolver = matches!(self.space.graph[space_node_id], SpaceNode::Resolver(_));
-            weight += is_resolver as SteinerWeight * DEPTH_WEIGHT;
-            self.space_node_relative_depth_weight_to_steiner_node[space_node_id.index()] = weight;
+            depth_weight += weight;
+            self.space_node_relative_depth_weight_to_steiner_node[space_node_id.index()] = depth_weight;
         }
         if maybe_child_node_id.index() != u32::MAX as usize {
             let relative_weight = self.space_node_relative_depth_weight_to_steiner_node[space_node_id.index()];
             self.add_edge(
                 node_id,
                 maybe_child_node_id,
-                maybe_child_edge_weight + relative_weight,
+                maybe_child_edge_weight + (relative_weight as SteinerWeight),
                 maybe_child_space_edge_id,
             );
         }
