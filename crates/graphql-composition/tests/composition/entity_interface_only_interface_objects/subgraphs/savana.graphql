@@ -1,8 +1,0 @@
-type Animal @key(fields: "species") @interfaceObject {
-  species: String!
-}
-
-type Cheetah @key(fields: "species") {
-  species: String!
-  topSpeed: Int!
-}

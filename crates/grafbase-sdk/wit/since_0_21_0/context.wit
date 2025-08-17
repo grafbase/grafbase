@@ -1,0 +1,18 @@
+interface context {
+    use token.{token};
+
+    resource request-context {
+        hooks-context: func() -> list<u8>;
+    }
+
+    resource authenticated-request-context {
+        hooks-context: func() -> list<u8>;
+        token: func() -> token;
+    }
+
+    resource authorized-operation-context {
+        hooks-context: func() -> list<u8>;
+        token: func() -> token;
+        authorization-context: func(key: option<string>) -> result<list<u8>, string>;
+    }
+}

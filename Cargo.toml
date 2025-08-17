@@ -7,7 +7,6 @@ members = [
     "crates/grafbase-hooks/derive",
     "crates/grafbase-sdk/derive",
     "crates/grafbase-sdk/mock",
-    "crates/engine/auth",
     "crates/engine/codegen",
     "crates/engine/operation",
     "crates/engine/walker",
@@ -189,7 +188,7 @@ redis = { version = "0.30.0", features = [
 regex = "1.11.1"
 reqwest = { version = "0.12.15", default-features = false, features = ["http2", "rustls-tls"] }
 reqwest-eventsource = "0.6"
-rmcp = { version = "0.3", features = [
+rmcp = { version = "0.5.0", features = [
     "transport-sse-server",
     "transport-streamable-http-server",
     "client",
@@ -275,7 +274,6 @@ zstd = "0.13"
 
 # Workspace
 engine = { path = "crates/engine" }
-engine-auth = { path = "crates/engine/auth" }
 engine-error = { path = "crates/engine/error" }
 engine-operation = { path = "crates/engine/operation" }
 engine-schema = { path = "crates/engine/schema" }

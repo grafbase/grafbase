@@ -1,0 +1,9 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/output_fields_have_output_types.graphql
+---
+  × The type of "Yi.req" must be an output type, but got "Request", an input object.
+
+
+  × The type of "Er.req" must be an output type, but got "Request", an input object.

@@ -1,0 +1,6 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/deprecated_required_argument_without_default.graphql
+---
+  × Required argument Query.describeCarrot(length:) cannot be deprecated.

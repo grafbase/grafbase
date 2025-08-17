@@ -25,14 +25,22 @@ macro_rules! make_ids {
                 &self$(.$path)*[index.0]
             }
         }
+
+        impl std::ops::IndexMut<$id_type_name> for Subgraphs {
+            fn index_mut(&mut self, index: $id_type_name) -> &mut $out {
+                &mut self$(.$path)*[index.0]
+            }
+        }
         )*
     };
 }
 
 make_ids! {
+    fields.arguments[ArgumentId] -> ArgumentRecord,
     definitions.definitions[DefinitionId] -> Definition,
     directives.extra_directives[DirectiveId] -> ExtraDirectiveRecord,
     extensions[ExtensionId] -> ExtensionRecord,
+    fields.fields[FieldId] -> FieldTuple,
     keys.keys[KeyId] -> Key,
     linked_schemas.definitions[LinkedDefinitionId] -> LinkedDefinitionRecord,
     linked_schemas.schemas[LinkedSchemaId] -> LinkedSchemaRecord,

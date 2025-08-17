@@ -34,7 +34,6 @@ impl<R: Runtime> PrepareContext<'_, R> {
             engine: self.engine,
             request_context: self.request_context,
             operation: &operation,
-            gql_context: &self.gql_context,
         };
 
         tracing::trace!("Starting execution...");
@@ -63,7 +62,6 @@ impl<R: Runtime> PrepareContext<'_, R> {
             engine: self.engine,
             request_context: self.request_context,
             operation: &operation,
-            gql_context: &self.gql_context,
         };
 
         tracing::trace!("Starting execution...");

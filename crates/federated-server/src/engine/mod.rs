@@ -13,7 +13,7 @@ use wasi_component_loader::extension::GatewayWasmExtensions;
 use super::AccessToken;
 use extension_catalog::ExtensionCatalog;
 use gateway_config::Config;
-use std::{borrow::Cow, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 /// Context struct that bundles all the semi-static parameters needed to build an engine.
 #[derive(Clone, Copy)]
@@ -21,7 +21,7 @@ pub(super) struct EngineBuildContext<'a> {
     pub gateway_config: &'a Config,
     pub hot_reload_config_path: Option<&'a PathBuf>,
     pub access_token: Option<&'a AccessToken>,
-    pub extension_catalog: Option<&'a ExtensionCatalog>,
+    pub extension_catalog: Option<&'a Arc<ExtensionCatalog>>,
     pub logging_filter: &'a str,
     pub gateway_extensions: &'a GatewayWasmExtensions,
 }
@@ -34,12 +34,10 @@ pub(super) async fn generate(
     // let graph = graph_definition.into_graph(context.gateway_config, context.access_token);
 
     let extension_catalog = match context.extension_catalog {
-        Some(catalog) => Cow::Borrowed(catalog),
+        Some(catalog) => catalog.clone(),
         None => {
             tracing::debug!("Creating extension catalog.");
-            let catalog = create_extension_catalog(context.gateway_config).await?;
-
-            Cow::Owned(catalog)
+            Arc::new(create_extension_catalog(context.gateway_config).await?)
         }
     };
 
@@ -54,7 +52,7 @@ pub(super) async fn generate(
             .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?,
     );
 
-    let runtime = EngineRuntime::build(context, &graph, &schema, &extension_catalog).await?;
+    let runtime = EngineRuntime::build(context, &graph, &schema, extension_catalog).await?;
 
     Ok(ContractAwareEngine::new(schema, runtime))
 }

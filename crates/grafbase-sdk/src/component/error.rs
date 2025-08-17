@@ -26,6 +26,8 @@ pub(crate) enum SdkErrorInner {
     DecodeError(#[from] minicbor_serde::error::DecodeError),
     #[error("JSON serialization error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("{0}")]
+    WitError(#[from] wit::Error),
 }
 
 impl<T> From<T> for SdkError

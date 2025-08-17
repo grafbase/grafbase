@@ -1,0 +1,34 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "The argument is \"fields\", not \"field\". Warn in case of typo."
+input_file: crates/graphql-composition/tests/composition/key/key_warn_on_field_argument/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Fruit
+  @join__type(graph: BAD)
+{
+  id: ID!
+}
+
+type Query
+{
+  fruits: [Fruit!] @join__field(graph: BAD)
+}
+
+enum join__Graph
+{
+  BAD @join__graph(name: "bad", url: "http://example.com/bad")
+}

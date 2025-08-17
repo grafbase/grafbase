@@ -1,0 +1,8 @@
+interface Interface58 @extends {
+  fiftyEight: String!
+}
+
+interface Interface13 implements Interface58 @key(fields: "id") @extends {
+  id: ID!
+  fiftyEight: String!
+}

@@ -15,7 +15,7 @@ use crate::{events::UpdateEvent, graph::Graph, router::EngineWatcher};
 use super::AccessToken;
 
 /// Configuration for the GatewayEngineReloader.
-pub(crate) struct EngineReloaderConfig<'a> {
+pub(crate) struct EngineReloaderConfig {
     /// The channel receiver for update events
     pub update_receiver: mpsc::Receiver<UpdateEvent>,
 
@@ -23,7 +23,7 @@ pub(crate) struct EngineReloaderConfig<'a> {
     pub initial_config: gateway_config::Config,
 
     /// The extension catalog for the engine
-    pub extension_catalog: &'a ExtensionCatalog,
+    pub extension_catalog: Arc<ExtensionCatalog>,
 
     /// The logging filter string
     pub logging_filter: String,
@@ -58,7 +58,7 @@ impl EngineReloader {
             hot_reload_config_path,
             access_token,
             gateway_extensions,
-        }: EngineReloaderConfig<'_>,
+        }: EngineReloaderConfig,
     ) -> crate::Result<Self> {
         let mut current_config = initial_config;
 
@@ -87,7 +87,7 @@ impl EngineReloader {
             gateway_config: &current_config,
             hot_reload_config_path: hot_reload_config_path.as_ref(),
             access_token: access_token.as_ref(),
-            extension_catalog: Some(extension_catalog),
+            extension_catalog: Some(&extension_catalog),
             logging_filter: &logging_filter,
             gateway_extensions: &gateway_extensions,
         };

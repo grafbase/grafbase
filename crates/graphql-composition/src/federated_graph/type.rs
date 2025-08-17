@@ -2,13 +2,13 @@ use super::{EntityDefinitionId, EnumDefinitionId, InputObjectId, InterfaceId, Ob
 use wrapping::Wrapping;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Debug)]
-pub struct Type {
+pub(crate) struct Type {
     pub wrapping: Wrapping,
     pub definition: Definition,
 }
 
 #[derive(Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub enum Definition {
+pub(crate) enum Definition {
     Scalar(ScalarDefinitionId),
     Object(ObjectId),
     Interface(InterfaceId),

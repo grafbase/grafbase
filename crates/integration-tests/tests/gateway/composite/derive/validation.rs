@@ -152,10 +152,10 @@ fn missing_field() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Product.author, for directive @composite__derive: Field Product.category is unprovidable for this @derive
+        insta::assert_snapshot!(result.unwrap_err(), @r"
+        At site Product.author, for directive @composite__derive: Field User.category is unprovidable for this @derive
         See schema at 18:17:
         @composite__derive
-        "#);
+        ");
     })
 }

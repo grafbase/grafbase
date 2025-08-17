@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Diagnostics
+input_file: crates/graphql-composition/tests/composition/provides/provides_scalar/test.md
+---
+- ❌ Invalid @provides at Color.provideGreen: no selection possible on this field type.

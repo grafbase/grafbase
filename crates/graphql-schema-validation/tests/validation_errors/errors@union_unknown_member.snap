@@ -1,0 +1,6 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/union_unknown_member.graphql
+---
+  × Cannot add unknown type Other as member of union type AnyThing

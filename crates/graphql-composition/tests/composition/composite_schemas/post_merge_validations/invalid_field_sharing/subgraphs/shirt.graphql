@@ -1,0 +1,24 @@
+extend schema @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@shareable", "@provides"])
+
+type Query {
+  shirt: Shirt!
+}
+
+type Shirt {
+  id: ID!
+  name: String!
+  size: Size!
+  color: Color @provides(fields: "green")
+}
+
+type Size {
+  width: Float!
+  height: Float!
+}
+
+type Color {
+  red: Int
+  green: Int @external
+  blue: Int
+  provideGreen: Int
+}

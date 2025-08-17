@@ -4,7 +4,7 @@ mod without_cache;
 use error::GraphqlError;
 use grafbase_telemetry::{graphql::OperationType, span::subgraph::SubgraphRequestSpanBuilder};
 use operation::OperationContext;
-use schema::{GraphqlEndpointId, GraphqlFederationEntityResolverDefinition};
+use schema::{GraphqlFederationEntityResolverDefinition, GraphqlSubgraphId};
 use serde_json::value::RawValue;
 use tracing::Instrument;
 use walker::Walk;
@@ -24,7 +24,7 @@ use super::{
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub(crate) struct FederationEntityResolver {
-    pub endpoint_id: GraphqlEndpointId,
+    pub subgraph_id: GraphqlSubgraphId,
     pub shape_id: RootFieldsShapeId,
     pub subgraph_operation: PreparedFederationEntityOperation,
 }
@@ -42,19 +42,19 @@ impl FederationEntityResolver {
             })?;
 
         Ok(Self {
-            endpoint_id: definition.endpoint().id,
+            subgraph_id: definition.subgraph().id,
             shape_id: plan_query_partition.shape_id(),
             subgraph_operation,
         })
     }
 
     pub fn build_subgraph_context<'ctx, R: Runtime>(&self, ctx: ExecutionContext<'ctx, R>) -> SubgraphContext<'ctx, R> {
-        let endpoint = self.endpoint_id.walk(ctx.schema());
+        let endpoint = self.subgraph_id.walk(ctx.schema());
         SubgraphContext::new(
             ctx,
             endpoint,
             SubgraphRequestSpanBuilder {
-                subgraph_name: endpoint.subgraph_name(),
+                subgraph_name: endpoint.name(),
                 operation_type: OperationType::Query.as_str(),
                 sanitized_query: &self.subgraph_operation.query,
             },
@@ -212,7 +212,7 @@ pub(super) async fn fetch_entities_without_cache<'ctx, R: Runtime>(
 
     tracing::debug!(
         "Executing request to subgraph named '{}' with query and variables:\n{}\n{}",
-        ctx.endpoint().subgraph_name(),
+        ctx.endpoint().name(),
         subgraph_operation.query,
         serde_json::to_string_pretty(&variables).unwrap_or_default()
     );
@@ -277,7 +277,7 @@ pub(super) async fn fetch_entities_with_cache<'ctx, R: Runtime>(
 
     tracing::debug!(
         "Executing request to subgraph named '{}' with query and variables:\n{}\n{}",
-        ctx.endpoint().subgraph_name(),
+        ctx.endpoint().name(),
         subgraph_operation.query,
         serde_json::to_string_pretty(&variables).unwrap_or_default()
     );

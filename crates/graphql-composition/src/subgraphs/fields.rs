@@ -1,30 +1,46 @@
 use super::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct FieldId(pub(super) DefinitionId, pub(super) StringId);
+pub(crate) struct FieldPath(pub(crate) DefinitionId, pub(crate) StringId);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct ArgumentId(DefinitionId, StringId, StringId);
+pub(crate) struct ArgumentPath(DefinitionId, StringId, StringId);
 
 /// Fields of objects and interfaces.
 #[derive(Default)]
 pub(crate) struct Fields {
     /// Output field arguments.
-    field_arguments: BTreeMap<ArgumentId, FieldTuple>,
+    field_arguments: BTreeMap<ArgumentPath, ArgumentId>,
 
-    field_argument_defaults: HashMap<ArgumentId, Value>,
-    input_field_default_values: HashMap<FieldId, Value>,
+    field_argument_defaults: HashMap<ArgumentPath, Value>,
+    input_field_default_values: HashMap<FieldPath, Value>,
+
+    /// Fields by definition, then name.
+    definition_fields: BTreeMap<FieldPath, FieldId>,
 
     /// Fields of objects, interfaces and input objects.
-    definition_fields: BTreeMap<FieldId, FieldTuple>,
+    pub(super) fields: Vec<FieldTuple>,
+    /// Arguments of output fields.
+    pub(super) arguments: Vec<ArgumentRecord>,
+}
+
+/// An argument on an output field.
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+pub(crate) struct ArgumentRecord {
+    parent_field_id: FieldId,
+    r#type: FieldType,
+    description: Option<StringId>,
+    directives: DirectiveSiteId,
 }
 
 /// A field in an object, interface or input object type.
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub(crate) struct FieldTuple {
-    r#type: FieldType,
-    description: Option<StringId>,
-    directives: DirectiveSiteId,
+    pub(crate) name: StringId,
+    pub(crate) parent_definition_id: DefinitionId,
+    pub(crate) r#type: FieldType,
+    pub(crate) description: Option<StringId>,
+    pub(crate) directives: DirectiveSiteId,
 }
 
 impl Subgraphs {
@@ -32,8 +48,8 @@ impl Subgraphs {
         self.fields
             .definition_fields
             .iter()
-            .map(move |(id, tuple)| FieldWalker {
-                id: (*id, *tuple),
+            .map(move |(path, field_id)| FieldWalker {
+                id: (*path, self[*field_id]),
                 subgraphs: self,
             })
     }
@@ -48,49 +64,56 @@ impl Subgraphs {
             description,
             default,
         }: FieldIngest<'_>,
-    ) -> FieldId {
+    ) -> FieldPath {
         let name = self.strings.intern(field_name);
+        let field_id = self.fields.fields.len().into();
+        self.fields.fields.push(FieldTuple {
+            name,
+            parent_definition_id,
+            r#type: field_type,
+            directives,
+            description,
+        });
 
-        self.fields.definition_fields.insert(
-            FieldId(parent_definition_id, name),
-            FieldTuple {
-                r#type: field_type,
-                directives,
-                description,
-            },
-        );
+        self.fields
+            .definition_fields
+            .insert(FieldPath(parent_definition_id, name), field_id);
 
-        let field_id = FieldId(parent_definition_id, name);
+        let field_path = FieldPath(parent_definition_id, name);
 
         if let Some(default) = default {
-            self.fields.input_field_default_values.insert(field_id, default);
+            self.fields.input_field_default_values.insert(field_path, default);
         }
 
-        field_id
+        field_path
     }
 
     pub(crate) fn insert_field_argument(
         &mut self,
-        FieldId(definition_id, field_name): FieldId,
+        FieldPath(definition_id, field_name): FieldPath,
         argument_name: StringId,
         r#type: FieldType,
         directives: DirectiveSiteId,
         description: Option<StringId>,
         default: Option<Value>,
     ) {
-        let argument_id = ArgumentId(definition_id, field_name, argument_name);
-
-        self.fields.field_arguments.insert(
-            argument_id,
-            FieldTuple {
+        let argument_path = ArgumentPath(definition_id, field_name, argument_name);
+        let parent_field_id = self.fields.definition_fields[&FieldPath(definition_id, field_name)];
+        let argument_id = self
+            .fields
+            .arguments
+            .push_return_idx(ArgumentRecord {
                 r#type,
                 directives,
                 description,
-            },
-        );
+                parent_field_id,
+            })
+            .into();
+
+        self.fields.field_arguments.insert(argument_path, argument_id);
 
         if let Some(default) = default {
-            self.fields.field_argument_defaults.insert(argument_id, default);
+            self.fields.field_argument_defaults.insert(argument_path, default);
         }
     }
 
@@ -98,15 +121,15 @@ impl Subgraphs {
         self.fields
             .field_arguments
             .iter()
-            .map(|(id, tuple)| FieldArgumentWalker {
-                id: (*id, *tuple),
+            .map(|(path, argument_id)| FieldArgumentWalker {
+                id: (*path, &self[*argument_id]),
                 subgraphs: self,
             })
     }
 
-    pub(crate) fn walk_field(&self, field_id: FieldId) -> FieldWalker<'_> {
+    pub(crate) fn walk_field(&self, field_path: FieldPath) -> FieldWalker<'_> {
         FieldWalker {
-            id: (field_id, self.fields.definition_fields[&field_id]),
+            id: (field_path, self[self.fields.definition_fields[&field_path]]),
             subgraphs: self,
         }
     }
@@ -121,7 +144,7 @@ pub(crate) struct FieldIngest<'a> {
     pub(crate) default: Option<Value>,
 }
 
-pub(crate) type FieldWalker<'a> = Walker<'a, (FieldId, FieldTuple)>;
+pub(crate) type FieldWalker<'a> = Walker<'a, (FieldPath, FieldTuple)>;
 
 impl<'a> FieldWalker<'a> {
     /// ```graphql,ignore
@@ -131,29 +154,29 @@ impl<'a> FieldWalker<'a> {
     /// }
     /// ```
     pub(crate) fn arguments(self) -> impl Iterator<Item = FieldArgumentWalker<'a>> {
-        let (FieldId(definition_id, field_name), _tuple) = self.id;
+        let (FieldPath(definition_id, field_name), _tuple) = self.id;
         self.subgraphs
             .fields
             .field_arguments
             .range(
-                ArgumentId(definition_id, field_name, StringId::MIN)
-                    ..ArgumentId(definition_id, field_name, StringId::MAX),
+                ArgumentPath(definition_id, field_name, StringId::MIN)
+                    ..ArgumentPath(definition_id, field_name, StringId::MAX),
             )
-            .map(|(argument_id, tuple)| FieldArgumentWalker {
-                id: (*argument_id, *tuple),
+            .map(|(argument_path, argument_id)| FieldArgumentWalker {
+                id: (*argument_path, &self.subgraphs[*argument_id]),
                 subgraphs: self.subgraphs,
             })
     }
 
     pub(crate) fn argument_by_name(self, name: StringId) -> Option<FieldArgumentWalker<'a>> {
-        let (FieldId(definition_id, field_name), _tuple) = self.id;
-        let argument_id = ArgumentId(definition_id, field_name, name);
+        let (FieldPath(definition_id, field_name), _tuple) = self.id;
+        let argument_path = ArgumentPath(definition_id, field_name, name);
         self.subgraphs
             .fields
             .field_arguments
-            .get(&argument_id)
-            .map(|tuple| FieldArgumentWalker {
-                id: (argument_id, *tuple),
+            .get(&argument_path)
+            .map(|argument_id| FieldArgumentWalker {
+                id: (argument_path, &self.subgraphs[*argument_id]),
                 subgraphs: self.subgraphs,
             })
     }
@@ -174,7 +197,7 @@ impl<'a> FieldWalker<'a> {
     }
 
     pub fn parent_definition(self) -> DefinitionWalker<'a> {
-        let (FieldId(parent_definition_id, _), _) = self.id;
+        let (FieldPath(parent_definition_id, _), _) = self.id;
         self.walk(parent_definition_id)
     }
 
@@ -183,7 +206,7 @@ impl<'a> FieldWalker<'a> {
     /// ^^
     /// ```
     pub fn name(self) -> StringWalker<'a> {
-        let (FieldId(_, name), _) = self.id;
+        let (FieldPath(_, name), _) = self.id;
         self.walk(name)
     }
 
@@ -208,33 +231,33 @@ impl<'a> DefinitionWalker<'a> {
         self.subgraphs
             .fields
             .definition_fields
-            .range(FieldId(self.id, StringId::MIN)..FieldId(self.id, StringId::MAX))
-            .map(|(id, tuple)| FieldWalker {
-                id: (*id, *tuple),
+            .range(FieldPath(self.id, StringId::MIN)..FieldPath(self.id, StringId::MAX))
+            .map(|(id, field_id)| FieldWalker {
+                id: (*id, self.subgraphs[*field_id]),
                 subgraphs: self.subgraphs,
             })
     }
 
     pub(crate) fn find_field(self, name: StringId) -> Option<FieldWalker<'a>> {
-        let field_id = FieldId(self.id, name);
+        let field_path = FieldPath(self.id, name);
 
         self.subgraphs
             .fields
             .definition_fields
-            .get(&field_id)
-            .map(|tuple| FieldWalker {
-                id: (field_id, *tuple),
+            .get(&field_path)
+            .map(|field_id| FieldWalker {
+                id: (field_path, self.subgraphs[*field_id]),
                 subgraphs: self.subgraphs,
             })
     }
 }
 
-pub(crate) type FieldArgumentWalker<'a> = Walker<'a, (ArgumentId, FieldTuple)>;
+pub(crate) type FieldArgumentWalker<'a> = Walker<'a, (ArgumentPath, &'a ArgumentRecord)>;
 
 impl<'a> FieldArgumentWalker<'a> {
     pub(crate) fn field(&self) -> FieldWalker<'a> {
-        let (ArgumentId(definition_id, field_name, _), _) = self.id;
-        self.subgraphs.walk_field(FieldId(definition_id, field_name))
+        let (ArgumentPath(definition_id, field_name, _), _) = self.id;
+        self.subgraphs.walk_field(FieldPath(definition_id, field_name))
     }
 
     /// ```graphql,ignore
@@ -244,7 +267,7 @@ impl<'a> FieldArgumentWalker<'a> {
     /// }
     /// ```
     pub(crate) fn name(&self) -> StringWalker<'a> {
-        let (ArgumentId(_, _, name), _) = self.id;
+        let (ArgumentPath(_, _, name), _) = self.id;
         self.walk(name)
     }
 

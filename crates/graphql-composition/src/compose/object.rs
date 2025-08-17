@@ -2,8 +2,8 @@ use subgraphs::FieldTypeWalker;
 
 use super::*;
 
-/// The arguments of a federated graph's fields are the interseciton of the subgraph's arguments for
-/// that field. Returns (arg_name, arg_type, is_inaccessible).
+/// The arguments of a federated graph's fields are the intersection of the subgraph's arguments for
+/// that field.
 pub(super) fn merge_field_arguments<'a>(
     first: FieldWalker<'a>,
     fields: &[FieldWalker<'a>],
@@ -13,7 +13,6 @@ pub(super) fn merge_field_arguments<'a>(
     let field_name = first.name().id;
     let mut ids: Option<federated::InputValueDefinitions> = None;
 
-    // We want to take the intersection of the field sets.
     let intersection: HashSet<StringId> = first
         .arguments()
         .map(|arg| arg.name().id)
@@ -171,12 +170,11 @@ pub(super) fn compose_fields<'a>(
     ctx: &mut Context<'a>,
     definitions: &[DefinitionWalker<'a>],
     parent_definition_name: federated::StringId,
-    is_shareable: bool,
 ) -> Vec<ir::FieldIr> {
     let mut field_irs = Vec::new();
     fields::for_each_field_group(definitions, |fields| {
         let Some(first) = fields.first() else { return };
-        let Some(field) = compose_field(parent_definition_name, is_shareable, *first, fields, ctx) else {
+        let Some(field) = compose_field(parent_definition_name, *first, fields, ctx) else {
             return;
         };
         field_irs.push(field)
@@ -186,37 +184,14 @@ pub(super) fn compose_fields<'a>(
 
 pub(super) fn compose_field<'a>(
     parent_definition_name: federated::StringId,
-    parent_is_shareable: bool,
     first: FieldWalker<'a>,
     fields: &[FieldWalker<'a>],
     ctx: &mut Context<'a>,
 ) -> Option<ir::FieldIr> {
     let field_name = first.name();
 
-    if !parent_is_shareable
-        && fields
-            .iter()
-            .filter(|f| {
-                let d = f.directives();
-                !(d.shareable()
-                    || f.is_external()
-                    || f.is_part_of_key()
-                    || d.iter_ir_directives()
-                        .any(|d| matches!(d, ir::Directive::CompositeInternal(_)))
-                    || d.r#override().is_some())
-            })
-            .count()
-            > 1
-    {
-        let next = &fields[1];
-
-        ctx.diagnostics.push_fatal(format!(
-            "The field `{}` on `{}` is defined in two subgraphs (`{}` and `{}`).",
-            first.name().as_str(),
-            first.parent_definition().name().as_str(),
-            first.parent_definition().subgraph().name().as_str(),
-            next.parent_definition().subgraph().name().as_str(),
-        ));
+    if let DefinitionKind::Object = first.parent_definition().kind() {
+        crate::validate::composite_schemas::post_merge::invalid_field_sharing(ctx, fields);
     }
 
     if fields.iter().any(|field| {
@@ -271,6 +246,8 @@ fn ingest_join_field_directives(
     fields: &[FieldWalker<'_>],
     out: &mut Vec<ir::Directive>,
 ) {
+    super::validate::override_source_has_override(fields, ctx);
+
     for field in fields {
         let mut directive = ir::JoinFieldDirective {
             source_field: field.id,
@@ -285,37 +262,17 @@ fn ingest_join_field_directives(
         };
 
         if let Some(r#override) = field.directives().r#override() {
-            let field_subgraph = field.parent_definition().subgraph();
-
-            if r#override.from == field_subgraph.name().id {
-                ctx.diagnostics.push_fatal(format!(
-                    r#"Source and destination subgraphs "{}" are the same for overridden field "{}.{}""#,
-                    ctx.subgraphs.walk(r#override.from).as_str(),
-                    field.parent_definition().name().as_str(),
-                    field.name().as_str()
-                ));
-            } else if let Some(override_source) = fields.iter().find(|f| {
-                (f.parent_definition().subgraph().name().id == r#override.from) && f.directives().r#override().is_some()
-            }) {
-                ctx.diagnostics
-                    .push_fatal(format!(r#"Field "{}.{}" on subgraph "{}" is also marked with directive @override in subgraph "{}". Only one @override directive is allowed per field."#,
-                        override_source.parent_definition().name().as_str(),
-                        override_source.name().as_str(),
-                        override_source.parent_definition().subgraph().name().as_str(),
-                        field.parent_definition().subgraph().name().as_str()));
-            } else {
-                directive.override_label = r#override
-                    .label
-                    .and_then(|label| ctx.subgraphs.walk(label).as_str().parse().ok());
-                directive.r#override = Some(
-                    ctx.subgraphs
-                        .iter_subgraphs()
-                        .position(|subgraph| subgraph.name().id == r#override.from)
-                        .map(federated::SubgraphId::from)
-                        .map(federated::OverrideSource::Subgraph)
-                        .unwrap_or_else(|| federated::OverrideSource::Missing(ctx.insert_string(r#override.from))),
-                );
-            }
+            directive.override_label = r#override
+                .label
+                .and_then(|label| ctx.subgraphs.walk(label).as_str().parse().ok());
+            directive.r#override = Some(
+                ctx.subgraphs
+                    .iter_subgraphs()
+                    .position(|subgraph| subgraph.name().id == r#override.from)
+                    .map(federated::SubgraphId::from)
+                    .map(federated::OverrideSource::Subgraph)
+                    .unwrap_or_else(|| federated::OverrideSource::Missing(ctx.insert_string(r#override.from))),
+            );
         }
 
         if field.directives().requires().is_some() && field.is_external() {

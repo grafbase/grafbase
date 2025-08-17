@@ -1,0 +1,11 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/union_list_member.graphql
+---
+  × Syntax error:  --> 9:18
+  │   |
+  │ 9 | union AnyThing = [Test] | Wow!
+  │   |                  ^---
+  │   |
+  │   = expected name

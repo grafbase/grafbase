@@ -2,7 +2,7 @@
 schema_path = "./schema.graphql"
 
 [extensions.grpc]
-version = "0.1.2"
+version = "0.2"
 
 [[extensions.grpc.config.services]]
 name = "routeguide.RouteGuide"

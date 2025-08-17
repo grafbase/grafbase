@@ -43,7 +43,7 @@ impl EngineRuntime {
         ctx: EngineBuildContext<'_>,
         graph: &Graph,
         schema: &Arc<Schema>,
-        extension_catalog: &ExtensionCatalog,
+        extension_catalog: Arc<ExtensionCatalog>,
     ) -> Result<EngineRuntime, crate::Error> {
         tracing::debug!("Build engine runtime.");
 
@@ -84,7 +84,7 @@ impl EngineRuntime {
 
         let extensions = EngineWasmExtensions::new(
             ctx.gateway_extensions.clone(),
-            extension_catalog,
+            &extension_catalog,
             ctx.gateway_config,
             schema,
             ctx.logging_filter.to_string(),

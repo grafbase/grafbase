@@ -1,0 +1,37 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Mixing specs.
+input_file: crates/graphql-composition/tests/composition/federation_v2/entity_interfaces/entity_interface_with_federation_v1_subgraph/test.md
+---
+type Type46 {
+  field18: Int!
+  field2712: String
+  field2713: Boolean
+  field2919: Boolean
+  field2920: [Int!]
+  fiftyEight: String!
+  id: ID!
+  twentySeven(arg6: String!): Int
+}
+
+type Query {
+  t46: Type46
+}
+
+interface Interface58 {
+  fiftyEight: String!
+}
+
+interface Interface104 {
+  twentySeven(arg6: String!): Int
+}
+
+interface Interface13 {
+  field18: Int!
+  field2713: Boolean
+  field2919: Boolean
+  field2920: [Int!]
+  fiftyEight: String!
+  id: ID!
+  twentySeven(arg6: String!): Int
+}

@@ -1,0 +1,11 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/reserved_double_underscore_name.graphql
+---
+  × Name "__mytype" must not begin with "__", which is reserved by GraphQL introspection.
+   ╭─[1:6]
+ 1 │ type __mytype {
+   ·      ────────
+ 2 │   id: ID!
+   ╰────

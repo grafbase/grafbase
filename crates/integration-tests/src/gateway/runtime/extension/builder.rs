@@ -138,8 +138,8 @@ impl ExtensionsBuilder {
         self,
         config: &mut gateway_config::Config,
         schema: &Arc<engine::Schema>,
-    ) -> anyhow::Result<(GatewayTestExtensions, EngineTestExtensions, ExtensionCatalog)> {
-        let (engine_extensions, gateway_extensions) = if self.has_wasm_extension {
+    ) -> anyhow::Result<(GatewayTestExtensions, EngineTestExtensions, Arc<ExtensionCatalog>)> {
+        let (engine_extensions, gateway_extensions, catalog) = if self.has_wasm_extension {
             for ext in self.catalog.iter() {
                 let version = ext.manifest.id.version.to_string().parse().unwrap();
                 let path = Some(ext.wasm_path.parent().unwrap().to_path_buf());
@@ -169,23 +169,22 @@ impl ExtensionsBuilder {
                     }
                 }
             }
-
-            let gateway_extensions =
-                GatewayWasmExtensions::new(&self.catalog, config, self.logging_filter.clone()).await?;
+            let catalog = Arc::new(self.catalog);
+            let gateway_extensions = GatewayWasmExtensions::new(&catalog, config, self.logging_filter.clone()).await?;
             let engine_extensions = EngineWasmExtensions::new(
                 gateway_extensions.clone(),
-                &self.catalog,
+                &catalog,
                 config,
                 schema,
                 self.logging_filter.clone(),
             )
             .await?;
-            (engine_extensions, gateway_extensions)
+            (engine_extensions, gateway_extensions, catalog)
         } else {
             // If no real wasm extensions was used, we skip the initialization as it would compile
             // the placeholder extension for nothing and we have a lot of extension tests, most of
             // them not relying on wasm at all.
-            Default::default()
+            (Default::default(), Default::default(), Arc::new(self.catalog))
         };
 
         let test = TestExtensions {
@@ -202,6 +201,6 @@ impl ExtensionsBuilder {
             dispatch: self.dispatch,
         };
 
-        Ok((gateway_extensions, extensions, self.catalog))
+        Ok((gateway_extensions, extensions, catalog))
     }
 }

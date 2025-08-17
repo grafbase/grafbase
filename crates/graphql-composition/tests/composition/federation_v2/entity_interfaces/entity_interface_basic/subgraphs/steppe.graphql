@@ -1,0 +1,14 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@interfaceObject"])
+
+type Query {
+  getMammoth: Mammoth
+}
+
+type Animal @interfaceObject @key(fields: "species") {
+  species: String
+  weightGrams: Int
+}
+
+type Mammoth {
+  tuskLength: Int
+}

@@ -12,7 +12,7 @@ use crate::federated_graph::{
 /// ) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
 ///```
 #[derive(Clone, PartialEq, PartialOrd, Debug)]
-pub struct JoinTypeDirective {
+pub(crate) struct JoinTypeDirective {
     pub subgraph_id: SubgraphId,
     pub key: Option<SelectionSet>,
     pub resolvable: bool,

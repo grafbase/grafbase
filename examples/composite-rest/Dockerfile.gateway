@@ -1,7 +1,7 @@
-FROM rust:1.87.0-alpine3.21 AS builder
+FROM rust:1.89.0-alpine AS builder
 
-WORKDIR /var/lib/grafbase
-RUN apk --no-cache add curl bash musl-dev && curl -fsSL https://grafbase.com/downloads/cli | bash -s 0.98.0 && mv ~/.grafbase/bin/grafbase /usr/bin/grafbase
+WORKDIR /data
+RUN apk --no-cache add curl bash musl-dev && curl -fsSL https://grafbase.com/downloads/cli | bash -s 0.101.1 && mv ~/.grafbase/bin/grafbase /usr/bin/grafbase
 COPY extensions ./extensions
 
 RUN cd extensions/geo \
@@ -12,16 +12,16 @@ COPY subgraphs/zendesk/schema.graphql ./subgraphs/zendesk/schema.graphql
 COPY subgraphs/geo-api/schema.graphql ./subgraphs/geo-api/schema.graphql
 COPY grafbase.toml ./
 RUN /usr/bin/grafbase compose > federated-schema.graphql && /usr/bin/grafbase extension install
-FROM ghcr.io/grafbase/gateway:latest
+FROM ghcr.io/grafbase/gateway:0.46.2
 
-WORKDIR /var/lib/grafbase
-COPY --from=builder /var/lib/grafbase/extensions/geo/build /var/lib/grafbase/extensions/geo/build
-COPY --from=builder /var/lib/grafbase/grafbase_extensions /var/lib/grafbase/grafbase_extensions
-COPY --from=builder /var/lib/grafbase/grafbase-extensions.lock /var/lib/grafbase/grafbase-extensions.lock
-COPY --from=builder /var/lib/grafbase/federated-schema.graphql /var/lib/grafbase/federated-schema.graphql
-COPY grafbase.toml /var/lib/grafbase/grafbase.toml
+WORKDIR /data
+COPY --from=builder /data/extensions/geo/build ./extensions/geo/build
+COPY --from=builder /data/grafbase_extensions ./grafbase_extensions
+COPY --from=builder /data/grafbase-extensions.lock ./grafbase-extensions.lock
+COPY --from=builder /data/federated-schema.graphql ./federated-schema.graphql
+COPY grafbase.toml ./grafbase.toml
 
 ENTRYPOINT ["/bin/grafbase-gateway"]
-CMD ["--config", "/var/lib/grafbase/grafbase.toml", "--schema", "/var/lib/grafbase/federated-schema.graphql", "--listen-address", "0.0.0.0:5000"]
+CMD ["--config", "/data/grafbase.toml", "--schema", "/data/federated-schema.graphql", "--listen-address", "0.0.0.0:5000"]
 
 EXPOSE 5000

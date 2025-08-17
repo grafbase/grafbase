@@ -1,6 +1,6 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: Federated SDL
+expression: Diagnostics
 input_file: crates/graphql-composition/tests/composition/composed_directives_basic/test.md
 ---
 - ⚠️ [observations]: Unknown directive `@id` at `BirdObservation`

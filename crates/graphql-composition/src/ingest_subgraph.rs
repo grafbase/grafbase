@@ -63,16 +63,24 @@ fn ingest_top_level_definitions(ctx: &mut Context<'_>) {
                     .description()
                     .map(|description| ctx.subgraphs.strings.intern(description.to_cow()));
 
-                let (definition_id, directive_site_id) = match type_definition {
+                let directive_site_id = ctx.subgraphs.new_directive_site();
+
+                // Order matters: we ingest enum values in the following block. We have to ingest the enum's directives first, so directives are ingested in order of directive site id.
+                directives::ingest_directives(ctx, directive_site_id, type_definition.directives(), |_| {
+                    type_name.to_owned()
+                });
+
+                let definition_id = match type_definition {
                     ast::TypeDefinition::Object(_) if type_name == SERVICE_TYPE_NAME => continue,
                     ast::TypeDefinition::Union(_) if type_name == ENTITY_UNION_NAME => continue,
 
                     ast::TypeDefinition::Object(_) => {
-                        let (definition_id, directive_site_id) = ctx.subgraphs.push_or_update_definition(
+                        let definition_id = ctx.subgraphs.push_definition(
                             subgraph_id,
                             type_name,
                             DefinitionKind::Object,
                             description,
+                            directive_site_id,
                         );
 
                         match ctx.root_type_matcher.match_name(type_name) {
@@ -91,50 +99,51 @@ fn ingest_top_level_definitions(ctx: &mut Context<'_>) {
                             RootTypeMatch::NotRoot => (),
                         }
 
-                        (definition_id, directive_site_id)
+                        definition_id
                     }
-                    ast::TypeDefinition::Interface(_interface_type) => ctx.subgraphs.push_or_update_definition(
+                    ast::TypeDefinition::Interface(_interface_type) => ctx.subgraphs.push_definition(
                         subgraph_id,
                         type_name,
                         DefinitionKind::Interface,
                         description,
+                        directive_site_id,
                     ),
-                    ast::TypeDefinition::Union(_) => ctx.subgraphs.push_or_update_definition(
+                    ast::TypeDefinition::Union(_) => ctx.subgraphs.push_definition(
                         subgraph_id,
                         type_name,
                         DefinitionKind::Union,
                         description,
+                        directive_site_id,
                     ),
-                    ast::TypeDefinition::InputObject(_) => ctx.subgraphs.push_or_update_definition(
+                    ast::TypeDefinition::InputObject(_) => ctx.subgraphs.push_definition(
                         subgraph_id,
                         type_name,
                         DefinitionKind::InputObject,
                         description,
+                        directive_site_id,
                     ),
 
-                    ast::TypeDefinition::Scalar(_) => ctx.subgraphs.push_or_update_definition(
+                    ast::TypeDefinition::Scalar(_) => ctx.subgraphs.push_definition(
                         subgraph_id,
                         type_name,
                         DefinitionKind::Scalar,
                         description,
+                        directive_site_id,
                     ),
 
                     ast::TypeDefinition::Enum(enum_type) => {
-                        let (definition_id, directive_site_id) = ctx.subgraphs.push_or_update_definition(
+                        let definition_id = ctx.subgraphs.push_definition(
                             subgraph_id,
                             type_name,
                             DefinitionKind::Enum,
                             description,
+                            directive_site_id,
                         );
                         enums::ingest_enum(ctx, definition_id, enum_type);
-                        (definition_id, directive_site_id)
+
+                        definition_id
                     }
                 };
-
-                // Order matters: we ingest enum values in the following block. We have to ingest the enum's directives first, so directives are ingested in order of directive site id.
-                directives::ingest_directives(ctx, directive_site_id, type_definition.directives(), |_| {
-                    type_name.to_owned()
-                });
 
                 directives::ingest_keys(definition_id, type_definition.directives(), ctx);
             }
@@ -221,7 +230,7 @@ fn ingest_definition_bodies(ctx: &mut Context<'_>) {
                         ctx.subgraphs.push_ingestion_diagnostic(
                             subgraph_id,
                             format!(
-                                "Interface `{}` implementeds `{}`, but `{}` is not defined in the subgraph.",
+                                "Interface `{}` implements `{}`, but `{}` is not defined in the subgraph.",
                                 interface.name(),
                                 implemented_interface,
                                 implemented_interface

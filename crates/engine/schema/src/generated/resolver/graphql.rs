@@ -5,7 +5,7 @@
 //! Source file: <engine-codegen dir>/domain/schema.graphql
 use crate::{
     FieldSet, FieldSetRecord,
-    generated::{GraphqlEndpoint, GraphqlEndpointId},
+    generated::{GraphqlSubgraph, GraphqlSubgraphId},
     prelude::*,
 };
 #[allow(unused_imports)]
@@ -15,12 +15,12 @@ use walker::{Iter, Walk};
 ///
 /// ```custom,{.language-graphql}
 /// type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy {
-///   endpoint: GraphqlEndpoint!
+///   endpoint: GraphqlSubgraph!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
 pub struct GraphqlRootFieldResolverDefinitionRecord {
-    pub endpoint_id: GraphqlEndpointId,
+    pub subgraph_id: GraphqlSubgraphId,
 }
 
 #[derive(Clone, Copy)]
@@ -41,8 +41,8 @@ impl<'a> GraphqlRootFieldResolverDefinition<'a> {
     pub fn as_ref(&self) -> &GraphqlRootFieldResolverDefinitionRecord {
         &self.item
     }
-    pub fn endpoint(&self) -> GraphqlEndpoint<'a> {
-        self.endpoint_id.walk(self.schema)
+    pub fn subgraph(&self) -> GraphqlSubgraph<'a> {
+        self.subgraph_id.walk(self.schema)
     }
 }
 
@@ -66,7 +66,7 @@ impl<'a> Walk<&'a Schema> for GraphqlRootFieldResolverDefinitionRecord {
 impl std::fmt::Debug for GraphqlRootFieldResolverDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlRootFieldResolverDefinition")
-            .field("endpoint", &self.endpoint())
+            .field("endpoint", &self.subgraph())
             .finish()
     }
 }
@@ -75,13 +75,13 @@ impl std::fmt::Debug for GraphqlRootFieldResolverDefinition<'_> {
 ///
 /// ```custom,{.language-graphql}
 /// type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql") {
-///   endpoint: GraphqlEndpoint!
+///   endpoint: GraphqlSubgraph!
 ///   key_fields: FieldSet!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct GraphqlFederationEntityResolverDefinitionRecord {
-    pub endpoint_id: GraphqlEndpointId,
+    pub subgraph_id: GraphqlSubgraphId,
     pub key_fields_record: FieldSetRecord,
 }
 
@@ -103,8 +103,8 @@ impl<'a> GraphqlFederationEntityResolverDefinition<'a> {
     pub fn as_ref(&self) -> &'a GraphqlFederationEntityResolverDefinitionRecord {
         self.ref_
     }
-    pub fn endpoint(&self) -> GraphqlEndpoint<'a> {
-        self.endpoint_id.walk(self.schema)
+    pub fn subgraph(&self) -> GraphqlSubgraph<'a> {
+        self.subgraph_id.walk(self.schema)
     }
     pub fn key_fields(&self) -> FieldSet<'a> {
         self.as_ref().key_fields_record.walk(self.schema)
@@ -132,7 +132,7 @@ impl<'a> Walk<&'a Schema> for &GraphqlFederationEntityResolverDefinitionRecord {
 impl std::fmt::Debug for GraphqlFederationEntityResolverDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlFederationEntityResolverDefinition")
-            .field("endpoint", &self.endpoint())
+            .field("endpoint", &self.subgraph())
             .field("key_fields", &self.key_fields())
             .finish()
     }

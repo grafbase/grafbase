@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Diagnostics
+input_file: crates/graphql-composition/tests/composition/object_fields_clash/test.md
+---
+- ❌ { PostMerge(InvalidFieldSharing) } The field `Band.name` is resolved by multiple subgraphs, but not marked as `@shareable`. The field must be marked as `@shareable` in at least one of the subgraphs: critics, label

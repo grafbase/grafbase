@@ -1,4 +1,4 @@
-use crate::subgraphs::StringId;
+use crate::subgraphs::{FederationSpec, LinkedSchemaType, StringId};
 
 use super::*;
 
@@ -47,17 +47,17 @@ fn match_directive_name_inner(
     directive_name: &str,
 ) -> DirectiveNameMatch {
     if let Some(linked_schema_id) = linked_schema_id {
-        if ctx.subgraphs.at(linked_schema_id).is_federation_v2(ctx.subgraphs) {
-            return match_federation_directive_by_original_name(directive_name);
-        }
-
-        if ctx.subgraphs.at(linked_schema_id).is_composite_schemas(ctx.subgraphs) {
-            return match_composite_schemas_directive_by_original_name(directive_name);
-        }
-
-        return DirectiveNameMatch::Qualified {
-            linked_schema_id,
-            directive_unqualified_name: directive_name_id,
+        return match ctx.subgraphs.at(linked_schema_id).linked_schema_type {
+            LinkedSchemaType::FederationSpec(FederationSpec::ApolloV2) => {
+                match_federation_directive_by_original_name(directive_name)
+            }
+            LinkedSchemaType::FederationSpec(FederationSpec::CompositeSchemas) => {
+                match_composite_schemas_directive_by_original_name(directive_name)
+            }
+            _ => DirectiveNameMatch::Qualified {
+                linked_schema_id,
+                directive_unqualified_name: directive_name_id,
+            },
         };
     }
 
@@ -68,18 +68,19 @@ fn match_directive_name_inner(
         let imported_definition = ctx.subgraphs.at(imported_definition_id);
         let linked_schema = ctx.subgraphs.at(imported_definition.linked_schema_id);
 
-        if linked_schema.is_federation_v2(ctx.subgraphs) {
-            let original_name = &ctx.subgraphs.strings.resolve(imported_definition.original_name);
-            return match_federation_directive_by_original_name(original_name);
-        }
+        return match linked_schema.linked_schema_type {
+            LinkedSchemaType::FederationSpec(FederationSpec::ApolloV2) => {
+                let original_name = &ctx.subgraphs.strings.resolve(imported_definition.original_name);
+                return match_federation_directive_by_original_name(original_name);
+            }
+            LinkedSchemaType::FederationSpec(FederationSpec::CompositeSchemas) => {
+                let original_name = &ctx.subgraphs.strings.resolve(imported_definition.original_name);
+                return match_composite_schemas_directive_by_original_name(original_name);
+            }
 
-        if linked_schema.is_composite_schemas(ctx.subgraphs) {
-            let original_name = &ctx.subgraphs.strings.resolve(imported_definition.original_name);
-            return match_composite_schemas_directive_by_original_name(original_name);
-        }
-
-        return DirectiveNameMatch::Imported {
-            linked_definition_id: imported_definition_id,
+            _ => DirectiveNameMatch::Imported {
+                linked_definition_id: imported_definition_id,
+            },
         };
     }
 
@@ -92,7 +93,7 @@ fn match_directive_name_inner(
         _ => (),
     }
 
-    let federation_schema_has_been_linked = ctx.subgraphs.subgraph_links_federation_v2(ctx.subgraph_id);
+    let federation_schema_has_been_linked = ctx.subgraphs[ctx.subgraph_id].federation_spec.is_apollo_v2();
     let is_virtual_subgraph = ctx.subgraphs.at(ctx.subgraph_id).is_virtual();
 
     // We auto-import federation directives only in cases where the federation spec hasn't been `@link`ed, to match federation v1 behaviour, or when the subgraph is virtual, because there is no legacy use case there, these are a new Grafbase feature.
@@ -125,6 +126,7 @@ fn match_federation_directive_by_original_name(original_name: &str) -> Directive
         AUTHENTICATED => DirectiveNameMatch::Authenticated,
         COMPOSE_DIRECTIVE => DirectiveNameMatch::ComposeDirective,
         COST => DirectiveNameMatch::Cost,
+        EXTENDS => DirectiveNameMatch::Extends,
         EXTERNAL => DirectiveNameMatch::External,
         INACCESSIBLE => DirectiveNameMatch::Inaccessible,
         INTERFACE_OBJECT => DirectiveNameMatch::InterfaceObject,
@@ -168,6 +170,7 @@ pub(in crate::ingest_subgraph) enum DirectiveNameMatch {
     Authenticated,
     ComposeDirective,
     Cost,
+    Extends,
     External,
     Inaccessible,
     OneOf,

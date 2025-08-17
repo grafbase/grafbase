@@ -1,0 +1,7 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Diagnostics
+input_file: crates/graphql-composition/tests/composition/federation_v1/same_field with_override/test.md
+---
+- ⚠️ [overridden]: Unknown directive `@directive10` at `Query.field1863`
+- ⚠️ [overriding]: Unknown directive `@directive10` at `Query.field1863`

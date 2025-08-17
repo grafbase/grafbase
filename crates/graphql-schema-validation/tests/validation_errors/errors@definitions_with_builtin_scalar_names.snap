@@ -1,0 +1,37 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/definitions_with_builtin_scalar_names.graphql
+---
+  × `Float` is a reserved name.
+   ╭─[1:6]
+ 1 │ type Float {
+   ·      ─────
+ 2 │   beforeComma: String!
+   ╰────
+
+
+  × `String` is a reserved name.
+   ╭─[6:6]
+ 5 │ 
+ 6 │ enum String {
+   ·      ──────
+ 7 │   MEEP
+   ╰────
+
+
+  × `Int` is a reserved name.
+    ╭─[11:8]
+ 10 │ 
+ 11 │ scalar Int
+    ·        ───
+ 12 │ scalar Boolean
+    ╰────
+
+
+  × `Boolean` is a reserved name.
+    ╭─[12:8]
+ 11 │ scalar Int
+ 12 │ scalar Boolean
+    ·        ───────
+    ╰────

@@ -4,7 +4,7 @@ use schema::DirectiveSiteId;
 use walker::Walk;
 
 use crate::{
-    Runtime,
+    EngineOperationContext, Runtime,
     prepare::{
         PlanFieldArguments, ResponseModifier, ResponseModifierRule, ResponseModifierRuleTarget,
         create_extension_directive_response_view,
@@ -41,12 +41,6 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
 
             // Now we can execute the hook and propagate any errors.
             match response_modifier.rule {
-                ResponseModifierRule::AuthorizedParentEdge { .. } => {
-                    unreachable!("maybe we can delete the whole variant at some point?")
-                }
-                ResponseModifierRule::AuthorizedEdgeChild { .. } => {
-                    unreachable!("maybe we can delete the whole variant at some point?")
-                }
                 ResponseModifierRule::Extension {
                     directive_id,
                     target:
@@ -71,8 +65,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                     let result = self
                         .extensions()
                         .authorize_response(
-                            &self.request_context.extension_context,
-                            &self.gql_context.authorization_state,
+                            EngineOperationContext::from(self),
                             directive.extension_id,
                             directive.name(),
                             DirectiveSiteId::from(rule_target).walk(self),
@@ -177,8 +170,7 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                     let result = self
                         .extensions()
                         .authorize_response(
-                            &self.request_context.extension_context,
-                            &self.gql_context.authorization_state,
+                            EngineOperationContext::from(self),
                             directive.extension_id,
                             directive.name(),
                             DirectiveSiteId::from(rule_target).walk(self),

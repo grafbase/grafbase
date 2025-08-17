@@ -17,11 +17,12 @@ type InitFn =
 static mut INIT_FN: Option<InitFn> = None;
 static mut EXTENSION: Option<Box<dyn AnyExtension>> = None;
 static mut SUBSCRIPTION: Option<SubscriptionState> = None;
-static mut CONTEXT: Option<wit::SharedContext> = None;
+static mut EVENT_QUEUE: Option<wit::EventQueue> = None;
 static mut CAN_SKIP_SENDING_EVENTS: bool = false;
 
 enum SubscriptionState {
     Uninitialized {
+        ctx: Box<crate::types::AuthorizedOperationContext>,
         prepared: Vec<u8>,
         callback: SubscriptionCallback<'static>,
     },
@@ -57,13 +58,13 @@ pub(super) fn init(
     Ok(())
 }
 
-pub(crate) fn with_context<F, T>(context: wit::SharedContext, f: F) -> T
+pub(crate) fn with_event_queue<F, T>(event_queue: wit::EventQueue, f: F) -> T
 where
     F: FnOnce() -> T,
 {
     // Safety: This function is only called from extension functions by us.
     unsafe {
-        CONTEXT = Some(context);
+        EVENT_QUEUE = Some(event_queue);
     }
 
     // Safety: if this panics, the whole extension will be poisoned.
@@ -71,16 +72,10 @@ where
 
     // Safety: This function is only called from extension functions by us.
     unsafe {
-        CONTEXT = None;
+        EVENT_QUEUE = None;
     }
 
     res
-}
-
-#[allow(unused)]
-pub(crate) fn current_context() -> &'static wit::SharedContext {
-    // SAFETY: We are in a single-threaded environment, this function is internal.
-    unsafe { CONTEXT.as_ref().expect("Context not initialized") }
 }
 
 // Coarse grained event filtering. Arbitrary logic can be
@@ -91,8 +86,22 @@ pub(crate) fn can_skip_sending_events() -> bool {
 
 pub(crate) fn queue_event(name: &str, data: &[u8]) {
     // SAFETY: This is mutated only by us before extension is called.
-    if let Some(ctx) = unsafe { CONTEXT.as_ref() } {
-        ctx.push_event(name, data);
+    if let Some(queue) = unsafe { EVENT_QUEUE.as_ref() } {
+        queue.push(name, data);
+    }
+}
+
+pub(super) fn set_event_queue(event_queue: wit::EventQueue) {
+    // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
+    unsafe {
+        EVENT_QUEUE = Some(event_queue);
+    }
+}
+
+pub(super) fn drop_event_queue() {
+    // Safety: This function is only called from the SDK macro, so we can assume that there is only one caller at a time.
+    unsafe {
+        EVENT_QUEUE = None;
     }
 }
 
@@ -118,9 +127,17 @@ pub(super) fn extension() -> Result<&'static mut dyn AnyExtension, Error> {
     }
 }
 
-pub(super) fn set_subscription_callback(prepared: Vec<u8>, callback: SubscriptionCallback<'static>) {
+pub(super) fn set_subscription_callback(
+    ctx: Box<crate::types::AuthorizedOperationContext>,
+    prepared: Vec<u8>,
+    callback: SubscriptionCallback<'static>,
+) {
     unsafe {
-        SUBSCRIPTION = Some(SubscriptionState::Uninitialized { prepared, callback });
+        SUBSCRIPTION = Some(SubscriptionState::Uninitialized {
+            ctx,
+            prepared,
+            callback,
+        });
     }
 }
 
@@ -133,10 +150,15 @@ pub(super) fn subscription() -> Result<&'static mut dyn Subscription, Error> {
             Some(SubscriptionState::Initialized(_)) => {
                 SUBSCRIPTION = state; // Restore the state
             }
-            Some(SubscriptionState::Uninitialized { prepared, callback }) => {
+            Some(SubscriptionState::Uninitialized {
+                ctx,
+                prepared,
+                callback,
+            }) => {
                 SUBSCRIPTION = Some(SubscriptionState::Initialized(callback()?));
                 // Must be dropped *after* callback as callback may keep a reference to it
                 drop(prepared);
+                drop(ctx);
             }
             None => {
                 return Err(Error {

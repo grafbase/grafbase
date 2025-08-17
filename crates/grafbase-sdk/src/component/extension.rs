@@ -2,15 +2,16 @@ use crate::{
     extension::resolver::SubscriptionCallback,
     host_io::event_queue::EventQueue,
     types::{
-        AuthorizationDecisions, Contract, ContractDirective, Error, ErrorResponse, GraphqlSubgraph, Headers,
-        HttpRequestParts, OnRequestOutput, PublicMetadataEndpoint, QueryElements, ResolvedField, Response,
-        ResponseElements, Token, Variables,
+        AuthenticatedRequestContext, AuthorizationDecisions, AuthorizeQueryOutput, AuthorizedOperationContext,
+        Contract, ContractDirective, Error, ErrorResponse, GraphqlSubgraph, Headers, HttpRequestParts, OnRequestOutput,
+        PublicMetadataEndpoint, QueryElements, RequestContext, ResolvedField, Response, ResponseElements, Token,
+        Variables,
     },
 };
 
 #[expect(unused_variables)]
 pub(crate) trait AnyExtension {
-    fn authenticate(&mut self, headers: &Headers) -> Result<Token, ErrorResponse> {
+    fn authenticate(&mut self, ctx: &RequestContext, headers: &Headers) -> Result<Token, ErrorResponse> {
         Err(ErrorResponse::internal_server_error()
             .with_error("Authentication extension not initialized correctly. Is it defined with the appropriate type?"))
     }
@@ -39,12 +40,19 @@ pub(crate) trait AnyExtension {
         )
     }
 
-    fn resolve(&mut self, prepared: &[u8], headers: Headers, variables: Variables) -> Response {
+    fn resolve(
+        &mut self,
+        ctx: &AuthorizedOperationContext,
+        prepared: &[u8],
+        headers: Headers,
+        variables: Variables,
+    ) -> Response {
         Response::error("Resolver extension not initialized correctly. Is it defined with the appropriate type?")
     }
 
     fn resolve_subscription<'a>(
         &'a mut self,
+        ctx: &'a AuthorizedOperationContext,
         prepared: &'a [u8],
         headers: Headers,
         variables: Variables,
@@ -54,16 +62,17 @@ pub(crate) trait AnyExtension {
 
     fn authorize_query(
         &mut self,
-        headers: &mut Headers,
-        token: Token,
+        ctx: &AuthenticatedRequestContext,
+        headers: &Headers,
         elements: QueryElements<'_>,
-    ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
+    ) -> Result<AuthorizeQueryOutput, ErrorResponse> {
         Err(ErrorResponse::internal_server_error()
             .with_error("Authorization extension not initialized correctly. Is it defined with the appropriate type?"))
     }
 
     fn authorize_response(
         &mut self,
+        ctx: &AuthorizedOperationContext,
         state: Vec<u8>,
         elements: ResponseElements<'_>,
     ) -> Result<AuthorizationDecisions, Error> {
@@ -82,6 +91,7 @@ pub(crate) trait AnyExtension {
 
     fn on_response(
         &mut self,
+        ctx: &RequestContext,
         status: http::StatusCode,
         headers: &mut Headers,
         event_queue: EventQueue,
@@ -91,9 +101,23 @@ pub(crate) trait AnyExtension {
         ))
     }
 
-    fn on_subgraph_request(&mut self, parts: &mut HttpRequestParts) -> Result<(), Error> {
+    fn on_graphql_subgraph_request(
+        &mut self,
+        ctx: &AuthorizedOperationContext,
+        subgraph_name: &str,
+        parts: &mut HttpRequestParts,
+    ) -> Result<(), Error> {
         Err(Error::new(
             "Hooks extension not initialized correctly. Is it defined with the appropriate type?",
         ))
+    }
+
+    fn on_virtual_subgraph_request(
+        &mut self,
+        ctx: &AuthorizedOperationContext,
+        subgraph_name: &str,
+        headers: &mut Headers,
+    ) -> Result<(), Error> {
+        Ok(())
     }
 }

@@ -1,7 +1,10 @@
 use crate::{
     component::AnyExtension,
     host_io::{event_queue::EventQueue, http::StatusCode},
-    types::{Configuration, Error, ErrorResponse, GatewayHeaders, Headers, HttpRequestParts, OnRequestOutput},
+    types::{
+        AuthorizedOperationContext, Configuration, Error, ErrorResponse, GatewayHeaders, Headers, HttpRequestParts,
+        OnRequestOutput, RequestContext,
+    },
 };
 
 /// The Hooks extension allows you to hook into an incoming request or an outgoing response.
@@ -16,7 +19,7 @@ use crate::{
 /// ```rust
 /// use grafbase_sdk::{
 ///     HooksExtension,
-///     types::{GatewayHeaders, Headers, Configuration, Error, ErrorResponse},
+///     types::{GatewayHeaders, Headers, Configuration, Error, ErrorResponse, RequestContext},
 ///     host_io::event_queue::EventQueue,
 /// };
 ///
@@ -46,6 +49,7 @@ use crate::{
 ///
 ///     fn on_response(
 ///         &mut self,
+///         ctx: &RequestContext,
 ///         status: http::StatusCode,
 ///         headers: &mut Headers,
 ///         event_queue: EventQueue,
@@ -115,6 +119,7 @@ pub trait HooksExtension: Sized + 'static {
     /// This hook can be used to modify the response headers before the response is sent back to the client.
     fn on_response(
         &mut self,
+        ctx: &RequestContext,
         status: http::StatusCode,
         headers: &mut Headers,
         event_queue: EventQueue,
@@ -122,8 +127,23 @@ pub trait HooksExtension: Sized + 'static {
         Ok(())
     }
 
-    /// Called when a (GraphQL) subgraph request is made, allowing you to modify the request parts before they are sent to the subgraph.
-    fn on_subgraph_request(&mut self, parts: &mut HttpRequestParts) -> Result<(), Error> {
+    /// Called when a GraphQL subgraph request is made, allowing you to modify the request parts before they are sent to the subgraph.
+    fn on_graphql_subgraph_request(
+        &mut self,
+        ctx: &AuthorizedOperationContext,
+        subgraph_name: &str,
+        parts: &mut HttpRequestParts,
+    ) -> Result<(), Error> {
+        Ok(())
+    }
+
+    /// Called when a virtual subgraph request is made through an extension, allowing you to modify the request headers before sending it to the extension.
+    fn on_virtual_subgraph_request(
+        &mut self,
+        ctx: &AuthorizedOperationContext,
+        subgraph_name: &str,
+        headers: &mut Headers,
+    ) -> Result<(), Error> {
         Ok(())
     }
 }
@@ -155,21 +175,37 @@ pub fn register<T: HooksExtension>() {
             method: http::Method,
             headers: &mut Headers,
         ) -> Result<OnRequestOutput, ErrorResponse> {
-            HooksExtension::on_request(&mut self.0, url, method, headers)
-                .map(IntoOnRequestOutput::into_on_request_output)
+            self.0
+                .on_request(url, method, headers)
+                .map(|output| output.into_on_request_output())
         }
 
         fn on_response(
             &mut self,
+            ctx: &RequestContext,
             status: StatusCode,
             headers: &mut Headers,
             event_queue: EventQueue,
         ) -> Result<(), Error> {
-            HooksExtension::on_response(&mut self.0, status, headers, event_queue)
+            self.0.on_response(ctx, status, headers, event_queue)
         }
 
-        fn on_subgraph_request(&mut self, parts: &mut HttpRequestParts) -> Result<(), Error> {
-            HooksExtension::on_subgraph_request(&mut self.0, parts)
+        fn on_graphql_subgraph_request(
+            &mut self,
+            ctx: &AuthorizedOperationContext,
+            subgraph_name: &str,
+            parts: &mut HttpRequestParts,
+        ) -> Result<(), Error> {
+            self.0.on_graphql_subgraph_request(ctx, subgraph_name, parts)
+        }
+
+        fn on_virtual_subgraph_request(
+            &mut self,
+            ctx: &AuthorizedOperationContext,
+            subgraph_name: &str,
+            headers: &mut Headers,
+        ) -> Result<(), Error> {
+            self.0.on_virtual_subgraph_request(ctx, subgraph_name, headers)
         }
     }
 

@@ -53,7 +53,7 @@ type ObserverDetails
 
 type BirdSighting
   @deprecated(reason: "we haven't seen any birds in a while :(")
-  @join__type(graph: SIGHTINGS)
+  @join__type(graph: SIGHTINGS, key: "sightingID")
 {
   bird: Bird! @pelagic
   observer: String!

@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   packages = with pkgs; [
     rustup
     cargo-make

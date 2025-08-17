@@ -1,1 +1,0 @@
-  × Query root type must be an Object type, it cannot be set to Test

@@ -32,11 +32,9 @@ bumpalo = { version = "3", features = ["allocator-api2"] }
 byteorder = { version = "1" }
 bytes = { version = "1", features = ["serde"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"] }
-ciborium = { version = "0.2" }
 clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
 combine = { version = "4", features = ["tokio"] }
-concurrent-queue = { version = "2" }
 cranelift-bitset = { version = "0.122", default-features = false, features = ["enable-serde"] }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-utils = { version = "0.8" }
@@ -84,14 +82,11 @@ miette = { version = "7", features = ["fancy"] }
 mime_guess = { version = "2" }
 minicbor = { version = "1", default-features = false, features = ["alloc"] }
 minicbor-serde = { version = "0.5", default-features = false, features = ["alloc"] }
-num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
-num-integer = { version = "0.1", default-features = false, features = ["i128", "std"] }
 num-traits = { version = "0.2", features = ["i128", "libm"] }
 once_cell = { version = "1" }
 p256 = { version = "0.13", features = ["jwk"] }
 p384 = { version = "0.13", features = ["jwk"] }
 percent-encoding = { version = "2" }
-pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
 portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
@@ -100,13 +95,11 @@ pulley-interpreter = { version = "35", default-features = false, features = ["di
 quote = { version = "1" }
 rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
 rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
-rand_chacha = { version = "0.3", default-features = false, features = ["std"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
 regex-syntax = { version = "0.8" }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls-tls", "rustls-tls-native-roots", "stream", "zstd"] }
-rsa = { version = "0.9" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "aws_lc_rs", "logging", "ring", "std", "tls12"] }
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 sec1 = { version = "0.7", features = ["pem", "serde", "std", "subtle"] }
@@ -146,7 +139,7 @@ url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
 wasmparser = { version = "0.235" }
 winnow = { version = "0.7" }
-zeroize = { version = "1", features = ["zeroize_derive"] }
+zeroize = { version = "1" }
 zstd = { version = "0.13", features = ["experimental"] }
 zstd-safe = { version = "7", default-features = false, features = ["arrays", "experimental", "legacy", "std", "zdict_builder"] }
 zstd-sys = { version = "2", default-features = false, features = ["experimental", "legacy", "std", "zdict_builder"] }
@@ -164,11 +157,9 @@ bumpalo = { version = "3", features = ["allocator-api2"] }
 byteorder = { version = "1" }
 bytes = { version = "1", features = ["serde"] }
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "wasmbind"] }
-ciborium = { version = "0.2" }
 clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
 combine = { version = "4", features = ["tokio"] }
-concurrent-queue = { version = "2" }
 cranelift-bitset = { version = "0.122", default-features = false, features = ["enable-serde"] }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-utils = { version = "0.8" }
@@ -216,14 +207,11 @@ miette = { version = "7", features = ["fancy"] }
 mime_guess = { version = "2" }
 minicbor = { version = "1", default-features = false, features = ["alloc"] }
 minicbor-serde = { version = "0.5", default-features = false, features = ["alloc"] }
-num-bigint-dig = { version = "0.8", default-features = false, features = ["i128", "prime", "u64_digit", "zeroize"] }
-num-integer = { version = "0.1", default-features = false, features = ["i128", "std"] }
 num-traits = { version = "0.2", features = ["i128", "libm"] }
 once_cell = { version = "1" }
 p256 = { version = "0.13", features = ["jwk"] }
 p384 = { version = "0.13", features = ["jwk"] }
 percent-encoding = { version = "2" }
-pkcs1 = { version = "0.7", default-features = false, features = ["pem", "pkcs8", "std"] }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
 portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
@@ -232,13 +220,11 @@ pulley-interpreter = { version = "35", default-features = false, features = ["di
 quote = { version = "1" }
 rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
 rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
-rand_chacha = { version = "0.3", default-features = false, features = ["std"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
 regex-syntax = { version = "0.8" }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls-tls", "rustls-tls-native-roots", "stream", "zstd"] }
-rsa = { version = "0.9" }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "aws_lc_rs", "logging", "ring", "std", "tls12"] }
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 sec1 = { version = "0.7", features = ["pem", "serde", "std", "subtle"] }
@@ -279,7 +265,7 @@ url = { version = "2", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
 wasmparser = { version = "0.235" }
 winnow = { version = "0.7" }
-zeroize = { version = "1", features = ["zeroize_derive"] }
+zeroize = { version = "1" }
 zstd = { version = "0.13", features = ["experimental"] }
 zstd-safe = { version = "7", default-features = false, features = ["arrays", "experimental", "legacy", "std", "zdict_builder"] }
 zstd-sys = { version = "2", default-features = false, features = ["experimental", "legacy", "std", "zdict_builder"] }

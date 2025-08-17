@@ -2852,29 +2852,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "engine-auth"
-version = "0.0.0"
-dependencies = [
- "base64 0.22.1",
- "engine-error",
- "engine-schema",
- "extension-catalog",
- "futures-util",
- "gateway-config",
- "grafbase-workspace-hack",
- "http 1.3.1",
- "jwt-compact",
- "reqwest 0.12.22",
- "runtime",
- "serde",
- "serde_json",
- "serde_with",
- "sha2 0.10.9",
- "strum 0.27.2",
- "tracing",
-]
-
-[[package]]
 name = "engine-codegen"
 version = "0.0.0"
 dependencies = [
@@ -3335,7 +3312,6 @@ dependencies = [
  "cfg-if",
  "either",
  "engine",
- "engine-auth",
  "engine-schema",
  "event-queue",
  "extension-catalog",
@@ -3886,7 +3862,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.101.1"
+version = "0.102.0"
 dependencies = [
  "anyhow",
  "askama",
@@ -3908,7 +3884,6 @@ dependencies = [
  "dirs",
  "duct",
  "engine",
- "engine-auth",
  "expect-test",
  "extension-catalog",
  "federated-server",
@@ -3991,7 +3966,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.46.2"
+version = "0.47.0"
 dependencies = [
  "anyhow",
  "ascii",
@@ -4102,7 +4077,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.20.1"
+version = "0.21.0"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -4231,11 +4206,9 @@ dependencies = [
  "bytes",
  "cc",
  "chrono",
- "ciborium",
  "clap",
  "clap_builder",
  "combine",
- "concurrent-queue",
  "cranelift-bitset",
  "criterion",
  "crossbeam-utils",
@@ -4292,15 +4265,12 @@ dependencies = [
  "minicbor-serde 0.5.0",
  "miniz_oxide",
  "mio 1.0.4",
- "num-bigint-dig",
- "num-integer",
  "num-traits",
  "object",
  "once_cell",
  "p256",
  "p384",
  "percent-encoding",
- "pkcs1",
  "pkcs8",
  "portable-atomic",
  "proc-macro2",
@@ -4309,13 +4279,11 @@ dependencies = [
  "quote",
  "rand 0.8.5",
  "rand 0.9.2",
- "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "regex",
  "regex-automata 0.4.9",
  "regex-syntax 0.8.5",
  "reqwest 0.12.22",
- "rsa",
  "rustix 0.38.44",
  "rustix 1.0.8",
  "rustls 0.23.29",
@@ -4483,10 +4451,9 @@ dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
  "bitflags 2.9.1",
- "datatest-stable",
  "grafbase-workspace-hack",
+ "insta",
  "miette",
- "similar",
 ]
 
 [[package]]
@@ -5438,7 +5405,6 @@ dependencies = [
  "ed25519-compact",
  "elliptic-curve",
  "engine",
- "engine-auth",
  "engine-schema",
  "event-queue",
  "extension-catalog",
@@ -5706,29 +5672,6 @@ checksum = "1cfaf33c695fc6e08064efbc1f72ec937429614f25eef83af942d0e227c3a28f"
 dependencies = [
  "once_cell",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "jwt-compact"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25cb2458ca54de48ef237ac0d68d4e80e512ae81d6aeb9775f4c835da0d193d3"
-dependencies = [
- "anyhow",
- "base64ct",
- "chrono",
- "ciborium",
- "ed25519-compact",
- "hmac 0.12.1",
- "p256",
- "rand_core 0.6.4",
- "rsa",
- "serde",
- "serde_json",
- "sha2 0.10.9",
- "smallvec",
- "subtle",
- "zeroize",
 ]
 
 [[package]]
@@ -6604,7 +6547,7 @@ version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51e219e79014df21a225b1860a479e2dcd7cbd9130f4defd4bd0e191ea31d67d"
 dependencies = [
- "base64 0.21.7",
+ "base64 0.22.1",
  "chrono",
  "getrandom 0.2.16",
  "http 1.3.1",
@@ -8218,9 +8161,9 @@ dependencies = [
 
 [[package]]
 name = "rmcp"
-version = "0.3.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "824daba0a34f8c5c5392295d381e0800f88fd986ba291699f8785f05fa344c1e"
+checksum = "2faf35b7d3c4b7f8c21c45bb014011b32a0ce6444bf6094da04daab01a8c3c34"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -8250,9 +8193,9 @@ dependencies = [
 
 [[package]]
 name = "rmcp-macros"
-version = "0.3.1"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad6543c0572a4dbc125c23e6f54963ea9ba002294fd81dd4012c204219b0dcaa"
+checksum = "ad9720d9d2a943779f1dc3d47fa9072c7eeffaff4e1a82f67eb9f7ea52696091"
 dependencies = [
  "darling 0.21.0",
  "proc-macro2",
@@ -11163,6 +11106,7 @@ dependencies = [
  "dashmap 6.1.0",
  "deadpool 0.12.2",
  "either",
+ "engine",
  "engine-error",
  "engine-id-newtypes",
  "engine-schema",
@@ -12554,20 +12498,6 @@ name = "zeroize"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
-dependencies = [
- "zeroize_derive",
-]
-
-[[package]]
-name = "zeroize_derive"
-version = "1.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.104",
-]
 
 [[package]]
 name = "zerotrie"

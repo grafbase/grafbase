@@ -81,7 +81,7 @@ impl GraphqlResolver {
         let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
 
         let request = FetchRequest {
-            subgraph_name: endpoint.subgraph_name(),
+            subgraph_name: endpoint.name(),
             url,
             websocket_init_payload: ctx
                 .request_context
@@ -127,7 +127,7 @@ impl GraphqlResolver {
         let stream = stream
             .map_err(move |error| {
                 GraphqlError::from(ExecutionError::Fetch {
-                    subgraph_name: endpoint.subgraph_name().to_string(),
+                    subgraph_name: endpoint.name().to_string(),
                     error,
                 })
             })
@@ -184,7 +184,7 @@ impl GraphqlResolver {
 
             FetchRequest {
                 websocket_init_payload: None,
-                subgraph_name: endpoint.subgraph_name(),
+                subgraph_name: endpoint.name(),
                 url: Cow::Owned(endpoint.url().clone()),
                 method: http::Method::POST,
                 headers,
@@ -220,7 +220,7 @@ impl GraphqlResolver {
         let stream = stream
             .map_err(move |error| {
                 GraphqlError::from(ExecutionError::Fetch {
-                    subgraph_name: endpoint.subgraph_name().to_string(),
+                    subgraph_name: endpoint.name().to_string(),
                     error,
                 })
             })

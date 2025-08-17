@@ -1,3 +1,5 @@
+use crate::diagnostics::CompositeSchemasPostMergeValidationErrorCode;
+
 use super::*;
 
 pub(super) fn merge_root_fields(ctx: &mut Context<'_>) {
@@ -46,27 +48,35 @@ fn merge_fields<'a>(
 
     let object_id = ctx.insert_object(type_name, None, directives);
 
-    if let "Query" = root {
-        for field_name in ["__schema", "__type"] {
-            let field_name = ctx.insert_static_str(field_name);
-
-            // Use a dummy field type
-            let Some(field_type) = ctx.subgraphs.iter_all_fields().next().map(|f| f.r#type().id) else {
-                break;
-            };
-
-            ctx.insert_field(ir::FieldIr {
-                parent_definition_name: type_name,
-                field_name,
-                field_type,
-                arguments: federated::NO_INPUT_VALUE_DEFINITION,
-                description: None,
-                directives: Vec::new(),
-            });
+    if let "Subscription" = root {
+        for definition in definitions {
+            if definition.directives().shareable() {
+                ctx.diagnostics.push_composite_schemas_post_merge_validation_error(
+                    format!(
+                        "[{}] The Subscription type cannot be marked as @shareable.",
+                        definition.subgraph().name().as_str()
+                    ),
+                    CompositeSchemasPostMergeValidationErrorCode::InvalidFieldSharing,
+                );
+            }
         }
+
+        fields::for_each_field_group(definitions, |fields| {
+            for shareable_field in fields.iter().filter(|field| field.directives().shareable()) {
+                ctx.diagnostics.push_composite_schemas_post_merge_validation_error(
+                    format!(
+                        "[{}] Subscription root fields cannot be marked as @shareable: {}.{}.",
+                        shareable_field.parent_definition().subgraph().name().as_str(),
+                        shareable_field.parent_definition().name().as_str(),
+                        shareable_field.name().as_str()
+                    ),
+                    CompositeSchemasPostMergeValidationErrorCode::InvalidFieldSharing,
+                );
+            }
+        });
     }
 
-    let fields = object::compose_fields(ctx, definitions, type_name, false);
+    let fields = object::compose_fields(ctx, definitions, type_name);
     for field in fields {
         ctx.insert_field(field);
     }

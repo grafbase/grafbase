@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Diagnostics
+input_file: crates/graphql-composition/tests/composition/federation_v2/extend_directive_should_not_warn/test.md
+---
+

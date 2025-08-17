@@ -7,16 +7,13 @@ mod resolver;
 mod selection_set_resolver;
 mod subscription;
 
-use crate::{extension::GatewayWasmExtensions, resources::WasmContext};
+use crate::extension::GatewayWasmExtensions;
 
+use engine::{EngineOperationContext, EngineRequestContext};
 use runtime::extension::{EngineExtensions, GatewayExtensions};
 
 use super::EngineWasmExtensions;
 
-impl EngineExtensions for EngineWasmExtensions {
-    type Context = WasmContext;
-}
+impl EngineExtensions<EngineRequestContext, EngineOperationContext> for EngineWasmExtensions {}
 
-impl GatewayExtensions for GatewayWasmExtensions {
-    type Context = WasmContext;
-}
+impl GatewayExtensions for GatewayWasmExtensions {}

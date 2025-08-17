@@ -1,10 +1,10 @@
 use futures::{FutureExt as _, StreamExt, future::BoxFuture, stream::FuturesUnordered};
 use itertools::Itertools as _;
-use runtime::extension::ResolverExtension;
+use runtime::extension::{EngineHooksExtension, ResolverExtension};
 use walker::Walk;
 
 use crate::{
-    Runtime,
+    EngineOperationContext, Runtime,
     execution::ExecutionContext,
     prepare::Plan,
     response::{ParentObjects, ResponsePartBuilder},
@@ -30,37 +30,59 @@ impl super::ExtensionResolver {
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
         parent_objects: ParentObjects<'_>,
-        response_part: ResponsePartBuilder<'ctx>,
+        mut response_part: ResponsePartBuilder<'ctx>,
     ) -> BoxFuture<'ctx, ResponsePartBuilder<'ctx>> {
         let definition = self.definition.walk(&ctx);
-        let subgraph_headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
-
-        let futures = self
+        let headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
+        let extensions = ctx.runtime().extensions();
+        let prepared_arguments = self
             .prepared_fields
             .iter()
             .map(|prepared| {
-                let field = plan.get_field(prepared.id);
-                ctx.runtime()
-                    .extensions()
-                    .resolve(
-                        &ctx.request_context.extension_context,
-                        definition.directive(),
-                        &prepared.extension_data,
-                        // TODO: use Arc instead of clone?
-                        subgraph_headers.clone(),
-                        prepared.arguments.iter().map(|(id, argument_ids)| {
-                            let arguments = argument_ids.walk(&ctx);
-                            (*id, arguments.batch_view(ctx.variables(), &parent_objects))
-                        }),
-                    )
-                    .boxed()
-                    .map(move |result| (field, result))
+                let arguments = prepared.arguments.iter().map(|(id, argument_ids)| {
+                    let arguments = argument_ids.walk(&ctx);
+                    (*id, arguments.batch_view(ctx.variables(), &parent_objects))
+                });
+                (prepared, extensions.prepare_arguments(arguments))
             })
-            .collect::<FuturesUnordered<_>>();
+            .collect::<Vec<_>>();
 
         let parent_objects = parent_objects.into_object_set();
         Box::pin(async move {
-            let batched_field_results = futures.collect::<Vec<_>>().await;
+            let headers = match extensions
+                .on_virtual_subgraph_request(
+                    EngineOperationContext::from(&ctx),
+                    self.definition.subgraph_id.walk(&ctx),
+                    headers,
+                )
+                .await
+            {
+                Ok(headers) => headers,
+                Err(err) => {
+                    tracing::error!("Error in on_virtual_subgraph_request: {}", err);
+                    response_part.insert_error_updates(&parent_objects, plan.shape().id, [err]);
+                    return response_part;
+                }
+            };
+
+            let batched_field_results = prepared_arguments
+                .into_iter()
+                .map(|(prepared, arguments)| {
+                    let field = plan.get_field(prepared.id);
+                    extensions
+                        .resolve(
+                            EngineOperationContext::from(&ctx),
+                            definition.directive(),
+                            &prepared.extension_data,
+                            headers.clone(),
+                            arguments,
+                        )
+                        .boxed()
+                        .map(move |result| (field, result))
+                })
+                .collect::<FuturesUnordered<_>>()
+                .collect::<Vec<_>>()
+                .await;
             tracing::debug!(
                 "Received:\n{}",
                 batched_field_results.iter().format_with("\n", |(field, result), f| {
@@ -79,37 +101,61 @@ impl super::ExtensionResolver {
         ctx: ExecutionContext<'ctx, R>,
         plan: Plan<'ctx>,
         parent_objects: ParentObjects<'_>,
-        response_part: ResponsePartBuilder<'ctx>,
+        mut response_part: ResponsePartBuilder<'ctx>,
     ) -> BoxFuture<'ctx, ResponsePartBuilder<'ctx>> {
         let definition = self.definition.walk(&ctx);
-        let subgraph_headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
+        let headers = ctx.subgraph_headers_with_rules(definition.subgraph().header_rules());
+        let extensions = ctx.runtime().extensions();
 
-        let futures = FuturesUnordered::new();
+        let mut prepared_arguments = Vec::with_capacity(self.prepared_fields.len() * parent_objects.len());
         for prepared in &self.prepared_fields {
             for (parent_object_id, parent_object_view) in parent_objects.iter_with_id() {
-                futures.push(
-                    ctx.runtime()
-                        .extensions()
-                        .resolve(
-                            &ctx.request_context.extension_context,
-                            definition.directive(),
-                            &prepared.extension_data,
-                            // TODO: use Arc instead of clone?
-                            subgraph_headers.clone(),
-                            prepared.arguments.iter().map(|(id, argument_ids)| {
-                                let arguments = argument_ids.walk(&ctx);
-                                (*id, arguments.view(ctx.variables(), parent_object_view))
-                            }),
-                        )
-                        .boxed()
-                        .map(move |result| (prepared.id, parent_object_id, result)),
-                )
+                let arguments = extensions.prepare_arguments(prepared.arguments.iter().map(|(id, argument_ids)| {
+                    let arguments = argument_ids.walk(&ctx);
+                    (*id, arguments.view(ctx.variables(), parent_object_view))
+                }));
+
+                prepared_arguments.push((prepared, parent_object_id, arguments));
             }
         }
 
         let parent_objects = parent_objects.into_object_set();
         Box::pin(async move {
-            let batched_field_results = futures.collect::<Vec<_>>().await;
+            let headers = match extensions
+                .on_virtual_subgraph_request(
+                    EngineOperationContext::from(&ctx),
+                    self.definition.subgraph_id.walk(&ctx),
+                    headers,
+                )
+                .await
+            {
+                Ok(headers) => headers,
+                Err(err) => {
+                    tracing::error!("Error in on_virtual_subgraph_request: {}", err);
+                    response_part.insert_error_updates(&parent_objects, plan.shape().id, [err]);
+                    return response_part;
+                }
+            };
+
+            let batched_field_results = prepared_arguments
+                .into_iter()
+                .map(|(prepared, parent_object_id, arguments)| {
+                    extensions
+                        .resolve(
+                            EngineOperationContext::from(&ctx),
+                            definition.directive(),
+                            &prepared.extension_data,
+                            // TODO: use Arc instead of clone?
+                            headers.clone(),
+                            arguments,
+                        )
+                        .boxed()
+                        .map(move |result| (prepared.id, parent_object_id, result))
+                })
+                .collect::<FuturesUnordered<_>>()
+                .collect::<Vec<_>>()
+                .await;
+
             tracing::debug!(
                 "Received:\n{}",
                 batched_field_results

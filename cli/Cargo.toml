@@ -1,5 +1,5 @@
 [package]
-version = "0.101.1"
+version = "0.102.0"
 name = "grafbase"
 description = "The Grafbase command line interface"
 categories = ["command-line-utilities"]
@@ -77,7 +77,6 @@ askama.workspace = true
 convert_case.workspace = true
 cynic-parser = { workspace = true, features = ["report"] }
 engine.workspace = true
-engine-auth.workspace = true
 extension.workspace = true
 extension-catalog.workspace = true
 federated-server.workspace = true

@@ -1,6 +1,6 @@
 use grafbase_sdk::{
     HooksExtension,
-    types::{Configuration, Error, ErrorResponse, GatewayHeaders},
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders, RequestContext},
     host_io::event_queue::EventQueue,
     host_io::http::{Method, StatusCode},
 };
@@ -20,6 +20,7 @@ impl HooksExtension for {{name}} {
 
     fn on_response(
         &mut self,
+        ctx: &RequestContext,
         status: StatusCode,
         headers: &mut GatewayHeaders,
         event_queue: EventQueue,

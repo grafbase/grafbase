@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "The argument is \"fields\", not \"field\". Warn in case of typo."
+input_file: crates/graphql-composition/tests/composition/key/key_warn_on_field_argument/test.md
+---
+- ⚠️ [bad]: Wrong argument: "field:" argument instead of "fields:" in @key directive on `Fruit`

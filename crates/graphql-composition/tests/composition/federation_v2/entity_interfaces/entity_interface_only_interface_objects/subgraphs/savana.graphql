@@ -1,0 +1,10 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@interfaceObject"])
+
+type Animal @key(fields: "species") @interfaceObject {
+  species: String!
+}
+
+type Cheetah @key(fields: "species") {
+  species: String!
+  topSpeed: Int!
+}

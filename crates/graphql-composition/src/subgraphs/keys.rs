@@ -126,7 +126,7 @@ pub(crate) struct NestedKeyFields {
     /// ```
     ///
     /// `Nested.identifier` is a nested key field.
-    fields: HashSet<FieldId>,
+    fields: HashSet<FieldPath>,
 
     /// Objects that are part of keys that are not defined on the object itself.
     ///
@@ -214,7 +214,7 @@ impl FieldWalker<'_> {
     /// Returns true iff there is an `@key` directive containing this field, possibly with others
     /// as part of a composite key.
     pub(crate) fn is_part_of_key(self) -> bool {
-        let (field_id @ FieldId(_, field_name), _) = self.id;
+        let (field_id @ FieldPath(_, field_name), _) = self.id;
         self.parent_definition()
             .entity_keys()
             .flat_map(|key| key.fields().iter())

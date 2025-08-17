@@ -281,6 +281,7 @@ pub(super) fn ingest_directives(
             }
 
             DirectiveNameMatch::ComposeDirective
+            | DirectiveNameMatch::Extends
             | DirectiveNameMatch::Key
             | DirectiveNameMatch::KeyFromCompositeSchemas
             | DirectiveNameMatch::Link
@@ -299,6 +300,14 @@ pub(super) fn ingest_keys(
         let (_, match_result) = match_directive_name(ctx, directive_name);
 
         if let DirectiveNameMatch::Key | DirectiveNameMatch::KeyFromCompositeSchemas = match_result {
+            if directive.argument("field").is_some() {
+                let definition_name = &ctx.subgraphs[ctx.subgraphs[definition_id].name];
+                ctx.subgraphs.push_ingestion_warning(
+                    ctx.subgraph_id,
+                    format!(r#"Wrong argument: "field:" argument instead of "fields:" in @key directive on `{definition_name}`"#,),
+                );
+            }
+
             let fields_arg = directive.argument("fields").and_then(|v| v.value().as_str());
             let Some(fields_arg) = fields_arg else {
                 continue;

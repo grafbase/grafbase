@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-sdk"
-version = "0.20.1"
+version = "0.21.0"
 description = "An SDK to implement extensions for the Grafbase Gateway"
 edition = "2024"
 license.workspace = true

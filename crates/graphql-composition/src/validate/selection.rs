@@ -1,6 +1,10 @@
 use super::*;
 
 pub(super) fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldWalker<'_>) {
+    let (_, field_record) = field.id;
+    let parent_definition = ctx.subgraphs.at(field_record.parent_definition_id);
+    let subgraph_name = &ctx.subgraphs[ctx.subgraphs[parent_definition.subgraph_id].name];
+
     let directives = field.directives();
     for (selection, directive_name) in directives
         .requires()
@@ -21,6 +25,7 @@ pub(super) fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraph
             field.parent_definition(),
             &directive_path,
             directive_name,
+            subgraph_name,
         );
     }
 
@@ -33,12 +38,15 @@ pub(super) fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraph
             )
         };
 
-        let field_type = field
-            .r#type()
-            .definition(field.parent_definition().subgraph_id())
-            .unwrap();
+        let Some(field_type) = field.r#type().definition(field.parent_definition().subgraph_id()) else {
+            ctx.diagnostics.push_fatal(format!(
+                "Invalid @provides at {}: no selection possible on this field type.",
+                directive_path()
+            ));
+            continue;
+        };
 
-        validate_selection(ctx, selection, field_type, &directive_path, "provides");
+        validate_selection(ctx, selection, field_type, &directive_path, "provides", subgraph_name);
     }
 }
 
@@ -48,17 +56,23 @@ fn validate_selection(
     on_definition: subgraphs::DefinitionWalker<'_>,
     directive_path: &dyn Fn() -> String,
     directive_name: &str,
+    subgraph_name: &str,
 ) {
     match selection {
-        subgraphs::Selection::Field(field_selection) => {
-            validate_field_selection(ctx, field_selection, on_definition, directive_path, directive_name)
-        }
+        subgraphs::Selection::Field(field_selection) => validate_field_selection(
+            ctx,
+            field_selection,
+            on_definition,
+            directive_path,
+            directive_name,
+            subgraph_name,
+        ),
         subgraphs::Selection::InlineFragment { on, subselection } => {
             let subgraph_id = on_definition.subgraph_id();
             let Some(on) = ctx.subgraphs.definition_by_name_id(*on, subgraph_id) else {
                 let directive_path = directive_path();
                 ctx.diagnostics.push_fatal(format!(
-                    "Error in {directive_name} at {directive_path}: type condition `... {on}` is invalid on {parent_definition}",
+                    "[{subgraph_name}] Error in {directive_name} at {directive_path}: type condition `... {on}` is invalid on {parent_definition}",
                     on = ctx.subgraphs.walk(*on).as_str(),
                     parent_definition = on_definition.name().as_str()
                 ));
@@ -66,7 +80,14 @@ fn validate_selection(
             };
 
             for selection in subselection {
-                validate_selection(ctx, selection, ctx.subgraphs.walk(on), directive_path, directive_name);
+                validate_selection(
+                    ctx,
+                    selection,
+                    ctx.subgraphs.walk(on),
+                    directive_path,
+                    directive_name,
+                    subgraph_name,
+                );
             }
         }
     }
@@ -78,11 +99,12 @@ fn validate_field_selection(
     on_definition: subgraphs::DefinitionWalker<'_>,
     directive_path: &dyn Fn() -> String,
     directive_name: &str,
+    subgraph_name: &str,
 ) {
     if &ctx[selection.field] == "__typename" {
         if !selection.arguments.is_empty() {
             return ctx.diagnostics.push_fatal(format!(
-                "Error in @{directive_name} on {directive_path}: the __typename field does not accept arguments.",
+                "[{subgraph_name}] Error in @{directive_name} on {directive_path}: the __typename field does not accept arguments.",
                 directive_path = directive_path(),
             ));
         }
@@ -97,7 +119,7 @@ fn validate_field_selection(
     // The selected field must exist.
     let Some(field) = on_definition.find_field(selection.field) else {
         return ctx.diagnostics.push_fatal(format!(
-            "Error in @{directive_name} at {directive_path}: the {field_in_selection} field does not exist on {definition_name}",
+            "[{subgraph_name}] Error in @{directive_name} at {directive_path}: the {field_in_selection} field does not exist on {definition_name}",
             field_in_selection = ctx.subgraphs.walk(selection.field).as_str(),
             directive_path = directive_path(),
             definition_name = on_definition.name().as_str()
@@ -111,7 +133,7 @@ fn validate_field_selection(
         let arg_name = required_argument.name();
         if selection.arguments.iter().all(|(name, _)| *name != arg_name.id) {
             ctx.diagnostics.push_fatal(format!(
-                "Error in @{directive_name} on {directive_path}: the {field_name}.{arg_name} argument is required but not provided.",
+                "[{subgraph_name}] Error in @{directive_name} on {directive_path}: the {field_name}.{arg_name} argument is required but not provided.",
                 field_name = field.name().as_str(),
                 arg_name = arg_name.as_str(),
                 directive_path = directive_path(),
@@ -123,7 +145,7 @@ fn validate_field_selection(
     for (argument_name, argument_value) in &selection.arguments {
         let Some(argument) = field.argument_by_name(*argument_name) else {
             return ctx.diagnostics.push_fatal(format!(
-                "Error in @{directive_name} on {directive_path}: the {field_in_selection}.{argument_name} argument does not exist on {definition_name}",
+                "[{subgraph_name}] Error in @{directive_name} on {directive_path}: the {field_in_selection}.{argument_name} argument does not exist on {definition_name}",
                 argument_name = ctx.subgraphs.walk(*argument_name).as_str(),
                 field_in_selection = field.name().as_str(),
                 definition_name = on_definition.name().as_str(),
@@ -133,7 +155,7 @@ fn validate_field_selection(
 
         if !argument_type_matches(on_definition.subgraph_id(), argument.r#type(), argument_value) {
             return ctx.diagnostics.push_fatal(format!(
-                "Error in @{directive_name} on {directive_path}: the {field_in_selection}.{argument_name} argument does not not match the expected type ({expected_type})",
+                "[{subgraph_name}] Error in @{directive_name} on {directive_path}: the {field_in_selection}.{argument_name} argument does not not match the expected type ({expected_type})",
                 argument_name = ctx.subgraphs.walk(*argument_name).as_str(),
                 field_in_selection = field.name().as_str(),
                 expected_type = argument.r#type(),
@@ -152,6 +174,7 @@ fn validate_field_selection(
                 .expect("type is defined in subgraph"),
             directive_path,
             directive_name,
+            subgraph_name,
         );
     }
 }
@@ -202,6 +225,10 @@ pub(crate) fn validate_keys(ctx: &mut ValidateContext<'_>) {
             ctx.subgraphs[definition.name].to_string()
         };
 
+        let parent_definition = ctx.subgraphs.at(key.definition_id);
+        let subgraph = ctx.subgraphs.at(parent_definition.subgraph_id);
+        let subgraph_name = &ctx.subgraphs[subgraph.name];
+
         for selection in &key.selection_set {
             validate_selection(
                 ctx,
@@ -209,6 +236,7 @@ pub(crate) fn validate_keys(ctx: &mut ValidateContext<'_>) {
                 ctx.subgraphs.walk(key.definition_id),
                 &directive_path,
                 "key",
+                subgraph_name,
             )
         }
     }

@@ -1,0 +1,8 @@
+type Band {
+  name: String!
+  revenue: Int
+}
+
+type Query {
+  todaysBand: Band!
+}

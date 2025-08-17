@@ -1,4 +1,0 @@
-  × Union type "Test" can only include type "B" once.
-
-
-  × Cannot extend unknown union Membership

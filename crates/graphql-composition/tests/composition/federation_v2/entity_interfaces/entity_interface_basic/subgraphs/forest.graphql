@@ -1,0 +1,14 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.3"
+    import: ["@key", "@external", "@requires", "@provides", "@interfaceObject"]
+  )
+
+type Squirrel {
+  favouriteFood: String
+}
+
+type Animal @interfaceObject @key(fields: "species") {
+  species: String
+  favouriteFood: String
+}

@@ -1,0 +1,22 @@
+interface authorization {
+    use error.{error, error-response};
+    use headers.{headers};
+    use authorization-types.{authorization-decisions, query-elements, response-elements, authorization-output};
+    use context.{authenticated-request-context, authorized-operation-context};
+    use event-queue.{event-queue};
+
+    authorize-query: func(
+        event-queue: event-queue,
+        context: authenticated-request-context,
+        // Read-only headers, they will fail on mutable access.
+        subgraph-headers: headers,
+        elements: query-elements
+    ) -> result<authorization-output, error-response>;
+
+    authorize-response: func(
+        event-queue: event-queue,
+        context: authorized-operation-context,
+        state: list<u8>,
+        elements: response-elements
+    ) -> result<authorization-decisions, error>;
+}

@@ -15,7 +15,6 @@ use crate::*;
 
 use super::{
     BuildContext, Error,
-    interner::Interner,
     sdl::{self, SdlDefinition},
     value_path_to_string,
 };
@@ -28,7 +27,6 @@ pub(crate) struct GraphBuilder<'a> {
     pub definitions: Rc<GraphDefinitions<'a>>,
     pub graph: Graph,
     pub root_object_ids: Vec<ObjectDefinitionId>,
-    pub required_scopes: Interner<RequiresScopesDirectiveRecord, RequiresScopesDirectiveId>,
     pub selections: SelectionsBuilder,
 
     // -- used for coercion
@@ -125,8 +123,8 @@ impl GraphBuilder<'_> {
     pub(crate) fn get_subgraph_id(&self, id: ResolverDefinitionId) -> SubgraphId {
         match &self.graph[id] {
             ResolverDefinitionRecord::FieldResolverExtension(record) => self.graph[record.directive_id].subgraph_id,
-            ResolverDefinitionRecord::GraphqlFederationEntity(record) => record.endpoint_id.into(),
-            ResolverDefinitionRecord::GraphqlRootField(record) => record.endpoint_id.into(),
+            ResolverDefinitionRecord::GraphqlFederationEntity(record) => record.subgraph_id.into(),
+            ResolverDefinitionRecord::GraphqlRootField(record) => record.subgraph_id.into(),
             ResolverDefinitionRecord::Introspection => SubgraphId::Introspection,
             ResolverDefinitionRecord::Lookup(id) => self.get_subgraph_id(self.graph[*id].resolver_id),
             ResolverDefinitionRecord::Extension(record) => record.subgraph_id.into(),

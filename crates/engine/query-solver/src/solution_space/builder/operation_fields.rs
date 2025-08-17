@@ -311,53 +311,21 @@ where
             let query = &mut self.builder.query;
             if let Some(field_definition) = query[query_field_id].definition_id.walk(schema) {
                 for directive in field_definition.directives() {
-                    match directive {
-                        TypeSystemDirective::Authorized(auth) => {
-                            if let Some(fields) = auth.fields() {
-                                self.builder.create_requirement_task_stack.push(CreateRequirementTask {
-                                    petitioner_field_id: query_field_id,
-                                    dependent_ix: query_field_node_ix,
-                                    indispensable: query.graph[query_field_node_ix]
-                                        .as_query_field()
-                                        .unwrap()
-                                        .is_indispensable(),
-                                    required_field_set: fields,
-                                    parent_query_field_node_ix,
-                                    parent_output_type,
-                                })
-                            }
-                            if let Some((node, output_type)) =
-                                auth.node().zip(field_definition.ty().definition_id.as_composite_type())
-                            {
-                                self.builder.create_requirement_task_stack.push(CreateRequirementTask {
-                                    petitioner_field_id: query_field_id,
-                                    dependent_ix: query_field_node_ix,
-                                    indispensable: query.graph[query_field_node_ix]
-                                        .as_query_field()
-                                        .unwrap()
-                                        .is_indispensable(),
-                                    parent_query_field_node_ix: query_field_node_ix,
-                                    parent_output_type: output_type,
-                                    required_field_set: node,
-                                })
-                            }
-                        }
-                        TypeSystemDirective::Extension(directive) => {
-                            if !directive.requirements_record.is_empty() {
-                                self.builder.create_requirement_task_stack.push(CreateRequirementTask {
-                                    petitioner_field_id: query_field_id,
-                                    dependent_ix: query_field_node_ix,
-                                    indispensable: query.graph[query_field_node_ix]
-                                        .as_query_field()
-                                        .unwrap()
-                                        .is_indispensable(),
-                                    required_field_set: directive.requirements(),
-                                    parent_query_field_node_ix,
-                                    parent_output_type,
-                                })
-                            }
-                        }
-                        _ => {}
+                    let TypeSystemDirective::Extension(directive) = directive else {
+                        continue;
+                    };
+                    if !directive.requirements_record.is_empty() {
+                        self.builder.create_requirement_task_stack.push(CreateRequirementTask {
+                            petitioner_field_id: query_field_id,
+                            dependent_ix: query_field_node_ix,
+                            indispensable: query.graph[query_field_node_ix]
+                                .as_query_field()
+                                .unwrap()
+                                .is_indispensable(),
+                            required_field_set: directive.requirements(),
+                            parent_query_field_node_ix,
+                            parent_output_type,
+                        })
                     }
                 }
 

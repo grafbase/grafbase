@@ -1,0 +1,13 @@
+version: v2
+modules:
+  - path: ./proto
+lint:
+  use:
+    - BASIC
+    - COMMENTS
+    - UNARY_RPC
+breaking:
+  use:
+    - FILE
+deps:
+  - buf.build/googleapis/googleapis

@@ -1,13 +1,13 @@
 use engine::{ErrorCode, ErrorResponse, GraphqlError};
 use graphql_mocks::dynamic::DynamicSchema;
 use integration_tests::{
-    gateway::{AuthenticationExt, AuthorizationExt, AuthorizationTestExtension, ExtContext, Gateway},
+    gateway::{AuthenticationExt, AuthorizationExt, AuthorizationTestExtension, Gateway},
     runtime,
 };
 use runtime::extension::{AuthorizationDecisions, QueryElement, TokenRef};
 use serde::Deserialize;
 
-use crate::gateway::extensions::authentication::static_token::StaticToken;
+use crate::gateway::extensions::authentication::static_auth::StaticAuth;
 
 #[derive(Default)]
 struct RequiresScopes;
@@ -21,11 +21,11 @@ struct Arguments {
 impl AuthorizationTestExtension for RequiresScopes {
     async fn authorize_query(
         &self,
-        _ctx: &ExtContext,
+        _ctx: engine::EngineRequestContext,
         _headers: &tokio::sync::RwLock<http::HeaderMap>,
         token: TokenRef<'_>,
         elements_grouped_by_directive_name: Vec<(&str, Vec<QueryElement<'_, serde_json::Value>>)>,
-    ) -> Result<AuthorizationDecisions, ErrorResponse> {
+    ) -> Result<(AuthorizationDecisions, Vec<u8>), ErrorResponse> {
         let Some(bytes) = token.as_bytes() else {
             return Err(GraphqlError::new("No token found", ErrorCode::Unauthorized).into());
         };
@@ -49,10 +49,13 @@ impl AuthorizationTestExtension for RequiresScopes {
             }
         }
 
-        Ok(AuthorizationDecisions::DenySome {
-            element_to_error,
-            errors,
-        })
+        Ok((
+            AuthorizationDecisions::DenySome {
+                element_to_error,
+                errors,
+            },
+            Vec::new(),
+        ))
     }
 }
 
@@ -80,7 +83,7 @@ fn anonymous() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
-            .with_extension(AuthenticationExt::new(StaticToken::anonymous()))
+            .with_extension(AuthenticationExt::new(StaticAuth::anonymous()))
             .build()
             .await;
 
@@ -145,7 +148,7 @@ fn missing_claim() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
-            .with_extension(AuthenticationExt::new(StaticToken::claims(&[("dummy", "claim")])))
+            .with_extension(AuthenticationExt::new(StaticAuth::claims(&[("dummy", "claim")])))
             .build()
             .await;
 
@@ -210,7 +213,7 @@ fn missing_scope() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
-            .with_extension(AuthenticationExt::new(StaticToken::claims(&[("scopes", "group")])))
+            .with_extension(AuthenticationExt::new(StaticAuth::claims(&[("scopes", "group")])))
             .build()
             .await;
 
@@ -293,7 +296,7 @@ fn valid_scope() {
                 .into_subgraph("x"),
             )
             .with_extension(AuthorizationExt::new(RequiresScopes))
-            .with_extension(AuthenticationExt::new(StaticToken::claims(&[("scopes", "user")])))
+            .with_extension(AuthenticationExt::new(StaticAuth::claims(&[("scopes", "user")])))
             .build()
             .await;
 

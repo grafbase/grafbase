@@ -1,0 +1,10 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.3")
+
+type Band {
+  name: String!
+  revenue: Int
+}
+
+type Query {
+  todaysBand: Band!
+}

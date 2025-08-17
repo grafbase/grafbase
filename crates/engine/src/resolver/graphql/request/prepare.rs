@@ -3,7 +3,7 @@ use std::fmt::{Error, Write};
 use grafbase_telemetry::graphql::OperationType;
 use itertools::Itertools;
 use operation::{OperationContext, QueryInputValueRecord, QueryOrSchemaInputValueId};
-use schema::{CompositeType, EntityDefinition, GraphqlEndpointId, ObjectDefinition, SubgraphId, Type, TypeRecord};
+use schema::{CompositeType, EntityDefinition, GraphqlSubgraphId, ObjectDefinition, SubgraphId, Type, TypeRecord};
 use walker::Walk;
 
 use crate::prepare::{PlanFieldArguments, PlanQueryPartition, PlanValueRecord, SubgraphField, SubgraphSelectionSet};
@@ -20,7 +20,7 @@ pub(crate) struct PreparedGraphqlOperation {
 impl PreparedGraphqlOperation {
     pub(crate) fn build(
         ctx: OperationContext<'_>,
-        endpoint_id: GraphqlEndpointId,
+        endpoint_id: GraphqlSubgraphId,
         parent_object: ObjectDefinition<'_>,
         selection_set: SubgraphSelectionSet<'_>,
     ) -> Result<PreparedGraphqlOperation, Error> {

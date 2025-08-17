@@ -1,0 +1,6 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/object_missing_implemented_interface_field.graphql
+---
+  × Missing `age` field in `User` (required by the `Human` interface)

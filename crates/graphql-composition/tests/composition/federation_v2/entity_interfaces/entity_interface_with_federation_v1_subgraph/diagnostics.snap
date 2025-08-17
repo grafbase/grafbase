@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Mixing specs.
+input_file: crates/graphql-composition/tests/composition/federation_v2/entity_interfaces/entity_interface_with_federation_v1_subgraph/test.md
+---
+

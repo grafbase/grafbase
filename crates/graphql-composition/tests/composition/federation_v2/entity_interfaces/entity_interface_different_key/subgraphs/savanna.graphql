@@ -1,0 +1,12 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key"])
+
+interface Animal @key(fields: "species") {
+  species: String!
+}
+
+# Wrong: the key must be the same as the interface's
+type Cheetah implements Animal @key(fields: "id") {
+  id: ID!
+  species: String!
+  topSpeed: Int!
+}

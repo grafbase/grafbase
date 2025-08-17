@@ -26,7 +26,7 @@ impl Diagnostics {
     pub fn iter_warnings(&self) -> impl Iterator<Item = &str> {
         self.0
             .iter()
-            .filter(|diagnostic| !diagnostic.severity.is_warning())
+            .filter(|diagnostic| diagnostic.severity.is_warning())
             .map(|diagnostic| diagnostic.message.as_str())
     }
 
@@ -51,12 +51,36 @@ impl Diagnostics {
         &mut self,
         source_schema_name: &str,
         message: impl fmt::Display,
-        error_code: CompositeSchemasErrorCode,
+        error_code: CompositeSchemasSourceSchemaValidationErrorCode,
     ) {
         self.0.push(Diagnostic {
             message: format!("[{source_schema_name}] {message}"),
             severity: error_code.severity(),
-            error_code: Some(error_code),
+            error_code: Some(error_code.into()),
+        });
+    }
+
+    pub(crate) fn push_composite_schemas_pre_merge_validation_error(
+        &mut self,
+        message: String,
+        error_code: CompositeSchemasPreMergeValidationErrorCode,
+    ) {
+        self.0.push(Diagnostic {
+            message,
+            severity: error_code.severity(),
+            error_code: Some(error_code.into()),
+        });
+    }
+
+    pub(crate) fn push_composite_schemas_post_merge_validation_error(
+        &mut self,
+        message: String,
+        error_code: CompositeSchemasPostMergeValidationErrorCode,
+    ) {
+        self.0.push(Diagnostic {
+            message,
+            severity: error_code.severity(),
+            error_code: Some(error_code.into()),
         });
     }
 
@@ -97,7 +121,7 @@ impl Diagnostic {
     }
 
     /// The composite schemas error code
-    pub(crate) fn composite_shemas_error_code(&self) -> Option<CompositeSchemasErrorCode> {
+    pub fn composite_schemas_error_code(&self) -> Option<CompositeSchemasErrorCode> {
         self.error_code
     }
 }
@@ -129,19 +153,92 @@ impl Severity {
     }
 }
 
+/// Composite Schemas spec [error codes](https://graphql.github.io/composite-schemas-spec/draft/#sec-Schema-Composition).
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum CompositeSchemasErrorCode {
+#[non_exhaustive]
+pub enum CompositeSchemasErrorCode {
+    /// See [CompositeSchemasSourceSchemaValidationErrorCode]
+    SourceSchema(CompositeSchemasSourceSchemaValidationErrorCode),
+    /// See [CompositeSchemasPreMergeValidationErrorCode]
+    PreMerge(CompositeSchemasPreMergeValidationErrorCode),
+    /// See [CompositeSchemasPostMergeValidationErrorCode]
+    PostMerge(CompositeSchemasPostMergeValidationErrorCode),
+}
+
+impl From<CompositeSchemasPostMergeValidationErrorCode> for CompositeSchemasErrorCode {
+    fn from(v: CompositeSchemasPostMergeValidationErrorCode) -> Self {
+        Self::PostMerge(v)
+    }
+}
+
+impl From<CompositeSchemasSourceSchemaValidationErrorCode> for CompositeSchemasErrorCode {
+    fn from(v: CompositeSchemasSourceSchemaValidationErrorCode) -> Self {
+        Self::SourceSchema(v)
+    }
+}
+
+impl From<CompositeSchemasPreMergeValidationErrorCode> for CompositeSchemasErrorCode {
+    fn from(v: CompositeSchemasPreMergeValidationErrorCode) -> Self {
+        Self::PreMerge(v)
+    }
+}
+
+/// Composite Schemas spec [source schema validation](https://graphql.github.io/composite-schemas-spec/draft/#sec-Validate-Source-Schemas) error codes.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[non_exhaustive]
+pub enum CompositeSchemasSourceSchemaValidationErrorCode {
     /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Query-Root-Type-Inaccessible
     QueryRootTypeInaccessible,
     /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Lookup-Returns-Non-Nullable-Type
     LookupReturnsNonNullableType,
+    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Override-from-Self
+    OverrideFromSelf,
 }
 
-impl CompositeSchemasErrorCode {
+impl CompositeSchemasSourceSchemaValidationErrorCode {
     fn severity(&self) -> Severity {
+        use CompositeSchemasSourceSchemaValidationErrorCode::*;
+
         match self {
-            CompositeSchemasErrorCode::QueryRootTypeInaccessible => Severity::Error,
-            CompositeSchemasErrorCode::LookupReturnsNonNullableType => Severity::Warning,
+            QueryRootTypeInaccessible | OverrideFromSelf => Severity::Error,
+
+            LookupReturnsNonNullableType => Severity::Warning,
+        }
+    }
+}
+
+/// Composite Schemas spec [pre-merge validation](https://graphql.github.io/composite-schemas-spec/draft/#sec-Pre-Merge-Validation) error codes.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CompositeSchemasPreMergeValidationErrorCode {
+    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Type-Kind-Mismatch
+    TypeKindMismatch,
+    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Override-Source-Has-Override
+    OverrideSourceHasOverride,
+}
+
+impl CompositeSchemasPreMergeValidationErrorCode {
+    fn severity(&self) -> Severity {
+        use CompositeSchemasPreMergeValidationErrorCode::*;
+
+        match self {
+            TypeKindMismatch | OverrideSourceHasOverride => Severity::Error,
+        }
+    }
+}
+
+/// Composite Schemas spec [post-merge validation](https://graphql.github.io/composite-schemas-spec/draft/#sec-Post-Merge-Validation) error codes.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CompositeSchemasPostMergeValidationErrorCode {
+    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Invalid-Field-Sharing
+    InvalidFieldSharing,
+}
+
+impl CompositeSchemasPostMergeValidationErrorCode {
+    fn severity(&self) -> Severity {
+        use CompositeSchemasPostMergeValidationErrorCode::*;
+
+        match self {
+            InvalidFieldSharing => Severity::Error,
         }
     }
 }

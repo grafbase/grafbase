@@ -1,0 +1,9 @@
+interface token {
+    // A token represents an authenticated user identity.
+    variant token {
+        // Anonymous user without any metadata.
+        anonymous,
+        // The raw binary token data.
+        bytes(list<u8>),
+    }
+}

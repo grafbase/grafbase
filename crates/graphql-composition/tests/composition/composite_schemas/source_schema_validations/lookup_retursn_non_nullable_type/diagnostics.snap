@@ -1,6 +1,0 @@
----
-source: crates/graphql-composition/tests/composition_tests.rs
-expression: "https://graphql.github.io/composite-schemas-spec/draft/#sec-Lookup-Returns-Non-Nullable-Type"
-input_file: crates/graphql-composition/tests/composition/composite_schemas/source_schema_validations/lookup_retursn_non_nullable_type/test.md
----
-- ⚠️ [required-lookup] The "Query.requiredLookup" lookup field is required, but fields annotated with @lookup should be nullable.

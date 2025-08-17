@@ -36,8 +36,8 @@ pub struct ExtensionDirective {
 /// }
 /// ```
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
-pub struct ExtensionLinkSchemaDirective {
-    pub subgraph_id: SubgraphId,
-    pub name: StringId,
-    pub arguments: Option<Vec<(StringId, Value)>>,
+pub(crate) struct ExtensionLinkSchemaDirective {
+    pub(crate) subgraph_id: SubgraphId,
+    pub(crate) name: StringId,
+    pub(crate) arguments: Option<Vec<(StringId, Value)>>,
 }

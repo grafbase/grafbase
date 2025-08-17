@@ -52,7 +52,7 @@ pub(super) async fn fetch_response<R: Runtime>(
     // FIXME: handle cache scopes
     let additional_scopes = Vec::new();
 
-    let key = prepare_key_hasher(ctx.endpoint().subgraph_name(), subgraph_headers, &additional_scopes)
+    let key = prepare_key_hasher(ctx.endpoint().name(), subgraph_headers, &additional_scopes)
         .update(subgraph_request_body)
         .finalize()
         .to_string();
@@ -103,7 +103,7 @@ pub(super) async fn fetch_entities<R: Runtime>(
     // FIXME: handle cache scopes
     let additional_scopes = Vec::new();
 
-    let hasher = prepare_key_hasher(ctx.endpoint().subgraph_name(), subgraph_headers, &additional_scopes);
+    let hasher = prepare_key_hasher(ctx.endpoint().name(), subgraph_headers, &additional_scopes);
     let fetches = entities_to_fetch
         .into_iter()
         .map(|EntityToFetch { id, representation }| {

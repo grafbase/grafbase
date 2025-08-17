@@ -49,7 +49,7 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
             .map_err(|err| anyhow::anyhow!("Error parsing {}: \n{err:#}", path.display()))?;
     }
 
-    let result = graphql_composition::compose(subgraphs);
+    let result = graphql_composition::compose(&subgraphs);
 
     let diagnostics = result.diagnostics();
     let mut rendered_diagnostics = String::new();
@@ -60,8 +60,14 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
             graphql_composition::diagnostics::Severity::Warning => "⚠️",
         };
 
-        let message = diagnostic.message();
-        writeln!(rendered_diagnostics, "- {emoji} {message}").unwrap();
+        write!(rendered_diagnostics, "- {emoji} ").unwrap();
+
+        if let Some(error_code) = diagnostic.composite_schemas_error_code() {
+            write!(rendered_diagnostics, "{{ {:?} }} ", error_code).unwrap();
+        }
+
+        rendered_diagnostics.push_str(diagnostic.message());
+        rendered_diagnostics.push('\n');
     }
 
     let (federated_sdl, api_sdl) = if let Ok(federated_graph) = result.into_result() {

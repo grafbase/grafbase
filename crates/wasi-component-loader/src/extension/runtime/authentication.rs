@@ -1,33 +1,36 @@
 use std::sync::Arc;
 
-use crate::{WasmContext, extension::GatewayWasmExtensions, wasmsafe};
+use crate::{extension::GatewayWasmExtensions, wasmsafe};
 use engine_error::ErrorResponse;
+use event_queue::EventQueue;
 use extension_catalog::ExtensionId;
 use futures::{StreamExt as _, TryStreamExt as _, stream::FuturesUnordered};
-use runtime::{
-    authentication::PublicMetadataEndpoint,
-    extension::{AuthenticationExtension, Token},
-};
+use runtime::extension::{AuthenticationExtension, PublicMetadataEndpoint, Token};
 
-impl AuthenticationExtension<WasmContext> for GatewayWasmExtensions {
+impl AuthenticationExtension for GatewayWasmExtensions {
     async fn authenticate(
         &self,
-        context: &WasmContext,
+        event_queue: &Arc<EventQueue>,
+        hooks_context: &Arc<[u8]>,
         gateway_headers: http::HeaderMap,
-        ids: Option<&[ExtensionId]>,
-    ) -> (http::HeaderMap, Option<Result<Token, ErrorResponse>>) {
+        ids: &[ExtensionId],
+    ) -> (http::HeaderMap, Result<Token, ErrorResponse>) {
         let headers = Arc::new(gateway_headers);
 
         let mut futures = self
             .authentication
             .iter()
-            .filter(|pool| ids.is_none_or(|ids| ids.contains(&pool.id())))
+            .filter(|pool| ids.contains(&pool.id()))
             .map(|pool| async {
                 let mut instance = pool.get().await.map_err(|err| {
                     tracing::error!("Failed to get authentication instance: {err}");
                     ErrorResponse::internal_extension_error()
                 })?;
-                wasmsafe!(instance.authenticate(context, headers.clone().into()).await)
+                wasmsafe!(
+                    instance
+                        .authenticate(event_queue, hooks_context, headers.clone().into())
+                        .await
+                )
             })
             .collect::<FuturesUnordered<_>>()
             .map(|result| match result {
@@ -58,13 +61,16 @@ impl AuthenticationExtension<WasmContext> for GatewayWasmExtensions {
                     (err, _) => err,
                 };
             }
-            Some(result)
+            result
         } else {
-            None
+            unreachable!("At least one authentication extension should be present.")
         };
         drop(futures);
 
-        (Arc::into_inner(headers).unwrap(), result)
+        (
+            Arc::into_inner(headers).expect("Guest should not keep the headers."),
+            result,
+        )
     }
 
     async fn public_metadata_endpoints(&self) -> Result<Vec<PublicMetadataEndpoint>, String> {

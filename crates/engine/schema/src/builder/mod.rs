@@ -128,12 +128,10 @@ impl BuildContext<'_> {
                     extensions: ExtensionsContext { catalog, .. },
                     ..
                 },
-            mut graph,
-            required_scopes,
+            graph,
             selections,
             ..
         } = graph_builder;
-        graph.required_scopes = required_scopes.into();
 
         let subgraphs = subgraphs.finalize_with(introspection);
         let settings = build_settings(config);

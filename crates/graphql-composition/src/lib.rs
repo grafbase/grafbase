@@ -13,6 +13,8 @@ mod result;
 mod subgraphs;
 mod validate;
 
+use crate::subgraphs::LinkedSchemaType;
+
 pub use self::{
     diagnostics::Diagnostics,
     federated_graph::{DomainError, FederatedGraph, render_api_sdl, render_federated_sdl},
@@ -28,12 +30,11 @@ use self::{
 };
 
 /// Compose subgraphs into a federated graph.
-pub fn compose(subgraphs: Subgraphs) -> CompositionResult {
-    let subgraphs = subgraphs.finalize();
+pub fn compose(subgraphs: &Subgraphs) -> CompositionResult {
     let mut diagnostics = Diagnostics::default();
 
     if subgraphs.iter_subgraphs().len() == 0 {
-        let error = "No graphs found for composition build. You must have at least one active graph.";
+        let error = "No subgraphs to compose. You must pass at least one subgraph.";
         diagnostics.push_fatal(error.to_owned());
 
         return CompositionResult {
@@ -42,9 +43,9 @@ pub fn compose(subgraphs: Subgraphs) -> CompositionResult {
         };
     }
 
-    let mut context = ComposeContext::new(&subgraphs, &mut diagnostics);
+    let mut context = ComposeContext::new(subgraphs, &mut diagnostics);
 
-    validate::validate(&mut context);
+    validate::validate_pre_merge(&mut context);
 
     if context.diagnostics.any_fatal() {
         return CompositionResult {
@@ -62,7 +63,7 @@ pub fn compose(subgraphs: Subgraphs) -> CompositionResult {
             continue;
         };
 
-        if let Some(extension_id) = context.subgraphs[linked_schema_id].extension_id {
+        if let LinkedSchemaType::Extension(extension_id) = context.subgraphs[linked_schema_id].linked_schema_type {
             context.mark_used_extension(extension_id);
         } else if !is_composed_directive {
             context.diagnostics.push_warning(format!(
@@ -79,7 +80,7 @@ pub fn compose(subgraphs: Subgraphs) -> CompositionResult {
             diagnostics,
         }
     } else {
-        let federated_graph = emit_federated_graph(context.into_ir(), &subgraphs);
+        let federated_graph = emit_federated_graph(context.into_ir(), subgraphs);
 
         CompositionResult {
             federated_graph: Some(federated_graph),
@@ -114,7 +115,7 @@ mod tests {
         subgraphs
             .ingest_str(&schema, "grafbase-api", Some("https://api.grafbase.com"))
             .unwrap();
-        let result = compose(subgraphs);
+        let result = compose(&subgraphs);
         assert!(!result.diagnostics().any_fatal());
     }
 }

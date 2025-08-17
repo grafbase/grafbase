@@ -1,0 +1,9 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/input_object_cycles_two.graphql
+---
+  × Cannot reference Input Object A within itself through a series of non-null fields: "aa"
+
+
+  × Cannot reference Input Object B within itself through a series of non-null fields: "ba.ab"

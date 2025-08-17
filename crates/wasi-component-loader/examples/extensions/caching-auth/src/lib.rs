@@ -3,7 +3,7 @@ use std::time::Duration;
 use grafbase_sdk::{
     AuthenticationExtension,
     host_io::cache::Cache,
-    types::{Configuration, Error, ErrorResponse, Headers, Token},
+    types::{Configuration, Error, ErrorResponse, Headers, RequestContext, Token},
 };
 
 #[derive(AuthenticationExtension)]
@@ -32,7 +32,7 @@ impl AuthenticationExtension for CachingProvider {
         })
     }
 
-    fn authenticate(&mut self, headers: &Headers) -> Result<Token, ErrorResponse> {
+    fn authenticate(&mut self, _ctx: &RequestContext, headers: &Headers) -> Result<Token, ErrorResponse> {
         let header = headers
             .get("Authorization")
             .ok_or_else(ErrorResponse::unauthorized)?

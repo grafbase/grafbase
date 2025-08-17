@@ -14,6 +14,3 @@ serde_json.workspace = true
 
 [lib]
 crate-type = ["cdylib"]
-
-[dev-dependencies]
-grafbase-sdk = { version = "0.10", features = ["test-utils"] }

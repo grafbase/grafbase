@@ -1,0 +1,19 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/duplicate_names.graphql
+---
+  × Duplicate definition. There can only be one type name "Test"
+   ╭─[1:6]
+ 1 │ type Test {
+   ·      ──┬─
+   ·        ╰── Previous definition
+ 2 │   id: ID!
+   ╰────
+   ╭─[5:6]
+ 4 │ 
+ 5 │ type Test {
+   ·      ──┬─
+   ·        ╰── Second definition
+ 6 │   name: String!
+   ╰────

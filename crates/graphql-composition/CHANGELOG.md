@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### Improvements
+
+- `Diagnostic::composite_schemas_error_code` is now exposed. Note that as the spec and this implementation evolve, more error codes will be added to this enum and its variants.
+- Implemented some composite schemas spec validations for the `@override` directive, resulting in more consistent logic and better diagnostics (https://github.com/grafbase/grafbase/pull/3374)
+- Implemented the composite schemas spec validation rules for `@shareable`. It makes the validation more relaxed: if any subgraph defines the field as shareable, then others don't need to annotate with `@shareable` as well. It should not make any schema that composes today fail to compose. The diagnostics have also been improved to list all the relevant subgraphs.
+- Better diagnostic message when you try to compose zero subgraphs.
+- Unknown override labels are no longer an error.
+- `@extends` no longer triggers unknown directive warnings.
+- Instances of `@key(field: "...")` (instead of "fields") now triggers a warning.
+- Selection set validation errors now include the subgraph name.
+
+### Fixes
+
+- Fixed a panic in validation for `@provides` on fields returning a built-in scalar type, like `Int`.
+- Fixed `Diagnostics::iter_warnings()` iterating over warnings instead of errors.
+- Interfaces both defined in federation v1 subgraphs and as entity interfaces in federation v2 subgraphs do not force the federation v1 subgraphs to define all implementers of the entity interface anymore.
+
+## Breaking changes
+
+- Many types, fields and methods that are part of the `FederatedGraph` data structure are now private. `FederatedGraph` as a whole will become private as well, since the scope of this crate is only to render the federated SDL.
+
 ## 0.10.0 - 2025-07-30
 
 ### Improvements

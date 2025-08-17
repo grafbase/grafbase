@@ -1,6 +1,6 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: Federated SDL
+expression: Diagnostics
 input_file: crates/graphql-composition/tests/composition/object_interface_clash/test.md
 ---
-- ❌ Cannot merge Object with Interface (`Customer` in `accounting` and `inventory`)
+- ❌ { PreMerge(TypeKindMismatch) } Cannot merge Object with Interface (`Customer` in `accounting` and `inventory`)

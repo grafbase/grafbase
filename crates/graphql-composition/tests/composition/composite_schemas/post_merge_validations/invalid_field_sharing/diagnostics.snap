@@ -1,0 +1,8 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Diagnostics
+input_file: crates/graphql-composition/tests/composition/composite_schemas/post_merge_validations/invalid_field_sharing/test.md
+---
+- ❌ { PostMerge(InvalidFieldSharing) } The field `Color.blue` is resolved by multiple subgraphs, but not marked as `@shareable`. The field must be marked as `@shareable` in at least one of the subgraphs: fruit, shirt, vegetable
+- ❌ { PostMerge(InvalidFieldSharing) } [fruit] The Subscription type cannot be marked as @shareable.
+- ❌ { PostMerge(InvalidFieldSharing) } [vegetable] Subscription root fields cannot be marked as @shareable: Subscription.newVegetables.

@@ -274,8 +274,9 @@ impl McpHttpClient {
             result: ToolResponse {
                 content: result
                     .content
+                    .unwrap_or_default()
                     .into_iter()
-                    .map(|item| match item.raw {
+                    .map(|annotated| match annotated.raw {
                         rmcp::model::RawContent::Text(raw_text_content) => serde_json::from_str(&raw_text_content.text)
                             .map(Content::Json)
                             .unwrap_or(Content::Text(raw_text_content.text)),

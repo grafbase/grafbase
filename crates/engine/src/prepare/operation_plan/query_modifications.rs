@@ -1,22 +1,23 @@
-use std::{num::NonZero, ops::Deref};
+use std::{num::NonZero, ops::Deref, sync::Arc};
 
+use extension_catalog::ExtensionId;
 use futures::future::FutureExt;
 use id_newtypes::{BitSet, IdRange, IdToMany};
 use operation::{InputValueContext, Variables};
 use runtime::extension::{
-    AuthorizationDecisions, AuthorizationExtension as _, QueryAuthorizationDecisions, QueryElement,
+    AuthorizationDecisions, AuthorizationExtension as _, AuthorizeQuery, QueryAuthorizationDecisions, QueryElement,
 };
 use schema::DirectiveSiteId;
 use serde::Deserialize;
 use walker::Walk;
 
 use crate::{
-    Runtime,
-    execution::{GraphqlRequestContext, find_matching_denied_header},
+    EngineRequestContext, Runtime,
+    execution::find_matching_denied_header,
     prepare::{
-        CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, Derive, ErrorCode, FieldShapeId,
-        GraphqlError, PartitionField, PrepareContext, QueryModifierId, QueryModifierRecord, QueryModifierRule,
-        QueryModifierTarget, QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord, TypenameFieldId,
+        CachedOperation, CachedOperationContext, ConcreteShapeId, DataFieldId, Derive, FieldShapeId, GraphqlError,
+        PartitionField, PrepareContext, QueryModifierId, QueryModifierRecord, QueryModifierRule, QueryModifierTarget,
+        QueryOrStaticExtensionDirectiveArugmentsView, RequiredFieldSetRecord, TypenameFieldId,
         create_extension_directive_query_view,
     },
 };
@@ -33,6 +34,15 @@ pub(crate) struct QueryModifications {
     pub concrete_shape_has_error: BitSet<ConcreteShapeId>,
     pub field_shape_id_to_error_ids: IdToMany<FieldShapeId, QueryErrorId>,
     pub root_error_ids: Vec<QueryErrorId>,
+    pub extension: ExtensionPreparedOperation,
+}
+
+#[derive(Default)]
+pub(crate) struct ExtensionPreparedOperation {
+    // Arc for Wasmtime because we can't return an non 'static value from a function.
+    pub authorization_context: Vec<(ExtensionId, Arc<[u8]>)>,
+    pub authorization_state: Vec<(ExtensionId, Vec<u8>)>,
+    pub subgraph_default_headers_override: Option<http::HeaderMap>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
@@ -66,6 +76,7 @@ impl QueryModifications {
                 errors: Vec::new(),
                 field_shape_id_to_error_ids: Default::default(),
                 root_error_ids: Vec::new(),
+                extension: Default::default(),
             },
         }
         .build()
@@ -105,7 +116,7 @@ where
         let operation_ctx = self.operation_ctx;
         let variables = &self.input_value_ctx.variables;
 
-        let subgraph_default_headers_override = self.ctx.request_context.subgraph_default_headers.clone();
+        let headers = self.ctx.request_context.subgraph_default_headers.clone();
 
         let extensions = modifiers
             .by_extension
@@ -116,13 +127,17 @@ where
             })
             .collect::<Vec<_>>();
 
-        let (state, mut subgraph_default_headers_override, decisions) = self
+        let AuthorizeQuery {
+            mut headers,
+            decisions,
+            context,
+            state,
+        } = self
             .ctx
             .extensions()
             .authorize_query(
-                &self.ctx.request_context.extension_context,
-                subgraph_default_headers_override,
-                self.ctx.access_token().as_ref(),
+                EngineRequestContext::from(self.ctx.request_context),
+                headers,
                 extensions,
                 modifiers
                     .by_directive
@@ -170,16 +185,17 @@ where
             .await?;
 
         // TODO: Use http::HeaderMap.retain if it comes out.
-        let denied_header_names = subgraph_default_headers_override
+        let denied_header_names = headers
             .keys()
             .filter_map(|name| find_matching_denied_header(name))
             .collect::<Vec<_>>();
         for name in denied_header_names {
-            subgraph_default_headers_override.remove(name);
+            headers.remove(name);
         }
-        self.ctx.gql_context = GraphqlRequestContext {
+        self.modifications.extension = ExtensionPreparedOperation {
             authorization_state: state,
-            subgraph_default_headers_override: Some(subgraph_default_headers_override),
+            authorization_context: context,
+            subgraph_default_headers_override: Some(headers),
         };
         for QueryAuthorizationDecisions {
             query_elements_range,
@@ -222,62 +238,26 @@ where
     }
 
     async fn handle_native_modifiers(&mut self, query_modifiers: &'op [QueryModifierRecord]) -> PlanResult<()> {
-        let mut scope_jwt_claim = None;
-
         for modifier in query_modifiers {
-            match &modifier.rule {
-                QueryModifierRule::Extension { .. } => unreachable!("Not a native modifier"),
-                QueryModifierRule::Authenticated => {
-                    if self.ctx.access_token().is_anonymous() {
-                        let error_id =
-                            self.push_error(GraphqlError::new("Unauthenticated", ErrorCode::Unauthenticated));
-                        self.deny_field(modifier, error_id);
+            if let QueryModifierRule::Executable { directives } = &modifier.rule {
+                // GraphQL spec:
+                //   Stated conversely, the field or fragment must not be queried if either the @skip condition is true or the @include condition is false.
+                let is_skipped = directives.iter().any(|directive| match directive {
+                    operation::ExecutableDirectiveId::Include(directive) => {
+                        !bool::deserialize(directive.condition.walk(self.input_value_ctx))
+                            .expect("at this point we've already checked the argument type")
                     }
-                }
-                QueryModifierRule::RequiresScopes(id) => {
-                    let scope_jwt_claim = scope_jwt_claim.get_or_insert_with(|| {
-                        self.ctx
-                            .access_token()
-                            .get_claim("scope")
-                            .and_then(|value| value.as_str())
-                            .map(|scope| scope.split(' ').collect::<Vec<_>>())
-                            .unwrap_or_default()
-                    });
-
-                    if id.walk(self.ctx.schema()).matches(scope_jwt_claim).is_none() {
-                        let error_id =
-                            self.push_error(GraphqlError::new("Insufficient scopes", ErrorCode::Unauthorized));
-                        self.deny_field(modifier, error_id);
-                        continue;
-                    };
-                }
-                QueryModifierRule::AuthorizedField { .. } => {
-                    unreachable!("maybe it's time to let go of this variant?")
-                }
-                QueryModifierRule::AuthorizedFieldWithArguments { .. } => {
-                    unreachable!("maybe it's time to let go of this variant?")
-                }
-                QueryModifierRule::AuthorizedDefinition { .. } => {
-                    unreachable!("maybe it's time to let go of this variant?")
-                }
-                QueryModifierRule::Executable { directives } => {
-                    // GraphQL spec:
-                    //   Stated conversely, the field or fragment must not be queried if either the @skip condition is true or the @include condition is false.
-                    let is_skipped = directives.iter().any(|directive| match directive {
-                        operation::ExecutableDirectiveId::Include(directive) => {
-                            !bool::deserialize(directive.condition.walk(self.input_value_ctx))
-                                .expect("at this point we've already checked the argument type")
-                        }
-                        operation::ExecutableDirectiveId::Skip(directive) => {
-                            bool::deserialize(directive.condition.walk(self.input_value_ctx))
-                                .expect("at this point we've already checked the argument type")
-                        }
-                    });
-
-                    if is_skipped {
-                        self.skip_field(modifier)
+                    operation::ExecutableDirectiveId::Skip(directive) => {
+                        bool::deserialize(directive.condition.walk(self.input_value_ctx))
+                            .expect("at this point we've already checked the argument type")
                     }
+                });
+
+                if is_skipped {
+                    self.skip_field(modifier)
                 }
+            } else {
+                unreachable!("Not a native modifier")
             }
         }
 

@@ -12,10 +12,10 @@ impl std::fmt::Debug for ScalarDefinition<'_> {
 
 #[derive(Clone, Debug)]
 pub struct ScalarDefinitionRecord {
-    pub namespace: Option<StringId>,
-    pub name: StringId,
-    pub directives: Vec<Directive>,
-    pub description: Option<StringId>,
+    pub(crate) namespace: Option<StringId>,
+    pub(crate) name: StringId,
+    pub(crate) directives: Vec<Directive>,
+    pub(crate) description: Option<StringId>,
 }
 
 impl FederatedGraph {

@@ -14,8 +14,8 @@ use walker::{Iter, Walk};
 /// Generated from:
 ///
 /// ```custom,{.language-graphql}
-/// type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") {
-///   subgraph_name: String!
+/// type GraphqlSubgraph @meta(module: "subgraph/graphql") @indexed(id_size: "u16") {
+///   name: String!
 ///   url: Url!
 ///   websocket_url: Url
 ///   header_rules: [HeaderRule!]!
@@ -27,8 +27,8 @@ use walker::{Iter, Walk};
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
-pub struct GraphqlEndpointRecord {
-    pub subgraph_name_id: StringId,
+pub struct GraphqlSubgraphRecord {
+    pub name_id: StringId,
     pub url_id: UrlId,
     pub websocket_url_id: Option<UrlId>,
     pub header_rule_ids: IdRange<HeaderRuleId>,
@@ -40,29 +40,29 @@ pub struct GraphqlEndpointRecord {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct GraphqlEndpointId(std::num::NonZero<u16>);
+pub struct GraphqlSubgraphId(std::num::NonZero<u16>);
 
 #[derive(Clone, Copy)]
-pub struct GraphqlEndpoint<'a> {
+pub struct GraphqlSubgraph<'a> {
     pub(crate) schema: &'a Schema,
-    pub id: GraphqlEndpointId,
+    pub id: GraphqlSubgraphId,
 }
 
-impl std::ops::Deref for GraphqlEndpoint<'_> {
-    type Target = GraphqlEndpointRecord;
+impl std::ops::Deref for GraphqlSubgraph<'_> {
+    type Target = GraphqlSubgraphRecord;
     fn deref(&self) -> &Self::Target {
         self.as_ref()
     }
 }
 
-impl<'a> GraphqlEndpoint<'a> {
+impl<'a> GraphqlSubgraph<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
-    pub fn as_ref(&self) -> &'a GraphqlEndpointRecord {
+    pub fn as_ref(&self) -> &'a GraphqlSubgraphRecord {
         &self.schema[self.id]
     }
-    pub fn subgraph_name(&self) -> &'a str {
-        self.subgraph_name_id.walk(self.schema)
+    pub fn name(&self) -> &'a str {
+        self.name_id.walk(self.schema)
     }
     pub fn url(&self) -> &'a Url {
         self.url_id.walk(self.schema)
@@ -79,9 +79,9 @@ impl<'a> GraphqlEndpoint<'a> {
     }
 }
 
-impl<'a> Walk<&'a Schema> for GraphqlEndpointId {
+impl<'a> Walk<&'a Schema> for GraphqlSubgraphId {
     type Walker<'w>
-        = GraphqlEndpoint<'w>
+        = GraphqlSubgraph<'w>
     where
         'a: 'w;
     fn walk<'w>(self, schema: impl Into<&'a Schema>) -> Self::Walker<'w>
@@ -89,17 +89,17 @@ impl<'a> Walk<&'a Schema> for GraphqlEndpointId {
         Self: 'w,
         'a: 'w,
     {
-        GraphqlEndpoint {
+        GraphqlSubgraph {
             schema: schema.into(),
             id: self,
         }
     }
 }
 
-impl std::fmt::Debug for GraphqlEndpoint<'_> {
+impl std::fmt::Debug for GraphqlSubgraph<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("GraphqlEndpoint")
-            .field("subgraph_name", &self.subgraph_name())
+        f.debug_struct("GraphqlSubgraph")
+            .field("name", &self.name())
             .field("url", &self.url())
             .field("websocket_url", &self.websocket_url())
             .field("header_rules", &self.header_rules())

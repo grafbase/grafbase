@@ -4,7 +4,7 @@ use extension_catalog::ExtensionId;
 use runtime::extension::GatewayExtensions;
 use wasi_component_loader::extension::GatewayWasmExtensions;
 
-use crate::gateway::{DispatchRule, ExtContext, TestExtensions};
+use crate::gateway::{DispatchRule, TestExtensions};
 
 #[derive(Default, Clone)]
 pub struct GatewayTestExtensions {
@@ -13,6 +13,4 @@ pub struct GatewayTestExtensions {
     pub test: TestExtensions,
 }
 
-impl GatewayExtensions for GatewayTestExtensions {
-    type Context = ExtContext;
-}
+impl GatewayExtensions for GatewayTestExtensions {}

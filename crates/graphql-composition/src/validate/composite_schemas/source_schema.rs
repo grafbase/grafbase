@@ -1,5 +1,5 @@
 use super::*;
-use crate::diagnostics::CompositeSchemasErrorCode;
+use crate::diagnostics::CompositeSchemasSourceSchemaValidationErrorCode;
 
 /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Query-Root-Type-Inaccessible
 pub(crate) fn query_root_type_inaccessible(ctx: &mut ValidateContext<'_>) {
@@ -18,7 +18,7 @@ pub(crate) fn query_root_type_inaccessible(ctx: &mut ValidateContext<'_>) {
         ctx.diagnostics.push_composite_schemas_source_schema_validation_error(
             subgraph_name,
             format_args!("The query root type cannot be inaccessible"),
-            CompositeSchemasErrorCode::QueryRootTypeInaccessible,
+            CompositeSchemasSourceSchemaValidationErrorCode::QueryRootTypeInaccessible,
         );
     }
 }
@@ -42,7 +42,28 @@ pub(crate) fn lookup_returns_non_nullable_type(ctx: &mut ValidateContext<'_>, fi
         ctx.diagnostics.push_composite_schemas_source_schema_validation_error(
             source_schema_name,
             message,
-            CompositeSchemasErrorCode::LookupReturnsNonNullableType,
+            CompositeSchemasSourceSchemaValidationErrorCode::LookupReturnsNonNullableType,
         );
     }
+}
+
+pub(crate) fn override_from_self(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldWalker<'_>) {
+    let Some(r#override) = field.directives().r#override() else {
+        return;
+    };
+
+    if r#override.from != field.parent_definition().subgraph().name().id {
+        return;
+    }
+
+    ctx.diagnostics.push_composite_schemas_source_schema_validation_error(
+        field.parent_definition().subgraph().name().as_str(),
+        format!(
+            r#"Source and destination subgraphs "{subgraph_name}" are the same for overridden field "{parent_definition_name}.{field_name}""#,
+            subgraph_name = field.parent_definition().subgraph().name().as_str(),
+            parent_definition_name = field.parent_definition().name().as_str(),
+            field_name = field.name().as_str()
+        ),
+        CompositeSchemasSourceSchemaValidationErrorCode::OverrideFromSelf,
+    );
 }

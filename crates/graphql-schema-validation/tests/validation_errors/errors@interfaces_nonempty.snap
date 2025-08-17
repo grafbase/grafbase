@@ -1,0 +1,11 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/interfaces_nonempty.graphql
+---
+  × Syntax error:  --> 2:1
+  │   |
+  │ 2 | }
+  │   | ^---
+  │   |
+  │   = expected field_definition

@@ -5,7 +5,7 @@ use grafbase_telemetry::{
     span::subgraph::{SubgraphGraphqlRequestSpan, SubgraphHttpRequestSpan, SubgraphRequestSpanBuilder},
 };
 use runtime::fetch::FetchRequest;
-use schema::GraphqlEndpoint;
+use schema::GraphqlSubgraph;
 use std::{ops::Deref, time::Instant};
 use tower::retry::budget::TpsBudget;
 use tracing::Span;
@@ -24,7 +24,7 @@ use crate::{Engine, Runtime, execution::ExecutionContext, resolver::ResolverResu
 #[derive(Clone)]
 pub(crate) struct SubgraphContext<'ctx, R: Runtime> {
     pub(super) ctx: ExecutionContext<'ctx, R>,
-    pub(super) endpoint: GraphqlEndpoint<'ctx>,
+    pub(super) endpoint: GraphqlSubgraph<'ctx>,
     pub(super) retry_budget: Option<&'ctx TpsBudget>,
     span: SubgraphGraphqlRequestSpan,
     start: Instant,
@@ -45,11 +45,11 @@ impl<'ctx, R: Runtime> Deref for SubgraphContext<'ctx, R> {
 impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
     pub fn new(
         ctx: ExecutionContext<'ctx, R>,
-        endpoint: GraphqlEndpoint<'ctx>,
+        endpoint: GraphqlSubgraph<'ctx>,
         span: SubgraphRequestSpanBuilder<'_>,
     ) -> Self {
         let executed_request_builder =
-            ExecutedSubgraphRequest::builder(endpoint.subgraph_name(), http::Method::POST, endpoint.url().as_str());
+            ExecutedSubgraphRequest::builder(endpoint.name(), http::Method::POST, endpoint.url().as_str());
 
         let retry_budget = match span.operation_type {
             "mutation" => ctx.engine.get_retry_budget_for_mutation(endpoint.id),
@@ -83,7 +83,7 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         self.execution_context().engine
     }
 
-    pub fn endpoint(&self) -> GraphqlEndpoint<'ctx> {
+    pub fn endpoint(&self) -> GraphqlSubgraph<'ctx> {
         self.endpoint
     }
 
@@ -99,7 +99,7 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
 
             self.metrics().record_subgraph_request_duration(
                 SubgraphRequestDurationAttributes {
-                    name: self.endpoint.subgraph_name().to_string(),
+                    name: self.endpoint.name().to_string(),
                     status,
                     http_status_code: self.http_status_code,
                 },
@@ -118,34 +118,34 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         self.send_count += 1;
         self.metrics()
             .increment_subgraph_inflight_requests(SubgraphInFlightRequestAttributes {
-                name: self.endpoint.subgraph_name().to_string(),
+                name: self.endpoint.name().to_string(),
             });
     }
 
     pub(super) fn decrement_inflight_requests(&mut self) {
         self.metrics()
             .decrement_subgraph_inflight_requests(SubgraphInFlightRequestAttributes {
-                name: self.endpoint.subgraph_name().to_string(),
+                name: self.endpoint.name().to_string(),
             });
     }
 
     pub(super) fn record_cache_hit(&mut self) {
         self.executed_request_builder.cache_status(CacheStatus::Hit);
         self.metrics().record_subgraph_cache_hit(SubgraphCacheHitAttributes {
-            name: self.endpoint.subgraph_name().to_string(),
+            name: self.endpoint.name().to_string(),
         });
     }
 
     pub(super) fn record_cache_partial_hit(&mut self) {
         self.executed_request_builder.cache_status(CacheStatus::PartialHit);
         self.metrics()
-            .record_subgraph_cache_partial_hit(self.endpoint.subgraph_name().to_string());
+            .record_subgraph_cache_partial_hit(self.endpoint.name().to_string());
     }
 
     pub(super) fn record_cache_miss(&mut self) {
         self.executed_request_builder.cache_status(CacheStatus::Miss);
         self.metrics().record_subgraph_cache_miss(SubgraphCacheMissAttributes {
-            name: self.endpoint.subgraph_name().to_string(),
+            name: self.endpoint.name().to_string(),
         });
     }
 
@@ -156,7 +156,7 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
     pub(super) fn record_request_size(&mut self, request: &FetchRequest<'_, Bytes>) {
         self.metrics().record_subgraph_request_size(
             SubgraphRequestBodySizeAttributes {
-                name: self.endpoint.subgraph_name().to_string(),
+                name: self.endpoint.name().to_string(),
             },
             request.body.len(),
         );
@@ -164,14 +164,14 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
 
     pub(super) fn record_aborted_request_retry(&self) {
         self.metrics().record_subgraph_retry(SubgraphRequestRetryAttributes {
-            name: self.endpoint.subgraph_name().to_string(),
+            name: self.endpoint.name().to_string(),
             aborted: true,
         });
     }
 
     pub(super) fn record_request_retry(&self) {
         self.metrics().record_subgraph_retry(SubgraphRequestRetryAttributes {
-            name: self.endpoint.subgraph_name().to_string(),
+            name: self.endpoint.name().to_string(),
             aborted: false,
         });
     }
@@ -184,7 +184,7 @@ impl<'ctx, R: Runtime> SubgraphContext<'ctx, R> {
         self.http_status_code = Some(response.status());
         self.metrics().record_subgraph_response_size(
             SubgraphResponseBodySizeAttributes {
-                name: self.endpoint.subgraph_name().to_string(),
+                name: self.endpoint.name().to_string(),
             },
             response.body().len(),
         );

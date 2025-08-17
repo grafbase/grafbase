@@ -1,0 +1,6 @@
+[extension]
+name = "authenticated-21"
+type = "authorization"
+version = "1.0.0"
+description = ""
+

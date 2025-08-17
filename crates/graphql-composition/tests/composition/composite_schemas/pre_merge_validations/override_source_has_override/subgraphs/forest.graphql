@@ -1,0 +1,16 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.3"
+    import: ["@interfaceObject", "@key", "@override", "@shareable"]
+  )
+
+type Query {
+  getMammothByHabitat: Mammoth
+}
+
+type Mammoth @shareable {
+  weightGrams: Int
+  tuskLength: Int
+  habitatType: String @override(from: "mangrove") # This creates a chain: forest -> mangrove -> steppe
+  age: Int
+}

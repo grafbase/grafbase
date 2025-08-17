@@ -1,0 +1,62 @@
+syntax = "proto2";
+
+import "google/protobuf/descriptor.proto";
+
+package grafbase.graphql;
+
+message DeriveField {
+  optional string entity = 1;
+  optional string name = 2;
+  optional string is = 3;
+}
+
+message Key {
+  optional string fields = 1;
+}
+
+message Lookup {
+}
+
+message JoinField {
+  optional string name = 1;
+  optional string service = 2;
+  optional string method = 3;
+  optional string require = 4;
+}
+
+extend google.protobuf.MessageOptions {
+  optional string object_directives = 58301;
+  optional string input_object_directives = 58302;
+  repeated DeriveField derive_field = 58304;
+  repeated Key key = 58305;
+  repeated JoinField join_field = 58306;
+}
+
+extend google.protobuf.FieldOptions {
+  optional string output_field_directives = 58301;
+  optional string input_field_directives = 58302;
+}
+
+extend google.protobuf.EnumOptions {
+  optional string enum_directives = 58301;
+}
+
+extend google.protobuf.EnumValueOptions {
+  optional string enum_value_directives = 58301;
+}
+
+extend google.protobuf.ServiceOptions {
+  optional bool default_to_query_fields = 58301;
+  optional bool default_to_mutation_fields = 58302;
+  optional string subgraph_name = 58303;
+  optional string schema_directives = 58304;
+}
+
+extend google.protobuf.MethodOptions {
+  optional string directives = 58301;
+  optional bool is_query = 58302;
+  optional bool is_mutation = 58303;
+  optional string argument_directives = 58304;
+  optional Lookup lookup = 58305;
+  optional string argument_is = 58306;
+}

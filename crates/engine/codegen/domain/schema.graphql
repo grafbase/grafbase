@@ -221,13 +221,8 @@ type InputValueDefinition @meta(module: "input_value", debug: false) @indexed(id
 # - Directives -
 # --------------
 
-union TypeSystemDirective
-  @id
-  @meta(module: "directive")
-  @variants(empty: ["Authenticated"], remove_suffix: "Directive") =
+union TypeSystemDirective @id @meta(module: "directive") @variants(remove_suffix: "Directive") =
   | DeprecatedDirective
-  | RequiresScopesDirective
-  | AuthorizedDirective
   | CostDirective
   | ListSizeDirective
   | ExtensionDirective
@@ -236,15 +231,6 @@ type DeprecatedDirective
   @meta(module: "directive/deprecated", derive: ["PartialEq", "Eq", "PartialOrd", "Ord", "Hash"])
   @copy {
   reason: String
-}
-
-scalar RequiresScopesDirective @indexed @record
-
-type AuthorizedDirective @meta(module: "directive/authorized") @indexed(id_size: "u32") {
-  arguments: InputValueSet!
-  fields: FieldSet
-  node: FieldSet
-  metadata: SchemaInputValue
 }
 
 type CostDirective @meta(module: "directive/complexity_control") @indexed(id_size: "u32") {
@@ -279,11 +265,11 @@ scalar SubgraphConfig
 scalar SubscriptionProtocol @copy
 
 union Subgraph @id @meta(module: "subgraph") @variants(empty: ["Introspection"], remove_suffix: "Subgraph") =
-  | GraphqlEndpoint
+  | GraphqlSubgraph
   | VirtualSubgraph
 
-type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") {
-  subgraph_name: String!
+type GraphqlSubgraph @meta(module: "subgraph/graphql") @indexed(id_size: "u16") {
+  name: String!
   url: Url!
   websocket_url: Url
   header_rules: [HeaderRule!]!
@@ -296,7 +282,7 @@ type GraphqlEndpoint @meta(module: "subgraph/graphql") @indexed(id_size: "u16") 
 
 "Virtual subgraphs have no dedicated support on the engine side, everything is resolved through extensions."
 type VirtualSubgraph @meta(module: "subgraph/virtual_") @indexed(id_size: "u16") {
-  subgraph_name: String!
+  name: String!
   "Schema directives applied by the given subgraph"
   schema_directives: [ExtensionDirective!]! @vec
   header_rules: [HeaderRule!]!
@@ -360,11 +346,11 @@ union ResolverDefinition
   | LookupResolverDefinition
 
 type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy {
-  endpoint: GraphqlEndpoint!
+  subgraph: GraphqlSubgraph!
 }
 
 type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql") {
-  endpoint: GraphqlEndpoint!
+  subgraph: GraphqlSubgraph!
   key_fields: FieldSet!
 }
 

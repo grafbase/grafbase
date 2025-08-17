@@ -1,0 +1,11 @@
+---
+source: crates/graphql-schema-validation/tests/validation_tests.rs
+expression: displayed
+input_file: crates/graphql-schema-validation/tests/validation_errors/objects_nonempty.graphql
+---
+  × Syntax error:  --> 1:13
+  │   |
+  │ 1 | type Empty {}
+  │   |             ^---
+  │   |
+  │   = expected field_definition

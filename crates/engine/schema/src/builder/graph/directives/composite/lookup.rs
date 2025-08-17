@@ -5,19 +5,16 @@ use wrapping::Wrapping;
 
 use crate::{
     ArgumentInjectionId, ArgumentInjectionRecord, ArgumentValueInjection, DirectiveSiteId, EntityDefinitionId,
-    FieldDefinitionId, FieldSetItemRecord, FieldSetRecord, Graph, InputValueDefinitionId, LookupResolverDefinitionId,
+    FieldSetItemRecord, FieldSetRecord, InputValueDefinitionId, LookupResolverDefinitionId,
     LookupResolverDefinitionRecord, SchemaFieldRecord, StringId, SubgraphId, TypeRecord, ValueInjection,
     builder::{
         BoundFieldValue, BoundSelectedObjectField, BoundSelectedValueEntry, BoundValue, DirectivesIngester, Error,
         GraphBuilder, PossibleCompositeEntityKeys,
-        graph::{
-            directives::{
-                PossibleCompositeEntityKey,
-                composite::injection::{
-                    create_requirements_and_injection_for_selected_value, prepend_requirements_and_injection_with_path,
-                },
+        graph::directives::{
+            PossibleCompositeEntityKey,
+            composite::injection::{
+                create_requirements_and_injection_for_selected_value, prepend_requirements_and_injection_with_path,
             },
-            selections::SelectionsBuilder,
         },
         sdl,
     },
@@ -111,22 +108,14 @@ pub(super) fn ingest<'sdl>(
                 .into());
         }
         *used_by = Some(field);
-        lookup_keys.push((key.clone(), candidate));
+        lookup_keys.push((&*key, *key_str, candidate));
     }
 
     if lookup_keys.is_empty() {
         return Err(("no matching @key directive was found", field.span()).into());
     };
 
-    add_lookup_entity_resolvers(
-        &mut ingester.builder.graph,
-        &ingester.builder.selections,
-        field.id,
-        entity_id,
-        batch,
-        namespace_key,
-        lookup_keys,
-    );
+    add_lookup_entity_resolvers(ingester.builder, field, entity_id, batch, namespace_key, lookup_keys)?;
 
     Ok(())
 }
@@ -220,45 +209,62 @@ fn detect_lookup_entity<'a, 'sdl>(
 }
 
 fn add_lookup_entity_resolvers(
-    graph: &mut Graph,
-    selections: &SelectionsBuilder,
-    lookup_field_id: FieldDefinitionId,
+    builder: &mut GraphBuilder<'_>,
+    lookup_field: sdl::FieldSdlDefinition<'_>,
     output: EntityDefinitionId,
     guest_batch: bool,
     namespace_key_id: Option<StringId>,
-    lookup_keys: Vec<(FieldSetRecord, IdRange<ArgumentInjectionId>)>,
-) {
+    lookup_keys: Vec<(&FieldSetRecord, &str, IdRange<ArgumentInjectionId>)>,
+) -> Result<(), Error> {
     let field_ids = match output {
-        EntityDefinitionId::Object(id) => graph[id].field_ids,
-        EntityDefinitionId::Interface(id) => graph[id].field_ids,
+        EntityDefinitionId::Object(id) => builder.graph[id].field_ids,
+        EntityDefinitionId::Interface(id) => builder.graph[id].field_ids,
     };
     let mut resolvers = Vec::new();
-    for (key, injection_ids) in lookup_keys {
+    for (key, key_str, injection_ids) in lookup_keys {
         debug_assert!(resolvers.is_empty());
-        for &resolver_id in &graph.field_definitions[usize::from(lookup_field_id)].resolver_ids {
-            let lookup_resolver_id = LookupResolverDefinitionId::from(graph.lookup_resolver_definitions.len());
-            graph.lookup_resolver_definitions.push(LookupResolverDefinitionRecord {
-                key_record: key.clone(),
-                field_definition_id: lookup_field_id,
-                resolver_id,
-                guest_batch,
-                injection_ids,
-                namespace_key_id,
-            });
-            resolvers.push(graph.resolver_definitions.len().into());
-            graph.resolver_definitions.push(lookup_resolver_id.into());
+        if builder.graph.field_definitions[usize::from(lookup_field.id)]
+            .resolver_ids
+            .is_empty()
+        {
+            return Err((
+                format!(
+                    "The @lookup field {} does not have a any resolvers for the key: {key_str}",
+                    lookup_field.to_site_string(builder)
+                ),
+                lookup_field.span(),
+            )
+                .into());
+        }
+        for &resolver_id in &builder.graph.field_definitions[usize::from(lookup_field.id)].resolver_ids {
+            let lookup_resolver_id = LookupResolverDefinitionId::from(builder.graph.lookup_resolver_definitions.len());
+            builder
+                .graph
+                .lookup_resolver_definitions
+                .push(LookupResolverDefinitionRecord {
+                    key_record: key.clone(),
+                    field_definition_id: lookup_field.id,
+                    resolver_id,
+                    guest_batch,
+                    injection_ids,
+                    namespace_key_id,
+                });
+            resolvers.push(builder.graph.resolver_definitions.len().into());
+            builder.graph.resolver_definitions.push(lookup_resolver_id.into());
         }
         for field_id in field_ids {
             // If part of the key we can't be provided by this resolver.
             if key
                 .iter()
-                .all(|item| selections[item.field_id].definition_id != field_id)
+                .all(|item| builder.selections[item.field_id].definition_id != field_id)
             {
-                graph[field_id].resolver_ids.extend_from_slice(&resolvers);
+                builder.graph[field_id].resolver_ids.extend_from_slice(&resolvers);
             }
         }
         resolvers.clear();
     }
+
+    Ok(())
 }
 
 fn detect_explicit_is_directive_injections(

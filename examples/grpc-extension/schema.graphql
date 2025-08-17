@@ -1,5 +1,5 @@
 extend schema
-  @link(url: "https://grafbase.com/extensions/grpc/0.1.2", import: ["@protoServices", "@protoEnums", "@protoMessages", "@grpcMethod"])
+  @link(url: "https://grafbase.com/extensions/grpc/0.2.0", import: ["@protoServices", "@protoEnums", "@protoMessages", "@grpcMethod"])
   @protoServices(
     definitions: [
       {
@@ -221,8 +221,8 @@ Points are represented as latitude-longitude pairs in the E7 representation
  the range +/- 180 degrees (inclusive).
 """
 type routeguide_Point {
-  latitude: Int
-  longitude: Int
+  latitude: Int!
+  longitude: Int!
 }
 
 """
@@ -234,7 +234,7 @@ type routeguide_Feature {
 """
 The name of the feature.
 """
-  name: String
+  name: String!
 """
 The point where the feature is detected.
 """
@@ -252,7 +252,7 @@ The location from which the message is sent.
 """
 The message to be sent.
 """
-  message: String
+  message: String!
 }
 
 """
@@ -266,17 +266,17 @@ type routeguide_RouteSummary {
 """
 The number of points received.
 """
-  point_count: Int
+  point_count: Int!
 """
 The number of known features passed while traversing the route.
 """
-  feature_count: Int
+  feature_count: Int!
 """
 The distance covered in metres.
 """
-  distance: Int
+  distance: Int!
 """
 The duration of the traversal in seconds.
 """
-  elapsed_time: Int
+  elapsed_time: Int!
 }

@@ -5,8 +5,6 @@ use extension_catalog::ExtensionId;
 use runtime::extension::EngineExtensions;
 use wasi_component_loader::extension::EngineWasmExtensions;
 
-use crate::gateway::ExtContext;
-
 use super::TestExtensions;
 
 #[derive(Clone, Copy)]
@@ -22,9 +20,7 @@ pub struct EngineTestExtensions {
     pub(super) wasm: EngineWasmExtensions,
 }
 
-impl EngineExtensions for EngineTestExtensions {
-    type Context = ExtContext;
-}
+impl EngineExtensions<engine::EngineRequestContext, engine::EngineOperationContext> for EngineTestExtensions {}
 
 impl EngineTestExtensions {
     pub async fn clone_and_adjust_for_contract(&self, schema: &Arc<Schema>) -> Result<Self, String> {

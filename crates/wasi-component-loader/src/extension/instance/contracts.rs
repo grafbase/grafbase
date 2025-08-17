@@ -1,12 +1,11 @@
 use futures::future::BoxFuture;
 
-use crate::{WasmContext, extension::api::wit};
+use crate::extension::api::wit;
 
 #[allow(unused_variables)]
 pub(crate) trait ContractsExtensionInstance {
     fn construct<'a>(
         &'a mut self,
-        context: &'a WasmContext,
         key: &'a str,
         directives: &'a [wit::Directive<'a>],
         subgraphs: Vec<wit::GraphqlSubgraphParam<'a>>,

@@ -9,7 +9,16 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 ) {
     let interface_name = first.name();
 
-    let interface_defs = || definitions.iter().filter(|def| def.kind() == DefinitionKind::Interface);
+    let interface_defs = || {
+        definitions.iter().filter(|def| {
+            def.kind() == DefinitionKind::Interface
+                && ctx
+                    .subgraphs
+                    .at(ctx.subgraphs[def.id].subgraph_id)
+                    .federation_spec
+                    .is_apollo_v2()
+        })
+    };
     let mut interfaces = interface_defs();
 
     let Some(interface_def) = interfaces.next() else {
@@ -119,7 +128,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         .map(|field| (ctx.insert_string(field.name().id), field.name().id))
         .collect::<HashMap<_, _>>();
 
-    let fields = object::compose_fields(ctx, definitions, interface_name, false);
+    let fields = object::compose_fields(ctx, definitions, interface_name);
 
     let fields_to_add: Vec<(StringId, _)> = fields
         .into_iter()
