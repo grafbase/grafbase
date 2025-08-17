@@ -1,4 +1,7 @@
-use crate::{dot_graph::Attrs, solve::input::SteinerWeight};
+use crate::{
+    dot_graph::Attrs,
+    solve::input::{SteinerEdgeId, SteinerNodeId, SteinerWeight},
+};
 use fixedbitset::FixedBitSet;
 use fxhash::FxBuildHasher;
 use itertools::Itertools as _;
@@ -52,12 +55,20 @@ struct Flow {
     node_to_flow_rates: Vec<FlowRate>,
 }
 
+#[allow(non_snake_case)]
 pub(crate) struct GreedyFlac {
     flow: Flow,
     // Run state, re-used across each run
     time: Time,
-    heap: PriorityQueue<EdgeIndex, Priority, FxBuildHasher>,
-    stack: Vec<NodeIndex>,
+    heap: PriorityQueue<SteinerEdgeId, Priority, FxBuildHasher>,
+    tmp_stack: Vec<NodeIndex>,
+    tmp_next_saturating_edges_in_T_u: Vec<NextSaturatingEdge>,
+}
+
+struct NextSaturatingEdge {
+    edge_id: SteinerEdgeId,
+    weight: SteinerWeight,
+    target: SteinerNodeId,
 }
 
 impl GreedyFlac {
@@ -72,7 +83,9 @@ impl GreedyFlac {
             },
             time: 0.0,
             heap: PriorityQueue::default(),
-            stack: Vec::new(),
+            // Re-used allocations
+            tmp_stack: Vec::with_capacity(32),
+            tmp_next_saturating_edges_in_T_u: Vec::with_capacity(16),
         }
     }
 
@@ -178,15 +191,15 @@ where
                 // We traverse in the opposite direction to FLAC as not all saturated edges from
                 // the terminals lead to anywhere useful. The algorithm stops at the first path
                 // that leads to an existing node of the Steiner Tree.
-                debug_assert!(self.stack.is_empty());
-                self.stack.push(v);
-                while let Some(node) = self.stack.pop() {
+                debug_assert!(self.tmp_stack.is_empty());
+                self.tmp_stack.push(v);
+                while let Some(node) = self.tmp_stack.pop() {
                     self.steiner_tree.nodes.insert(node.index());
                     for edge in self.graph.edges_directed(node, petgraph::Direction::Outgoing) {
                         if self.flow.saturated_edges[edge.id().index()] {
                             self.steiner_tree.edges.insert(edge.id().index());
                             self.steiner_tree.total_weight += *edge.weight();
-                            self.stack.push(edge.target());
+                            self.tmp_stack.push(edge.target());
                         }
                     }
                 }
@@ -219,7 +232,7 @@ where
             !self.steiner_tree.nodes.is_empty(),
             "Root must be part of the steiner tree."
         );
-        debug_assert!(self.stack.is_empty());
+        debug_assert!(self.tmp_stack.is_empty());
 
         // Initialize the state with the current terminals. New ones may have been added since the
         // last run.
@@ -289,10 +302,8 @@ where
         // Algorithm 9
         // Check if flow would be degenerate and collect edges to update
         match self.detect_generate_flow_and_collect_edges(u, v) {
-            DegenerateFlow::Yes => {}
-            DegenerateFlow::No {
-                next_saturating_edges_in_T_u,
-            } => {
+            IsDegenerateFlow::Yes => {}
+            IsDegenerateFlow::No => {
                 // debug_assert!(
                 //     !next_saturating_edges_in_T_u.is_empty(),
                 //     "No further edges found, but still haven't reached the steiner tree?\n{}",
@@ -303,23 +314,28 @@ where
                 // Update all the next saturating edges in T_u
                 let v_feeding_terminals = std::mem::take(&mut self.flow.node_to_feeding_terminals[v.index()]);
                 let extra_flow_rate = self.flow.node_to_flow_rates[v.index()];
-                for edge in next_saturating_edges_in_T_u {
-                    let node = edge.target().index();
+                for NextSaturatingEdge {
+                    edge_id,
+                    weight,
+                    target,
+                } in self.state.tmp_next_saturating_edges_in_T_u.drain(..)
+                {
+                    let ix = target.index();
 
                     // Algorithm 5
-                    self.flow.node_to_feeding_terminals[node].union_with(&v_feeding_terminals);
+                    self.state.flow.node_to_feeding_terminals[ix].union_with(&v_feeding_terminals);
 
-                    let old_flow_rate = self.flow.node_to_flow_rates[node];
+                    let old_flow_rate = self.state.flow.node_to_flow_rates[ix];
                     let new_flow_rate = old_flow_rate + extra_flow_rate;
-                    self.flow.node_to_flow_rates[node] = new_flow_rate;
+                    self.state.flow.node_to_flow_rates[ix] = new_flow_rate;
 
                     // Algorithm 7
                     if old_flow_rate == 0 {
-                        let saturate_time = self.time + (*edge.weight() as Time / new_flow_rate as Time);
-                        self.heap.push(edge.id(), saturate_time.into());
+                        let saturate_time = self.state.time + (weight as Time / new_flow_rate as Time);
+                        self.state.heap.push(edge_id, saturate_time.into());
                     } else {
-                        let time = self.time;
-                        self.heap.change_priority_by(&edge.id(), |priority| {
+                        let time = self.state.time;
+                        self.state.heap.change_priority_by(&edge_id, |priority| {
                             let current_saturate_time: Time = (*priority).into();
                             let next_saturate_time =
                                 time + (current_saturate_time - time) * (old_flow_rate as Time / new_flow_rate as Time);
@@ -359,38 +375,37 @@ where
 
     /// Traverses saturated subgraph from u, checking for degenerate flow and collecting the next
     /// saturating edges in T_u while we traverse the parents.
-    fn detect_generate_flow_and_collect_edges(&mut self, u: NodeIndex, v: NodeIndex) -> DegenerateFlow<'g> {
-        #[allow(non_snake_case)]
-        let mut next_saturating_edges_in_T_u = Vec::new();
-
-        debug_assert!(self.stack.is_empty());
-        self.stack.push(u);
+    fn detect_generate_flow_and_collect_edges(&mut self, u: NodeIndex, v: NodeIndex) -> IsDegenerateFlow {
+        debug_assert!(self.tmp_stack.is_empty() && self.tmp_next_saturating_edges_in_T_u.is_empty());
+        self.tmp_stack.push(u);
         let new_feeding = &self.state.flow.node_to_feeding_terminals[v.index()];
 
-        while let Some(current) = self.state.stack.pop() {
+        while let Some(current) = self.state.tmp_stack.pop() {
             // Check for degenerate flow
             let current_feeding = &self.flow.node_to_feeding_terminals[current.index()];
             if !(new_feeding & current_feeding).is_clear() {
-                self.stack.clear();
-                return DegenerateFlow::Yes; // Degenerate flow detected
+                self.tmp_stack.clear();
+                return IsDegenerateFlow::Yes; // Degenerate flow detected
             }
 
             if let Some(edge) = self.find_next_edge_in_T_minus(current) {
-                next_saturating_edges_in_T_u.push(edge)
+                self.state.tmp_next_saturating_edges_in_T_u.push(NextSaturatingEdge {
+                    edge_id: edge.id(),
+                    weight: *edge.weight(),
+                    target: edge.target(),
+                })
             }
 
             // Add neighbors reachable through saturated edges
             for edge in self.graph.edges_directed(current, petgraph::Direction::Incoming) {
                 if self.flow.saturated_edges[edge.id().index()] {
                     let src = edge.source();
-                    self.state.stack.push(src);
+                    self.state.tmp_stack.push(src);
                 }
             }
         }
 
-        DegenerateFlow::No {
-            next_saturating_edges_in_T_u,
-        }
+        IsDegenerateFlow::No
     }
 
     fn debug_dot_graph(&self) -> String {
@@ -399,11 +414,9 @@ where
 }
 
 #[allow(non_snake_case)]
-enum DegenerateFlow<'g> {
+enum IsDegenerateFlow {
     Yes,
-    No {
-        next_saturating_edges_in_T_u: Vec<EdgeReference<'g, SteinerWeight>>,
-    },
+    No,
 }
 
 fn debug_dot_graph<N: std::fmt::Debug>(

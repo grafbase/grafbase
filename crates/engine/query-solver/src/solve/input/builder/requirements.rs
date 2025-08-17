@@ -10,9 +10,10 @@ use crate::{
     SolutionSpaceGraph, SpaceEdge, SpaceEdgeId, SpaceNodeId,
     solve::{
         input::{
-            DependentSteinerEdgeWithInherentWeightId, DispensableRequirements, FreeRequirement, RequiredSpaceNodeId,
-            RequiredSteinerNodeId, RequirementsGroup, SteinerEdgeId, SteinerInputMap, SteinerNodeId, SteinerWeight,
-            UnavoidableParentSteinerEdgeId, builder::SteinerInputBuilder,
+            DependentSteinerEdgeWithInherentWeightId, DispensableRequirements, FreeRequirementByEdge,
+            FreeRequirementByNode, RequiredSpaceNodeId, RequiredSteinerNodeId, RequirementsByEdge, SteinerEdgeId,
+            SteinerInputMap, SteinerNodeId, SteinerWeight, UnavoidableParentSteinerEdgeId,
+            builder::SteinerInputBuilder,
         },
         steiner_tree::SteinerTree,
     },
@@ -20,8 +21,9 @@ use crate::{
 
 #[derive(id_derives::IndexedFields)]
 pub(crate) struct DispensableRequirementsBuilder {
-    free: Vec<(SteinerNodeId, IdRange<RequiredSpaceNodeId>)>,
-    dispensable: Vec<DependentEdgeWithDispensableRequirements>,
+    free_requirements_by_node: Vec<(SteinerNodeId, IdRange<RequiredSpaceNodeId>)>,
+    free_requirements_by_edge: Vec<(SteinerEdgeId, IdRange<RequiredSpaceNodeId>)>,
+    requirements_by_edge: Vec<DependentEdgeWithDispensableRequirements>,
     hasher: FxBuildHasher,
     interner: hashbrown::HashTable<IdRange<RequiredSpaceNodeId>>,
     #[indexed_by(RequiredSpaceNodeId)]
@@ -73,8 +75,9 @@ impl DispensableRequirementsBuilder {
     pub fn new(space_graph: &SolutionSpaceGraph<'_>) -> Self {
         let n = space_graph.node_count() >> 5;
         Self {
-            free: Vec::with_capacity(n),
-            dispensable: Vec::with_capacity(n),
+            free_requirements_by_node: Vec::with_capacity(n),
+            free_requirements_by_edge: Vec::with_capacity(n),
+            requirements_by_edge: Vec::with_capacity(n),
             hasher: FxBuildHasher::default(),
             interner: hashbrown::HashTable::with_capacity(n),
             required_space_nodes: Vec::with_capacity(n),
@@ -150,41 +153,45 @@ impl DispensableRequirementsBuilder {
         // without any requirements, there is no cost associated with it.
         // If for each parent all the requirements have no cost, there is no extra cost at all
         // for this field.
-        if space_graph
+        let n = self.free_requirements_by_edge.len();
+        let mut all_edges_are_free = true;
+        for dependent_space_edge in space_graph
             .edges_directed(space_node_id, Direction::Incoming)
             .filter(|edge| matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide))
-            .all(|incoming_edge| {
-                let parent = incoming_edge.source();
-                self[required_space_node_ids].iter().all(|required| {
-                    space_graph
-                        .edges_directed(parent, Direction::Outgoing)
-                        .filter(|neighbor| matches!(neighbor.weight(), SpaceEdge::CanProvide))
-                        .any(|neighbor| {
-                            let mut found_requirement = false;
-                            for edge in space_graph.edges_directed(neighbor.target(), Direction::Outgoing) {
-                                if matches!(edge.weight(), SpaceEdge::Requires) {
-                                    return false;
-                                }
-                                found_requirement |=
-                                    matches!(edge.weight(), SpaceEdge::Provides) & (edge.target() == *required);
-                            }
-                            found_requirement
-                        })
-                })
-            })
         {
-            self.free.push((node_id, required_space_node_ids));
-        } else {
-            for dependent_space_edge in space_graph
-                .edges_directed(space_node_id, Direction::Incoming)
-                .filter(|edge| matches!(edge.weight(), SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide))
-            {
-                self.dispensable.push(DependentEdgeWithDispensableRequirements {
-                    dependent_space_edge_source: dependent_space_edge.source(),
-                    required_space_node_ids,
-                    dependent_space_edge_id: dependent_space_edge.id(),
-                });
+            let source = dependent_space_edge.source();
+            let is_free = self[required_space_node_ids].iter().all(|required| {
+                space_graph
+                    .edges_directed(source, Direction::Outgoing)
+                    .filter(|neighbor| matches!(neighbor.weight(), SpaceEdge::CanProvide))
+                    .any(|neighbor| {
+                        let mut found_requirement = false;
+                        for edge in space_graph.edges_directed(neighbor.target(), Direction::Outgoing) {
+                            if matches!(edge.weight(), SpaceEdge::Requires) {
+                                return false;
+                            }
+                            found_requirement |=
+                                matches!(edge.weight(), SpaceEdge::Provides) & (edge.target() == *required);
+                        }
+                        found_requirement
+                    })
+            });
+            all_edges_are_free &= is_free;
+            if is_free {
+                self.free_requirements_by_edge
+                    .push((dependent_space_edge.id(), required_space_node_ids));
+            } else {
+                self.requirements_by_edge
+                    .push(DependentEdgeWithDispensableRequirements {
+                        dependent_space_edge_source: source,
+                        required_space_node_ids,
+                        dependent_space_edge_id: dependent_space_edge.id(),
+                    });
             }
+        }
+        if all_edges_are_free {
+            self.free_requirements_by_edge.truncate(n);
+            self.free_requirements_by_node.push((node_id, required_space_node_ids));
         }
 
         &self[required_space_node_ids]
@@ -205,32 +212,43 @@ impl DispensableRequirementsBuilder {
         steiner_tree: &SteinerTree,
     ) -> DispensableRequirements {
         let mut out = DispensableRequirements {
-            free: Vec::with_capacity(self.free.len()),
-            groups: Vec::with_capacity(self.dispensable.len()),
+            free_requirements_by_node: Vec::with_capacity(self.free_requirements_by_node.len()),
+            free_requirements_by_edge: Vec::with_capacity(self.free_requirements_by_edge.len()),
+            requirements_by_edge: Vec::with_capacity(self.requirements_by_edge.len()),
             required_space_nodes: std::mem::take(&mut self.required_space_nodes),
             required_nodes: Vec::with_capacity(self.required_space_nodes.len()),
-            unavoidable_parent_edges: Vec::with_capacity(self.dispensable.len()),
-            dependent_edges_with_inherent_weight: Vec::with_capacity(self.dispensable.len()),
+            unavoidable_parent_edges: Vec::with_capacity(self.requirements_by_edge.len()),
+            dependent_edges_with_inherent_weight: Vec::with_capacity(self.requirements_by_edge.len()),
         };
 
         let mut buffer = Vec::new();
-        for (node_id, required_space_node_ids) in std::mem::take(&mut self.free) {
+        for (node_id, required_space_node_ids) in std::mem::take(&mut self.free_requirements_by_node) {
             let required_node_ids =
                 out.extend_extra_required_nodes(&builder.map, steiner_tree, required_space_node_ids, &mut buffer);
 
-            out.free.push(FreeRequirement {
+            out.free_requirements_by_node.push(FreeRequirementByNode {
                 node_id,
                 required_node_ids,
                 required_space_node_ids,
             })
         }
+        for (edge_id, required_space_node_ids) in std::mem::take(&mut self.free_requirements_by_edge) {
+            let required_node_ids =
+                out.extend_extra_required_nodes(&builder.map, steiner_tree, required_space_node_ids, &mut buffer);
 
-        self.dispensable.sort_unstable_by(|a, b| {
+            out.free_requirements_by_edge.push(FreeRequirementByEdge {
+                edge_id,
+                required_node_ids,
+                required_space_node_ids,
+            })
+        }
+
+        self.requirements_by_edge.sort_unstable_by(|a, b| {
             a.dependent_space_edge_source
                 .cmp(&b.dependent_space_edge_source)
                 .then(a.required_space_node_ids.cmp(&b.required_space_node_ids))
         });
-        for ((space_edge_source_id, required_space_node_ids), chunk) in std::mem::take(&mut self.dispensable)
+        for ((space_edge_source_id, required_space_node_ids), chunk) in std::mem::take(&mut self.requirements_by_edge)
             .into_iter()
             .chunk_by(|item| (item.dependent_space_edge_source, item.required_space_node_ids))
             .into_iter()
@@ -276,7 +294,7 @@ impl DispensableRequirementsBuilder {
                 }
             }));
 
-            out.groups.push(RequirementsGroup {
+            out.requirements_by_edge.push(RequirementsByEdge {
                 unavoidable_parent_edge_ids,
                 required_space_node_ids,
                 required_node_ids,

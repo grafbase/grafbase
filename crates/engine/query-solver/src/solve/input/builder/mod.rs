@@ -62,9 +62,8 @@ pub(crate) fn build_input_and_terminals<'schema, 'op>(
     ctx: OperationContext<'op>,
     space: QuerySolutionSpace<'schema>,
 ) -> crate::Result<(super::SteinerInput<'schema>, SteinerTree)> {
-    // TODO: Figure out a good start size.
-    let n_nodes = space.graph.node_count() >> 4;
-    let n_edges = space.graph.edge_count() >> 4;
+    let n_nodes = space.graph.node_count() >> 3;
+    let n_edges = space.graph.edge_count() >> 3;
     let mut graph = Graph::with_capacity(n_nodes, n_edges);
     let mut mapping = SteinerInputMap {
         node_id_to_space_node_id: Vec::with_capacity(n_nodes),
@@ -139,22 +138,7 @@ pub(crate) fn build_input_and_terminals<'schema, 'op>(
         builder.ingest_nodes_from_terminal(&mut requirements, space_node_id, false);
     }
 
-    // We want to favor parallel resolvers rather than sequential ones. So we increase the weight
-    // for every intermediate resolver that must be executed before the current one.
-    // let mut stack = vec![(SteinerWeight::default(), root_node_id)];
-    // let graph = &mut builder.graph;
-    // while let Some((depth, node_id)) = stack.pop() {
-    //     let mut edges = graph.neighbors_directed(node_id, Direction::Outgoing).detach();
-    //     while let Some((edge_id, node_id)) = edges.next(graph) {
-    //         if graph[edge_id] > 0 {
-    //             graph[edge_id] += depth * DEPTH_WEIGHT;
-    //             stack.push((depth + 1, node_id));
-    //         } else {
-    //             stack.push((depth, node_id));
-    //         }
-    //     }
-    // }
-
+    // Finalize Steiner tree initialization.
     tree.nodes = FixedBitSet::with_capacity(builder.graph.node_bound());
     tree.nodes.insert(root_node_id.index());
     tree.edges = FixedBitSet::with_capacity(builder.graph.edge_bound());

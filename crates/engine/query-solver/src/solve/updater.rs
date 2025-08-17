@@ -6,8 +6,8 @@ use petgraph::graph::NodeIndex;
 
 use crate::solve::{
     input::{
-        FreeRequirement, RequiredSpaceNodeId, RequiredSteinerNodeId, RequirementsGroup, SteinerInput, SteinerWeight,
-        UnavoidableParentSteinerEdgeId,
+        FreeRequirementByEdge, FreeRequirementByNode, RequiredSpaceNodeId, RequiredSteinerNodeId, RequirementsByEdge,
+        SteinerInput, SteinerWeight, UnavoidableParentSteinerEdgeId,
     },
     steiner_tree::{GreedyFlac, SteinerTree},
 };
@@ -122,27 +122,42 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_, '_> {
     /// edge.
     fn generate_weight_updates_based_on_requirements(&mut self) {
         let mut i = 0;
-        while let Some(FreeRequirement {
+        while let Some(FreeRequirementByNode {
             node_id,
             required_node_ids,
             required_space_node_ids,
-        }) = self.input.requirements.free.get(i).copied()
+        }) = self.input.requirements.free_requirements_by_node.get(i).copied()
         {
             if self.steiner_tree[node_id] {
                 self.extend_terminals(required_node_ids, required_space_node_ids);
-                self.input.requirements.free.swap_remove(i);
+                self.input.requirements.free_requirements_by_node.swap_remove(i);
             } else {
                 i += 1;
             }
         }
 
         i = 0;
-        while let Some(RequirementsGroup {
+        while let Some(FreeRequirementByEdge {
+            edge_id,
+            required_node_ids,
+            required_space_node_ids,
+        }) = self.input.requirements.free_requirements_by_edge.get(i).copied()
+        {
+            if self.steiner_tree[edge_id] {
+                self.extend_terminals(required_node_ids, required_space_node_ids);
+                self.input.requirements.free_requirements_by_node.swap_remove(i);
+            } else {
+                i += 1;
+            }
+        }
+
+        i = 0;
+        while let Some(RequirementsByEdge {
             unavoidable_parent_edge_ids,
             required_space_node_ids,
             required_node_ids,
             dependent_edge_with_inherent_weight_ids,
-        }) = self.input.requirements.groups.get(i).copied()
+        }) = self.input.requirements.requirements_by_edge.get(i).copied()
         {
             if self.input.requirements[dependent_edge_with_inherent_weight_ids]
                 .iter()
@@ -158,7 +173,7 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_, '_> {
                     }
                 }
                 self.extend_terminals(required_node_ids, required_space_node_ids);
-                self.input.requirements.groups.swap_remove(i);
+                self.input.requirements.requirements_by_edge.swap_remove(i);
                 continue;
             } else if !required_node_ids.is_empty() {
                 // The required nodes in the Steiner Graph may be empty because there's no choice

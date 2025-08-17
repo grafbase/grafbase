@@ -45,8 +45,9 @@ pub(crate) struct DependentSteinerEdgeWithInherentWeightId(u32);
 // All NodeIndex & EdgeIndex are within the SteinerGraph.
 #[derive(Default, id_derives::IndexedFields)]
 pub(crate) struct DispensableRequirements {
-    pub free: Vec<FreeRequirement>,
-    pub groups: Vec<RequirementsGroup>,
+    pub free_requirements_by_node: Vec<FreeRequirementByNode>,
+    pub free_requirements_by_edge: Vec<FreeRequirementByEdge>,
+    pub requirements_by_edge: Vec<RequirementsByEdge>,
     #[indexed_by(RequiredSpaceNodeId)]
     required_space_nodes: Vec<SpaceNodeId>,
     #[indexed_by(RequiredSteinerNodeId)]
@@ -58,14 +59,21 @@ pub(crate) struct DispensableRequirements {
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct FreeRequirement {
+pub(crate) struct FreeRequirementByNode {
     pub node_id: SteinerNodeId,
     pub required_node_ids: IdRange<RequiredSteinerNodeId>,
     pub required_space_node_ids: IdRange<RequiredSpaceNodeId>,
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct RequirementsGroup {
+pub(crate) struct FreeRequirementByEdge {
+    pub edge_id: SteinerEdgeId,
+    pub required_node_ids: IdRange<RequiredSteinerNodeId>,
+    pub required_space_node_ids: IdRange<RequiredSpaceNodeId>,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct RequirementsByEdge {
     pub unavoidable_parent_edge_ids: IdRange<UnavoidableParentSteinerEdgeId>,
     pub required_space_node_ids: IdRange<RequiredSpaceNodeId>,
     pub required_node_ids: IdRange<RequiredSteinerNodeId>,
