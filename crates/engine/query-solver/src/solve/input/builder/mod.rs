@@ -57,6 +57,48 @@ impl NodeToProcess {
     }
 }
 
+/// Build the (steiner) graph that we solve with the steiner tree algorithm. The goal is to
+/// minimize the number of nodes and edges as much as possible by only keeping nodes where a choice
+/// must be made. Suppose a query like `query { users { name } }` where `users` might be
+/// retrieve from two different subgraphs `A` and `B`:
+///
+/// ```ignore
+///        root
+///       /  \
+///      1    1
+///     /      \
+///   [A]      [B]
+///    |        |
+/// users#A   users#B
+///    |        |
+///  name#A   name#B
+///    \       /
+///     \     /
+///      \   /
+///       name
+/// ```
+///
+/// We don't need to keep track of the intermediate nodes like `users#A`, we always need to take
+/// them once we decided on either edge from the `name` node. So we can simplify it:
+///
+/// ```ignore
+///        root
+///       /  \
+///      1    1
+///     /      \
+///   [A]      [B]
+///    \       /
+///     \     /
+///      \   /
+///       name
+/// ```
+///
+/// If there is only a single path in the whole query solution space reaching a terminal, we don't
+/// even need to include it.
+///
+/// This function does the transformation, keeping a mapping between this new graph and the query
+/// solution space graph and keeping track of all the requirements we encounter for the solving
+/// step.
 pub(crate) fn build_input_and_terminals<'schema, 'op>(
     ctx: OperationContext<'op>,
     space: QuerySolutionSpace<'schema>,

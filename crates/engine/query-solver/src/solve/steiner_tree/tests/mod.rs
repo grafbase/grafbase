@@ -1,7 +1,7 @@
 mod cases;
 mod gene;
 
-use std::{collections::HashMap, ops::ControlFlow};
+use std::collections::HashMap;
 
 use petgraph::{Graph, graph::NodeIndex, visit::EdgeRef as _};
 
@@ -40,10 +40,6 @@ impl Runner {
             greedy_flac,
             steiner_tree,
         }
-    }
-
-    fn run_once(&mut self) -> ControlFlow<()> {
-        self.greedy_flac.run_once(&self.graph, &mut self.steiner_tree)
     }
 
     fn run(&mut self) -> SteinerWeight {
