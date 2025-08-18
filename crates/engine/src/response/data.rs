@@ -307,6 +307,12 @@ pub(crate) struct ResponseObjectId {
     pub object_id: PartObjectId,
 }
 
+impl std::fmt::Display for ResponseObjectId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ID#{}#{}", self.part_id.0, self.object_id.0)
+    }
+}
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
 pub(crate) struct PartListId(u32);
 

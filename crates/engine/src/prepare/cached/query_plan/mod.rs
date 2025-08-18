@@ -2,7 +2,9 @@ mod field;
 mod generated;
 mod modifier;
 mod prelude;
+mod query_partition;
 mod required_field_set;
+mod response_object_set;
 mod selection_set;
 
 use extension_catalog::ExtensionId;
@@ -12,6 +14,7 @@ use id_newtypes::{BitSet, IdRange};
 pub(crate) use modifier::*;
 use query_solver::TypeConditionSharedVecId;
 pub(crate) use required_field_set::*;
+pub(crate) use response_object_set::*;
 use schema::{CompositeTypeId, StringId};
 
 use super::FieldShapeId;
@@ -39,26 +42,35 @@ use super::FieldShapeId;
 pub(crate) struct QueryPlan {
     #[indexed_by(QueryPartitionId)]
     pub partitions: Vec<QueryPartitionRecord>,
+    pub partition_input_id: Vec<ResponseObjectSetId>,
+    pub mutation_partition_order: Vec<QueryPartitionId>,
+
+    pub root_response_object_set_id: ResponseObjectSetId,
+    #[indexed_by(ResponseObjectSetId)]
+    pub response_object_set_definitions: Vec<ResponseObjectSetMetadataRecord>,
+
+    // Fields
     #[indexed_by(LookupFieldId)]
     pub lookup_fields: Vec<LookupFieldRecord>,
+    pub lookup_field_output_id: Vec<Option<ResponseObjectSetId>>,
     #[indexed_by(DataFieldId)]
     pub data_fields: Vec<DataFieldRecord>,
+    pub data_field_output_id: Vec<Option<ResponseObjectSetId>>,
+    /// Fields that must be present in the query, ignoring requirements.
     pub response_data_fields: BitSet<DataFieldId>,
     #[indexed_by(PartitionFieldArgumentId)]
     pub field_arguments: Vec<PartitionFieldArgumentRecord>,
+
+    // Typename fields
     #[indexed_by(TypenameFieldId)]
     pub typename_fields: Vec<TypenameFieldRecord>,
     pub response_typename_fields: BitSet<TypenameFieldId>,
-    pub mutation_partition_order: Vec<QueryPartitionId>,
+
     #[indexed_by(TypeConditionSharedVecId)]
     pub shared_type_conditions: Vec<CompositeTypeId>,
 
     pub query_modifiers: QueryModifiers,
     pub response_modifier_definitions: Vec<ResponseModifierDefinitionRecord>,
-
-    pub root_response_object_set_id: ResponseObjectSetDefinitionId,
-    #[indexed_by(ResponseObjectSetDefinitionId)]
-    pub response_object_set_definitions: Vec<ResponseObjectSetDefinitionRecord>,
 
     // Refs are used to replace a Vec<XId> with a IdRange<XRefId>. IdRange<XRefId> will at most have a size
     // of 2 * u32 while Vec<XId> is 3 words long. And we store everything in a single Vec.

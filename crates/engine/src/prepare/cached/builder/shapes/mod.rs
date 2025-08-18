@@ -20,7 +20,7 @@ use crate::{
         cached::{
             CachedOperationContext, ConcreteShapeId, ConcreteShapeRecord, DataField, DataFieldId, FieldShapeId,
             FieldShapeRecord, FieldShapeRefId, ObjectIdentifier, PartitionSelectionSet, PolymorphicShapeId,
-            PolymorphicShapeRecord, ResponseObjectSetDefinitionId, Shape, Shapes, TypenameField,
+            PolymorphicShapeRecord, ResponseObjectSetId, Shape, Shapes, TypenameField,
         },
     },
     utils::BufferPool,
@@ -29,7 +29,7 @@ use crate::{
 use super::Solver;
 
 impl Solver<'_> {
-    pub(super) fn populate_shapes_after_partition_generation(&mut self) {
+    pub(super) fn populate_shapes_after_query_plan(&mut self) {
         let mut query_partitions = std::mem::take(&mut self.output.query_plan.partitions);
         let ctx = CachedOperationContext {
             schema: self.schema,
@@ -331,7 +331,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
     fn create_concrete_shape(
         &mut self,
         identifier: ObjectIdentifier,
-        set_id: Option<ResponseObjectSetDefinitionId>,
+        set_id: Option<ResponseObjectSetId>,
         typename_fields_sorted_by_response_key_str_then_position_extra_last: &[TypenameField<'ctx>],
         data_fields_sorted_by_response_key_str_then_position_extra_last: &[DataField<'ctx>],
         included_typename_then_data_fields: FixedBitSet,

@@ -12,7 +12,7 @@ use operation::{Location, ResponseKey};
 use schema::FieldDefinition;
 pub(crate) use typename::*;
 
-use super::{DataOrLookupField, DataOrLookupFieldId, ResponseObjectSetDefinitionId};
+use super::{DataOrLookupField, DataOrLookupFieldId, ResponseObjectSetId};
 
 impl From<DataOrLookupFieldId> for u16 {
     fn from(value: DataOrLookupFieldId) -> Self {
@@ -46,7 +46,7 @@ impl<'a> DataOrLookupField<'a> {
             DataOrLookupField::Lookup(field) => field.subgraph_key,
         }
     }
-    pub(crate) fn output_id(&self) -> Option<ResponseObjectSetDefinitionId> {
+    pub(crate) fn output_id(&self) -> Option<ResponseObjectSetId> {
         match self {
             DataOrLookupField::Data(field) => field.output_id,
             DataOrLookupField::Lookup(field) => field.output_id,

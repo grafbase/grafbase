@@ -13,14 +13,14 @@ use walker::{Iter, Walk};
 ///
 /// ```custom,{.language-graphql}
 /// type ResponseModifierTarget @meta(module: "response_modifier/target") {
-///   set_id: ResponseObjectSetDefinitionId!
+///   set_id: ResponseObjectSetId!
 ///   ty: CompositeType!
 ///   field: DataField!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub(crate) struct ResponseModifierTargetRecord {
-    pub set_id: ResponseObjectSetDefinitionId,
+    pub set_id: ResponseObjectSetId,
     pub ty_id: CompositeTypeId,
     pub field_id: DataFieldId,
 }

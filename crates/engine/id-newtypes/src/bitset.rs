@@ -41,6 +41,10 @@ where
         self.inner.set(usize::from(id), value)
     }
 
+    pub fn insert(&mut self, id: Id) {
+        self.inner.insert(usize::from(id))
+    }
+
     pub fn set_range(&mut self, id: IdRange<Id>, value: bool) {
         let start = usize::from(id.start);
         let end = usize::from(id.end);

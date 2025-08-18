@@ -7,7 +7,6 @@ use crate::{
     },
     response::{ResponsePartBuilder, ResponseValueId},
 };
-use itertools::Itertools;
 use operation::ResponseKeys;
 use schema::Schema;
 use walker::Walk as _;
@@ -72,6 +71,7 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
     pub fn display_path(&self) -> impl std::fmt::Display + '_ {
         DisplayPath {
             keys: self.response_keys(),
+            parent_path: self.parent_path.get(),
             path: self.local_path.borrow(),
         }
     }
@@ -107,20 +107,49 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
 
 struct DisplayPath<'a> {
     keys: &'a ResponseKeys,
+    parent_path: &'a [ResponseValueId],
     path: Ref<'a, Vec<ResponseValueId>>,
 }
 
 impl std::fmt::Display for DisplayPath<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_fmt(format_args!(
-            "{}",
-            self.path.iter().format_with(".", |value_id, f| match value_id {
-                ResponseValueId::Field { key, .. } => {
-                    let field_key = &self.keys[*key];
-                    f(&format_args!("{field_key}"))
-                }
-                ResponseValueId::Index { index, .. } => f(&format_args!("{index}")),
-            }),
-        ))
+        write_path(f, self.keys, self.parent_path.iter().copied())?;
+        if !self.path.is_empty() {
+            f.write_str(".")?;
+            write_path(f, self.keys, self.path.iter().copied())
+        } else {
+            Ok(())
+        }
     }
+}
+
+fn write_path(
+    f: &mut std::fmt::Formatter<'_>,
+    keys: &ResponseKeys,
+    values: impl IntoIterator<Item = ResponseValueId>,
+) -> std::fmt::Result {
+    use std::fmt::Display as _;
+    let mut values = values.into_iter();
+    if let Some(first) = values.next() {
+        match first {
+            ResponseValueId::Field { key, .. } => {
+                f.write_str(&keys[key])?;
+            }
+            ResponseValueId::Index { index, .. } => {
+                index.fmt(f)?;
+            }
+        }
+        for value in values {
+            f.write_str(".")?;
+            match value {
+                ResponseValueId::Field { key, .. } => {
+                    f.write_str(&keys[key])?;
+                }
+                ResponseValueId::Index { index, .. } => {
+                    index.fmt(f)?;
+                }
+            }
+        }
+    }
+    Ok(())
 }

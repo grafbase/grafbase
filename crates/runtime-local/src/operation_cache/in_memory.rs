@@ -1,6 +1,7 @@
 use runtime::operation_cache::OperationCache;
 
 pub struct InMemoryOperationCache<V> {
+    enabled: bool,
     inner: mini_moka::sync::Cache<String, V>,
 }
 
@@ -19,6 +20,7 @@ where
 {
     pub fn new(limit: usize) -> Self {
         InMemoryOperationCache {
+            enabled: limit != 0,
             inner: mini_moka::sync::Cache::builder().max_capacity(limit as u64).build(),
         }
     }
@@ -41,10 +43,15 @@ where
     V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
 {
     async fn insert(&self, key: String, value: V) {
-        self.inner.insert(key, value);
+        if self.enabled {
+            self.inner.insert(key, value);
+        }
     }
 
     async fn get(&self, key: &String) -> Option<V> {
+        if !self.enabled {
+            return None;
+        }
         self.inner.get(key)
     }
 }

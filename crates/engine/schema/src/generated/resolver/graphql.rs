@@ -15,7 +15,7 @@ use walker::{Iter, Walk};
 ///
 /// ```custom,{.language-graphql}
 /// type GraphqlRootFieldResolverDefinition @meta(module: "resolver/graphql") @copy {
-///   endpoint: GraphqlSubgraph!
+///   subgraph: GraphqlSubgraph!
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone, Copy)]
@@ -66,7 +66,7 @@ impl<'a> Walk<&'a Schema> for GraphqlRootFieldResolverDefinitionRecord {
 impl std::fmt::Debug for GraphqlRootFieldResolverDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlRootFieldResolverDefinition")
-            .field("endpoint", &self.subgraph())
+            .field("subgraph", &self.subgraph())
             .finish()
     }
 }
@@ -75,7 +75,7 @@ impl std::fmt::Debug for GraphqlRootFieldResolverDefinition<'_> {
 ///
 /// ```custom,{.language-graphql}
 /// type GraphqlFederationEntityResolverDefinition @meta(module: "resolver/graphql") {
-///   endpoint: GraphqlSubgraph!
+///   subgraph: GraphqlSubgraph!
 ///   key_fields: FieldSet!
 /// }
 /// ```
@@ -132,7 +132,7 @@ impl<'a> Walk<&'a Schema> for &GraphqlFederationEntityResolverDefinitionRecord {
 impl std::fmt::Debug for GraphqlFederationEntityResolverDefinition<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GraphqlFederationEntityResolverDefinition")
-            .field("endpoint", &self.subgraph())
+            .field("subgraph", &self.subgraph())
             .field("key_fields", &self.key_fields())
             .finish()
     }

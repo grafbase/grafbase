@@ -1,7 +1,7 @@
 use schema::{EntityDefinition, ResolverDefinition};
 use walker::Walk;
 
-use crate::prepare::{DataOrLookupFieldId, QueryPartition, ResponseObjectSetDefinitionId, RootFieldsShape};
+use crate::prepare::{DataOrLookupFieldId, QueryPartition, ResponseObjectSetId, RootFieldsShape};
 
 use super::{Plan, SubgraphField, SubgraphSelectionSet};
 
@@ -12,8 +12,8 @@ impl<'a> Plan<'a> {
         self.as_ref().query_partition_id.walk(self.ctx)
     }
 
-    pub(crate) fn input_id(&self) -> ResponseObjectSetDefinitionId {
-        self.query_partition().input_id
+    pub(crate) fn input_id(&self) -> ResponseObjectSetId {
+        self.query_partition().input().id
     }
     pub(crate) fn entity_definition(&self) -> EntityDefinition<'a> {
         self.query_partition().entity_definition()
