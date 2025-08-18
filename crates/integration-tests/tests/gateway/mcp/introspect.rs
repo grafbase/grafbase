@@ -318,8 +318,8 @@ fn test_object_with_field_arguments() {
         }
 
         enum PostStatus {
-          DRAFT
           PUBLISHED
+          DRAFT
           ARCHIVED
         }
         "#);
@@ -605,8 +605,8 @@ fn test_descriptions() {
         I'm a multiline comment.
         """
         enum PostStatus {
-          DRAFT
           PUBLISHED
+          DRAFT
         }
         "#);
     });
