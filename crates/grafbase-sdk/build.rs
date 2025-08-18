@@ -1,6 +1,6 @@
 use semver::Version;
 
-const MINIMUM_GATEWAY_VERSION: Version = Version::new(0, 44, 0);
+const MINIMUM_GATEWAY_VERSION: Version = Version::new(0, 47, 0);
 
 fn main() {
     let sdk_version = std::env::var("CARGO_PKG_VERSION").unwrap();
