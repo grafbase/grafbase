@@ -3,7 +3,7 @@ use operation::PositionedResponseKey;
 use schema::{ObjectDefinitionId, Wrapping};
 use walker::{Iter, Walk};
 
-use crate::prepare::{OperationPlanContext, ResponseObjectSetDefinitionId};
+use crate::prepare::{OperationPlanContext, ResponseObjectSetId};
 
 use super::{FieldShape, FieldShapeId, TypenameShape, TypenameShapeId};
 
@@ -11,7 +11,7 @@ use super::{FieldShape, FieldShapeId, TypenameShape, TypenameShapeId};
 /// only that we know exactly which fields must be present.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct DerivedEntityShapeRecord {
-    pub set_id: Option<ResponseObjectSetDefinitionId>,
+    pub set_id: Option<ResponseObjectSetId>,
     pub object_definition_id: Option<ObjectDefinitionId>,
     pub batch_field_shape: Option<BatchFieldShape>,
     pub typename_shape_ids: IdRange<TypenameShapeId>,

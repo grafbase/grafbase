@@ -338,6 +338,8 @@ fn access_logs_with_caching() {
         }
         "#);
 
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
         let result: Vec<_> = std::fs::read_to_string(tmpdir.path().join("access.log"))
             .unwrap()
             .lines()

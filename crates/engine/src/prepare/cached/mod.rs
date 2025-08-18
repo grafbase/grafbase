@@ -35,7 +35,7 @@ pub(crate) fn solve(
     document: OperationDocument<'_>,
     operation: Operation,
 ) -> SolveResult<CachedOperation> {
-    builder::Solver::build(schema, document, operation)?.solve()
+    builder::Solver::solve(schema, document, operation)?.into_cached_operation()
 }
 
 #[derive(Clone, Copy)]

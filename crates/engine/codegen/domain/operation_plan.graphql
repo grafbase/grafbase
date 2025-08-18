@@ -35,11 +35,11 @@ type ResponseModifier @indexed(id_size: "u16") @meta(module: "response_modifier"
   children: [Executable!]!
 }
 
-scalar ResponseObjectSetDefinitionId @id @prelude
+scalar ResponseObjectSetId @id @prelude
 scalar ResponseKey @copy @prelude
 
 type ResponseModifierTarget @meta(module: "response_modifier/target") {
-  set_id: ResponseObjectSetDefinitionId!
+  set_id: ResponseObjectSetId!
   ty: CompositeType!
   field: DataField!
 }

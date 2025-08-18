@@ -16,6 +16,8 @@ use walker::{Iter, Walk};
 /// ```custom,{.language-graphql}
 /// type DeriveDefinition @meta(module: "field/derive") @indexed(id_size: "u32") {
 ///   subgraph: Subgraph!
+///   # If batch derive, the @derive typically retrieve the content of a field that returns a list rather
+///   # than fields from the parent object directly.
 ///   batch_field: FieldDefinition
 ///   mapping: DeriveMapping!
 /// }

@@ -1,6 +1,9 @@
 use super::{SolveResult, Solver};
 
-use crate::prepare::*;
+use crate::prepare::{
+    cached::builder::query_partition::{NodeMap, ResponseObjectSetMap},
+    *,
+};
 use extension_catalog::ExtensionId;
 use id_newtypes::IdRange;
 use im::HashMap;
@@ -14,7 +17,11 @@ use schema::{
 use walker::Walk;
 
 impl Solver<'_> {
-    pub(super) fn populate_modifiers_after_partition_generation(&mut self) -> SolveResult<()> {
+    pub(super) fn populate_modifiers_after_partition_generation(
+        &mut self,
+        map: &NodeMap,
+        response_object_set_map: &mut ResponseObjectSetMap,
+    ) -> SolveResult<()> {
         let mut accumulator = ModifierAccumulator {
             deduplicated_query_modifier_rules: HashMap::new(),
             query_modifiers: vec![
@@ -35,13 +42,12 @@ impl Solver<'_> {
             accumulator.query_modifiers[usize::from(id)].rule = QueryModifierRule::Executable { directives };
         }
 
-        let node_to_field = std::mem::take(&mut self.node_to_field);
-        for (node_ix, field_id) in node_to_field.iter().enumerate() {
-            let node_ix = NodeIndex::new(node_ix);
+        for (i, field_id) in map.node_to_field.iter().enumerate() {
+            let node_id = NodeIndex::new(i);
             let Some(field_id) = field_id else {
                 continue;
             };
-            if let Node::Field { id, .. } = self.solution.graph[node_ix]
+            if let Node::Field { id, .. } = self.solution.graph[node_id]
                 && let Some(id) = self.solution[id].flat_directive_id
             {
                 accumulator.query_modifiers[usize::from(id)]
@@ -84,7 +90,7 @@ impl Solver<'_> {
                         ),
                     }),
                     InjectionStage::Response => {
-                        self.ensure_parent_field_ouput_is_tracked(field_id, node_ix, &node_to_field)?;
+                        self.ensure_parent_field_ouput_is_tracked(map, response_object_set_map, field_id, node_id)?;
                         let query_rule = Rule::Query(QueryModifierRule::Extension {
                             directive_id: directive.id,
                             target: if directive
@@ -162,7 +168,7 @@ impl Solver<'_> {
                             unreachable!("Cannot depend on query arguments, it's not a field.")
                         }
                         InjectionStage::Response => {
-                            self.ensure_parent_field_ouput_is_tracked(field_id, node_ix, &node_to_field)?;
+                            self.ensure_parent_field_ouput_is_tracked(map, response_object_set_map, field_id, node_id)?;
                             let query_rule = Rule::Query(QueryModifierRule::Extension {
                                 directive_id: directive.id,
                                 target: QueryModifierTarget::Site(definition_id.into(), subgraph_id),
@@ -208,7 +214,7 @@ impl Solver<'_> {
                     }
                     InjectionStage::Response => {
                         if self.output.query_plan[field_id].output_id.is_none() {
-                            let output_id = Some(self.create_new_response_object_set_definition(node_ix));
+                            let output_id = Some(response_object_set_map.get_response_object_set(self, node_id));
                             self.output.query_plan[field_id].output_id = output_id;
                         }
                         let query_rule = Rule::Query(QueryModifierRule::Extension {
@@ -265,7 +271,6 @@ impl Solver<'_> {
             }
         }
 
-        self.node_to_field = node_to_field;
         self.output.query_plan.query_modifiers = QueryModifiers::build(self.schema, accumulator.query_modifiers);
         self.output.query_plan.response_modifier_definitions = accumulator.response_modifier_definitions;
 
@@ -421,9 +426,10 @@ impl QueryModifiers {
 impl Solver<'_> {
     fn ensure_parent_field_ouput_is_tracked(
         &mut self,
+        map: &NodeMap,
+        response_object_set_map: &mut ResponseObjectSetMap,
         field_id: DataFieldId,
-        node_ix: NodeIndex,
-        node_to_field: &[Option<PartitionFieldId>],
+        node_id: NodeIndex,
     ) -> SolveResult<()> {
         if self.output.query_plan[field_id]
             .parent_field_id
@@ -433,19 +439,19 @@ impl Solver<'_> {
             })
             .unwrap_or_default()
         {
-            let parent_ix = self
+            let parent_id = self
                 .solution
                 .graph
-                .edges_directed(node_ix, Direction::Incoming)
+                .edges_directed(node_id, Direction::Incoming)
                 .find(|edge| matches!(edge.weight(), Edge::Field))
                 .expect("Must have a parent field node or root")
                 .source();
-            let Some(PartitionFieldId::Data(parent_field_id)) = node_to_field[parent_ix.index()] else {
+            let Some(PartitionFieldId::Data(parent_field_id)) = map.node_to_field[parent_id.index()] else {
                 tracing::error!("@authorized with fields on root field isn't supported yet");
                 return Err(SolveError::InternalError);
             };
-            let output_id = Some(self.create_new_response_object_set_definition(parent_ix));
-            self.output.query_plan[parent_field_id].output_id = output_id;
+            let output_id = response_object_set_map.get_response_object_set(self, parent_id);
+            self.output.query_plan[parent_field_id].output_id = Some(output_id);
         }
 
         Ok(())

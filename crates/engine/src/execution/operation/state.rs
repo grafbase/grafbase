@@ -5,7 +5,7 @@ use walker::Walk;
 
 use crate::{
     Runtime,
-    prepare::{Executable, Plan, PlanId, ResponseModifierId, ResponseObjectSetDefinitionId},
+    prepare::{Executable, Plan, PlanId, ResponseModifierId, ResponseObjectSetId},
     response::{ParentObjectSet, ResponseBuilder, ResponseObjectSet},
 };
 
@@ -24,7 +24,7 @@ use super::ExecutionContext;
 #[derive(IndexedFields)]
 pub(crate) struct OperationExecutionState<'ctx, R: Runtime> {
     ctx: ExecutionContext<'ctx, R>,
-    #[indexed_by(ResponseObjectSetDefinitionId)]
+    #[indexed_by(ResponseObjectSetId)]
     response_object_sets: Vec<Option<Arc<ResponseObjectSet>>>,
     #[indexed_by(PlanId)]
     plan_to_parent_count: Vec<usize>,
@@ -81,13 +81,12 @@ impl<'ctx, R: Runtime> OperationExecutionState<'ctx, R> {
         })
     }
 
-    pub fn push_response_objects(
-        &mut self,
-        set_id: ResponseObjectSetDefinitionId,
-        response_object_refs: ResponseObjectSet,
-    ) {
+    pub fn push_response_objects(&mut self, set_id: ResponseObjectSetId, response_object_refs: ResponseObjectSet) {
         tracing::trace!("Pushing response objects for {set_id}: {}", response_object_refs.len());
-        self[set_id] = Some(Arc::new(response_object_refs));
+        let current = &mut self[set_id];
+        if current.is_none() {
+            *current = Some(Arc::new(response_object_refs));
+        }
     }
 
     pub fn get_input(&mut self, response: &ResponseBuilder<'ctx>, plan: Plan<'_>) -> ParentObjectSet {

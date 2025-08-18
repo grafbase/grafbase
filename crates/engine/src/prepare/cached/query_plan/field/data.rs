@@ -5,10 +5,9 @@ use schema::{CompositeType, FieldDefinition, FieldDefinitionId};
 use walker::{Iter, Walk};
 
 use crate::prepare::{
-    CachedOperationContext, DataOrLookupFieldId, FieldShapeId, RequiredFieldSet,
+    CachedOperationContext, DataOrLookupFieldId, FieldShapeId, RequiredFieldSet, ResponseObjectSetId,
     cached::query_plan::{
         FieldShapeRefId, PartitionSelectionSet, PartitionSelectionSetRecord, QueryPartitionId, RequiredFieldSetRecord,
-        ResponseObjectSetDefinitionId,
     },
 };
 
@@ -31,7 +30,7 @@ pub(crate) struct DataFieldRecord {
     /// All field shape ids generated for this field
     pub shape_ids_ref: IdRange<FieldShapeRefId>,
     pub parent_field_id: Option<DataOrLookupFieldId>,
-    pub output_id: Option<ResponseObjectSetDefinitionId>,
+    pub output_id: Option<ResponseObjectSetId>,
     pub selection_set_record: PartitionSelectionSetRecord,
     /// Whether __typename should be requested from the subgraph for this selection set
     pub selection_set_requires_typename: bool,

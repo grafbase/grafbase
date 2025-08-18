@@ -87,7 +87,7 @@ pub struct Query<G: GraphBase, Step> {
         HashMap<Vec<operation::ExecutableDirectiveId>, DeduplicatedFlatExecutableDirectivesId>,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, id_derives::Id)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, id_derives::Id)]
 pub struct QueryFieldId(u32);
 
 #[derive(Clone, Copy, id_derives::Id, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]

@@ -2,7 +2,7 @@ use id_newtypes::IdRange;
 use schema::{InterfaceDefinitionId, ObjectDefinitionId, UnionDefinitionId};
 use walker::{Iter, Walk};
 
-use crate::prepare::{OperationPlanContext, ResponseObjectSetDefinitionId};
+use crate::prepare::{OperationPlanContext, ResponseObjectSetId};
 
 use super::{FieldShape, FieldShapeId, TypenameShapeId};
 
@@ -10,7 +10,7 @@ use super::{FieldShape, FieldShapeId, TypenameShapeId};
 /// only that we know exactly which fields must be present.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub(crate) struct ConcreteShapeRecord {
-    pub set_id: Option<ResponseObjectSetDefinitionId>,
+    pub set_id: Option<ResponseObjectSetId>,
     pub identifier: ObjectIdentifier,
     pub typename_shape_ids: IdRange<TypenameShapeId>,
     // Ordered by (non-derived first / derived last).then(PartitionDataFieldId) which should more or less match the ordering of fields
