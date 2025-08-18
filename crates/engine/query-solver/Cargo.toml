@@ -23,6 +23,7 @@ id-newtypes = { path = "../id-newtypes", package = "engine-id-newtypes" }
 itertools.workspace = true
 operation = { path = "../operation", package = "engine-operation" }
 petgraph.workspace = true
+priority-queue.workspace = true
 schema = { path = "../schema", package = "engine-schema" }
 serde.workspace = true
 strum.workspace = true
@@ -32,8 +33,10 @@ walker = { path = "../walker", package = "engine-walker" }
 
 [dev-dependencies]
 ctor.workspace = true
+dot-parser.workspace = true
 extension-catalog.workspace = true
 insta.workspace = true
+pretty_assertions.workspace = true
 serde_json.workspace = true
 similar.workspace = true
 tempfile.workspace = true

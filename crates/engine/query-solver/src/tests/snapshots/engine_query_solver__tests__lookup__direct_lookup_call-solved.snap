@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/lookup.rs
-expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"User.id\", color=forestgreen ]\n    2 [ label = \"User.name\", color=forestgreen ]\n    3 [ label = \"SelectionSetResolver#0#pg\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    4 [ label = \"userLookup#pg\", shape=box, color=dodgerblue, color=forestgreen ]\n    5 [ label = \"id#pg\", shape=box, color=dodgerblue, color=forestgreen ]\n    6 [ label = \"name#pg\", shape=box, color=dodgerblue, color=forestgreen ]\n    7 [ label=\"\", style=dashed]\n    0 -> 3 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    3 -> 4 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 5 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    5 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    6 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    7 -> 0 [ label = \"\", color=royalblue,fontcolor=royalblue,style=dashed ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"User.id\", color=forestgreen ]\n    2 [ label = \"User.name\", color=forestgreen ]\n    3 [ label = \"SelectionSetResolver#0#pg\", shape=parallelogram, color=dodgerblue, color=forestgreen ]\n    4 [ label = \"userLookup#pg\", shape=box, color=dodgerblue, color=forestgreen ]\n    5 [ label = \"id#pg\", shape=box, color=dodgerblue, color=forestgreen ]\n    6 [ label = \"name#pg\", shape=box, color=dodgerblue, color=forestgreen ]\n    0 -> 3 [ label = <<b>1</b>>, color=forestgreen,fontcolor=forestgreen ]\n    3 -> 4 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 5 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    5 -> 1 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 6 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n    6 -> 2 [ label = \"\", color=forestgreen,fontcolor=forestgreen ]\n}\n"
 ---
 digraph {
     0 [ label = "root", steiner=1 ]
@@ -10,12 +10,10 @@ digraph {
     4 [ label = "userLookup#pg", steiner=1 ]
     5 [ label = "id#pg", steiner=1 ]
     6 [ label = "name#pg", steiner=1 ]
-    7 [ label="", style=dashed]
-    0 -> 3 [ cost=0, steiner=1]
+    0 -> 3 [ cost=1, steiner=1]
     3 -> 4 [ cost=0, steiner=1]
     4 -> 5 [ cost=0, steiner=1]
     5 -> 1 [ cost=0, steiner=1]
     4 -> 6 [ cost=0, steiner=1]
     6 -> 2 [ cost=0, steiner=1]
-    7 -> 0 [ cost=0, steiner=0]
 }

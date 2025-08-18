@@ -5,6 +5,7 @@
     cargo-nextest
     cargo-insta
     cargo-hakari
+    cargo-about # license check
     git-cliff
 
     # TOML

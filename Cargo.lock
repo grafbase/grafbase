@@ -2614,6 +2614,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "dot-parser"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6cce83b336cd8d9b2718f4e8228a185de6e7a1cfe34f237e8c4acaf1c4141630"
+dependencies = [
+ "either",
+ "pest",
+ "pest_derive",
+]
+
+[[package]]
 name = "dotenvy"
 version = "0.15.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2935,6 +2946,7 @@ version = "0.0.0"
 dependencies = [
  "bitflags 2.9.1",
  "ctor",
+ "dot-parser",
  "engine-id-derives",
  "engine-id-newtypes",
  "engine-operation",
@@ -2949,6 +2961,8 @@ dependencies = [
  "insta",
  "itertools 0.14.0",
  "petgraph",
+ "pretty_assertions",
+ "priority-queue",
  "serde",
  "serde_json",
  "similar",
