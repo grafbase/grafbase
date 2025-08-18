@@ -4,7 +4,7 @@ use super::*;
 pub(crate) fn validate_type_definition<'a>(typedef: &'a Positioned<ast::TypeDefinition>, ctx: &mut Context<'a>) {
     let type_name = typedef.node.name.node.as_str();
 
-    if !typedef.node.extend && is_builtin_scalar(type_name) {
+    if !typedef.node.extend && is_builtin_scalar(type_name) && !matches!(typedef.node.kind, ast::TypeKind::Scalar) {
         let labels = vec![miette::LabeledSpan::new_with_span(
             None,
             (ctx.miette_pos(typedef.node.name.pos), typedef.node.name.node.len()),
