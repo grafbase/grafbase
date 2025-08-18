@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/shared_root.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.products\" ]\n    2 [ label = \"Product.price\" ]\n    7 [ label = \"Root#price\", shape=parallelogram, color=dodgerblue ]\n    8 [ label = \"products#price\", shape=box, color=dodgerblue ]\n    9 [ label = \"price#price\", shape=box, color=dodgerblue ]\n    0 -> 1 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n    0 -> 7 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 7 [ label = \"\", style=dashed,arrowhead=none ]\n    7 -> 8 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    8 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n    8 -> 9 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    9 -> 2 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.products\" ]\n    2 [ label = \"Product.price\" ]\n    7 [ label = \"Root#price\", shape=parallelogram, color=dodgerblue ]\n    8 [ label = \"products#price\", shape=box, color=dodgerblue ]\n    9 [ label = \"price#price\", shape=box, color=dodgerblue ]\n    0 -> 1 [  ]\n    1 -> 2 [  ]\n    0 -> 7 [ color=royalblue,fontcolor=royalblue ]\n    0 -> 7 [ style=dashed,arrowhead=none ]\n    7 -> 8 [ color=royalblue,fontcolor=royalblue ]\n    8 -> 1 [ color=violet,arrowhead=none ]\n    8 -> 9 [ color=royalblue,fontcolor=royalblue ]\n    9 -> 2 [ color=violet,arrowhead=none ]\n}\n"
 ---
 digraph {
     0 [ root]

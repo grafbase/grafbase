@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/interface.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#b\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.anotherUsers\" ]\n    3 [ label = \"FedEntity#a\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"User.age\" ]\n    5 [ label = \"*NodeWithName.id\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [ label = \"\" ]\n    2 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [ label = \"\" ]\n    2 -> 5 [ label = \"\" ]\n    3 -> 5 [ label = \"\", color=orangered,arrowhead=inv ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#b\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.anotherUsers\" ]\n    3 [ label = \"FedEntity#a\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"User.age\" ]\n    5 [ label = \"*NodeWithName.id\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [  ]\n    2 -> 3 [ color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [  ]\n    2 -> 5 [  ]\n    3 -> 5 [ color=orangered,arrowhead=inv ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]

@@ -1,6 +1,6 @@
 ---
-source: engine/crates/engine/query-solver/src/tests/typename.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"__typename\" ]\n    0 -> 1 [ label = \"\" ]\n}\n"
+source: crates/engine/query-solver/src/tests/typename.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"__typename\" ]\n    0 -> 1 [  ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]

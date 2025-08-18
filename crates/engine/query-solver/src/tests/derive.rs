@@ -52,8 +52,8 @@ const SCHEMA: &str = r#"
     }
 "#;
 
-#[tokio::test]
-async fn single_id() {
+#[test]
+fn single_id() {
     assert_solving_snapshots!(
         "single_id",
         SCHEMA,
@@ -69,8 +69,8 @@ async fn single_id() {
     );
 }
 
-#[tokio::test]
-async fn composite_keys() {
+#[test]
+fn composite_keys() {
     assert_solving_snapshots!(
         "composite_keys",
         SCHEMA,
@@ -87,8 +87,8 @@ async fn composite_keys() {
     );
 }
 
-#[tokio::test]
-async fn batch_single_id() {
+#[test]
+fn batch_single_id() {
     assert_solving_snapshots!(
         "batch_single_id",
         SCHEMA,
@@ -104,8 +104,8 @@ async fn batch_single_id() {
     );
 }
 
-#[tokio::test]
-async fn batch_composite_keys() {
+#[test]
+fn batch_composite_keys() {
     assert_solving_snapshots!(
         "batch_composite_keys",
         SCHEMA,

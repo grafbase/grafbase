@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/typename.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.topProducts\" ]\n    2 [ label = \"__typename\" ]\n    3 [ label = \"Root#products\", shape=parallelogram, color=dodgerblue ]\n    4 [ label = \"topProducts#products\", shape=box, color=dodgerblue ]\n    0 -> 1 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n    0 -> 3 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    0 -> 3 [ label = \"\", style=dashed,arrowhead=none ]\n    3 -> 4 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    4 -> 1 [ label = \"\", color=violet,arrowhead=none ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Query.topProducts\" ]\n    2 [ label = \"__typename\" ]\n    3 [ label = \"Root#products\", shape=parallelogram, color=dodgerblue ]\n    4 [ label = \"topProducts#products\", shape=box, color=dodgerblue ]\n    0 -> 1 [  ]\n    1 -> 2 [  ]\n    0 -> 3 [ color=royalblue,fontcolor=royalblue ]\n    0 -> 3 [ style=dashed,arrowhead=none ]\n    3 -> 4 [ color=royalblue,fontcolor=royalblue ]\n    4 -> 1 [ color=violet,arrowhead=none ]\n}\n"
 ---
 digraph {
     0 [ root]

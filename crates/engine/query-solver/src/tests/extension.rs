@@ -1,6 +1,4 @@
-use schema::Schema;
-
-use crate::assert_solving_snapshots;
+use crate::{assert_solving_snapshots, tests::WithExtensions};
 
 const SCHEMA: &str = r#"
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
@@ -89,7 +87,7 @@ enum join__Graph
 
 enum extension__Link
 {
-  REST @extension__link(url: "file:///rest/build", schemaDirectives: [{graph: ZENDESK, name: "restEndpoint", arguments: {name: "zendesk", baseURL: "http://localhost:8080/v2", headers: [{name: "Accept", value: "application/json"}]}}])
+  REST @extension__link(url: "file:///rest", schemaDirectives: [{graph: ZENDESK, name: "restEndpoint", arguments: {name: "zendesk", baseURL: "http://localhost:8080/v2", headers: [{name: "Accept", value: "application/json"}]}}])
 }
 "#;
 
@@ -241,47 +239,9 @@ enum HttpMethod {
 }
 "#;
 
-#[tokio::test]
-async fn mix_of_look_derive_require() {
-    let tmpdir = tempfile::tempdir().unwrap();
-    let manifest = extension_catalog::Manifest {
-        id: "rest-1.0.0".parse().unwrap(),
-        r#type: extension_catalog::Type::Resolver(Default::default()),
-        sdk_version: "0.0.0".parse().unwrap(),
-        minimum_gateway_version: "0.0.0".parse().unwrap(),
-        description: String::new(),
-        sdl: Some(REST_SDL.into()),
-        readme: None,
-        homepage_url: None,
-        repository_url: None,
-        license: None,
-        permissions: Default::default(),
-        legacy_event_filter: Default::default(),
-    };
-
-    std::fs::write(
-        tmpdir.path().join("manifest.json"),
-        serde_json::to_vec(&manifest.clone().into_versioned()).unwrap(),
-    )
-    .unwrap();
-
-    let mut catalog = extension_catalog::ExtensionCatalog::default();
-    let wasm_path = tmpdir.path().join("extension.wasm");
-    std::fs::write(&wasm_path, b"wasm").unwrap();
-    catalog.push(extension_catalog::Extension {
-        config_key: String::new(),
-        manifest,
-        wasm_path,
-    });
-
-    let schema = Schema::builder(&SCHEMA.replace(
-        "file:///rest/build",
-        url::Url::from_file_path(tmpdir.path()).unwrap().as_str(),
-    ))
-    .extensions(&catalog)
-    .build()
-    .await
-    .unwrap();
+#[test]
+fn mix_of_look_derive_require() {
+    let schema = WithExtensions::new(SCHEMA).resolver("file:///rest", REST_SDL);
 
     // Extension resolver can be placed on arbitrary fields, its presence indicates that it must be
     // used to resolve the field. We're taking this into account when computing the providable

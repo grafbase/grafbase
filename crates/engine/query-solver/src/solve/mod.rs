@@ -1,10 +1,10 @@
-mod apply;
-mod context;
-mod requirements;
+mod input;
+mod solution;
 mod solver;
 mod steiner_tree;
+mod updater;
 
-pub(crate) use apply::*;
+pub(crate) use solution::*;
 pub(crate) use solver::*;
 
 use crate::{Query, SolutionGraph};

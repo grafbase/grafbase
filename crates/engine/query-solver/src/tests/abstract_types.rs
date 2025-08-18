@@ -165,8 +165,8 @@ union PublisherType
  = Agency | Group | Self
 "#;
 
-#[tokio::test]
-async fn interface_field_provided_by_implementors() {
+#[test]
+fn interface_field_provided_by_implementors() {
     // delivery is not accessible on the Similar interface, but it is on all of its implementors.
     assert_solving_snapshots!(
         "interface_field_provided_by_implementors",
@@ -186,8 +186,8 @@ async fn interface_field_provided_by_implementors() {
     );
 }
 
-#[tokio::test]
-async fn nested_interface_field_provided_by_implementors() {
+#[test]
+fn nested_interface_field_provided_by_implementors() {
     assert_solving_snapshots!(
         "nested_interface_field_provided_by_implementors",
         SCHEMA,
@@ -212,8 +212,8 @@ async fn nested_interface_field_provided_by_implementors() {
     );
 }
 
-#[tokio::test]
-async fn unreachable_object() {
+#[test]
+fn unreachable_object() {
     // Group is never reachable.
     assert_solving_snapshots!(
         "unreachable_object",

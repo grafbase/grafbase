@@ -61,8 +61,8 @@ union Node
 
 "#;
 
-#[tokio::test]
-async fn missing_style_enum() {
+#[test]
+fn missing_style_enum() {
     assert_solving_snapshots!(
         "missing_tyle_enum",
         SCHEMA,

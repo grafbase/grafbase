@@ -111,7 +111,7 @@ impl SchemaAndQuery {
         for i in 0..params.n_subgraphs {
             writeln!(
                 schema,
-                r#"  SUB{i} @join__graph(name: "sub{i}", url: "http://localhost:100{i}")"#
+                r#"  SUB{i} @join__graph(name: "sub{i}", url: "http://localhost:7000")"#
             )
             .unwrap();
         }

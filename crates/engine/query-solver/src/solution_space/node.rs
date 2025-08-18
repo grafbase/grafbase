@@ -26,13 +26,13 @@ pub(crate) enum SpaceNode<'ctx> {
 
 impl SpaceNode<'_> {
     /// Meant to be as readable as possible for large graphs with colors.
-    pub(crate) fn label<'a>(&self, query: &QuerySolutionSpace<'_>, ctx: OperationContext<'a>) -> Cow<'a, str> {
+    pub(crate) fn label<'a>(&self, space: &QuerySolutionSpace<'_>, ctx: OperationContext<'a>) -> Cow<'a, str> {
         match self {
             SpaceNode::Root => "root".into(),
             SpaceNode::QueryField(node) => format!(
                 "{}{}",
                 if node.is_extra() { "*" } else { "" },
-                crate::query::dot_graph::field_label(ctx, &query[node.id])
+                crate::query::dot_graph::field_label(ctx, &space[node.id])
             )
             .into(),
             SpaceNode::ProvidableField(ProvidableField {
@@ -43,7 +43,7 @@ impl SpaceNode<'_> {
                 ..
             }) => {
                 let subgraph = resolver_definition_id.walk(ctx).subgraph().name();
-                let label = crate::query::dot_graph::short_field_label(ctx, &query[*query_field_id]);
+                let label = crate::query::dot_graph::short_field_label(ctx, &space[*query_field_id]);
 
                 match (only_providable, dervied_from_id) {
                     (true, None) => format!("{label}#{subgraph}@provides"),

@@ -13,9 +13,18 @@ type Product
   @join__type(graph: PRICE)
 {
   id: ID!
+  nested: Nested!
   category: String @join__field(graph: CATEGORY)
   name: String @join__field(graph: NAME)
   price: Float @join__field(graph: PRICE)
+}
+
+type Nested
+  @join__type(graph: CATEGORY)
+  @join__type(graph: NAME)
+  @join__type(graph: PRICE)
+{
+  id: ID!
 }
 
 type Query
@@ -28,8 +37,8 @@ type Query
 }
 "###;
 
-#[tokio::test]
-async fn all_fields() {
+#[test]
+fn all_fields() {
     assert_solving_snapshots!(
         "all_fields",
         SCHEMA,
@@ -46,8 +55,26 @@ async fn all_fields() {
     );
 }
 
-#[tokio::test]
-async fn single_field() {
+#[test]
+fn nested_id_field_with_all_fields() {
+    assert_solving_snapshots!(
+        "nested_id_with_all_fields",
+        SCHEMA,
+        r#"
+        query {
+          products {
+            price
+            category
+            name
+            nested { id }
+          }
+        }
+        "#
+    );
+}
+
+#[test]
+fn single_field() {
     assert_solving_snapshots!(
         "single_field",
         SCHEMA,

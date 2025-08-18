@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/introspection.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Introspection\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.__schema\" ]\n    3 [ label = \"__Schema.queryType\" ]\n    4 [ label = \"__Type.name\" ]\n    0 -> 1 [ label = \"\", color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [ label = \"\" ]\n    2 -> 3 [ label = \"\" ]\n    1 -> 2 [ label = \"\" ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Introspection\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.__schema\" ]\n    3 [ label = \"__Schema.queryType\" ]\n    4 [ label = \"__Type.name\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [  ]\n    2 -> 3 [  ]\n    1 -> 2 [  ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]

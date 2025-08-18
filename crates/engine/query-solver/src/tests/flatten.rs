@@ -61,8 +61,8 @@ type Query
 }
 "#;
 
-#[tokio::test]
-async fn comments_fields_should_be_flattened() {
+#[test]
+fn comments_fields_should_be_flattened() {
     assert_solving_snapshots!(
         "comments_fields_should_be_flattened",
         SCHEMA,
@@ -92,8 +92,8 @@ async fn comments_fields_should_be_flattened() {
     );
 }
 
-#[tokio::test]
-async fn flattening_cannot_merge_fields_with_different_type_conditions() {
+#[test]
+fn flattening_cannot_merge_fields_with_different_type_conditions() {
     assert_solving_snapshots!(
         "flattening_cannot_merge_fields_with_different_type_conditions",
         SCHEMA,

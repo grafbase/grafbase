@@ -1,77 +1,117 @@
-mod loader;
-mod report;
+mod cases;
+mod gene;
 
-use std::time::{Duration, Instant};
+use std::{collections::HashMap, ops::ControlFlow};
 
-use petgraph::{prelude::StableGraph, visit::IntoNodeReferences};
+use petgraph::{Graph, graph::NodeIndex, visit::EdgeRef as _};
 
-use crate::solve::steiner_tree::{GreedyFlac, SteinerTree};
-use report::*;
+use crate::solve::{
+    input::SteinerWeight,
+    steiner_tree::{GreedyFlac, SteinerTree},
+};
 
-/// Sanity check our GreedyFlac Steiner Tree algorithm against a graph with known optimal cost.
-#[test]
-fn greedy_flac_steinlib_gene() {
-    let mut reports = Vec::new();
+struct Runner {
+    graph: Graph<String, SteinerWeight>,
+    nodes: HashMap<String, NodeIndex>,
+    greedy_flac: GreedyFlac,
+    steiner_tree: SteinerTree,
+}
 
-    for gene in loader::load_gene_dataset() {
-        let start = Instant::now();
-
-        let mut steiner_tree = SteinerTree::new(&gene.graph, gene.root);
-        let mut greddy_flac = GreedyFlac::new(&gene.graph, gene.terminals.clone());
-        let prepare_duration = start.elapsed();
-
-        let start = Instant::now();
-        greddy_flac.run(&gene.graph, &mut steiner_tree);
-        let total_cost = steiner_tree.total_weight;
-        let grow_duration = start.elapsed();
-
-        let steiner_tree_node_count = gene
-            .graph
-            .node_references()
-            .filter(|(node_id, _)| steiner_tree.nodes[node_id.index()])
-            .count();
-
-        assert!(
-            gene.terminals
-                .iter()
-                .all(|terminal| steiner_tree.nodes[terminal.index()])
-        );
-
-        // Are all the terminals accessible from root?
-        let mut graph = StableGraph::from(gene.graph.clone());
-        graph.retain_nodes(|_, node| steiner_tree.nodes[node.index()]);
-        for terminal in &gene.terminals {
-            assert!(petgraph::algo::has_path_connecting(&graph, gene.root, *terminal, None));
+impl Runner {
+    fn from_dot_graph(dot: &'static str) -> Self {
+        let (graph, nodes) = dot_graph(dot);
+        // Collect terminals: nodes starting with 't' (t1, t2, terminal, etc.) but not "top"
+        let terminals = nodes
+            .iter()
+            .filter_map(|(k, v)| {
+                let mut chars = k.chars();
+                if chars.next() == Some('t') && chars.all(|c| c.is_ascii_digit()) {
+                    Some(*v)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        let steiner_tree = SteinerTree::new(&graph, nodes["root"], terminals);
+        let greedy_flac = GreedyFlac::new(&graph);
+        Self {
+            graph,
+            nodes,
+            greedy_flac,
+            steiner_tree,
         }
-
-        reports.push(AlgorithmRunReport {
-            name: gene.name,
-            algorithm: "GreedyFlac",
-            cost: total_cost,
-            optimal_cost: gene.optimal_cost,
-            node_count: steiner_tree_node_count,
-            kept_nodes_percentage: ((steiner_tree_node_count * 100) as f64) / (gene.graph.node_count() as f64),
-            prepare_duration,
-            grow_duration,
-        });
     }
 
-    let report = TestReport {
-        algorithm: "GreedyFlac",
-        reports,
-    };
-    println!("{report}");
-
-    for result in &report.reports {
-        assert!(
-            (result.cost as f64 / result.optimal_cost as f64) <= 1.05,
-            "Cost difference is too big for {}",
-            result.name,
-        );
-        assert!(
-            result.prepare_duration + result.grow_duration < Duration::from_millis(200),
-            "Total time is too long for {}",
-            result.name,
-        );
+    fn run_once(&mut self) -> ControlFlow<()> {
+        self.greedy_flac.run_once(&self.graph, &mut self.steiner_tree)
     }
+
+    fn run(&mut self) -> SteinerWeight {
+        self.greedy_flac.run(&self.graph, &mut self.steiner_tree);
+        self.steiner_tree.total_weight
+    }
+
+    fn debug_graph(&self) -> String {
+        self.greedy_flac.debug_dot_graph(&self.graph, &self.steiner_tree)
+    }
+
+    fn steiner_graph(&self) -> String {
+        to_steiner_tree_graph(&self.graph, &self.steiner_tree)
+    }
+
+    fn extend_terminals(&mut self, terminal_names: &[&str]) {
+        let _ = self
+            .steiner_tree
+            .extend_terminals(terminal_names.iter().map(|name| self.nodes[*name]));
+    }
+}
+
+fn dot_graph(dot: &'static str) -> (Graph<String, SteinerWeight>, HashMap<String, NodeIndex>) {
+    let dot_graph: dot_parser::canonical::Graph<(&'static str, &'static str)> =
+        dot_parser::ast::Graph::try_from(dot).unwrap().into();
+    let node_number = dot_graph.nodes.set.len();
+    let edge_number = dot_graph.edges.set.len();
+    let mut graph = Graph::with_capacity(node_number, edge_number);
+    let mut nodes = HashMap::new();
+    for (node, attrs) in dot_graph.nodes.set {
+        let id = graph.add_node(attrs.id);
+        nodes.insert(node, id);
+    }
+    for edge in dot_graph.edges.set {
+        let from_ni = nodes.get(&edge.from).unwrap();
+        let to_ni = nodes.get(&edge.to).unwrap();
+        let weight = edge
+            .attr
+            .elems
+            .iter()
+            .find_map(|(name, value)| {
+                if *name == "label" {
+                    value.parse::<SteinerWeight>().ok()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_default();
+        graph.add_edge(*from_ni, *to_ni, weight);
+    }
+
+    (graph, nodes)
+}
+
+fn to_steiner_tree_graph(graph: &Graph<String, SteinerWeight>, steiner_tree: &SteinerTree) -> String {
+    use std::fmt::Write as _;
+
+    let mut out = String::from("digraph {\n");
+    let mut steiner_edges = Vec::new();
+    for edge in graph.edge_references() {
+        if steiner_tree.edges[edge.id().index()] {
+            steiner_edges.push(edge);
+        }
+    }
+    steiner_edges.sort_by_key(|edge| (&graph[edge.source()], &graph[edge.target()]));
+    for edge in steiner_edges {
+        writeln!(&mut out, "  {} -> {}", &graph[edge.source()], &graph[edge.target()]).unwrap();
+    }
+    out.push('}');
+    out
 }

@@ -1,262 +1,211 @@
-# GreedyFLAC Algorithm Summary
+# Query Solver Crate - Implementation Guide
 
 ## Overview
 
-GreedyFLAC is a greedy approximation algorithm for the Directed Steiner Tree (DST) problem. Given a directed weighted graph G = (V, A), a root node r, and a set of k terminal nodes X, the algorithm finds a directed tree rooted at r that spans all terminals while minimizing the total cost.
+The query-solver crate is responsible for transforming GraphQL operations into optimized execution plans for federated GraphQL. It models query planning as a graph optimization problem, specifically using the Steiner Tree problem to find minimal-cost paths through a solution space.
 
-## Core Concept: Flow-Based Approach
-
-The algorithm uses a water flow analogy:
-
-- Each terminal acts as a water source, filling the graph through its incoming arcs
-- Each arc has a volume equal to its weight/cost
-- Water flows at a rate of 1 unit per second per terminal
-- When an arc is completely filled (saturated), water continues flowing through the node's other incoming arcs
-- The flow stops when the root is reached
-
-## Key Definitions
-
-- **Density**: For a tree T with cost ω(T) spanning terminals X', the density is d(T) = ω(T) / |X'|
-- **Flow rate k(v)**: Number of terminals connected to node v through saturated arcs
-- **Saturated arc**: An arc completely filled with flow
-- **Degenerate flow**: When a terminal can reach a node through multiple distinct paths (not allowed)
-
-## Main Algorithm Structure
-
-### GreedyFLAC (Algorithm 2)
+## Core Pipeline
 
 ```
-1. Initialize T = ∅
-2. While terminals remain uncovered:
-   a. Run FLAC to find a partial solution T₀
-   b. Add T₀ to T
-   c. Remove covered terminals from X
-3. Return T
+GraphQL Operation → Solution Space Generation → Steiner Tree Solving → Post-Processing → SolvedQuery
 ```
 
-### FLAC - Flow Algorithm Computation (Algorithm 3 - Naive Version)
+### 1. Solution Space Generation
 
+- Transforms the GraphQL operation into a graph of all possible execution paths
+- Creates nodes for query fields, query partitions (subgraph resolvers), and providable fields
+- Establishes edges representing dependencies and requirements
+- Handles complex scenarios like @provides, @requires, interfaces, and entity resolvers
+
+### 2. Steiner Tree Solving
+
+- Models the problem as finding the minimum-cost subgraph connecting required nodes
+- Uses the GreedyFLAC algorithm (Greedy Flow Algorithm Computation) for efficient approximation
+- Handles dynamic edge costs based on dispensable requirements (requirements only needed on certain paths)
+- Iteratively refines the solution through cost updates and tree growth
+
+### 3. Post-Processing
+
+- Adjusts response keys to avoid collisions
+- Ensures proper mutation execution order
+- Breaks dependency cycles between query partitions
+- Assigns root typename fields to appropriate resolvers
+
+## Module Structure
+
+### `/src/lib.rs`
+
+Main entry point with `solve()` function that orchestrates the entire pipeline.
+
+### `/src/query/`
+
+Core query representation and field management:
+
+- `Query<G, Step>`: Generic query structure parameterized by graph type and processing step
+- `QueryField`: Individual field definitions with metadata
+- `FieldFlags`: Bitflags for field properties (EXTRA, INDISPENSABLE, LEAF_NODE, TYPENAME, etc.)
+- `Node` and `Edge` enums for graph representation
+
+### `/src/solution_space/`
+
+Solution space construction and management:
+
+- **builder/**: Constructs the solution space from operation fields
+  - `operation_fields.rs`: Ingests fields from the GraphQL operation
+  - `providable_fields.rs`: Creates fields that can be provided by resolvers
+  - `alternative.rs`: Handles multiple resolution paths
+  - `prune.rs`: Removes unused resolvers
+- **node.rs**: Node types (Root, QueryField, QueryPartition, ProvidableField)
+- **edge.rs**: Edge types representing dependencies and requirements
+
+### `/src/solve/`
+
+Steiner tree solving implementation:
+
+- **solver.rs**: Main solver coordinating the algorithm
+- **steiner_tree/greedy_flac.rs**: GreedyFLAC algorithm implementation
+- **input/**: Prepares input for the Steiner algorithm
+- **updater.rs**: Updates edge weights based on dynamic requirements
+- **solution.rs**: Converts Steiner tree solution to query representation
+
+### `/src/post_process/`
+
+Query optimization after solving:
+
+- **response_key.rs**: Handles response key collision avoidance
+- **mutation_order.rs**: Ensures correct mutation execution sequence
+- **partition_cycles.rs**: Breaks circular dependencies between subgraphs
+- **root_typename.rs**: Assigns typename fields to appropriate resolvers
+
+## Key Algorithms
+
+### GreedyFLAC (Greedy Flow Algorithm Computation)
+
+The core algorithm uses a water flow analogy to find optimal paths:
+
+1. **Flow Model**: Each terminal (required field) acts as a water source flowing at rate 1
+2. **Edge Saturation**: Edges fill with flow based on their weight/cost
+3. **Path Selection**: When an edge saturates, it's added to the Steiner tree
+4. **Degenerate Flow Detection**: Prevents multiple paths to the same node
+5. **Termination**: Stops when reaching the root (all terminals connected)
+
+Key implementation details:
+
+- Uses priority queue (Fibonacci heap) for efficient edge selection
+- Maintains flow rates per node for quick updates
+- Tracks feeding terminals to detect degenerate flows
+- Time complexity: O(m log(n)k + min(m, nk)nk²)
+
+### Dynamic Cost Updates
+
+The solver handles dispensable requirements through iterative refinement:
+
+1. Initial cost calibration based on current tree
+2. Tree growth to include more terminals
+3. Cost updates when new requirements become active
+4. Fixed-point iteration until stable
+
+## Core Data Structures
+
+### Query Fields
+
+```rust
+pub struct QueryField {
+    pub type_conditions: IdRange<TypeConditionSharedVecId>,
+    pub query_position: Option<QueryPosition>,
+    pub response_key: Option<ResponseKey>,
+    pub definition_id: Option<FieldDefinitionId>,
+    pub argument_ids: QueryOrSchemaFieldArgumentIds,
+    pub location: Location,
+    // ...
+}
 ```
-1. Initialize: GSAT = (V, ∅), t = 0, M = ∅ (marked arcs), f(a) = 0 for all arcs
-2. While true:
-   a. For each arc not in GSAT ∪ M: calculate time until saturation t(a) = (ω(a) - f(a))/k(a)
-   b. Select arc (u,v) with minimum t(a)
-   c. Update flow in all unsaturated arcs: f(a) = f(a) + k(a) × t(u,v)
-   d. Update elapsed time: t = t + t(u,v)
-   e. If u = r (root reached): return tree T₀ linking r to terminals
-   f. If adding (u,v) creates degenerate flow: mark (u,v) and add to M
-   g. Otherwise: add (u,v) to GSAT
+
+### Solution Space Nodes
+
+- **Root**: Entry point for query execution
+- **QueryField**: Field from the GraphQL operation
+- **QueryPartition**: Subgraph resolver execution
+- **ProvidableField**: Field that can be provided by a resolver
+
+### Steiner Tree State
+
+```rust
+pub struct SteinerTree {
+    pub root: NodeIndex,
+    pub nodes: FixedBitSet,        // Nodes in the tree
+    pub edges: FixedBitSet,        // Edges in the tree
+    pub terminals: Vec<NodeIndex>,  // Required nodes
+    pub total_weight: SteinerWeight // Total cost
+}
 ```
 
-## Fast Implementation (Algorithm 12)
+## Important Concepts
 
-The fast implementation improves efficiency by:
+### Indispensable vs Dispensable Requirements
 
-1. **Maintaining flow rates**: Store k(v) per node instead of computing from GSAT
-2. **Efficient arc selection**: Use a Fibonacci heap ordered by saturation time
-3. **Smart degenerate flow detection**: Use sets Xv (terminals linked to v) and Yv (partial maintenance)
-4. **Sorted arc lists**: Maintain Γ⁻(v) - incoming arcs sorted by weight
+- **Indispensable**: Always required (operation fields, @authorized fields)
+- **Dispensable**: Only needed if certain paths are taken (@requires fields)
 
-### Key Data Structures
+### Query Partitions
 
-- **k(v)**: Flow rate at node v
-- **Xv**: List of terminals v is connected to
-- **Yv**: Set for efficient degenerate flow detection
-- **t(v)**: Time when next incoming arc of v saturates
-- **Γ⁻(v)**: Incoming arcs of v sorted by weight
-- **ΓSAT⁻(v), ΓSAT⁺(v)**: Saturated incoming/outgoing arcs
-- **F**: Fibonacci heap of nodes ordered by t(v)
+Represent execution segments delegated to specific subgraphs. The solver ensures:
 
-### Fast FLAC Steps
+- Minimal number of subgraph calls
+- Proper data flow between partitions
+- Cycle-free execution order
 
+### Providable Fields
+
+Fields that resolvers can provide, potentially with requirements. The system tracks:
+
+- Which fields each resolver provides
+- Requirements needed to provide those fields
+- Cost of satisfying requirements
+
+## Performance Considerations
+
+1. **Graph Sparsity**: Solution space is kept sparse by pruning unnecessary paths early
+2. **Incremental Updates**: Steiner tree grows incrementally, updating only affected parts
+3. **Bitset Operations**: Extensive use of bitsets for efficient set operations
+4. **Cost Caching**: Requirement costs are cached and updated only when necessary
+
+## Testing
+
+The crate includes comprehensive tests in `/src/tests/` covering:
+
+- Basic query planning scenarios
+- Complex federation patterns (entities, interfaces, unions)
+- Edge cases (cycles, mutations, introspection)
+- Performance benchmarks
+
+## Usage Example
+
+```rust
+use query_solver::solve;
+use schema::Schema;
+use operation::Operation;
+
+let schema: Schema = // ... load schema
+let mut operation: Operation = // ... parse operation
+
+let solved_query = solve(&schema, &mut operation)?;
+// solved_query now contains the optimized execution plan
 ```
-1. Initialize data structures
-2. While true:
-   a. Extract node v with minimum t(v) from heap F
-   b. Get first arc (u,v) from Γ⁻(v)
-   c. If u = r: build and return tree T₀
-   d. Check for degenerate flow using Yv ∩ Xu
-   e. If not degenerate:
-      - Add (u,v) to saturated arcs
-      - Update k(w), Xw, Yw for all ancestors w of u
-      - Update t(w) in heap for affected nodes
-   f. Remove (u,v) from Γ⁻(v)
-```
 
-## Degenerate Flow Detection (Algorithm 9)
+## Key Invariants
 
-```
-For each ancestor w of u in the saturated tree:
-   If Yw ∩ Xv ≠ ∅:
-      - Update Yw' for all nodes w' between w and u
-      - Return true (flow is degenerate)
-Return false
-```
+1. **Tree Property**: Solution is always a tree (no cycles)
+2. **Connectivity**: All required fields are reachable from root
+3. **Minimality**: No unnecessary resolvers in the solution
+4. **Correctness**: All dependencies and requirements are satisfied
 
-## Performance Characteristics
+## Debugging
 
-- **Approximation ratio**: k (number of terminals)
-- **Time complexity**: O(m log(n)k + min(m, nk)nk²)
-  - m = number of arcs
-  - n = number of nodes
-  - k = number of terminals
-- **Space complexity**: O(nk + m)
+The crate provides DOT graph visualization at various stages:
 
-## Key Properties
+- Solution space graph
+- Steiner input graph
+- Final solution graph
 
-1. **Density guarantee**: The algorithm finds trees with density at most k times optimal
-2. **Greedy selection**: Always selects the partial solution with best density ratio
-3. **Flow conservation**: The elapsed time when root is reached equals the tree's density
-4. **Non-degeneracy**: Ensures solution is always a tree (no cycles or multiple paths)
-
-## Implementation Notes
-
-- Use Fibonacci heap for efficient minimum extraction and key decrease operations
-- Intersection checks done in O(k) using boolean arrays
-- Flow rate updates propagate only to affected ancestors
-- Early termination when root is reached saves unnecessary computation
-
-# Query Solver Steiner algorithm in 'crates/engine/query-solver/src/solve/solver.rs'
-
-The Solver implements a dynamic Steiner Tree algorithm for finding optimal query resolution paths in GraphQL. Here's how it works:
-
-Core Problem
-
-The solver addresses a Steiner Tree problem with dynamic edge costs based on dispensable requirements. The key challenge is that some nodes (requirements) are only needed if
-certain paths are taken through the graph.
-
-Key Components
-
-1. Solver (solver.rs):
-
-   - Manages the overall solving process
-   - Handles dispensable requirements metadata
-   - Coordinates cost updates based on path-dependent requirements
-   - Orchestrates the iterative solving process
-
-2. ShortestPathAlgorithm (shortest_path/mod.rs):
-
-   - Implements the actual Steiner Tree construction
-   - Maintains shortest paths from root to all nodes
-   - Handles incremental terminal additions
-   - Manages cost updates and path recalculations
-
-3. ShortestPathSteinerTree (shortest_path/tree.rs):
-
-   - Tracks which nodes are in the Steiner tree
-   - Maintains shortest path costs and incoming edges
-   - Implements tree growth operations
-
-Algorithm Flow
-
-1.  Initialization:
-
-    - Identifies initial terminals (query fields marked as LEAF_NODE and INDISPENSABLE)
-    - Builds a filtered graph containing only relevant nodes/edges
-    - Populates dispensable requirements metadata
-    - Performs initial cost calibration
-
-2.  Iterative Execution (execute() method):
-    loop {
-    // Grow tree to include more terminals
-    let has_terminals_left = self.algorithm.continue_steiner_tree_growth();
-
-        // Update costs based on new requirements
-        let added_new_terminals = self.cost_fixed_point_iteration()?;
-
-        // Stop if no terminals left and no new ones added
-        if !has_terminals_left && !added_new_terminals {
-            break;
-        }
-
-    }
-
-3.  Dynamic Cost Updates:
-
-    - When a node with dispensable requirements is added to the tree, its requirements become indispensable
-    - Edge costs are adjusted to reflect the cost of satisfying these requirements
-    - Uses fixed-point iteration to stabilize costs
-
-4.  Tree Growth Strategy:
-
-    - Prioritizes zero-cost terminals first
-    - Adds at least one non-zero cost terminal per iteration
-    - Updates shortest paths after each growth phase
-    - Handles cascading zero-cost additions
-
-Key Interactions
-
-- Solver → ShortestPathAlgorithm:
-  - continue_steiner_tree_growth(): Advances tree construction
-  - insert_edge_cost_update(): Queues edge cost changes
-  - apply_all_cost_updates(): Applies pending cost changes
-  - estimate_extra_cost(): Calculates requirement costs for path evaluation
-  - extend_terminals(): Adds new required nodes based on chosen paths
-- ShortestPathAlgorithm → ShortestPathSteinerTree:
-  - grow_with_some_terminals(): Adds terminals and updates paths
-  - update_shortest_paths(): Recalculates shortest paths after changes
-  - node_addition_cost(): Gets cost to add a node to current tree
-
-The algorithm elegantly handles the dynamic nature of the problem where choosing certain paths creates new requirements, which in turn affects the optimal solution. The
-iterative approach with cost updates ensures that the final Steiner tree considers all path-dependent requirements while minimizing total cost.
-
-# GreeydyFLAC query solver implementation
-
-path: crates/engine/query-solver/src/solve/steiner_tree/greedy_flac/mod.rs
-
-Implementation Overview
-
-The implementation consists of two main files in /crates/engine/query-solver/src/solve/steiner_tree/greedy_flac/:
-
-1. mod.rs: Contains the GreedyFlacAlgorithm struct that provides the high-level interface
-2. flac.rs: Contains the core FLAC algorithm implementation
-
-Key Components
-
-GreedyFlacAlgorithm (mod.rs:19-186):
-
-- Manages the Steiner tree construction for DAGs
-- Integrates with the broader query solver context
-- Provides methods for:
-  - Initializing with root and terminals
-  - Updating edge costs dynamically
-  - Extending terminals during execution
-  - Estimating costs for additional terminals
-  - Generating DOT graph visualization
-
-Flac (flac.rs:42-98):
-
-- Core data structure maintaining:
-  - Graph state (root, Steiner tree nodes, edge weights)
-  - Algorithm state (saturated edges, flow rates, feeding terminals)
-  - Run state (time, priority heap, stack)
-
-Runner (flac.rs:105-322):
-
-- Implements the actual FLAC algorithm execution
-- Key methods:
-  - run(): Main algorithm loop
-  - update_flow_rates(): Updates flow after edge saturation
-  - detect_generate_flow_and_collect_edges(): Checks for degenerate flow
-
-Algorithm Flow
-
-1. Initialization: Sets up the root node and initial terminals
-2. Main Loop:
-
-   - Extracts next saturating edge from priority heap
-   - Updates flow rates and checks for degenerate flow
-   - Adds saturated edges to the tree
-   - Continues until reaching the Steiner tree (root)
-
-3. Flow Management: Uses water flow analogy where terminals are sources flowing at rate 1
-
-Key Features
-
-- Efficient edge selection: Uses priority queue ordered by saturation time
-- Degenerate flow detection: Prevents multiple paths to same node
-- Dynamic cost updates: Supports changing edge costs during execution
-- Cost estimation: Can estimate costs for hypothetical terminal additions
-
-The implementation follows the FLAC algorithm described in the context.md, using a flow-based approach to greedily construct a Steiner tree that connects all terminals to the root
-with minimal cost.
+Use `to_pretty_dot_graph()` methods and visualize with Graphviz or online tools.
