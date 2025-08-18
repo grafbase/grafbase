@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Test for @oneOf input objects
+input_file: crates/graphql-composition/tests/composition/input_object_oneof_basic/test.md
+---
+

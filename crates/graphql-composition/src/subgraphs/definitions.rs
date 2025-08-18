@@ -75,15 +75,20 @@ impl Subgraphs {
             .map(|(_, implementer)| *implementer)
     }
 
-    pub(crate) fn push_definition(
+    pub(crate) fn get_or_push_definition(
         &mut self,
         subgraph_id: SubgraphId,
         name: &str,
         kind: DefinitionKind,
         description: Option<StringId>,
-        directive_site_id: DirectiveSiteId,
     ) -> DefinitionId {
         let name = self.strings.intern(name);
+
+        if let Some(existing_definition) = self.definition_names.get(&(name, subgraph_id)) {
+            return *existing_definition;
+        }
+
+        let directive_site_id = self.new_directive_site();
 
         let definition = Definition {
             subgraph_id,

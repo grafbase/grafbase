@@ -1,0 +1,40 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Test for @oneOf input objects
+input_file: crates/graphql-composition/tests/composition/input_object_oneof_basic/test.md
+---
+enum Status {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+type User {
+  email: String!
+  id: ID!
+  name: String!
+}
+
+type Product {
+  id: ID!
+  name: String!
+  price: Float!
+}
+
+type Query {
+  search(filter: SearchFilter!): [SearchResult!]!
+}
+
+input SearchFilter {
+  byId: ID
+  byName: String
+  byDateRange: DateRangeFilter
+  byStatus: Status
+}
+
+input DateRangeFilter {
+  start: String!
+  end: String!
+}
+
+union SearchResult = User | Product

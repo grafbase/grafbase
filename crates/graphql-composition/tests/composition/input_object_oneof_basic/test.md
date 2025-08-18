@@ -1,0 +1,1 @@
+Test for @oneOf input objects

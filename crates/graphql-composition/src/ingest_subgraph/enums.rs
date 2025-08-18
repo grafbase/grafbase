@@ -1,6 +1,10 @@
 use super::*;
 
-pub(super) fn ingest_enum(ctx: &mut Context<'_>, definition_id: DefinitionId, enum_type: ast::EnumDefinition<'_>) {
+pub(super) fn ingest_enum_values(
+    ctx: &mut Context<'_>,
+    definition_id: DefinitionId,
+    enum_type: ast::EnumDefinition<'_>,
+) {
     for value in enum_type.values() {
         let value_name = ctx.subgraphs.strings.intern(value.value());
         let value_directives = ctx.subgraphs.new_directive_site();
