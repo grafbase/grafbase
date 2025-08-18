@@ -220,7 +220,6 @@ pub(super) fn compose_field<'a>(
 
     let arguments = object::merge_field_arguments(first, fields, ctx);
 
-    let field_name = ctx.insert_string(field_name.id);
     let field_type = fields::compose_output_field_types(fields.iter().copied(), ctx)?;
 
     let mut directives = collect_composed_directives(fields.iter().map(|f| f.directives()), ctx);
@@ -232,7 +231,7 @@ pub(super) fn compose_field<'a>(
 
     Some(ir::FieldIr {
         parent_definition_name,
-        field_name,
+        field_name: field_name.id,
         field_type,
         arguments,
         directives,

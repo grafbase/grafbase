@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use super::*;
 
 pub(super) fn merge_interface_definitions<'a>(
@@ -23,17 +21,8 @@ pub(super) fn merge_interface_definitions<'a>(
         }
     });
 
-    // FIXME: there has to be a better way...
-    let field_name_mapping = definitions
-        .iter()
-        .flat_map(|def| def.fields())
-        .map(|field| (ctx.insert_string(field.name().id), field.name().id))
-        .collect::<HashMap<_, _>>();
     let fields = object::compose_fields(ctx, definitions, interface_name);
-    let field_names = fields
-        .iter()
-        .map(|field| field_name_mapping[&field.field_name])
-        .collect::<Vec<_>>();
+    let field_names = fields.iter().map(|field| field.field_name).collect::<Vec<_>>();
     for field in fields {
         ctx.insert_field(field);
     }
@@ -41,7 +30,7 @@ pub(super) fn merge_interface_definitions<'a>(
     check_implementers(first.name().id, &field_names, ctx);
 }
 
-fn check_implementers(interface_name: StringId, field_names: &[StringId], ctx: &mut Context<'_>) {
+fn check_implementers(interface_name: StringId, field_names: &[subgraphs::StringId], ctx: &mut Context<'_>) {
     for implementer_name in ctx.subgraphs.iter_implementers_for_interface(interface_name) {
         for field_name in field_names {
             if !ctx

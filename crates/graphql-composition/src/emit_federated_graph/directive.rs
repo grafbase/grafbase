@@ -233,7 +233,7 @@ fn transform_list_size_directive(
     let sized_fields = sized_fields
         .iter()
         .filter_map(|field| {
-            let field_name = ctx.lookup_str(field)?;
+            let field_name = ctx.subgraphs.strings.lookup(field)?;
             ctx.selection_map.get(&(child_type_id, field_name)).copied()
         })
         .collect();
