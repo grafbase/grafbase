@@ -1,6 +1,7 @@
 {
   "name": "products-service",
   "version": "1.0.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "start": "tsx src/server.ts",
