@@ -34,6 +34,22 @@ impl RequirementAndWeightUpdater {
         })
     }
 
+    pub fn initialize(
+        &mut self,
+        ctx: OperationContext<'_>,
+        input: &mut SteinerInput<'_>,
+        steiner_tree: &mut SteinerTree,
+    ) -> crate::Result<()> {
+        // No weights to compute
+        if input.requirements.requirements_by_edge.is_empty() {
+            self.independent_requirements = Some(true);
+            Ok(())
+        } else {
+            let _ = self.run_fixed_point_weight(ctx, input, steiner_tree)?;
+            Ok(())
+        }
+    }
+
     pub fn run_fixed_point_weight(
         &mut self,
         ctx: OperationContext<'_>,

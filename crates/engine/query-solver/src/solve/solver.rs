@@ -64,7 +64,7 @@ where
         } else {
             let flac = GreedyFlac::new(&input.graph);
             let mut updater = RequirementAndWeightUpdater::new(&input)?;
-            let _ = updater.run_fixed_point_weight(ctx, &mut input, &mut steiner_tree)?;
+            updater.initialize(ctx, &mut input, &mut steiner_tree)?;
             State::Unsolved { flac, updater }
         };
 

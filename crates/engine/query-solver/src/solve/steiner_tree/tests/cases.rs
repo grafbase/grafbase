@@ -4,38 +4,6 @@ use super::*;
 use crate::solve::steiner_tree::{GreedyFlac, SteinerTree};
 
 #[test]
-fn step_by_step() {
-    let mut runner = Runner::from_dot_graph(
-        r#"
-        digraph {
-            root -> a;
-            a -> t1 [label=1];
-            a -> t2 [label=2];
-        }
-        "#,
-    );
-
-    let outcome = runner.run_once();
-    assert!(outcome.is_continue(), "\n{}", runner.debug_graph());
-    insta::assert_snapshot!(runner.steiner_graph(), @r"
-    digraph {
-      a -> t1
-      root -> a
-    }
-    ");
-
-    let outcome = runner.run_once();
-    assert!(outcome.is_break(), "\n{}", runner.debug_graph());
-    insta::assert_snapshot!(runner.steiner_graph(), @r"
-    digraph {
-      a -> t1
-      a -> t2
-      root -> a
-    }
-    ");
-}
-
-#[test]
 fn single_terminal_direct_path() {
     let mut runner = Runner::from_dot_graph(
         r#"

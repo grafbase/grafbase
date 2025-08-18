@@ -13,16 +13,10 @@ pub fn query_plan1(c: &mut Criterion) {
     let cases = runtime().block_on(
         SchemaAndQuery::cases()
             .iter()
-            .map(|(params, case)| async {
-                tracing::warn!("{}", *params);
-                case.to_engine().await.raw_execute().await;
-                (*params, case.query.len(), case.to_engine().await)
-            })
+            .map(|(params, case)| async { (*params, case.query.len(), case.to_engine().await) })
             .collect::<FuturesUnordered<_>>()
             .collect::<Vec<_>>(),
     );
-
-    unreachable!();
 
     // Sanity check it works.
     let response = runtime().block_on(async { cases.first().unwrap().2.execute().await });
