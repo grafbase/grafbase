@@ -12,14 +12,25 @@ use crate::solve::{
     steiner_tree::{GreedyFlac, SteinerTree},
 };
 
+/// Manages the dynamic weight updates for edges based on their requirements.
+///
+/// # Purpose
+///
+/// Some edges have requirements (like needing an ID field) that are only costly if we don't already
+/// have them. This updater recalculates edge weights as the Steiner tree grows, making requirements
+/// "free" if they're already satisfied by the current tree.
 pub(crate) struct RequirementAndWeightUpdater {
-    /// Keeps track of dispensable requirements to adjust edge weight, ideally we'd like to avoid
-    /// them.
+    /// Tracks whether requirements are independent of each other.
+    /// If true, we can skip the fixed-point iteration since weights don't affect each other.
     independent_requirements: Option<bool>,
     /// Temporary storage for extra terminals to be added to the algorithm.
+    /// These are requirements that become mandatory once certain edges are chosen.
     tmp_new_terminals: Vec<NodeIndex>,
     tmp_new_space_terminals: Vec<NodeIndex>,
+    /// Temporary Steiner tree used for estimating requirement costs.
+    /// We clone the main tree and simulate adding requirements to estimate their weight.
     tmp_steiner_tree: SteinerTree,
+    /// Temporary FLAC instance for running cost estimation simulations.
     tmp_flac: GreedyFlac,
 }
 
@@ -90,6 +101,19 @@ impl std::ops::DerefMut for FixedPointWeightAlgorithm<'_, '_, '_, '_, '_> {
 
 impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_, '_> {
     /// Updates the weight of edges based on the requirements of the nodes.
+    ///
+    /// # Fixed-Point Algorithm
+    ///
+    /// This implements a fixed-point iteration to handle complex requirement dependencies.
+    /// Some requirements are trivially free (like requiring an ID field from the parent resolver),
+    /// but others may depend on fields that have their own requirements.
+    ///
+    /// For complex requirements, we don't know whether the cost of one will impact another.
+    /// So we might need N rounds of weight updates to get accurate weights. In mathematics,
+    /// a fixed point is a value v for which a function f returns itself: v = f(v).
+    /// Here, that means re-applying the weight update algorithm results in the same state.
+    /// That's how we know we're finished updating.
+    ///
     /// We iterate until weight becomes stable or we exhausted the maximum number of iterations which
     /// likely indicates a requirement cycle.
     pub fn run(mut self) -> crate::Result<ControlFlow<()>> {
@@ -133,7 +157,12 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_, '_> {
             .extend(self.input.requirements[required_node_ids].iter().copied());
     }
 
-    /// For all edges with dispensable requirements, we estimate the weight of the extra requirements
+    /// Updates edge weights based on their requirements and the current Steiner tree state.
+    ///
+    /// For free requirements, we just need to include the required nodes as terminals if
+    /// necessary.
+    /// For the others, we need to re-estimate their weight. It's hard to be really smarter than
+    /// re-computing it all the time. We estimate the weight of the extra requirements
     /// by computing weight of adding them to the current Steiner tree plus the base weight of the
     /// edge.
     fn generate_weight_updates_based_on_requirements(&mut self) {
@@ -226,6 +255,8 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_, '_> {
                         .join("\n")
                 );
 
+                // The inherent weight, is the weight of the edge before adding any requirements weight. The current graph may has already
+                // some requirement weight added, so we can't use the current value.
                 for (edge_id, inherent_weight) in &self.input.requirements[dependent_edge_with_inherent_weight_ids] {
                     let weight = *inherent_weight + requirements_weight;
                     let old = std::mem::replace(&mut self.input.graph[*edge_id], weight);
@@ -239,6 +270,21 @@ impl<'state> FixedPointWeightAlgorithm<'state, '_, '_, '_, '_> {
 }
 
 impl RequirementAndWeightUpdater {
+    /// Estimates the cost of satisfying a set of requirements.
+    ///
+    /// # Algorithm
+    ///
+    /// This function computes a Steiner tree for the requirements to estimate their cost.
+    /// The edges/nodes of this sub-tree don't matter, but the total cost does.
+    ///
+    /// 1. Clone the current Steiner tree state
+    /// 2. Add the required nodes as new terminals
+    /// 3. Mark unavoidable parent edges as already in the tree (they're prerequisites)
+    /// 4. Run GreedyFLAC to find the minimum cost to connect all requirements
+    /// 5. Return the total weight as the estimated cost
+    ///
+    /// This cost estimation lets the core loop know that taking certain edges is costly
+    /// if they require a bunch of intermediate plans.
     fn estimate_requirements_weight(
         &mut self,
         input: &mut SteinerInput<'_>,
@@ -257,6 +303,10 @@ impl RequirementAndWeightUpdater {
             return 0;
         }
 
+        // Unavoidable parent edges are edges we must take to reach the node requiring those new
+        // nodes. They might not have been included in the steiner tree yet, so we want to
+        // differentiate cases where requirements will be easily providable by a parent resolver
+        // from those where we need a separate resolver.
         for &edge_id in &input.requirements[unavoidable_parent_edge_ids] {
             self.tmp_steiner_tree.edges.insert(edge_id.index());
             let (_, dst) = input.graph.edge_endpoints(edge_id).unwrap();

@@ -20,12 +20,30 @@ use super::steiner_tree::GreedyFlac;
 /// There are two cores aspects to this, expressing the problem as a Steiner tree problem and
 /// solving it with an appropriate algorithm.
 ///
-/// For the first part, the most difficult aspect are dispensable requirements, meaning only needed
-/// in certain paths.
-/// We don't know whether we'll need them and we don't want to retrieve them if not necessary. To take them
-/// into account, we adjust the cost of edges that require them. If requirements can be trivially
-/// provided by the parent resolver, no cost is added. If it needs intermediate resolvers not (yet)
-/// part of the Steiner it incurs an extra cost.
+/// # Context and Purpose
+///
+/// The Steiner tree algorithm is used in two contexts:
+/// 1. For the actual solution: Finding the edges of the Steiner tree that determines the query plan
+/// 2. For requirements estimation: Estimating the cost of requirements to determine how much weight
+///    to add to edges (federated entity resolvers typically) if they require intermediate plans
+///
+/// # The Challenge of Requirements
+///
+/// Requirements are complicated to express for the Steiner tree problem because they are conditional
+/// on the edges taken. The standard Steiner tree problem doesn't change weights midway through solving.
+///
+/// # The Solution Process
+///
+/// To deal with conditional requirements, we:
+/// 1. Initial cost estimation: Estimate how costly certain edges are if they need extra requirements
+///    (e.g., an ID field that wasn't requested)
+/// 2. Run FLAC once: Create an initial subset of the final Steiner tree
+/// 3. Update edge weights: Adjust weights based on what's already in the tree. If we're going to
+///    the products subgraph through a federation entity request anyway, requesting a `upc` field becomes
+///    free. Initially, we had no idea, so we assumed that request was costly and increased the weight
+///    of any resolver requiring it.
+/// 4. Add new terminals: If resolvers we chose have extra requirements not in the original query,
+///    add them as terminals (nodes to reach) so they'll be in the final Steiner tree
 ///
 /// As this extra cost changes every time we change the Steiner tree, we have to adjust those while
 /// constructing it.
@@ -86,6 +104,14 @@ where
     }
 
     /// Solves the Steiner tree problem for the resolvers of our operation graph.
+    ///
+    /// # The Core Algorithm Loop
+    ///
+    /// This executes the main solving loop that alternates between:
+    /// 1. Tree growth (FLAC): Expands the Steiner tree to connect more terminals
+    /// 2. Weight updates (Fixed-point algorithm): Adjusts edge weights based on new requirements
+    ///
+    /// The loop continues until both operations report no changes (reaching a fixed point).
     pub fn execute(&mut self) -> crate::Result<()> {
         match std::mem::take(&mut self.state) {
             State::Solved => {
@@ -93,9 +119,14 @@ where
             }
             State::Unsolved { mut flac, mut updater } => {
                 loop {
+                    // Grow the Steiner tree by running one iteration of GreedyFLAC
                     let growth = flac.run_once(&self.input.graph, &mut self.steiner_tree);
+
+                    // Update edge weights based on requirements, potentially adding new terminals
+                    // This runs the fixed-point algorithm until weights stabilize
                     let update = updater.run_fixed_point_weight(self.ctx, &mut self.input, &mut self.steiner_tree)?;
 
+                    // Stop when both the tree growth and weight updates have stabilized
                     if update.is_break() && growth.is_break() {
                         break;
                     }

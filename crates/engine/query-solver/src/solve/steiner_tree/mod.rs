@@ -1,3 +1,16 @@
+/// Steiner tree algorithm implementation for query plan optimization.
+///
+/// # The Directed Steiner Tree Problem
+///
+/// Given a graph with weighted edges, a root node, and a set of terminal nodes,
+/// find the minimum-weight tree that connects the root to all terminals.
+///
+/// In our context:
+/// - Root: The entry point for query execution
+/// - Terminals: Leaf fields from the GraphQL query and their requirements, added incrementally.
+/// - Edges: Possible resolution paths with costs (subgraph calls, entity lookups)
+/// - Goal: Find the cheapest way to fetch all required data
+///
 mod greedy_flac;
 #[cfg(test)]
 mod tests;
@@ -13,6 +26,10 @@ use petgraph::{
 
 use crate::solve::input::{SteinerNodeId, SteinerWeight};
 
+/// Represents the current state of the Steiner tree being constructed.
+///
+/// Tracks which nodes and edges are part of the solution, the total cost,
+/// and which nodes are terminals.
 pub(crate) struct SteinerTree {
     pub nodes: FixedBitSet,
     pub edges: FixedBitSet,
