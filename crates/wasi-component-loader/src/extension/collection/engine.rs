@@ -159,8 +159,6 @@ async fn create_pools(
         .max(1);
 
     stream::iter(extensions.into_iter().map(|config| async move {
-        tracing::info!("Loading extension {}", config.manifest_id);
-
         std::future::ready(()).await;
 
         let id = config.id;

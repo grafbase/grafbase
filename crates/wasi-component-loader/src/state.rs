@@ -75,6 +75,7 @@ pub(crate) struct ExtensionState {
 
 impl ExtensionState {
     pub fn new(catalog: &Arc<ExtensionCatalog>, config: ExtensionConfig) -> Self {
+        tracing::info!("Loading extension {}", config.manifest_id);
         let meter = meter_from_global_provider();
         let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").build();
         let http_client = reqwest::Client::new();

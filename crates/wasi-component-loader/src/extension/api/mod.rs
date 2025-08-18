@@ -43,13 +43,13 @@ impl SdkPre {
         linker: Linker<InstanceState>,
     ) -> wasmtime::Result<SdkPre> {
         Ok(match (config.sdk_version.major, config.sdk_version.minor) {
-            (0, 10..14) => SdkPre::Since0_10_0(SdkPre0_10_0::new(schema, config, component, linker)?),
+            (0, 10..=13) => SdkPre::Since0_10_0(SdkPre0_10_0::new(schema, config, component, linker)?),
             (0, 14) => SdkPre::Since0_14_0(SdkPre0_14_0::new(schema, config, component, linker)?),
             (0, 15) => SdkPre::Since0_15_0(SdkPre0_15_0::new(schema, config, component, linker)?),
             (0, 16) => SdkPre::Since0_16_0(SdkPre0_16_0::new(schema, config, component, linker)?),
             (0, 17) => SdkPre::Since0_17_0(SdkPre0_17_0::new(schema, config, component, linker)?),
             (0, 18) => SdkPre::Since0_18_0(SdkPre0_18_0::new(schema, config, component, linker)?),
-            (0, 19..21) => SdkPre::Since0_19_0(SdkPre0_19_0::new(schema, config, component, linker)?),
+            (0, 19..=20) => SdkPre::Since0_19_0(SdkPre0_19_0::new(schema, config, component, linker)?),
             (0, 21) => SdkPre::Since0_21_0(SdkPre0_21_0::new(schema, config, component, linker)?),
             (major, minor) => unimplemented!("SDK version {major}.{minor} is not supported",),
         })
