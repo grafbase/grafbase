@@ -15,7 +15,7 @@ wasmtime::component::bindgen!({
         "grafbase:sdk/grpc": crate::extension::api::since_0_14_0::wit::grpc,
         "grafbase:sdk/kafka-client": crate::extension::api::since_0_16_0::wit::kafka_client,
         "grafbase:sdk/nats-client": crate::extension::api::since_0_10_0::wit::nats_client,
-        "grafbase:sdk/http-client": crate::extension::api::since_0_10_0::wit::http_client,
+        "grafbase:sdk/http-client": crate::extension::api::since_0_19_0::wit::http_client,
         "grafbase:sdk/postgres": crate::extension::api::since_0_15_0::wit::postgres,
         "grafbase:sdk/schema": crate::extension::api::since_0_17_0::wit::schema,
         "grafbase:sdk/headers": crate::extension::api::since_0_19_0::wit::headers,
