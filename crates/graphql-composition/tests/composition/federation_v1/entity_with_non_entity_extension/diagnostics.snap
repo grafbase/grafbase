@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Entity extended as non-entity in another subgraph
+input_file: crates/graphql-composition/tests/composition/federation_v1/entity_with_non_entity_extension/test.md
+---
+

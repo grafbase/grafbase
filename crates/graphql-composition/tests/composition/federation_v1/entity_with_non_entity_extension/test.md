@@ -1,0 +1,1 @@
+Entity extended as non-entity in another subgraph

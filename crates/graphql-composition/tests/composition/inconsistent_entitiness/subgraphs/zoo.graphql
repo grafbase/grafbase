@@ -1,4 +1,0 @@
-type Animal @key(fields: "id") {
-    id: ID!
-    name: String!
-}

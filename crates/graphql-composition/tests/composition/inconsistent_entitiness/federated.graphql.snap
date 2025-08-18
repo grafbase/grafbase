@@ -1,6 +1,0 @@
----
-source: crates/graphql-composition/tests/composition_tests.rs
-expression: Federated SDL
-input_file: crates/graphql-composition/tests/composition/inconsistent_entitiness/test.md
----
-
