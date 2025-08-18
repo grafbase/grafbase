@@ -202,6 +202,10 @@ impl<'a> DefinitionWalker<'a> {
 }
 
 impl DefinitionId {
+    pub(crate) fn is_entity(self, subgraphs: &Subgraphs) -> bool {
+        self.keys(subgraphs).next().is_some()
+    }
+
     pub(crate) fn keys(self, subgraphs: &Subgraphs) -> impl Iterator<Item = KeyId> + '_ {
         let start = subgraphs.keys.keys.partition_point(|key| key.definition_id < self);
 

@@ -1,0 +1,9 @@
+type User {
+  bio: String
+  avatarUrl: String
+  createdAt: String!
+}
+
+type Query {
+  recentUsers: [User!]!
+}

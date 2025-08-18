@@ -75,25 +75,7 @@ fn merge_object_definitions<'a>(
         return;
     }
 
-    let is_entity = first.is_entity();
-    if definitions.iter().any(|object| object.is_entity() != is_entity) {
-        let name = first.name().as_str();
-        let (entity_subgraphs, non_entity_subgraphs) = definitions
-            .iter()
-            .partition::<Vec<DefinitionWalker<'_>>, _>(|definition| definition.is_entity());
-
-        ctx.diagnostics.push_fatal(format!(
-            "The `{name}` object is an entity in subgraphs {} but not in subgraphs {}.",
-            entity_subgraphs
-                .into_iter()
-                .map(|d| d.subgraph().name().as_str())
-                .join(", "),
-            non_entity_subgraphs
-                .into_iter()
-                .map(|d| d.subgraph().name().as_str())
-                .join(", "),
-        ));
-    }
+    let is_entity = validate_consistent_entityness(ctx, definitions);
 
     let description = definitions.iter().find_map(|def| def.description());
     let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
@@ -120,6 +102,53 @@ fn merge_object_definitions<'a>(
     for field in fields {
         ctx.insert_field(field);
     }
+}
+
+fn validate_consistent_entityness(ctx: &mut Context<'_>, definitions: &[DefinitionWalker<'_>]) -> bool {
+    let is_entity = definitions.iter().any(|def| def.is_entity());
+
+    if !is_entity {
+        return false;
+    }
+
+    if definitions
+        .iter()
+        .all(|def| def.is_entity() || def.subgraph().id.1.federation_spec.is_apollo_v1())
+    {
+        return true;
+    }
+
+    let Some(definition) = definitions.first() else {
+        return false;
+    };
+    let mut non_entity_fed_v2 = Vec::new();
+    let mut entity_definitions = Vec::new();
+
+    for definition in definitions {
+        let definition = ctx.subgraphs.at(definition.id);
+        let subgraph = ctx.subgraphs.at(definition.subgraph_id);
+        let definition_is_entity = definition.id.is_entity(ctx.subgraphs);
+        let subgraph_name = &ctx.subgraphs[subgraph.name];
+
+        if definition_is_entity {
+            entity_definitions.push(subgraph_name);
+        } else if subgraph.federation_spec.is_apollo_v2() {
+            non_entity_fed_v2.push(subgraph_name);
+        }
+    }
+
+    ctx.diagnostics.push_fatal(format!(
+        "The `{name}` object is an entity in subgraphs {entity_definitions} but not in subgraphs {non_entity_subgraphs}.",
+        name = definition.name().as_str(),
+        entity_definitions = entity_definitions
+            .into_iter()
+            .join(", "),
+        non_entity_subgraphs = non_entity_fed_v2
+            .into_iter()
+            .join(", "),
+    ));
+
+    false
 }
 
 fn merge_union_definitions(
