@@ -18,6 +18,7 @@
 - Fixed a panic in validation for `@provides` on fields returning a built-in scalar type, like `Int`.
 - Fixed `Diagnostics::iter_warnings()` iterating over warnings instead of errors.
 - Interfaces both defined in federation v1 subgraphs and as entity interfaces in federation v2 subgraphs do not force the federation v1 subgraphs to define all implementers of the entity interface anymore.
+- Federation v1 subgraphs are no longer taken into account when composing entity interfaces.
 
 ## Breaking changes
 

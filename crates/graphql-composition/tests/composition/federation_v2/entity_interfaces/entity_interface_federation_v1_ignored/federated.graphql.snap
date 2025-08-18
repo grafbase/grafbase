@@ -1,0 +1,74 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "Federation v1 subgraphs should not be considered for entity interface detection.\n\nThis test verifies that when:\n- Two federation v2 subgraphs define a regular interface `Item` without @key \n- One federation v1 subgraph defines the same interface with @key\n\nThe interface remains a regular interface and is NOT promoted to an entity interface, because:\n- Entity interfaces are a federation v2 feature\n- Only federation v2 subgraphs (with @link directive) should be considered for entity interface detection\n- Federation v1 subgraphs should be ignored in this determination"
+input_file: crates/graphql-composition/tests/composition/federation_v2/entity_interfaces/entity_interface_federation_v1_ignored/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type InventoryItem implements Item
+  @join__type(graph: INVENTORY, key: "id")
+  @join__implements(graph: INVENTORY, interface: "Item")
+{
+  id: ID!
+  name: String!
+  price: Float!
+  quantity: Int!
+  warehouse: String!
+}
+
+type LegacyItem implements Item
+  @join__type(graph: LEGACY, key: "id")
+  @join__implements(graph: LEGACY, interface: "Item")
+{
+  id: ID!
+  legacyCode: String!
+  name: String!
+  price: Float!
+}
+
+type Product implements Item
+  @join__type(graph: PRODUCTS, key: "id")
+  @join__implements(graph: PRODUCTS, interface: "Item")
+{
+  category: String!
+  id: ID!
+  inStock: Boolean!
+  name: String!
+  price: Float!
+}
+
+type Query
+{
+  inventory: [InventoryItem!]! @join__field(graph: INVENTORY)
+  legacyItems: [LegacyItem!]! @join__field(graph: LEGACY)
+  products: [Product!]! @join__field(graph: PRODUCTS)
+}
+
+interface Item
+  @join__type(graph: INVENTORY)
+  @join__type(graph: LEGACY)
+  @join__type(graph: PRODUCTS)
+{
+  id: ID!
+  name: String!
+  price: Float!
+}
+
+enum join__Graph
+{
+  INVENTORY @join__graph(name: "inventory", url: "http://example.com/inventory")
+  LEGACY @join__graph(name: "legacy", url: "http://example.com/legacy")
+  PRODUCTS @join__graph(name: "products", url: "http://example.com/products")
+}

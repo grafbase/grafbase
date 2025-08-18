@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "Federation v1 subgraphs should not be considered for entity interface detection.\n\nThis test verifies that when:\n- Two federation v2 subgraphs define a regular interface `Item` without @key \n- One federation v1 subgraph defines the same interface with @key\n\nThe interface remains a regular interface and is NOT promoted to an entity interface, because:\n- Entity interfaces are a federation v2 feature\n- Only federation v2 subgraphs (with @link directive) should be considered for entity interface detection\n- Federation v1 subgraphs should be ignored in this determination"
+input_file: crates/graphql-composition/tests/composition/federation_v2/entity_interfaces/entity_interface_federation_v1_ignored/test.md
+---
+

@@ -10,6 +10,12 @@ use crate::federated_graph::ListSizeDirective;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct DirectiveSiteId(usize);
 
+impl DirectiveSiteId {
+    pub(crate) fn interface_object(&self, subgraphs: &Subgraphs) -> bool {
+        subgraphs.directives.interface_object.contains(self)
+    }
+}
+
 impl From<usize> for DirectiveSiteId {
     fn from(value: usize) -> Self {
         DirectiveSiteId(value)

@@ -2,6 +2,28 @@ use std::collections::HashMap;
 
 use super::*;
 
+pub(super) fn is_entity_interface(
+    subgraphs: &subgraphs::Subgraphs,
+    mut definitions: impl Iterator<Item = subgraphs::DefinitionId>,
+) -> bool {
+    // Take the first federation v2 definition.
+    let Some(definition_id) = definitions.find(|def| {
+        let subgraph_id = subgraphs.at(*def).subgraph_id;
+        subgraphs.at(subgraph_id).federation_spec.is_apollo_v2()
+    }) else {
+        return false;
+    };
+
+    // Is it an entity interface object, or an interface with @key?
+    let definition = &subgraphs.at(definition_id);
+
+    match definition.kind {
+        DefinitionKind::Object => definition.directives.interface_object(subgraphs),
+        DefinitionKind::Interface => definition_id.keys(subgraphs).next().is_some(),
+        _ => false,
+    }
+}
+
 pub(crate) fn merge_entity_interface_definitions<'a>(
     ctx: &mut Context<'a>,
     first: DefinitionWalker<'a>,

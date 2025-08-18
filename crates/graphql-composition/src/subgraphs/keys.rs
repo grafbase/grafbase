@@ -197,16 +197,19 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub(crate) fn entity_keys(self) -> impl Iterator<Item = KeyWalker<'a>> {
-        let start = self
-            .subgraphs
-            .keys
-            .keys
-            .partition_point(|key| key.definition_id < self.id);
-        self.subgraphs.keys.keys[start..]
+        self.id.keys(self.subgraphs).map(move |id| self.walk(id))
+    }
+}
+
+impl DefinitionId {
+    pub(crate) fn keys(self, subgraphs: &Subgraphs) -> impl Iterator<Item = KeyId> + '_ {
+        let start = subgraphs.keys.keys.partition_point(|key| key.definition_id < self);
+
+        subgraphs.keys.keys[start..]
             .iter()
-            .take_while(move |key| key.definition_id == self.id)
+            .take_while(move |key| key.definition_id == self)
             .enumerate()
-            .map(move |(idx, _)| self.walk(KeyId::from(start + idx)))
+            .map(move |(idx, _)| KeyId::from(start + idx))
     }
 }
 
