@@ -35,9 +35,7 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
             return;
         };
 
-        if first.directives().interface_object()
-            || (first.kind() == DefinitionKind::Interface && first.entity_keys().next().is_some())
-        {
+        if entity_interface::is_entity_interface(ctx.subgraphs, definitions.iter().map(|def| def.id)) {
             return entity_interface::merge_entity_interface_definitions(ctx, *first, definitions);
         }
 
