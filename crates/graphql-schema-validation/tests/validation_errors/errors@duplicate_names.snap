@@ -3,7 +3,7 @@ source: crates/graphql-schema-validation/tests/validation_tests.rs
 expression: displayed
 input_file: crates/graphql-schema-validation/tests/validation_errors/duplicate_names.graphql
 ---
-  × Duplicate definition. There can only be one type name "Test"
+  × Duplicate definition. There can only be one type named "Test"
    ╭─[1:6]
  1 │ type Test {
    ·      ──┬─

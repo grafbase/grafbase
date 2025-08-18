@@ -18,20 +18,3 @@ input_file: crates/graphql-schema-validation/tests/validation_errors/definitions
    ·      ──────
  7 │   MEEP
    ╰────
-
-
-  × `Int` is a reserved name.
-    ╭─[11:8]
- 10 │ 
- 11 │ scalar Int
-    ·        ───
- 12 │ scalar Boolean
-    ╰────
-
-
-  × `Boolean` is a reserved name.
-    ╭─[12:8]
- 11 │ scalar Int
- 12 │ scalar Boolean
-    ·        ───────
-    ╰────
