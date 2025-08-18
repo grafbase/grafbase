@@ -119,6 +119,8 @@ impl<'a> Solver<'a> {
             self.generate_query_partition(partition_to_create);
         }
 
+        tracing::warn!("Generated {} query partitions", self.output.query_plan.partitions.len());
+
         self.populate_derive_from()?;
 
         let mut response_data_fields = BitSet::with_capacity(self.output.query_plan.data_fields.len());

@@ -1,0 +1,39 @@
+---
+source: crates/engine/query-solver/src/tests/provides.rs
+assertion_line: 63
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n    1 [ label = \"Category.kind\", color=forestgreen style=bold ]\n    2 [ label = \"FedEntity#subcategories\", shape=parallelogram, color=forestgreen ]\n    3 [ label = \"FedEntity#category\", shape=parallelogram, color=forestgreen ]\n    4 [ label = \"Root#products\", shape=parallelogram, color=forestgreen style=bold ]\n    5 [ label = \"FedEntity#category\", shape=parallelogram, color=royalblue style=dashed ]\n    6 [ label = \"Category.name\", color=forestgreen style=bold ]\n    7 [ label = \"Category.id\", color=forestgreen style=bold ]\n    8 [ label = \"Category.kind\", color=forestgreen style=bold ]\n    9 [ label = \"FedEntity#category\", shape=parallelogram, color=royalblue style=dashed ]\n    10 [ label = \"Category.name\", color=forestgreen style=bold ]\n    11 [ label = \"Category.id\", color=forestgreen style=bold ]\n    2 -> 1 [ color=forestgreen,fontcolor=forestgreen ]\n    3 -> 2 [ label = \"10\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 3 [ label = \"10\", color=forestgreen,fontcolor=forestgreen ]\n    0 -> 4 [ label = \"10\", color=forestgreen,fontcolor=forestgreen ]\n    4 -> 2 [ label = \"10\", color=forestgreen,fontcolor=forestgreen ]\n    5 -> 1 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    2 -> 5 [ label = \"10\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 5 [ label = \"10\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    5 -> 6 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 6 [ color=forestgreen,fontcolor=forestgreen ]\n    2 -> 7 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 7 [ color=forestgreen,fontcolor=forestgreen ]\n    3 -> 8 [ color=forestgreen,fontcolor=forestgreen ]\n    9 -> 8 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 9 [ label = \"10\", color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 10 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 10 [ color=forestgreen,fontcolor=forestgreen ]\n    9 -> 10 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    3 -> 11 [ color=royalblue,fontcolor=royalblue,style=dashed ]\n    4 -> 11 [ color=forestgreen,fontcolor=forestgreen ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+    1 [ label = "Category.kind", steiner=1 ]
+    2 [ label = "FedEntity#subcategories", steiner=1 ]
+    3 [ label = "FedEntity#category", steiner=1 ]
+    4 [ label = "Root#products", steiner=1 ]
+    5 [ label = "FedEntity#category", steiner=0 ]
+    6 [ label = "Category.name", steiner=1 ]
+    7 [ label = "Category.id", steiner=1 ]
+    8 [ label = "Category.kind", steiner=1 ]
+    9 [ label = "FedEntity#category", steiner=0 ]
+    10 [ label = "Category.name", steiner=1 ]
+    11 [ label = "Category.id", steiner=1 ]
+    2 -> 1 [ cost=0, steiner=1]
+    3 -> 2 [ cost=10, steiner=0]
+    4 -> 3 [ cost=10, steiner=1]
+    0 -> 4 [ cost=10, steiner=1]
+    4 -> 2 [ cost=10, steiner=1]
+    5 -> 1 [ cost=0, steiner=0]
+    2 -> 5 [ cost=10, steiner=0]
+    4 -> 5 [ cost=10, steiner=0]
+    5 -> 6 [ cost=0, steiner=0]
+    4 -> 6 [ cost=0, steiner=1]
+    2 -> 7 [ cost=0, steiner=0]
+    4 -> 7 [ cost=0, steiner=1]
+    3 -> 8 [ cost=0, steiner=1]
+    9 -> 8 [ cost=0, steiner=0]
+    4 -> 9 [ cost=10, steiner=0]
+    3 -> 10 [ cost=0, steiner=0]
+    4 -> 10 [ cost=0, steiner=1]
+    9 -> 10 [ cost=0, steiner=0]
+    3 -> 11 [ cost=0, steiner=0]
+    4 -> 11 [ cost=0, steiner=1]
+}

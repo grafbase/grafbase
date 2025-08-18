@@ -4,7 +4,6 @@ use crate::{
 };
 use fixedbitset::FixedBitSet;
 use fxhash::FxBuildHasher;
-use itertools::Itertools as _;
 use petgraph::{
     Graph,
     graph::{EdgeIndex, EdgeReference, NodeIndex},
@@ -157,58 +156,35 @@ where
 
         // Run the algorithm
         tracing::trace!("FLAC:\n{}", self.debug_dot_graph());
-        loop {
-            let Some(edge) = self.get_next_saturating_edge() else {
-                unreachable!("Could not reach root?\n{}", self.debug_dot_graph());
-            };
-
+        while let Some(edge) = self.get_next_saturating_edge() {
             // The new update_flow_rates handles degenerate flow checking internally
-            if let ControlFlow::Break((_, v)) = self.update_flow_rates(edge) {
-                let new_feeding_terminals = &self.state.flow.node_to_feeding_terminals[v.index()];
-                debug_assert!(
-                    !new_feeding_terminals.is_clear(),
-                    "No new terminals?\n{}",
-                    self.debug_dot_graph()
-                );
-                debug_assert!(
-                    (new_feeding_terminals & (&self.flow.root_feeding_terminals)).is_clear(),
-                    "New feeding terminals weren't distinct from the current ones. This means older ones were still flowing.\n{}\n{:b}\n{:b}\n{}",
-                    self.steiner_tree
-                        .terminals
-                        .iter()
-                        .map(|idx| &self.graph[*idx])
-                        .format_with(",", |node, f| f(&format_args!("{node:?}"))),
-                    &new_feeding_terminals,
-                    &self.flow.root_feeding_terminals,
-                    self.debug_dot_graph()
-                );
+            match self.update_flow_rates(edge) {
+                FlacControlFlow::Break => break,
+                FlacControlFlow::Continue => continue,
+                FlacControlFlow::FoundSubtree { subtree_root_node_id } => {
+                    self.steiner_tree.total_weight += self.graph[edge];
+                    self.steiner_tree.edges.insert(edge.index());
 
-                self.state.flow.root_feeding_terminals.union_with(new_feeding_terminals);
-
-                self.steiner_tree.total_weight += self.graph[edge];
-                self.steiner_tree.edges.insert(edge.index());
-
-                // We traverse in the opposite direction to FLAC as not all saturated edges from
-                // the terminals lead to anywhere useful. The algorithm stops at the first path
-                // that leads to an existing node of the Steiner Tree.
-                debug_assert!(self.tmp_stack.is_empty());
-                self.tmp_stack.push(v);
-                while let Some(node) = self.tmp_stack.pop() {
-                    self.steiner_tree.nodes.insert(node.index());
-                    for edge in self.graph.edges_directed(node, petgraph::Direction::Outgoing) {
-                        if self.flow.saturated_edges[edge.id().index()] {
-                            self.steiner_tree.edges.insert(edge.id().index());
-                            self.steiner_tree.total_weight += *edge.weight();
-                            self.tmp_stack.push(edge.target());
+                    // We traverse in the opposite direction to FLAC as not all saturated edges from
+                    // the terminals lead to anywhere useful. The algorithm stops at the first path
+                    // that leads to an existing node of the Steiner Tree.
+                    debug_assert!(self.tmp_stack.is_empty());
+                    self.tmp_stack.push(subtree_root_node_id);
+                    while let Some(node) = self.tmp_stack.pop() {
+                        self.steiner_tree.nodes.insert(node.index());
+                        for edge in self.graph.edges_directed(node, petgraph::Direction::Outgoing) {
+                            if self.flow.saturated_edges[edge.id().index()] {
+                                self.steiner_tree.edges.insert(edge.id().index());
+                                self.steiner_tree.total_weight += *edge.weight();
+                                self.tmp_stack.push(edge.target());
+                            }
                         }
                     }
                 }
-                tracing::trace!("FLAC:\n{}", self.debug_dot_graph());
-                break;
-            } else {
-                tracing::trace!("FLAC:\n{}", self.debug_dot_graph());
             }
+            tracing::trace!("FLAC:\n{}", self.debug_dot_graph());
         }
+
         if self.flow.root_feeding_terminals.is_full() {
             ControlFlow::Break(())
         } else {
@@ -232,7 +208,7 @@ where
             !self.steiner_tree.nodes.is_empty(),
             "Root must be part of the steiner tree."
         );
-        debug_assert!(self.tmp_stack.is_empty());
+        debug_assert!(self.tmp_stack.is_empty() && self.tmp_next_saturating_edges_in_T_u.is_empty());
 
         // Initialize the state with the current terminals. New ones may have been added since the
         // last run.
@@ -286,24 +262,46 @@ where
     /// 2. Traverses all nodes reachable from u through saturated edges
     /// 3. For each reachable node, checks for degenerate flow and collects min incoming edges
     /// 4. Updates flow rates and schedules new edges after traversal completes
-    fn update_flow_rates(&mut self, saturating_edge: EdgeIndex) -> ControlFlow<(NodeIndex, NodeIndex)> {
+    fn update_flow_rates(&mut self, saturating_edge: EdgeIndex) -> FlacControlFlow {
         // (source, destination)
         let (u, v) = self.graph.edge_endpoints(saturating_edge).unwrap();
 
         // The current edge will be either saturated or marked
         self.flow.marked_or_saturated_edges.insert(saturating_edge.index());
 
-        // When the algorithm reaches a node of the Steiner Tree, which starts with only the root node,
-        // we don't need to go further.
+        // If the node was added to the steiner tree since, no need to continue processing it.
+        if self.steiner_tree.nodes[v.index()] {
+            return FlacControlFlow::Continue;
+        }
+
         if self.steiner_tree.nodes[u.index()] {
-            return ControlFlow::Break((u, v));
+            let new_feeding_terminals = &self.state.flow.node_to_feeding_terminals[v.index()];
+            return if self.flow.root_feeding_terminals.is_disjoint(new_feeding_terminals) {
+                // If we reach a node in the Steiner tree and we're adding fresh terminals, we'll
+                // add it to the steiner tree.
+                tracing::trace!(
+                    "Found new subtree from {:?} {:b} {:b}",
+                    self.graph[v],
+                    new_feeding_terminals,
+                    self.flow.root_feeding_terminals
+                );
+                self.state.flow.root_feeding_terminals.union_with(new_feeding_terminals);
+
+                FlacControlFlow::FoundSubtree {
+                    subtree_root_node_id: v,
+                }
+            } else {
+                // If there is degenerate flow with the steiner tree, we completely stop the
+                // algorithm and return.
+                FlacControlFlow::Break
+            };
         }
 
         // Algorithm 9
         // Check if flow would be degenerate and collect edges to update
         match self.detect_generate_flow_and_collect_edges(u, v) {
-            IsDegenerateFlow::Yes => {}
-            IsDegenerateFlow::No => {
+            IsDegenerate::Yes => {}
+            IsDegenerate::No => {
                 // debug_assert!(
                 //     !next_saturating_edges_in_T_u.is_empty(),
                 //     "No further edges found, but still haven't reached the steiner tree?\n{}",
@@ -370,12 +368,12 @@ where
             self.heap.push(edge.id(), saturate_time.into());
         }
 
-        ControlFlow::Continue(())
+        FlacControlFlow::Continue
     }
 
     /// Traverses saturated subgraph from u, checking for degenerate flow and collecting the next
     /// saturating edges in T_u while we traverse the parents.
-    fn detect_generate_flow_and_collect_edges(&mut self, u: NodeIndex, v: NodeIndex) -> IsDegenerateFlow {
+    fn detect_generate_flow_and_collect_edges(&mut self, u: NodeIndex, v: NodeIndex) -> IsDegenerate {
         debug_assert!(self.tmp_stack.is_empty() && self.tmp_next_saturating_edges_in_T_u.is_empty());
         self.tmp_stack.push(u);
         let new_feeding = &self.state.flow.node_to_feeding_terminals[v.index()];
@@ -383,9 +381,9 @@ where
         while let Some(current) = self.state.tmp_stack.pop() {
             // Check for degenerate flow
             let current_feeding = &self.flow.node_to_feeding_terminals[current.index()];
-            if !(new_feeding & current_feeding).is_clear() {
+            if !new_feeding.is_disjoint(current_feeding) {
                 self.tmp_stack.clear();
-                return IsDegenerateFlow::Yes; // Degenerate flow detected
+                return IsDegenerate::Yes; // Degenerate flow detected
             }
 
             if let Some(edge) = self.find_next_edge_in_T_minus(current) {
@@ -405,7 +403,7 @@ where
             }
         }
 
-        IsDegenerateFlow::No
+        IsDegenerate::No
     }
 
     fn debug_dot_graph(&self) -> String {
@@ -413,8 +411,14 @@ where
     }
 }
 
+enum FlacControlFlow {
+    Continue,
+    Break,
+    FoundSubtree { subtree_root_node_id: SteinerNodeId },
+}
+
 #[allow(non_snake_case)]
-enum IsDegenerateFlow {
+enum IsDegenerate {
     Yes,
     No,
 }
