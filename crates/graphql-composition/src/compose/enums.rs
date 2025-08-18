@@ -41,14 +41,17 @@ pub(super) fn merge_enum_definitions<'a>(
 fn enum_is_used_in_input(enum_name: StringId, subgraphs: &Subgraphs) -> bool {
     let in_field_arguments = || {
         subgraphs
-            .iter_all_field_arguments()
-            .any(|arg| arg.r#type().type_name().id == enum_name)
+            .iter_output_field_arguments()
+            .any(|arg| arg.r#type.definition_name_id == enum_name)
     };
     let in_input_type_fields = || {
         subgraphs
-            .iter_all_fields()
-            .filter(|field| field.parent_definition().kind() == DefinitionKind::InputObject)
-            .any(|field| field.r#type().type_name().id == enum_name)
+            .iter_fields()
+            .filter(|field| {
+                let parent_definition = subgraphs.at(field.parent_definition_id);
+                parent_definition.kind == DefinitionKind::InputObject
+            })
+            .any(|field| field.r#type.definition_name_id == enum_name)
     };
     in_field_arguments() || in_input_type_fields()
 }
@@ -56,14 +59,15 @@ fn enum_is_used_in_input(enum_name: StringId, subgraphs: &Subgraphs) -> bool {
 /// Returns whether the enum is returned by a field anywhere.
 fn enum_is_used_in_return_position(enum_name: StringId, subgraphs: &Subgraphs) -> bool {
     subgraphs
-        .iter_all_fields()
+        .iter_fields()
         .filter(|field| {
+            let parent_definition = subgraphs.at(field.parent_definition_id);
             matches!(
-                field.parent_definition().kind(),
+                parent_definition.kind,
                 DefinitionKind::Object | DefinitionKind::Interface
             )
         })
-        .any(|field| field.r#type().type_name().id == enum_name)
+        .any(|field| field.r#type.definition_name_id == enum_name)
 }
 
 fn merge_intersection<'a>(
