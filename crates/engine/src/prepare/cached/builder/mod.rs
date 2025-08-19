@@ -2,8 +2,8 @@ mod modifiers;
 mod mutation_order;
 mod query_partition;
 mod requires;
-mod shapes;
 mod response_object_sets;
+mod shapes;
 
 use operation::Operation;
 use query_solver::SolvedQuery;
