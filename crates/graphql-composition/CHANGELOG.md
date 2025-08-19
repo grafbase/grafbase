@@ -4,6 +4,7 @@
 
 ### Improvements
 
+- Significant performance improvements. We saw a 66% improvement on a very large federated graph, from iterating over flat data structures instead of BTrees.
 - `Diagnostic::composite_schemas_error_code` is now exposed. Note that as the spec and this implementation evolve, more error codes will be added to this enum and its variants.
 - Implemented some composite schemas spec validations for the `@override` directive, resulting in more consistent logic and better diagnostics (https://github.com/grafbase/grafbase/pull/3374)
 - Implemented the composite schemas spec validation rules for `@shareable`. It makes the validation more relaxed: if any subgraph defines the field as shareable, then others don't need to annotate with `@shareable` as well. It should not make any schema that composes today fail to compose. The diagnostics have also been improved to list all the relevant subgraphs.

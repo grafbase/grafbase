@@ -27,10 +27,10 @@ pub(crate) struct Fields {
 /// An argument on an output field.
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub(crate) struct ArgumentRecord {
-    parent_field_id: FieldId,
-    r#type: FieldType,
-    description: Option<StringId>,
-    directives: DirectiveSiteId,
+    pub(crate) parent_field_id: FieldId,
+    pub(crate) r#type: FieldType,
+    pub(crate) description: Option<StringId>,
+    pub(crate) directives: DirectiveSiteId,
 }
 
 /// A field in an object, interface or input object type.
@@ -44,14 +44,11 @@ pub(crate) struct FieldTuple {
 }
 
 impl Subgraphs {
-    pub(crate) fn iter_all_fields(&self) -> impl Iterator<Item = FieldWalker<'_>> + '_ {
-        self.fields
-            .definition_fields
-            .iter()
-            .map(move |(path, field_id)| FieldWalker {
-                id: (*path, self[*field_id]),
-                subgraphs: self,
-            })
+    pub(crate) fn iter_fields(&self) -> impl Iterator<Item = View<'_, FieldId, FieldTuple>> {
+        self.fields.fields.iter().enumerate().map(|(index, record)| View {
+            id: index.into(),
+            record,
+        })
     }
 
     pub(crate) fn push_field(
@@ -117,14 +114,14 @@ impl Subgraphs {
         }
     }
 
-    pub(crate) fn iter_all_field_arguments(&self) -> impl Iterator<Item = FieldArgumentWalker<'_>> + '_ {
+    pub(crate) fn iter_output_field_arguments(
+        &self,
+    ) -> impl ExactSizeIterator<Item = View<'_, ArgumentId, ArgumentRecord>> {
         self.fields
-            .field_arguments
+            .arguments
             .iter()
-            .map(|(path, argument_id)| FieldArgumentWalker {
-                id: (*path, &self[*argument_id]),
-                subgraphs: self,
-            })
+            .enumerate()
+            .map(|(idx, record)| View { id: idx.into(), record })
     }
 
     pub(crate) fn walk_field(&self, field_path: FieldPath) -> FieldWalker<'_> {

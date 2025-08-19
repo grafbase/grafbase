@@ -28,7 +28,12 @@ fn validate_root_nonempty(ctx: &mut ValidateContext<'_>) {
 }
 
 fn validate_fields(ctx: &mut ValidateContext<'_>) {
-    for field in ctx.subgraphs.iter_all_fields() {
+    for field in ctx.subgraphs.iter_fields() {
+        let path = subgraphs::FieldPath(field.parent_definition_id, field.name);
+        let field = subgraphs::FieldWalker {
+            id: (path, *field.record),
+            subgraphs: ctx.subgraphs,
+        };
         selection::validate_selections(ctx, field);
         validate_override_labels(ctx, field);
         composite_schemas::source_schema::lookup_returns_non_nullable_type(ctx, field);
