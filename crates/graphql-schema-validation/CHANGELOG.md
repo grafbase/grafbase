@@ -8,6 +8,7 @@
   we were skipping the validation whenever the type is the default one for
   the root (Query, Mutation or Subscription). This commit makes the validation
   stricter. If Query does not exist, it is an error. (#1502)
+- It is now valid to implement an interface that is only defined in interface extensions when the FORBID_EXTENDING_UNKNOWN_TYPES option is not enabled.
 
 ### Fixes
 

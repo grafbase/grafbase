@@ -11,6 +11,7 @@ pub(crate) struct Context<'a> {
 
     /// Definition name -> definition AST node
     pub(crate) definition_names: HashMap<&'a str, &'a Positioned<ast::TypeDefinition>>,
+    pub(crate) extension_names: HashMap<&'a str, Vec<&'a Positioned<ast::TypeDefinition>>>,
 
     /// Directive name -> directive AST node
     pub(crate) directive_names: HashMap<&'a str, &'a Positioned<ast::DirectiveDefinition>>,
@@ -49,6 +50,7 @@ impl<'a> Context<'a> {
             diagnostics,
             options,
 
+            extension_names: HashMap::default(),
             strings_buf: HashMap::default(),
             directive_names: HashMap::default(),
             extended_interface_implementations: HashMap::default(),

@@ -45,9 +45,9 @@ bitflags::bitflags! {
     pub struct Options: u8 {
         /// If included, this flag enables the validation checking that any type extension extends
         /// a type defined in the same document.
-        const FORBID_EXTENDING_UNKNOWN_TYPES = 0b1;
+        const FORBID_EXTENDING_UNKNOWN_TYPES = 1;
         /// Include validations that are in the current spec draft but not included or not relevant
         /// in the 2021 edition of the spec.
-        const DRAFT_VALIDATIONS = 0b01;
+        const DRAFT_VALIDATIONS = 1 << 1;
     }
 }

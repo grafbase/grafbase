@@ -1,6 +1,28 @@
 use graphql_schema_validation::Options;
 use std::{fs, path::Path, sync::Once};
 
+fn parse_test_options(schema: &str) -> Options {
+    let mut options = Options::empty();
+
+    for line in schema.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("# @option:") {
+            let option_str = trimmed.strip_prefix("# @option:").unwrap().trim();
+            match option_str {
+                "FORBID_EXTENDING_UNKNOWN_TYPES" => {
+                    options |= Options::FORBID_EXTENDING_UNKNOWN_TYPES;
+                }
+                "DRAFT_VALIDATIONS" => {
+                    options |= Options::DRAFT_VALIDATIONS;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    if options.is_empty() { Options::all() } else { options }
+}
+
 fn init_miette() {
     static MIETTE_SETUP: Once = Once::new();
     MIETTE_SETUP.call_once(|| {
@@ -23,10 +45,8 @@ fn run_validation_error_test(graphql_file_path: &Path) {
 
     init_miette();
     let schema = fs::read_to_string(graphql_file_path).unwrap();
-    let diagnostics = graphql_schema_validation::validate_with_options(
-        &schema,
-        Options::FORBID_EXTENDING_UNKNOWN_TYPES | Options::DRAFT_VALIDATIONS,
-    );
+    let options = parse_test_options(&schema);
+    let diagnostics = graphql_schema_validation::validate_with_options(&schema, options);
     let displayed = diagnostics
         .iter()
         .map(|d| format!("{d:?}"))
@@ -38,11 +58,8 @@ fn run_validation_error_test(graphql_file_path: &Path) {
 
 fn run_valid_schema_test(graphql_file_path: &Path) {
     let schema = fs::read_to_string(graphql_file_path).unwrap();
-
-    let diagnostics = graphql_schema_validation::validate_with_options(
-        &schema,
-        Options::FORBID_EXTENDING_UNKNOWN_TYPES | Options::DRAFT_VALIDATIONS,
-    );
+    let options = parse_test_options(&schema);
+    let diagnostics = graphql_schema_validation::validate_with_options(&schema, options);
 
     assert!(
         !diagnostics.has_errors(),
