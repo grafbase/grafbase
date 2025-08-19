@@ -1,0 +1,6 @@
+# No validation errors expected without FORBID_EXTENDING_UNKNOWN_TYPES  
+# (empty options means use default which includes FORBID_EXTENDING_UNKNOWN_TYPES)
+
+extend type Cat {
+  litterNeedsChanging: Boolean
+}

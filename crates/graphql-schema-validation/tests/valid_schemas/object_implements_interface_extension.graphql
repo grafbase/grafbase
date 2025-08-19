@@ -1,0 +1,11 @@
+# @option: DRAFT_VALIDATIONS
+
+extend interface ABC {
+  name: String
+}
+
+type DEF implements ABC {
+  id: ID!
+  name: String
+  others: [ABC!]
+}

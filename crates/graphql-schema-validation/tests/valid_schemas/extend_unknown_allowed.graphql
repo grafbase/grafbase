@@ -1,0 +1,6 @@
+# Extension of unknown type is allowed when FORBID_EXTENDING_UNKNOWN_TYPES is not set
+# @option: DRAFT_VALIDATIONS
+
+extend type Cat {
+  litterNeedsChanging: Boolean
+}

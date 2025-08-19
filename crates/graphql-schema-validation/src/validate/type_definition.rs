@@ -44,6 +44,9 @@ pub(crate) fn validate_type_definition<'a>(typedef: &'a Positioned<ast::TypeDefi
             }
             _ => (),
         }
+
+        ctx.extension_names.entry(type_name).or_default().push(typedef);
+
         return;
     }
 

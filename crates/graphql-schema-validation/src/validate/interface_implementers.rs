@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::context::Context;
+use crate::{Options, context::Context};
 use async_graphql_parser::{Positioned, types as ast};
 use async_graphql_value::Name;
 
@@ -20,26 +20,41 @@ pub(crate) fn validate_implements_list<'a>(
 
     for iface in parent_implements {
         let iface_name = iface.node.as_str();
-        match ctx.definition_names.get(iface_name).copied() {
-            Some(ty) => match &ty.node.kind {
-                ast::TypeKind::Interface(iface) => {
-                    validate_implements_interface_transitively(
-                        parent_name,
-                        parent_implements,
-                        &ty.node.name.node,
-                        iface,
-                        ctx,
-                    );
-
-                    validate_fields_implement_interface(parent_name, parent_fields, &ty.node.name.node, iface, ctx);
+        let ty = match ctx.definition_names.get(iface_name).copied() {
+            Some(ty) => ty,
+            None if ctx.options.contains(Options::FORBID_EXTENDING_UNKNOWN_TYPES) => {
+                ctx.push_error(miette::miette!(
+                    r#""{parent_name} cannot implement unknown type "{iface_name}"."#
+                ));
+                continue;
+            }
+            None => {
+                if let Some([ty, ..]) = ctx.extension_names.get(iface_name).map(|v| v.as_slice()) {
+                    ty
+                } else {
+                    ctx.push_error(miette::miette!(
+                        r#""{parent_name} cannot implement unknown type "{iface_name}"."#
+                    ));
+                    continue;
                 }
-                _ => ctx.push_error(miette::miette!(
-                    r#""{parent_name}" cannot implement non-interface type "{}"."#,
-                    ty.node.name.node.as_str()
-                )),
-            },
-            None => ctx.push_error(miette::miette!(
-                r#""{parent_name} cannot implement unknown type "{iface_name}"."#
+            }
+        };
+
+        match &ty.node.kind {
+            ast::TypeKind::Interface(iface) => {
+                validate_implements_interface_transitively(
+                    parent_name,
+                    parent_implements,
+                    &ty.node.name.node,
+                    iface,
+                    ctx,
+                );
+
+                validate_fields_implement_interface(parent_name, parent_fields, &ty.node.name.node, iface, ctx);
+            }
+            _ => ctx.push_error(miette::miette!(
+                r#""{parent_name}" cannot implement non-interface type "{}"."#,
+                ty.node.name.node.as_str()
             )),
         }
     }

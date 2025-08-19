@@ -1,4 +1,4 @@
-use crate::context::Context;
+use crate::{Options, context::Context};
 use async_graphql_parser::{Pos, types::TypeKind};
 
 #[must_use]
@@ -13,7 +13,13 @@ pub(crate) fn validate_output_type(name: &str, _pos: Pos, ctx: &mut Context<'_>)
         return ValidateOutputTypeResult::Ok;
     }
 
-    let Some(definition) = ctx.definition_names.get(name) else {
+    let Some(definition) = ctx.definition_names.get(name).or_else(|| {
+        if ctx.options.contains(Options::FORBID_EXTENDING_UNKNOWN_TYPES) {
+            return None;
+        }
+
+        ctx.extension_names.get(name).and_then(|extension| extension.first())
+    }) else {
         return ValidateOutputTypeResult::UnknownType;
     };
 
