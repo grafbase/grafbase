@@ -230,8 +230,9 @@ fn emit_fields(fields: &[FieldIr], ctx: &mut Context<'_>) {
         } in fields
         {
             let r#type = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
+            let name = ctx.insert_string(ctx.subgraphs.walk(field_name));
             let field = federated::Field {
-                name: field_name,
+                name,
                 r#type,
                 arguments,
                 parent_entity_id,
@@ -296,11 +297,10 @@ fn attach_selection(
                     arguments,
                     subselection,
                 }) => {
-                    let selection_field = ctx.insert_string(ctx.subgraphs.walk(*field));
-                    if &ctx[selection_field] == "__typename" {
+                    if &ctx[*field] == "__typename" {
                         federated::Selection::Typename
                     } else {
-                        let field_id = ctx.selection_map[&(target, selection_field)];
+                        let field_id = ctx.selection_map[&(target, *field)];
                         let field_ty = ctx.out[field_id].r#type.definition;
                         let field_arguments = ctx.out[field_id].arguments;
                         let (field_arguments_start, _) = field_arguments;

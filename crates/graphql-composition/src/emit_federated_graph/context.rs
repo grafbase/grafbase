@@ -10,7 +10,7 @@ pub(super) struct Context<'a> {
     pub(super) out: &'a mut federated::FederatedGraph,
     pub(super) subgraphs: &'a subgraphs::Subgraphs,
     pub(super) field_types_map: FieldTypesMap,
-    pub(super) selection_map: HashMap<(federated::Definition, federated::StringId), federated::FieldId>,
+    pub(super) selection_map: HashMap<(federated::Definition, subgraphs::StringId), federated::FieldId>,
     pub(super) definitions: HashMap<federated::StringId, federated::Definition>,
 
     pub(super) used_directives: UsedDirectives,
@@ -116,6 +116,14 @@ impl std::ops::Index<federated::StringId> for Context<'_> {
 
     fn index(&self, index: federated::StringId) -> &Self::Output {
         &self.strings_ir[index]
+    }
+}
+
+impl std::ops::Index<subgraphs::StringId> for Context<'_> {
+    type Output = str;
+
+    fn index(&self, index: subgraphs::StringId) -> &Self::Output {
+        &self.subgraphs[index]
     }
 }
 

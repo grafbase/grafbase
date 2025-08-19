@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use super::*;
 
 pub(super) fn is_entity_interface(
@@ -143,16 +141,9 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         }
     }
 
-    // FIXME: there has to be a better way...
-    let field_name_mapping = definitions
-        .iter()
-        .flat_map(|def| def.fields())
-        .map(|field| (ctx.insert_string(field.name().id), field.name().id))
-        .collect::<HashMap<_, _>>();
-
     let fields = object::compose_fields(ctx, definitions, interface_name);
 
-    let fields_to_add: Vec<(StringId, _)> = fields
+    let fields_to_add: Vec<(subgraphs::StringId, _)> = fields
         .into_iter()
         .map(|mut field| {
             // Adding interface field.
@@ -161,7 +152,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
             // Adding only the empty `@join__field` directive indicating it's coming from somewhere
             // else.
             field.directives = vec![ir::Directive::JoinEntityInterfaceField];
-            (field_name_mapping[&field.field_name], field)
+            (field.field_name, field)
         })
         .collect();
 
