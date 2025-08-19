@@ -49,7 +49,7 @@ impl<'a> ExtensionsContext<'a> {
         }
     }
 
-    pub(super) async fn load<'sdl, 'ext>(sdl: &'sdl Sdl<'sdl>, catalog: &'ext ExtensionCatalog) -> Result<Self, String>
+    pub(super) async fn load<'sdl, 'ext>(sdl: &'sdl Sdl<'sdl>, catalog: &'ext ExtensionCatalog) -> Result<Self, Vec<super::Error>>
     where
         'sdl: 'a,
         'ext: 'a,
@@ -58,74 +58,94 @@ impl<'a> ExtensionsContext<'a> {
             map: RapidHashMap::with_capacity_and_hasher(sdl.extensions.len(), Default::default()),
             catalog,
         };
+        let mut errors = Vec::new();
+        
         for (name, extension) in &sdl.extensions {
-            let manifest = extension_catalog::load_manifest(extension.url.clone())
-                .await
-                .map_err(|err| {
-                    format!(
+            let manifest = match extension_catalog::load_manifest(extension.url.clone()).await {
+                Ok(manifest) => manifest,
+                Err(err) => {
+                    errors.push(super::Error::new(format!(
                         "Could not fetch extension manifest at '{}' for extensions '{}': {}",
                         extension.url, name, err
-                    )
-                })?;
-            let Some(id) = catalog.find_compatible_extension(&manifest.id) else {
-                return Err(format!("Extension {} was not installed", manifest.id));
+                    )));
+                    continue;
+                }
             };
-            let sdl = manifest
-                .sdl
-                .as_ref()
-                .filter(|sdl| !sdl.trim().is_empty())
-                .map(|sdl| cynic_parser::parse_type_system_document(sdl))
-                .transpose()
-                .map_err(|err| {
-                    format!(
-                        "For extension {}, failed to parse GraphQL definitions: {}",
-                        manifest.id, err
-                    )
-                })
-                .and_then(|parsed| {
-                    let Some(parsed) = parsed else {
-                        return Ok(None);
+            let Some(id) = catalog.find_compatible_extension(&manifest.id) else {
+                errors.push(super::Error::new(format!("Extension {} was not installed", manifest.id)));
+                continue;
+            };
+            let sdl = if let Some(sdl_str) = manifest.sdl.as_ref().filter(|sdl| !sdl.trim().is_empty()) {
+                let parsed = match cynic_parser::parse_type_system_document(sdl_str) {
+                    Ok(parsed) => parsed,
+                    Err(err) => {
+                        errors.push(super::Error::new(format!(
+                            "For extension {}, failed to parse GraphQL definitions: {}",
+                            manifest.id, err
+                        )));
+                        continue;
+                    }
+                };
+                
+                let mut grafbase_scalars = Vec::new();
+                let mut had_error = false;
+                
+                for definition in parsed.definitions() {
+                    let cynic_parser::type_system::Definition::SchemaExtension(ext) = definition else {
+                        continue;
                     };
-                    let mut grafbase_scalars = Vec::new();
-                    for definition in parsed.definitions() {
-                        let cynic_parser::type_system::Definition::SchemaExtension(ext) = definition else {
+                    for dir in ext.directives() {
+                        if dir.name() != "link" {
                             continue;
-                        };
-                        for dir in ext.directives() {
-                            if dir.name() != "link" {
-                                continue;
-                            }
-                            let link = dir.deserialize::<LinkDirective>().map_err(|err| {
-                                format!(
-                                    "For extension {}, failed to prase @link directive: {}",
+                        }
+                        let link = match dir.deserialize::<LinkDirective>() {
+                            Ok(link) => link,
+                            Err(err) => {
+                                errors.push(super::Error::new(format!(
+                                    "For extension {}, failed to parse @link directive: {}",
                                     manifest.id, err
-                                )
-                            })?;
-                            if !link.url.starts_with(GRAFBASE_SPEC_URL) {
+                                )));
+                                had_error = true;
                                 continue;
                             }
-                            let namespace = link.r#as.unwrap_or(GRAFBASE_NAMEPSACE);
-                            grafbase_scalars.extend(GrafbaseScalar::iter().map(|s| (format!("{namespace}__{s}"), s)));
-                            for import in link.import.unwrap_or_default() {
-                                let (name, alias) = match import {
-                                    Import::String(name) => (name, name),
-                                    Import::Qualified(q) => (q.name, q.r#as.unwrap_or(q.name)),
-                                };
-                                let scalar = GrafbaseScalar::from_str(name).map_err(|_| {
-                                    format!(
+                        };
+                        if !link.url.starts_with(GRAFBASE_SPEC_URL) {
+                            continue;
+                        }
+                        let namespace = link.r#as.unwrap_or(GRAFBASE_NAMEPSACE);
+                        grafbase_scalars.extend(GrafbaseScalar::iter().map(|s| (format!("{namespace}__{s}"), s)));
+                        for import in link.import.unwrap_or_default() {
+                            let (name, alias) = match import {
+                                Import::String(name) => (name, name),
+                                Import::Qualified(q) => (q.name, q.r#as.unwrap_or(q.name)),
+                            };
+                            let scalar = match GrafbaseScalar::from_str(name) {
+                                Ok(scalar) => scalar,
+                                Err(_) => {
+                                    errors.push(super::Error::new(format!(
                                         "For extension {}, unsupported import '{}' from '{}'",
                                         manifest.id, name, GRAFBASE_SPEC_URL
-                                    )
-                                })?;
-                                grafbase_scalars.push((alias.to_string(), scalar));
-                            }
+                                    )));
+                                    had_error = true;
+                                    continue;
+                                }
+                            };
+                            grafbase_scalars.push((alias.to_string(), scalar));
                         }
                     }
-                    Ok(Some(ExtensionSdl {
-                        doc: parsed,
-                        grafbase_scalars,
-                    }))
-                })?;
+                }
+                
+                if had_error {
+                    continue;
+                }
+                
+                Some(ExtensionSdl {
+                    doc: parsed,
+                    grafbase_scalars,
+                })
+            } else {
+                None
+            };
 
             extensions.map.insert(
                 *name,
@@ -137,7 +157,11 @@ impl<'a> ExtensionsContext<'a> {
             );
         }
 
-        Ok(extensions)
+        if !errors.is_empty() {
+            Err(errors)
+        } else {
+            Ok(extensions)
+        }
     }
 
     pub(super) fn get(&self, name: ExtensionName<'a>) -> &'a LoadedExtension<'_> {

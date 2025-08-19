@@ -55,7 +55,7 @@ pub(super) fn ingest<'sdl>(
         subgraph_id,
         field_definition.ty_record,
     )
-    .map_err(|err| err.with_span_if_absent(field.span()))?;
+    .map_err(|err| err.span_if_absent(field.span()))?;
 
     let explicit_injections = detect_explicit_is_directive_injections(
         ingester.builder,

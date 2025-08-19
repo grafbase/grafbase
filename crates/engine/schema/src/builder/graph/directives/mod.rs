@@ -41,7 +41,10 @@ pub(crate) fn ingest_directives<'a>(
     for_operation_analytics_only: bool,
 ) -> Result<(), Error> {
     if !for_operation_analytics_only {
-        ingest_extension_schema_directives(builder)?;
+        ingest_extension_schema_directives(builder).map_err(|errors| {
+            // Return the first error for now to maintain compatibility
+            errors.into_iter().next().unwrap_or_else(|| Error::new("Unknown extension schema directive error"))
+        })?;
     }
 
     let mut ingester = DirectivesIngester {

@@ -279,7 +279,7 @@ fn ingest_composite_schema_lookup(ingester: &mut DirectivesIngester<'_, '_>) -> 
             if directive.name() == "composite__lookup" {
                 ingester
                     .ingest_composite_lookup(field, directive)
-                    .map_err(|err| err.with_span_if_absent(directive.arguments_span()))?
+                    .map_err(|err| err.span_if_absent(directive.arguments_span()))?
             }
         }
     }

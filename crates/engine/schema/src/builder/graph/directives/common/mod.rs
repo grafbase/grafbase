@@ -51,7 +51,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                 }
                 name if name.starts_with("composite__") && !self.for_operation_analytics_only => self
                     .ingest_composite_directive_before_federation(def, directive)
-                    .map_err(|err| err.with_span_if_absent(directive.arguments_span()))?,
+                    .map_err(|err| err.span_if_absent(directive.arguments_span()))?,
                 _ => {}
             };
         }

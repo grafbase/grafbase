@@ -71,13 +71,18 @@ impl<'a> Builder<'a> {
 
     pub async fn build(self) -> Result<Schema, String> {
         let sdl = self.sdl;
-        self.build_inner().await.map_err(|err| {
+        self.build_inner().await.map_err(|errors| {
             let translator = SpanTranslator::new(sdl);
-            err.into_string(&translator)
+            let mut out = String::new();
+            for err in errors {
+                err.write_to_string(&translator, &mut out);
+                out.push('\n');
+            }
+            out
         })
     }
 
-    async fn build_inner(self) -> Result<Schema, Error> {
+    async fn build_inner(self) -> Result<Schema, Vec<Error>> {
         let Self {
             sdl,
             config,
@@ -88,7 +93,8 @@ impl<'a> Builder<'a> {
         let extension_catalog = extension_catalog.map(Cow::Borrowed).unwrap_or_default();
 
         if !sdl.trim().is_empty() {
-            let doc = &cynic_parser::parse_type_system_document(sdl).map_err(|err| Error::from(err.to_string()))?;
+            let doc =
+                &cynic_parser::parse_type_system_document(sdl).map_err(|err| vec![Error::from(err.to_string())])?;
             let sdl = Sdl::try_from((sdl, doc))?;
             let extensions = if for_operation_analytics_only {
                 ExtensionsContext::empty_with_catalog(&extension_catalog)
@@ -96,7 +102,7 @@ impl<'a> Builder<'a> {
                 ExtensionsContext::load(&sdl, &extension_catalog).await?
             };
 
-            BuildContext::new(&sdl, &extensions, &config)?.build(for_operation_analytics_only)
+            BuildContext::new(&sdl, &extensions, &config).build(for_operation_analytics_only)
         } else {
             let sdl = Default::default();
             let extensions = if for_operation_analytics_only {
@@ -105,18 +111,18 @@ impl<'a> Builder<'a> {
                 ExtensionsContext::load(&sdl, &extension_catalog).await?
             };
 
-            BuildContext::new(&sdl, &extensions, &config)?.build(for_operation_analytics_only)
+            BuildContext::new(&sdl, &extensions, &config).build(for_operation_analytics_only)
         }
     }
 }
 
 impl BuildContext<'_> {
-    fn build(self, for_operation_analytics_only: bool) -> Result<Schema, Error> {
+    fn build(self, for_operation_analytics_only: bool) -> Result<Schema, Vec<Error>> {
         let (mut graph_builder, introspection) = ingest_definitions(self)?;
 
         // From this point on the definitions should have been all added and now we interpret the
         // directives.
-        ingest_directives(&mut graph_builder, for_operation_analytics_only)?;
+        ingest_directives(&mut graph_builder, for_operation_analytics_only).map_err(|err| vec![err])?;
 
         let GraphBuilder {
             ctx:

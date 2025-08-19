@@ -7,20 +7,33 @@ use crate::{
 
 use super::LoadedExtension;
 
-pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>) -> Result<(), Error> {
+pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>) -> Result<(), Vec<Error>> {
+    let mut errors = Vec::new();
+    
     for (name, ext) in builder.sdl.extensions.iter() {
         let extension = builder.extensions.get(*name);
         for (directive, span) in &ext.directives {
-            let subgraph_id = builder.subgraphs.try_get(directive.graph, *span)?;
-            let id = builder
+            let subgraph_id = match builder.subgraphs.try_get(directive.graph, *span) {
+                Ok(id) => id,
+                Err(err) => {
+                    errors.push(err);
+                    continue;
+                }
+            };
+            let id = match builder
                 .ingest_extension_directive(
                     sdl::SdlDefinition::SchemaDirective(subgraph_id),
                     subgraph_id,
                     extension,
                     directive.name,
                     directive.arguments,
-                )
-                .map_err(|txt| (txt, *span))?;
+                ) {
+                Ok(id) => id,
+                Err(txt) => {
+                    errors.push(Error::new(txt).span(*span));
+                    continue;
+                }
+            };
             match subgraph_id {
                 SubgraphId::Graphql(subgraph_id) => {
                     builder.subgraphs[subgraph_id].schema_directive_ids.push(id);
@@ -32,7 +45,12 @@ pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>)
             }
         }
     }
-    Ok(())
+    
+    if !errors.is_empty() {
+        Err(errors)
+    } else {
+        Ok(())
+    }
 }
 
 impl<'a> GraphBuilder<'a> {

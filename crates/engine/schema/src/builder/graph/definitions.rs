@@ -18,6 +18,7 @@ struct Ingester<'a> {
     >,
     definitions: GraphDefinitions<'a>,
     root_query_type_name: &'a str,
+    errors: Vec<Error>,
 }
 
 impl<'a> std::ops::Deref for Ingester<'a> {
@@ -33,7 +34,7 @@ impl std::ops::DerefMut for Ingester<'_> {
     }
 }
 
-pub(crate) fn ingest_definitions(ctx: BuildContext<'_>) -> Result<(GraphBuilder<'_>, IntrospectionSubgraph), Error> {
+pub(crate) fn ingest_definitions(ctx: BuildContext<'_>) -> Result<(GraphBuilder<'_>, IntrospectionSubgraph), Vec<Error>> {
     let sdl = ctx.sdl;
     let graph = Graph {
         description_id: None,
@@ -103,6 +104,7 @@ pub(crate) fn ingest_definitions(ctx: BuildContext<'_>) -> Result<(GraphBuilder<
             site_id_to_sdl: HashMap::with_capacity_and_hasher(sdl.type_definitions.len() << 1, Default::default()),
         },
         builder,
+        errors: Vec::new(),
     };
 
     for builtin in BUILTIN_SCALARS {
@@ -121,23 +123,26 @@ pub(crate) fn ingest_definitions(ctx: BuildContext<'_>) -> Result<(GraphBuilder<
 
     for ty in sdl.type_definitions.iter().copied() {
         let id = match ty {
-            sdl::TypeDefinition::Scalar(scalar) => ingester.ingest_scalar(scalar).into(),
-            sdl::TypeDefinition::Enum(enm) => ingester.ingest_enum(enm).into(),
-            sdl::TypeDefinition::InputObject(input_object) => ingester.ingest_input_object(input_object)?.into(),
-            sdl::TypeDefinition::Object(object) => ingester.ingest_object(object)?.into(),
-            sdl::TypeDefinition::Union(union) => ingester.ingest_union(union).into(),
-            sdl::TypeDefinition::Interface(interface) => ingester.ingest_interface(interface)?.into(),
+            sdl::TypeDefinition::Scalar(scalar) => Some(ingester.ingest_scalar(scalar).into()),
+            sdl::TypeDefinition::Enum(enm) => Some(ingester.ingest_enum(enm).into()),
+            sdl::TypeDefinition::InputObject(input_object) => ingester.ingest_input_object(input_object).map(|id| id.into()),
+            sdl::TypeDefinition::Object(object) => ingester.ingest_object(object).map(|id| id.into()),
+            sdl::TypeDefinition::Union(union) => Some(ingester.ingest_union(union).into()),
+            sdl::TypeDefinition::Interface(interface) => ingester.ingest_interface(interface).map(|id| id.into()),
         };
-        ingester.definitions.type_name_to_id.insert(ty.name(), id);
+        if let Some(id) = id {
+            ingester.definitions.type_name_to_id.insert(ty.name(), id);
+        }
     }
 
-    ingester.add_root_types()?;
-    ingester.add_type_references()?;
-    ingester.add_default_values()?;
+    ingester.add_root_types();
+    ingester.add_type_references();
+    ingester.add_default_values();
 
     let Ingester {
         mut builder,
         definitions,
+        errors,
         ..
     } = ingester;
 
@@ -146,7 +151,11 @@ pub(crate) fn ingest_definitions(ctx: BuildContext<'_>) -> Result<(GraphBuilder<
     create_inaccessible_bitsets(&mut builder.graph);
     builder.definitions = Rc::new(definitions);
 
-    Ok((builder, introspection))
+    if !errors.is_empty() {
+        Err(errors)
+    } else {
+        Ok((builder, introspection))
+    }
 }
 
 impl<'a> Ingester<'a> {
@@ -155,7 +164,7 @@ impl<'a> Ingester<'a> {
         parent: sdl::TypeDefinition<'a>,
         parent_entity_id: EntityDefinitionId,
         fields: impl Iterator<Item = sdl::FieldDefinition<'a>>,
-    ) -> Result<IdRange<FieldDefinitionId>, Error> {
+    ) -> IdRange<FieldDefinitionId> {
         let fields_start = self.graph.field_definitions.len();
         for field in fields {
             let field_id = FieldDefinitionId::from(self.graph.field_definitions.len());
@@ -208,11 +217,8 @@ impl<'a> Ingester<'a> {
                 .iter()
                 .any(|field| field.name_id == name_id)
             {
-                return Err((
-                    format!("Duplicate field {}.{}", parent.name(), field.name()),
-                    field.span(),
-                )
-                    .into());
+                self.errors.push(Error::new(format!("Duplicate field {}.{}", parent.name(), field.name())).span(field.span()));
+                continue;
             }
 
             let description_id = field.description().map(|desc| self.ingest_str(desc.to_cow()));
@@ -237,7 +243,7 @@ impl<'a> Ingester<'a> {
             });
         }
         let end = self.graph.field_definitions.len();
-        Ok((fields_start..end).into())
+        (fields_start..end).into()
     }
 
     fn ingest_scalar(&mut self, scalar: sdl::ScalarDefinition<'a>) -> ScalarDefinitionId {
@@ -323,7 +329,7 @@ impl<'a> Ingester<'a> {
     fn ingest_input_object(
         &mut self,
         input_object: sdl::InputObjectDefinition<'a>,
-    ) -> Result<InputObjectDefinitionId, Error> {
+    ) -> Option<InputObjectDefinitionId> {
         let input_object_id = InputObjectDefinitionId::from(self.graph.input_object_definitions.len());
         self.definitions
             .type_name_to_id
@@ -364,15 +370,12 @@ impl<'a> Ingester<'a> {
         let is_one_of = if let Some(dir) = input_object.directives().find(|dir| dir.name() == "oneOf") {
             for input_field in &self.graph[input_field_ids] {
                 if input_field.ty_record.wrapping.is_non_null() {
-                    return Err((
-                        format!(
-                            "@oneOf requires that all input fields of {} must be nullable, {} isn't.",
-                            input_object.name(),
-                            self[input_field.name_id]
-                        ),
-                        dir.name_span(),
-                    )
-                        .into());
+                    self.errors.push(Error::new(format!(
+                        "@oneOf requires that all input fields of {} must be nullable, {} isn't.",
+                        input_object.name(),
+                        self[input_field.name_id]
+                    )).span(dir.name_span()));
+                    return None;
                 }
             }
             true
@@ -403,10 +406,10 @@ impl<'a> Ingester<'a> {
             exists_in_subgraph_ids: Vec::new(),
         });
 
-        Ok(input_object_id)
+        Some(input_object_id)
     }
 
-    fn ingest_object(&mut self, object: sdl::ObjectDefinition<'a>) -> Result<ObjectDefinitionId, Error> {
+    fn ingest_object(&mut self, object: sdl::ObjectDefinition<'a>) -> Option<ObjectDefinitionId> {
         let id = ObjectDefinitionId::from(self.graph.object_definitions.len());
         self.definitions
             .site_id_to_sdl
@@ -419,14 +422,11 @@ impl<'a> Ingester<'a> {
         if let Some(extensions) = self.sdl.type_extensions.get(object.name()) {
             for ext in extensions {
                 let sdl::TypeDefinition::Object(obj) = ext else {
-                    return Err((
-                        format!(
-                            "Cannot extend object named '{}' with anything else but an object",
-                            object.name()
-                        ),
-                        object.span(),
-                    )
-                        .into());
+                    self.errors.push(Error::new(format!(
+                        "Cannot extend object named '{}' with anything else but an object",
+                        object.name()
+                    )).span(object.span()));
+                    return None;
                 };
                 merged_fields.push(obj.fields());
             }
@@ -435,7 +435,7 @@ impl<'a> Ingester<'a> {
             sdl::TypeDefinition::Object(object),
             id.into(),
             merged_fields.into_iter().flatten(),
-        )?;
+        );
         if object.name() == self.root_query_type_name {
             self.push_query_introspection_fields(id);
             field_ids.end = self.graph.field_definitions.len().into();
@@ -450,7 +450,7 @@ impl<'a> Ingester<'a> {
             join_implement_records: Default::default(),
             exists_in_subgraph_ids: Default::default(),
         });
-        Ok(id)
+        Some(id)
     }
 
     fn ingest_union(&mut self, union: sdl::UnionDefinition<'a>) -> UnionDefinitionId {
@@ -476,7 +476,7 @@ impl<'a> Ingester<'a> {
         id
     }
 
-    fn ingest_interface(&mut self, interface: sdl::InterfaceDefinition<'a>) -> Result<InterfaceDefinitionId, Error> {
+    fn ingest_interface(&mut self, interface: sdl::InterfaceDefinition<'a>) -> Option<InterfaceDefinitionId> {
         let id = InterfaceDefinitionId::from(self.graph.interface_definitions.len());
         self.definitions.site_id_to_sdl.insert(
             id.into(),
@@ -490,7 +490,7 @@ impl<'a> Ingester<'a> {
 
         let name_id = self.ingest_str(interface.name());
         let description_id = interface.description().map(|desc| self.ingest_str(desc.to_cow()));
-        let field_ids = self.ingest_fields(sdl::TypeDefinition::Interface(interface), id.into(), interface.fields())?;
+        let field_ids = self.ingest_fields(sdl::TypeDefinition::Interface(interface), id.into(), interface.fields());
         self.graph.interface_definitions.push(InterfaceDefinitionRecord {
             name_id,
             description_id,
@@ -504,10 +504,10 @@ impl<'a> Ingester<'a> {
             exists_in_subgraph_ids: Default::default(),
             is_interface_object_in_ids: Default::default(),
         });
-        Ok(id)
+        Some(id)
     }
 
-    fn add_root_types(&mut self) -> Result<(), Error> {
+    fn add_root_types(&mut self) {
         let query_object_id = self
             .definitions
             .get_object_id(self.root_query_type_name, sdl::Span::default())
@@ -537,15 +537,25 @@ impl<'a> Ingester<'a> {
             .sdl
             .root_types
             .mutation
-            .map(|name| self.definitions.get_object_id(name, sdl::Span::default()))
-            .transpose()?
+            .and_then(|name| match self.definitions.get_object_id(name, sdl::Span::default()) {
+                Ok(id) => Some(id),
+                Err(err) => {
+                    self.errors.push(err);
+                    None
+                }
+            })
             .or_else(|| self.definitions.get_object_id("Mutation", sdl::Span::default()).ok());
         self.graph.root_operation_types_record.subscription_id = self
             .sdl
             .root_types
             .subscription
-            .map(|name| self.definitions.get_object_id(name, sdl::Span::default()))
-            .transpose()?
+            .and_then(|name| match self.definitions.get_object_id(name, sdl::Span::default()) {
+                Ok(id) => Some(id),
+                Err(err) => {
+                    self.errors.push(err);
+                    None
+                }
+            })
             .or_else(|| {
                 self.definitions
                     .get_object_id("Subscription", sdl::Span::default())
@@ -560,8 +570,6 @@ impl<'a> Ingester<'a> {
         .into_iter()
         .flatten()
         .collect();
-
-        Ok(())
     }
 
     fn push_query_introspection_fields(&mut self, query_object_id: ObjectDefinitionId) {
@@ -588,54 +596,68 @@ impl<'a> Ingester<'a> {
         }
     }
 
-    fn add_type_references(&mut self) -> Result<(), Error> {
+    fn add_type_references(&mut self) {
         let builder = &mut self.builder;
+        
         for def in self.definitions.site_id_to_sdl.values().copied() {
             match def {
                 sdl::SdlDefinition::FieldDefinition(def) => {
-                    builder.graph[def.id].ty_record.definition_id =
-                        self.definitions.get_type_id(def.ty().name(), def.ty().span())?;
+                    match self.definitions.get_type_id(def.ty().name(), def.ty().span()) {
+                        Ok(id) => builder.graph[def.id].ty_record.definition_id = id,
+                        Err(err) => self.errors.push(err),
+                    }
                 }
                 sdl::SdlDefinition::InputFieldDefinition(def) => {
-                    builder.graph[def.id].ty_record.definition_id =
-                        self.definitions.get_type_id(def.ty().name(), def.ty().span())?;
+                    match self.definitions.get_type_id(def.ty().name(), def.ty().span()) {
+                        Ok(id) => builder.graph[def.id].ty_record.definition_id = id,
+                        Err(err) => self.errors.push(err),
+                    }
                 }
                 sdl::SdlDefinition::ArgumentDefinition(def) => {
-                    builder.graph[def.id].ty_record.definition_id =
-                        self.definitions.get_type_id(def.ty().name(), def.ty().span())?;
+                    match self.definitions.get_type_id(def.ty().name(), def.ty().span()) {
+                        Ok(id) => builder.graph[def.id].ty_record.definition_id = id,
+                        Err(err) => self.errors.push(err),
+                    }
                 }
                 sdl::SdlDefinition::Object(def) => {
-                    let interface_ids = def
-                        .implements_interfaces()
-                        .map(|inf| self.definitions.get_interface_id(inf, def.span()))
-                        .collect::<Result<Vec<_>, _>>()?;
+                    let mut interface_ids = Vec::new();
+                    for inf in def.implements_interfaces() {
+                        match self.definitions.get_interface_id(inf, def.span()) {
+                            Ok(id) => interface_ids.push(id),
+                            Err(err) => self.errors.push(err),
+                        }
+                    }
                     for inf_id in &interface_ids {
                         builder.graph[*inf_id].possible_type_ids.push(def.id);
                     }
                     builder.graph[def.id].interface_ids = interface_ids;
                 }
                 sdl::SdlDefinition::Interface(def) => {
-                    let interface_ids = def
-                        .implements_interfaces()
-                        .map(|inf| self.definitions.get_interface_id(inf, def.span()))
-                        .collect::<Result<Vec<_>, _>>()?;
+                    let mut interface_ids = Vec::new();
+                    for inf in def.implements_interfaces() {
+                        match self.definitions.get_interface_id(inf, def.span()) {
+                            Ok(id) => interface_ids.push(id),
+                            Err(err) => self.errors.push(err),
+                        }
+                    }
                     builder.graph[def.id].interface_ids = interface_ids;
                 }
                 sdl::SdlDefinition::Union(def) => {
-                    let member_ids = def
-                        .members()
-                        .map(|member| self.definitions.get_object_id(member.name(), member.span()))
-                        .collect::<Result<Vec<_>, _>>()?;
+                    let mut member_ids = Vec::new();
+                    for member in def.members() {
+                        match self.definitions.get_object_id(member.name(), member.span()) {
+                            Ok(id) => member_ids.push(id),
+                            Err(err) => self.errors.push(err),
+                        }
+                    }
                     builder.graph[def.id].possible_type_ids = member_ids;
                 }
                 _ => (),
             }
         }
-
-        Ok(())
     }
 
-    fn add_default_values(&mut self) -> Result<(), Error> {
+    fn add_default_values(&mut self) {
         let mut seen = BitSet::with_capacity(self.graph.input_object_definitions.len());
         let mut input_values_stack = Vec::new();
 
@@ -654,16 +676,14 @@ impl<'a> Ingester<'a> {
                 let Some((def, default_value)) = self.default_values.remove(&id) else {
                     continue;
                 };
-                self.graph[id].default_value_id = Some(self.coerce_input_value(id, default_value).map_err(|err| {
-                    (
-                        format!("At {}, found an invalid default value: {err}", def.to_site_string(self)),
-                        default_value.span(),
-                    )
-                })?);
+                match self.coerce_input_value(id, default_value) {
+                    Ok(coerced) => self.graph[id].default_value_id = Some(coerced),
+                    Err(err) => {
+                        self.errors.push(Error::new(format!("At {}, found an invalid default value: {err}", def.to_site_string(self))).span(default_value.span()));
+                    }
+                }
             }
         }
-
-        Ok(())
     }
 }
 

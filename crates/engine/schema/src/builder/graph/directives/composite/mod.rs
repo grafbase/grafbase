@@ -180,7 +180,7 @@ pub(crate) fn ingest_composite_field_directives_after_federation_and_resolvers(
         };
         require::ingest_field(ingester, field).map_err(|err| {
             err.with_prefix(format!("At site {}: ", field.to_site_string(ingester)))
-                .with_span_if_absent(field.name_span())
+                .span_if_absent(field.name_span())
         })?;
         for directive in field.directives() {
             if let "composite__derive" = directive.name() {
@@ -189,7 +189,7 @@ pub(crate) fn ingest_composite_field_directives_after_federation_and_resolvers(
                         "At site {}, for directive @composite__derive: ",
                         field.to_site_string(ingester)
                     ))
-                    .with_span_if_absent(directive.arguments_span())
+                    .span_if_absent(directive.arguments_span())
                 })?
             }
         }
