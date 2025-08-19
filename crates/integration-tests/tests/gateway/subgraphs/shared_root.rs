@@ -1,4 +1,7 @@
-use graphql_mocks::dynamic::{DynamicSchema, EntityResolverContext};
+use graphql_mocks::{
+    QueryBenchSchema, Subgraph as _,
+    dynamic::{DynamicSchema, EntityResolverContext},
+};
 use integration_tests::{gateway::Gateway, runtime};
 use serde_json::json;
 
@@ -361,5 +364,24 @@ fn shared_root_with_entity() {
           }
         }
         "#);
+    });
+}
+
+#[test]
+fn complex_shared_root() {
+    runtime().block_on(async {
+        let subgraph = QueryBenchSchema::default().start().await;
+        let gateway = Gateway::builder()
+            .with_federated_sdl(include_str!("../../../data/query_plan1/schema.graphql").replace(
+                "http://localhost:7000/graphql",
+                &format!("http://localhost:{}/", subgraph.port()),
+            ))
+            .build()
+            .await;
+
+        let response = gateway
+            .post(include_str!("../../../data/query_plan1/query.graphql"))
+            .await;
+        insta::assert_json_snapshot!(response);
     });
 }

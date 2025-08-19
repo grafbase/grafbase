@@ -31,6 +31,7 @@ mod echo;
 mod error_schema;
 mod fake_github;
 mod federation;
+mod query_plan_bench;
 mod secure;
 mod slow;
 mod stateful;
@@ -39,7 +40,8 @@ mod websockets;
 
 pub use {
     almost_empty::AlmostEmptySchema, echo::EchoSchema, error_schema::ErrorSchema, fake_github::FakeGithubSchema,
-    federation::*, secure::SecureSchema, slow::SlowSchema, stateful::Stateful, tea_shop::TeaShop,
+    federation::*, query_plan_bench::QueryBenchSchema, secure::SecureSchema, slow::SlowSchema, stateful::Stateful,
+    tea_shop::TeaShop,
 };
 
 #[derive(Debug)]
