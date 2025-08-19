@@ -1,0 +1,150 @@
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION) {
+  query: Query
+}
+
+directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+
+directive @join__field(
+  graph: join__Graph
+  requires: join__FieldSet
+  provides: join__FieldSet
+  type: String
+  external: Boolean
+  override: String
+  usedOverridden: Boolean
+) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__type(
+  graph: join__Graph!
+  key: join__FieldSet
+  extension: Boolean! = false
+  resolvable: Boolean! = true
+  isInterfaceObject: Boolean! = false
+) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+directive @join__unionMember(graph: join__Graph!, member: String!) repeatable on UNION
+
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+scalar join__FieldSet
+
+scalar link__Import
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+enum join__Graph {
+  SUB0 @join__graph(name: "sub0", url: "http://localhost:7000/graphql")
+  SUB1 @join__graph(name: "sub1", url: "http://localhost:7000/graphql")
+  SUB2 @join__graph(name: "sub2", url: "http://localhost:7000/graphql")
+  SUB3 @join__graph(name: "sub3", url: "http://localhost:7000/graphql")
+  SUB4 @join__graph(name: "sub4", url: "http://localhost:7000/graphql")
+  SUB5 @join__graph(name: "sub5", url: "http://localhost:7000/graphql")
+  SUB6 @join__graph(name: "sub6", url: "http://localhost:7000/graphql")
+}
+
+type Query
+  @join__type(graph: SUB0)
+  @join__type(graph: SUB1)
+  @join__type(graph: SUB2)
+  @join__type(graph: SUB3)
+  @join__type(graph: SUB4)
+  @join__type(graph: SUB5)
+  @join__type(graph: SUB6) {
+  node: Node
+}
+type Node
+  @join__type(graph: SUB0, key: "id0")
+  @join__type(graph: SUB1, key: "id0")
+  @join__type(graph: SUB2, key: "id0")
+  @join__type(graph: SUB3, key: "id0")
+  @join__type(graph: SUB4, key: "id0")
+  @join__type(graph: SUB5, key: "id0")
+  @join__type(graph: SUB6, key: "id0") {
+  id0: ID!
+  n0: Node @join__field(graph: SUB1) @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB5)
+  f0: String @join__field(graph: SUB1) @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB5)
+  n1: Node @join__field(graph: SUB0) @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB6)
+  f1: String @join__field(graph: SUB0) @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB6)
+  n2: Node @join__field(graph: SUB0) @join__field(graph: SUB2) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  f2: String @join__field(graph: SUB0) @join__field(graph: SUB2) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  n3: Node @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  f3: String @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  n4: Node @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB3) @join__field(graph: SUB4)
+  f4: String @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB3) @join__field(graph: SUB4)
+  n5: Node @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB4) @join__field(graph: SUB5)
+  f5: String @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB4) @join__field(graph: SUB5)
+  n6: Node @join__field(graph: SUB0) @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB6)
+  f6: String @join__field(graph: SUB0) @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB6)
+  n7: Node @join__field(graph: SUB1) @join__field(graph: SUB3) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  f7: String @join__field(graph: SUB1) @join__field(graph: SUB3) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  n8: Node @join__field(graph: SUB0) @join__field(graph: SUB3) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  f8: String @join__field(graph: SUB0) @join__field(graph: SUB3) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  n9: Node @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB4)
+  f9: String @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB4)
+  n10: Node @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB3) @join__field(graph: SUB5)
+  f10: String @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB3) @join__field(graph: SUB5)
+  n11: Node @join__field(graph: SUB0) @join__field(graph: SUB2) @join__field(graph: SUB4) @join__field(graph: SUB5)
+  f11: String @join__field(graph: SUB0) @join__field(graph: SUB2) @join__field(graph: SUB4) @join__field(graph: SUB5)
+  n12: Node @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  f12: String @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  n13: Node @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  f13: String @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  n14: Node @join__field(graph: SUB1) @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB6)
+  f14: String @join__field(graph: SUB1) @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB6)
+  n15: Node @join__field(graph: SUB0) @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB5)
+  f15: String @join__field(graph: SUB0) @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB5)
+  n16: Node @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB3) @join__field(graph: SUB6)
+  f16: String @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB3) @join__field(graph: SUB6)
+  n17: Node @join__field(graph: SUB0) @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB4)
+  f17: String @join__field(graph: SUB0) @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB4)
+  n18: Node @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB4)
+  f18: String @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB4)
+  n19: Node @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB5)
+  f19: String @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB5)
+  n20: Node @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB5)
+  f20: String @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB5)
+  n21: Node @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB4) @join__field(graph: SUB5)
+  f21: String @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB4) @join__field(graph: SUB5)
+  n22: Node @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB3)
+  f22: String @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB3)
+  n23: Node @join__field(graph: SUB0) @join__field(graph: SUB2) @join__field(graph: SUB4) @join__field(graph: SUB6)
+  f23: String @join__field(graph: SUB0) @join__field(graph: SUB2) @join__field(graph: SUB4) @join__field(graph: SUB6)
+  n24: Node @join__field(graph: SUB1) @join__field(graph: SUB4) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  f24: String @join__field(graph: SUB1) @join__field(graph: SUB4) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  n25: Node @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB5)
+  f25: String @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB5)
+  n26: Node @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB6)
+  f26: String @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB6)
+  n27: Node @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB6)
+  f27: String @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB6)
+  n28: Node @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB4) @join__field(graph: SUB6)
+  f28: String @join__field(graph: SUB1) @join__field(graph: SUB2) @join__field(graph: SUB4) @join__field(graph: SUB6)
+  n29: Node @join__field(graph: SUB2) @join__field(graph: SUB4) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  f29: String @join__field(graph: SUB2) @join__field(graph: SUB4) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  n30: Node @join__field(graph: SUB0) @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB5)
+  f30: String @join__field(graph: SUB0) @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB5)
+  n31: Node @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB6)
+  f31: String @join__field(graph: SUB2) @join__field(graph: SUB3) @join__field(graph: SUB4) @join__field(graph: SUB6)
+  n32: Node @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB4) @join__field(graph: SUB6)
+  f32: String @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB4) @join__field(graph: SUB6)
+  n33: Node @join__field(graph: SUB0) @join__field(graph: SUB4) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  f33: String @join__field(graph: SUB0) @join__field(graph: SUB4) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  n34: Node @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB5) @join__field(graph: SUB6)
+  f34: String @join__field(graph: SUB0) @join__field(graph: SUB1) @join__field(graph: SUB5) @join__field(graph: SUB6)
+}
