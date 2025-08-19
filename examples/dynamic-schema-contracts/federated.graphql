@@ -1,0 +1,283 @@
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Doctor
+  @extension__directive(graph: CLINIC_A, extension: TAG, name: "tag", arguments: {name: "clinic-a"})
+  @join__type(graph: CLINIC_A, key: "id")
+{
+  clinicId: ID!
+  email: String!
+  firstName: String!
+  id: ID!
+  lastName: String!
+  licenseNumber: String!
+  phone: String!
+  specialty: String!
+}
+
+type Appointment
+  @extension__directive(graph: CLINIC_A, extension: TAG, name: "tag", arguments: {name: "clinic-a"})
+  @join__type(graph: CLINIC_A, key: "id")
+{
+  clinicId: ID!
+  doctor: Doctor!
+  doctorId: ID!
+  duration: Int!
+  id: ID!
+  notes: String
+  patient: Patient
+  patientId: ID!
+  reason: String!
+  scheduledAt: String!
+  status: AppointmentStatus!
+}
+
+type Clinic
+  @extension__directive(graph: CLINIC_A, extension: TAG, name: "tag", arguments: {name: "clinic-a"})
+  @join__type(graph: CLINIC_A, key: "id")
+{
+  address: String!
+  city: String!
+  id: ID!
+  name: String!
+  operatingHours: [OperatingHour!]!
+  phone: String!
+  services: [String!]!
+  state: String!
+  zipCode: String!
+}
+
+type OperatingHour
+  @extension__directive(graph: CLINIC_A, extension: TAG, name: "tag", arguments: {name: "clinic-a"})
+  @join__type(graph: CLINIC_A)
+{
+  closeTime: String!
+  dayOfWeek: DayOfWeek!
+  openTime: String!
+}
+
+type Patient
+  @join__type(graph: CLINIC_A, key: "id")
+  @join__type(graph: MEDICAL_RECORDS, key: "id")
+  @join__type(graph: PATIENTS, key: "id")
+{
+  appointments: [Appointment!]! @extension__directive(graph: CLINIC_A, extension: TAG, name: "tag", arguments: {name: "clinic-a"}) @join__field(graph: CLINIC_A)
+  dateOfBirth: String! @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "patient-facing"}) @join__field(graph: PATIENTS)
+  email: String! @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "patient-facing"}) @join__field(graph: PATIENTS)
+  emergencyContactName: String! @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "patient-facing"}) @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @join__field(graph: PATIENTS)
+  emergencyContactPhone: String! @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "patient-facing"}) @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @join__field(graph: PATIENTS)
+  emergencyContactRelation: String! @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "patient-facing"}) @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @join__field(graph: PATIENTS)
+  firstName: String! @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "public"}) @join__field(graph: PATIENTS)
+  id: ID! @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "public"})
+  insurancePolicyNumber: String! @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "billing"}) @join__field(graph: PATIENTS)
+  insuranceProvider: String! @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "billing"}) @join__field(graph: PATIENTS)
+  lastName: String! @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "public"}) @join__field(graph: PATIENTS)
+  medicalRecord: MedicalRecord @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"}) @join__field(graph: MEDICAL_RECORDS)
+  phone: String! @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "patient-facing"}) @join__field(graph: PATIENTS)
+  ssn: String! @inaccessible @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "admin-only"}) @join__field(graph: PATIENTS)
+}
+
+type MedicalRecord
+  @join__type(graph: MEDICAL_RECORDS)
+{
+  allergies: [String!]! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+  bloodType: String! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+  createdAt: String! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  currentMedications: [Medication!]! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  diagnoses: [Diagnosis!]! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  labResults: [LabResult!]! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  medicalHistory: [MedicalHistoryEntry!]! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  prescriptions: [Prescription!]! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  updatedAt: String! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  vitalSigns: [VitalSign!]! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+}
+
+type Medication
+  @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  @join__type(graph: MEDICAL_RECORDS)
+{
+  dosage: String!
+  frequency: String!
+  name: String!
+  prescribedBy: String!
+  startedAt: String!
+}
+
+type Diagnosis
+  @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  @join__type(graph: MEDICAL_RECORDS)
+{
+  code: String!
+  description: String!
+  diagnosedAt: String!
+  diagnosedBy: String!
+  id: ID!
+  notes: String
+  severity: Severity!
+  status: DiagnosisStatus!
+}
+
+type Prescription
+  @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  @join__type(graph: MEDICAL_RECORDS)
+{
+  controlledSubstance: Boolean!
+  dosage: String!
+  duration: String!
+  frequency: String!
+  id: ID!
+  instructions: String!
+  medicationName: String!
+  prescribedAt: String!
+  prescribedBy: String!
+  refills: Int!
+}
+
+type LabResult
+  @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  @join__type(graph: MEDICAL_RECORDS)
+{
+  id: ID!
+  isAbnormal: Boolean!
+  normalRange: String!
+  notes: String
+  orderedBy: String!
+  performedAt: String!
+  testCode: String!
+  testName: String!
+  unit: String!
+  value: String!
+}
+
+type VitalSign
+  @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+  @join__type(graph: MEDICAL_RECORDS)
+{
+  bloodPressureDiastolic: Int @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+  bloodPressureSystolic: Int @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+  bmi: Float @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+  heartRate: Int @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+  height: Float @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+  oxygenSaturation: Int @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+  recordedAt: String! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+  respiratoryRate: Int @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+  temperature: Float @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+  weight: Float @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "patient-facing"})
+}
+
+type MedicalHistoryEntry
+  @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  @join__type(graph: MEDICAL_RECORDS)
+{
+  attachments: [String!]
+  date: String!
+  description: String!
+  facility: String!
+  provider: String!
+  type: HistoryEntryType!
+}
+
+type AccessLogEntry
+  @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "admin-only"})
+  @join__type(graph: MEDICAL_RECORDS)
+{
+  action: String! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "admin-only"})
+  ipAddress: String! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "admin-only"})
+  resourceAccessed: String! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "admin-only"})
+  timestamp: String! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "admin-only"})
+  userId: String! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "admin-only"})
+}
+
+type Query
+{
+  accessLog(patientId: ID!): [AccessLogEntry!]! @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "admin-only"}) @join__field(graph: MEDICAL_RECORDS)
+  clinic(id: ID!): Clinic @extension__directive(graph: CLINIC_A, extension: TAG, name: "tag", arguments: {name: "clinic-a"}) @join__field(graph: CLINIC_A)
+  clinics: [Clinic!]! @extension__directive(graph: CLINIC_A, extension: TAG, name: "tag", arguments: {name: "clinic-a"}) @join__field(graph: CLINIC_A)
+  doctor(id: ID!): Doctor @extension__directive(graph: CLINIC_A, extension: TAG, name: "tag", arguments: {name: "clinic-a"}) @join__field(graph: CLINIC_A)
+  doctors: [Doctor!]! @extension__directive(graph: CLINIC_A, extension: TAG, name: "tag", arguments: {name: "clinic-a"}) @join__field(graph: CLINIC_A)
+  patient(id: ID!): Patient @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "public"}) @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "patient-facing"}) @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @join__field(graph: PATIENTS)
+  patientBySsn(ssn: String!): Patient @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "admin-only"}) @join__field(graph: PATIENTS)
+  patients: [Patient!]! @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "doctor-access"}) @extension__directive(graph: PATIENTS, extension: TAG, name: "tag", arguments: {name: "admin-only"}) @join__field(graph: PATIENTS)
+}
+
+enum AppointmentStatus
+  @extension__directive(graph: CLINIC_A, extension: TAG, name: "tag", arguments: {name: "clinic-a"})
+  @join__type(graph: CLINIC_A)
+{
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum DayOfWeek
+  @extension__directive(graph: CLINIC_A, extension: TAG, name: "tag", arguments: {name: "clinic-a"})
+  @join__type(graph: CLINIC_A)
+{
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum Severity
+  @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  @join__type(graph: MEDICAL_RECORDS)
+{
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+}
+
+enum DiagnosisStatus
+  @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  @join__type(graph: MEDICAL_RECORDS)
+{
+  ACTIVE
+  RESOLVED
+  CHRONIC
+  IN_TREATMENT
+}
+
+enum HistoryEntryType
+  @extension__directive(graph: MEDICAL_RECORDS, extension: TAG, name: "tag", arguments: {name: "doctor-access"})
+  @join__type(graph: MEDICAL_RECORDS)
+{
+  SURGERY
+  HOSPITALIZATION
+  EMERGENCY_VISIT
+  VACCINATION
+  ALLERGY_REACTION
+  CHRONIC_CONDITION
+  FAMILY_HISTORY
+}
+
+enum join__Graph
+{
+  CLINIC_A @join__graph(name: "clinic-a", url: "http://clinic-a:4002/graphql")
+  MEDICAL_RECORDS @join__graph(name: "medical-records", url: "http://medical-records:4004/graphql")
+  PATIENTS @join__graph(name: "patients", url: "http://patients:4001/graphql")
+}
+
+enum extension__Link
+{
+  TAG @extension__link(url: "https://grafbase.com/extensions/tag/1.1.0")
+}
+

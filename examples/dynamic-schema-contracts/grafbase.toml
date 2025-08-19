@@ -1,0 +1,21 @@
+[graph]
+introspection = true
+# contracts.default_key = "{\"excludedTags\": [\"internal\"]}"
+
+[extensions.tag]
+version = "1.1.0"
+
+[extensions.demo-hooks]
+path = "./demo-hooks/build"
+
+[subgraphs.patients]
+schema_path = "./subgraphs/patients/schema.graphql"
+url = "http://patients:4001/graphql"
+
+[subgraphs.clinic-a]
+schema_path = "./subgraphs/clinic-a/schema.graphql"
+url = "http://clinic-a:4002/graphql"
+
+[subgraphs.medical-records]
+schema_path = "./subgraphs/medical-records/schema.graphql"
+url = "http://medical-records:4004/graphql"
