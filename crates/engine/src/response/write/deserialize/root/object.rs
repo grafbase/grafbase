@@ -1,4 +1,5 @@
 use error::GraphqlError;
+use itertools::Itertools as _;
 use serde::{Deserializer, de::DeserializeSeed};
 
 use crate::response::{
@@ -43,6 +44,14 @@ impl<'de> DeserializeSeed<'de> for RootObjectSeed<'_, '_, '_> {
             .deserialize_any(fields_seed)
             .map(|value| match value {
                 ObjectFields::Some { fields, .. } => {
+                    tracing::debug!(
+                        "Updating object at '{}' with fields {}",
+                        state.display_path(),
+                        fields.iter().format_with(",", |field, f| f(&format_args!(
+                            "{}",
+                            &state.response_keys()[field.key]
+                        )))
+                    );
                     state.response.borrow_mut().insert_fields_update(parent_object, fields)
                 }
                 ObjectFields::Null => state.insert_empty_update(parent_object),

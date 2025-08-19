@@ -20,6 +20,7 @@ pub enum Node {
     },
     Field {
         id: QueryFieldId,
+        split_id: SplitId,
         flags: FieldFlags,
     },
 }
@@ -89,6 +90,13 @@ pub struct Query<G: GraphBase, Step> {
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, id_derives::Id)]
 pub struct QueryFieldId(u32);
+
+/// Whenever we need to plan an interface through its implementors, we copy query field nodes
+/// Later on we rely on those QueryFieldId to de-duplicate ResponseObjectSets between plans,
+/// especially in case shared roots. However, contrary to shared roots, here those copied
+/// QueryField do represent different objects and today that leads to duplicate plan executions.
+#[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, id_derives::Id)]
+pub struct SplitId(u32);
 
 #[derive(Clone, Copy, id_derives::Id, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TypeConditionSharedVecId(u32);
