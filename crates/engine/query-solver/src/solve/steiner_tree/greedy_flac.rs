@@ -6,7 +6,7 @@ use fixedbitset::FixedBitSet;
 use fxhash::FxBuildHasher;
 use petgraph::{
     Graph,
-    graph::{EdgeIndex, EdgeReference, NodeIndex},
+    graph::{EdgeIndex, NodeIndex},
     visit::{EdgeIndexable, EdgeRef, NodeIndexable},
 };
 use priority_queue::PriorityQueue;
@@ -45,14 +45,6 @@ impl PartialOrd for Priority {
 }
 
 impl Eq for Priority {}
-
-struct Flow {
-    saturated_edges: FixedBitSet,
-    marked_or_saturated_edges: FixedBitSet,
-    root_feeding_terminals: FixedBitSet,
-    node_to_feeding_terminals: Vec<FixedBitSet>,
-    node_to_flow_rates: Vec<FlowRate>,
-}
 
 /// # GreedyFLAC
 ///
@@ -224,6 +216,14 @@ pub(crate) struct GreedyFlac {
     heap: PriorityQueue<SteinerEdgeId, Priority, FxBuildHasher>,
     tmp_stack: Vec<NodeIndex>,
     tmp_next_saturating_edges_in_T_u: Vec<NextSaturatingEdge>,
+}
+
+struct Flow {
+    saturated_edges: FixedBitSet,
+    marked_or_saturated_edges: FixedBitSet,
+    root_feeding_terminals: FixedBitSet,
+    node_to_feeding_terminals: Vec<FixedBitSet>,
+    node_to_flow_rates: Vec<FlowRate>,
 }
 
 struct NextSaturatingEdge {

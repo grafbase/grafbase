@@ -23,7 +23,8 @@ pub async fn plan(
 ) -> Result<OperationPlan, Response> {
     async move {
         let query_modifications = QueryModifications::build(ctx, operation, variables).await?;
-        OperationPlan::plan(ctx, operation, query_modifications).await
+        let plan = OperationPlan::plan(ctx, operation, query_modifications).await?;
+        Ok(plan)
     }
     .await
     .map_err(|error| match error {

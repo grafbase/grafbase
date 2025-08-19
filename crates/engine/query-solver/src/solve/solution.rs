@@ -79,11 +79,13 @@ impl Solution<'_> {
                     if let SpaceNode::QueryField(QueryFieldNode {
                         id: query_field_id,
                         flags,
+                        split_id: split,
                     }) = space.graph[edge.target()]
                         && space[query_field_id].definition_id.is_none()
                     {
                         let typename_field_id = graph.add_node(Node::Field {
                             id: query_field_id,
+                            split_id: split,
                             flags,
                         });
                         graph.add_edge(root_node_id, typename_field_id, Edge::Field);
@@ -120,6 +122,7 @@ impl Solution<'_> {
                         field_space_node_id,
                         &QueryFieldNode {
                             id: query_field_id,
+                            split_id,
                             flags,
                         },
                     ) = space
@@ -140,10 +143,11 @@ impl Solution<'_> {
 
                     let field_node_id = graph.add_node(Node::Field {
                         id: query_field_id,
+                        split_id,
                         flags,
                     });
                     graph.add_edge(parent_node_id, field_node_id, Edge::Field);
-                    query_field_to_node.push((query_field_id, field_node_id));
+                    query_field_to_node.push(((query_field_id, split_id), field_node_id));
 
                     // FIXME: Move this logic to the solution space.
                     if let Some(derive) = providable_field.derive {
@@ -194,6 +198,7 @@ impl Solution<'_> {
                                         space.fields.push(field);
                                         let node_id = graph.add_node(Node::Field {
                                             id: (space.fields.len() - 1).into(),
+                                            split_id: Default::default(),
                                             flags,
                                         });
                                         graph.add_edge(parent_node_id, node_id, Edge::Field);
@@ -270,6 +275,7 @@ impl Solution<'_> {
                                         space.fields.push(field);
                                         let ix = graph.add_node(Node::Field {
                                             id: (space.fields.len() - 1).into(),
+                                            split_id: Default::default(),
                                             flags,
                                         });
                                         graph.add_edge(source_node_id, ix, Edge::Field);
@@ -297,12 +303,14 @@ impl Solution<'_> {
                                 space_edges_to_remove.push(space_edge.id());
                                 if let SpaceNode::QueryField(QueryFieldNode {
                                     id: query_field_id,
+                                    split_id: split,
                                     flags,
                                 }) = space.graph[space_edge.target()]
                                     && space[query_field_id].definition_id.is_none()
                                 {
                                     let typename_field_ix = graph.add_node(Node::Field {
                                         id: query_field_id,
+                                        split_id: split,
                                         flags,
                                     });
                                     graph.add_edge(field_node_id, typename_field_ix, Edge::Field);
@@ -320,11 +328,13 @@ impl Solution<'_> {
                 }
                 SpaceNode::QueryField(QueryFieldNode {
                     id: query_field_id,
+                    split_id: split,
                     flags,
                 }) if space[*query_field_id].definition_id.is_none() => {
                     let typename_field_ix = graph.add_node(Node::Field {
                         id: *query_field_id,
                         flags: *flags,
+                        split_id: *split,
                     });
                     graph.add_edge(parent_node_id, typename_field_ix, Edge::Field);
                     typename_field_ix
@@ -369,7 +379,7 @@ impl Solution<'_> {
             let SpaceNode::QueryField(field) = &space.graph[target_space_node_id] else {
                 unreachable!()
             };
-            for node_id in field_to_node.find_all(field.id).copied() {
+            for node_id in field_to_node.find_all((field.id, field.split_id)).copied() {
                 graph.add_edge(source_node_id, node_id, weight);
             }
         }

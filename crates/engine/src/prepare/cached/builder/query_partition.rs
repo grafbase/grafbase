@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 use fxhash::FxHashMap;
 use id_newtypes::{BitSet, IdRange, IdToMany};
 use query_solver::{
-    Edge, Node, QueryFieldId,
+    Edge, Node, QueryFieldId, SplitId,
     petgraph::{
         Direction,
         graph::NodeIndex,
@@ -41,7 +41,7 @@ impl<'a> Solver<'a> {
 
 struct NodeMapBuilder {
     node_to_field: Vec<Option<PartitionFieldId>>,
-    query_field_to_data_field: Vec<(QueryFieldId, DataFieldId)>,
+    query_field_to_data_field: Vec<((QueryFieldId, SplitId), DataFieldId)>,
     query_partition_to_node: Vec<(QueryPartitionId, NodeIndex)>,
 }
 
@@ -58,11 +58,11 @@ impl NodeMapBuilder {
 pub(super) struct NodeMap {
     pub node_to_field: Vec<Option<PartitionFieldId>>,
     pub query_partition_to_node: Vec<(QueryPartitionId, NodeIndex)>,
-    pub query_field_to_data_field: IdToMany<QueryFieldId, DataFieldId>,
+    pub query_field_to_data_field: IdToMany<(QueryFieldId, SplitId), DataFieldId>,
 }
 
 pub(super) struct ResponseObjectSetMap {
-    pub query_field_id_to_response_object_set: FxHashMap<QueryFieldId, ResponseObjectSetId>,
+    pub query_field_id_to_response_object_set: FxHashMap<(QueryFieldId, SplitId), ResponseObjectSetId>,
 }
 
 impl ResponseObjectSetMap {
@@ -71,23 +71,29 @@ impl ResponseObjectSetMap {
         solver: &mut Solver<'_>,
         source_ix: NodeIndex,
     ) -> ResponseObjectSetId {
-        let Node::Field { id, .. } = solver.solution.graph[source_ix] else {
+        let Node::Field {
+            id, split_id: split, ..
+        } = solver.solution.graph[source_ix]
+        else {
             unreachable!();
         };
-        *self.query_field_id_to_response_object_set.entry(id).or_insert_with(|| {
-            solver
-                .output
-                .query_plan
-                .response_object_set_definitions
-                .push(super::ResponseObjectSetMetadataRecord {
-                    ty_id: solver.solution[id]
-                        .definition_id
-                        .and_then(|def| def.walk(solver.schema).ty().definition_id.as_composite_type())
-                        .expect("Could not have a child resolver if it wasn't a composite type"),
-                    query_partition_ids: Vec::new(),
-                });
-            ResponseObjectSetId::from(solver.output.query_plan.response_object_set_definitions.len() - 1)
-        })
+        *self
+            .query_field_id_to_response_object_set
+            .entry((id, split))
+            .or_insert_with(|| {
+                solver
+                    .output
+                    .query_plan
+                    .response_object_set_definitions
+                    .push(super::ResponseObjectSetMetadataRecord {
+                        ty_id: solver.solution[id]
+                            .definition_id
+                            .and_then(|def| def.walk(solver.schema).ty().definition_id.as_composite_type())
+                            .expect("Could not have a child resolver if it wasn't a composite type"),
+                        query_partition_ids: Vec::new(),
+                    });
+                ResponseObjectSetId::from(solver.output.query_plan.response_object_set_definitions.len() - 1)
+            })
     }
 }
 
@@ -112,6 +118,7 @@ enum NestedField {
         record: DataFieldRecord,
         node_id: NodeIndex,
         query_field_id: QueryFieldId,
+        split_id: SplitId,
     },
     Typename {
         record: TypenameFieldRecord,
@@ -289,7 +296,12 @@ impl Context<'_, '_> {
                     self.query_partitions_to_create_stack.push(new_partition);
                 }
                 Edge::Field => {
-                    let Node::Field { id: query_field_id, .. } = self.solution.graph[target_id] else {
+                    let Node::Field {
+                        id: query_field_id,
+                        split_id,
+                        ..
+                    } = self.solution.graph[target_id]
+                    else {
                         continue;
                     };
                     match self.crate_data_field_or_typename_field(query_partition_id, query_field_id) {
@@ -333,6 +345,7 @@ impl Context<'_, '_> {
                                 record,
                                 node_id: target_id,
                                 query_field_id,
+                                split_id,
                             });
                         }
                         Some(PartitionFieldRecord::Typename(record)) => {
@@ -367,10 +380,13 @@ impl Context<'_, '_> {
                     record,
                     node_id,
                     query_field_id,
+                    split_id,
                 } => {
                     let field_id = self.output.query_plan.data_fields.len().into();
                     self.map.node_to_field[node_id.index()] = Some(PartitionFieldId::Data(field_id));
-                    self.map.query_field_to_data_field.push((query_field_id, field_id));
+                    self.map
+                        .query_field_to_data_field
+                        .push(((query_field_id, split_id), field_id));
                     for nested in &mut self.output.query_plan[record
                         .selection_set_record
                         .data_field_ids_ordered_by_parent_entity_then_key]

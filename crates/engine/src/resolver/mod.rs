@@ -30,6 +30,20 @@ pub(crate) enum Resolver {
     Lookup(LookupResolver),
 }
 
+impl std::fmt::Display for Resolver {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Resolver::Graphql(r) => r.subgraph_operation.query.fmt(f),
+            Resolver::FederationEntity(r) => r.subgraph_operation.query.fmt(f),
+            Resolver::Introspection(_) => write!(f, "Introspection resolver"),
+            Resolver::FieldResolverExtension(_) => write!(f, "Field resolver extension"),
+            Resolver::SelectionSetExtension(_) => write!(f, "Selection set extension resolver"),
+            Resolver::Extension(_) => write!(f, "Extension resolver"),
+            Resolver::Lookup(_) => write!(f, "Lookup resolver"),
+        }
+    }
+}
+
 impl Resolver {
     pub async fn prepare(
         ctx: &PrepareContext<'_, impl Runtime>,

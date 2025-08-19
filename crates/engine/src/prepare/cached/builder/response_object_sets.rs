@@ -22,8 +22,8 @@ impl Solver<'_> {
         //
         // To prevent this we ensure that all DataFields that map to the same QueryField have the
         // same output_id if any.
-        for (query_field_id, set_id) in response_object_set_map.query_field_id_to_response_object_set {
-            for field_id in map.query_field_to_data_field.find_all(query_field_id).copied() {
+        for (key, set_id) in response_object_set_map.query_field_id_to_response_object_set {
+            for field_id in map.query_field_to_data_field.find_all(key).copied() {
                 debug_assert!(
                     self.output.query_plan[field_id].output_id.is_none_or(|id| id == set_id),
                     "Inconsitent ResponseObjectSetId"
