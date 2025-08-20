@@ -124,18 +124,6 @@ pub(crate) struct JoinGraphDirective<'a> {
     pub url: Option<&'a str>,
 }
 
-pub(crate) fn as_join_type<'a>(dir: &ast::Directive<'a>) -> Option<Result<(JoinTypeDirective<'a>, Span), Error>> {
-    if dir.name() == "join__type" {
-        Some(
-            dir.deserialize()
-                .map(|d| (d, dir.arguments_span()))
-                .map_err(|err| (err.to_string(), dir.arguments_span()).into()),
-        )
-    } else {
-        None
-    }
-}
-
 ///```ignore,graphql
 /// directive @join__type(
 ///     graph: join__Graph!,

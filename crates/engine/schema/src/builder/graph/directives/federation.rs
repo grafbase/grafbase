@@ -9,7 +9,6 @@ use crate::{
     builder::{
         Error,
         sdl::{self, GraphName},
-        subgraphs::SubgraphsBuilder,
     },
 };
 
@@ -41,12 +40,9 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
         id: EnumDefinitionId,
         directives: &[sdl::Directive<'sdl>],
     ) {
-        update_exists_in_subgraph_ids(
-            &self.builder.ctx.subgraphs,
-            &mut self.builder.graph[id].exists_in_subgraph_ids,
-            directives,
-            &mut self.errors,
-        )
+        let mut exists_in_subgraph_ids = std::mem::take(&mut self.builder.graph[id].exists_in_subgraph_ids);
+        self.update_exists_in_subgraph_ids(directives, &mut exists_in_subgraph_ids);
+        self.builder.graph[id].exists_in_subgraph_ids = exists_in_subgraph_ids;
     }
 
     fn ingest_input_object_definition_federation_directive(
@@ -54,12 +50,41 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
         id: InputObjectDefinitionId,
         directives: &[sdl::Directive<'sdl>],
     ) {
-        update_exists_in_subgraph_ids(
-            &self.builder.ctx.subgraphs,
-            &mut self.builder.graph[id].exists_in_subgraph_ids,
-            directives,
-            &mut self.errors,
-        )
+        let mut exists_in_subgraph_ids = std::mem::take(&mut self.builder.graph[id].exists_in_subgraph_ids);
+        self.update_exists_in_subgraph_ids(directives, &mut exists_in_subgraph_ids);
+        self.builder.graph[id].exists_in_subgraph_ids = exists_in_subgraph_ids;
+    }
+
+    fn ingest_scalar_definition_federation_directive(
+        &mut self,
+        id: ScalarDefinitionId,
+        directives: &[sdl::Directive<'sdl>],
+    ) {
+        let mut exists_in_subgraph_ids = std::mem::take(&mut self.builder.graph[id].exists_in_subgraph_ids);
+        self.update_exists_in_subgraph_ids(directives, &mut exists_in_subgraph_ids);
+        self.builder.graph[id].exists_in_subgraph_ids = exists_in_subgraph_ids;
+    }
+
+    fn update_exists_in_subgraph_ids(
+        &mut self,
+        directives: &[sdl::Directive<'sdl>],
+        exists_in_subgraph_ids: &mut Vec<SubgraphId>,
+    ) {
+        if exists_in_subgraph_ids.contains(&SubgraphId::Introspection) {
+            return;
+        }
+
+        for dir in directives.iter() {
+            let Some(join_type) = self.get_join_type(*dir) else {
+                continue;
+            };
+            exists_in_subgraph_ids.push(join_type.subgraph_id);
+        }
+        if exists_in_subgraph_ids.is_empty() {
+            *exists_in_subgraph_ids = self.subgraphs.all.clone()
+        } else {
+            exists_in_subgraph_ids.sort_unstable();
+        }
     }
 
     fn ingest_interface_definition_federation_directive(
@@ -75,21 +100,11 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
         }
 
         let mut exists_in_subgraph_ids = take(&mut self.graph[def.id].exists_in_subgraph_ids);
-        for result in directives.iter().filter_map(sdl::as_join_type) {
-            let (join_type, span) = match result {
-                Ok(v) => v,
-                Err(err) => {
-                    self.errors.push(err);
-                    continue;
-                }
+        for dir in directives.iter() {
+            let Some(join_type) = self.get_join_type(*dir) else {
+                continue;
             };
-            let subgraph_id = match self.subgraphs.try_get(join_type.graph, span) {
-                Ok(id) => id,
-                Err(err) => {
-                    self.errors.push(err);
-                    continue;
-                }
-            };
+            let subgraph_id = join_type.subgraph_id;
             exists_in_subgraph_ids.push(subgraph_id);
             if join_type.is_interface_object {
                 self.graph[def.id].is_interface_object_in_ids.push(subgraph_id);
@@ -148,22 +163,11 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
             .sort_by_key(|record| (record.subgraph_id, record.interface_id));
 
         let mut exists_in_subgraph_ids = take(&mut self.graph[def.id].exists_in_subgraph_ids);
-        for result in directives.iter().filter_map(sdl::as_join_type) {
-            let (join_type, span) = match result {
-                Ok(v) => v,
-                Err(err) => {
-                    self.errors.push(err);
-                    continue;
-                }
+        for dir in directives.iter() {
+            let Some(join_type) = self.get_join_type(*dir) else {
+                continue;
             };
-            let subgraph_id = match self.subgraphs.try_get(join_type.graph, span) {
-                Ok(id) => id,
-                Err(err) => {
-                    self.errors.push(err);
-                    continue;
-                }
-            };
-            exists_in_subgraph_ids.push(subgraph_id);
+            exists_in_subgraph_ids.push(join_type.subgraph_id);
         }
 
         if exists_in_subgraph_ids.is_empty() {
@@ -172,19 +176,6 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
             exists_in_subgraph_ids.sort_unstable();
         }
         self.graph[def.id].exists_in_subgraph_ids = exists_in_subgraph_ids;
-    }
-
-    fn ingest_scalar_definition_federation_directive(
-        &mut self,
-        id: ScalarDefinitionId,
-        directives: &[sdl::Directive<'sdl>],
-    ) {
-        update_exists_in_subgraph_ids(
-            &self.builder.ctx.subgraphs,
-            &mut self.builder.graph[id].exists_in_subgraph_ids,
-            directives,
-            &mut self.errors,
-        )
     }
 
     fn ingest_union_definition_federation_directive(
@@ -229,22 +220,11 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
             .sort_by_key(|record| (record.subgraph_id, record.member_id));
 
         let mut exists_in_subgraph_ids = take(&mut self.builder.graph[id].exists_in_subgraph_ids);
-        for result in directives.iter().filter_map(sdl::as_join_type) {
-            let (join_type, span) = match result {
-                Ok(v) => v,
-                Err(err) => {
-                    self.errors.push(err);
-                    continue;
-                }
+        for dir in directives.iter() {
+            let Some(join_type) = self.get_join_type(*dir) else {
+                continue;
             };
-            let subgraph_id = match self.subgraphs.try_get(join_type.graph, span) {
-                Ok(id) => id,
-                Err(err) => {
-                    self.errors.push(err);
-                    continue;
-                }
-            };
-            exists_in_subgraph_ids.push(subgraph_id);
+            exists_in_subgraph_ids.push(join_type.subgraph_id);
         }
         if exists_in_subgraph_ids.is_empty() {
             exists_in_subgraph_ids = self.builder.subgraphs.all.clone()
@@ -386,27 +366,16 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
         if let Some(ext) = self.sdl.type_extensions.get(def.parent.name()) {
             parent_directives.extend(ext.iter().flat_map(|ext| ext.directives()));
         }
-        for result in parent_directives.iter().filter_map(sdl::as_join_type) {
-            let (dir, span) = match result {
-                Ok(v) => v,
-                Err(err) => {
-                    self.errors.push(err);
-                    continue;
-                }
+        for dir in parent_directives.iter() {
+            let Some(join_type) = self.get_join_type(*dir) else {
+                continue;
             };
 
             parent_has_join_type = true;
             if !has_join_field {
-                let subgraph_id = match self.subgraphs.try_get(dir.graph, span) {
-                    Ok(id) => id,
-                    Err(err) => {
-                        self.errors.push(err);
-                        continue;
-                    }
-                };
                 // If there is no @join__field we rely solely @join__type to define the subgraphs
                 // in which this field is resolvable in.
-                resolvable_in.insert(subgraph_id);
+                resolvable_in.insert(join_type.subgraph_id);
             }
         }
 
@@ -428,40 +397,6 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
         field.exists_in_subgraph_ids = exists_in_subgraph_ids;
         field.provides_records = provides_records;
         field.requires_records = requires_records;
-    }
-}
-
-fn update_exists_in_subgraph_ids(
-    subgraphs: &SubgraphsBuilder<'_>,
-    exists_in_subgraph_ids: &mut Vec<SubgraphId>,
-    directives: &[sdl::Directive<'_>],
-    errors: &mut Vec<Error>,
-) {
-    if exists_in_subgraph_ids.contains(&SubgraphId::Introspection) {
-        return;
-    }
-
-    for result in directives.iter().filter_map(sdl::as_join_type) {
-        let (join_type, span) = match result {
-            Ok(v) => v,
-            Err(err) => {
-                errors.push(err);
-                continue;
-            }
-        };
-        let subgraph_id = match subgraphs.try_get(join_type.graph, span) {
-            Ok(id) => id,
-            Err(err) => {
-                errors.push(err);
-                continue;
-            }
-        };
-        exists_in_subgraph_ids.push(subgraph_id);
-    }
-    if exists_in_subgraph_ids.is_empty() {
-        *exists_in_subgraph_ids = subgraphs.all.clone()
-    } else {
-        exists_in_subgraph_ids.sort_unstable();
     }
 }
 

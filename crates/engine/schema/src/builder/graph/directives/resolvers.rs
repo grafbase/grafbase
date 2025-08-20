@@ -5,10 +5,7 @@ use crate::{
     FieldResolverExtensionDefinitionRecord, GraphqlFederationEntityResolverDefinitionRecord,
     GraphqlRootFieldResolverDefinitionRecord, ResolverDefinitionId, ResolverDefinitionRecord,
     SelectionSetResolverExtensionDefinitionRecord, SubgraphId, TypeSystemDirectiveId, VirtualSubgraphId,
-    builder::{
-        Error,
-        sdl::{self, SdlDefinition},
-    },
+    builder::{Error, sdl::SdlDefinition},
 };
 
 use super::DirectivesIngester;
@@ -195,24 +192,9 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
             EntityDefinitionId::Object(id) => ingester.graph[id].field_ids,
         };
 
-        for result in entity
-            .directives()
-            .chain(ext.iter().flat_map(|ext| ext.directives()))
-            .filter_map(|dir| sdl::as_join_type(&dir))
-        {
-            let (join_type, span) = match result {
-                Ok(v) => v,
-                Err(err) => {
-                    ingester.errors.push(err);
-                    continue;
-                }
-            };
-            let subgraph_id = match ingester.subgraphs.try_get(join_type.graph, span) {
-                Ok(id) => id,
-                Err(err) => {
-                    ingester.errors.push(err);
-                    continue;
-                }
+        for dir in entity.directives().chain(ext.iter().flat_map(|ext| ext.directives())) {
+            let Some(join_type) = ingester.get_join_type(dir) else {
+                continue;
             };
             let Some(key_str) = join_type.key.filter(|key| !key.is_empty()) else {
                 continue;
@@ -227,12 +209,13 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
                             entity.to_site_string(ingester),
                             err
                         ))
-                        .span(span),
+                        .span(join_type.arguments_span),
                     );
                     continue;
                 }
             };
 
+            let subgraph_id = join_type.subgraph_id;
             // Any field that is part of a key has to exist in the subgraph.
             let mut stack = vec![&key];
             while let Some(fields) = stack.pop() {
