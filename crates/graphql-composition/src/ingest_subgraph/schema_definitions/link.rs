@@ -1,8 +1,5 @@
 use super::*;
-use crate::{
-    federated_graph::{Import, LinkDirective, QualifiedImport},
-    subgraphs::{FederationSpec, LinkedSchemaType},
-};
+use crate::federated_graph::{Import, LinkDirective, QualifiedImport};
 use cynic_parser_deser::ConstDeserializer;
 
 pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: SubgraphId, subgraphs: &mut Subgraphs) {
@@ -19,38 +16,28 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
         }
     };
 
-    let r#as = r#as.map(|r#as| subgraphs.strings.intern(r#as));
-    let linked_schema_id = match subgraphs.find_matching_extension(url) {
-        Some(extension_id) => {
-            let extension = &subgraphs[extension_id];
+    let (name, _version) = subgraphs::parse_link_url(url)
+        .map(|url| (url.name, url.version))
+        .unwrap_or_default();
 
-            subgraphs.push_linked_schema(subgraphs::LinkedSchemaRecord {
-                subgraph_id,
-                linked_schema_type: subgraphs::LinkedSchemaType::Extension(extension_id),
-                name_from_url: Some(extension.name),
-                r#as,
-            })
-        }
-        None => {
-            let (name, _version) = subgraphs::parse_link_url(url)
-                .map(|url| (url.name, url.version))
-                .unwrap_or_default();
+    let name = name.map(|name| subgraphs.strings.intern(name));
 
-            let schema_type = if let Some(federation_spec) = FederationSpec::from_url(url) {
-                LinkedSchemaType::FederationSpec(federation_spec)
-            } else {
-                LinkedSchemaType::Other
-            };
-
-            let name = name.map(|name| subgraphs.strings.intern(name));
-            subgraphs.push_linked_schema(subgraphs::LinkedSchemaRecord {
-                subgraph_id,
-                r#as,
-                name_from_url: name,
-                linked_schema_type: schema_type,
-            })
-        }
+    let linked_schema_type = if let Some(federation_spec) = subgraphs::FederationSpec::from_url(url) {
+        subgraphs::LinkedSchemaType::FederationSpec(federation_spec)
+    } else {
+        subgraphs::LinkedSchemaType::Other
     };
+
+    let url = subgraphs.strings.intern(url);
+    let r#as = r#as.map(|r#as| subgraphs.strings.intern(r#as));
+
+    let linked_schema_id = subgraphs.push_linked_schema(subgraphs::LinkedSchemaRecord {
+        subgraph_id,
+        linked_schema_type,
+        url,
+        r#as,
+        name_from_url: name,
+    });
 
     for import in import.into_iter().flatten() {
         match import {

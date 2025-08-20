@@ -54,13 +54,18 @@ fn match_directive_name_inner(
             LinkedSchemaType::FederationSpec(FederationSpec::CompositeSchemas) => {
                 match_composite_schemas_directive_by_original_name(directive_name)
             }
-            _ => DirectiveNameMatch::Qualified {
+            LinkedSchemaType::FederationSpec(FederationSpec::ApolloV1) => DirectiveNameMatch::Qualified {
+                linked_schema_id,
+                directive_unqualified_name: directive_name_id,
+            },
+            LinkedSchemaType::Other => DirectiveNameMatch::Qualified {
                 linked_schema_id,
                 directive_unqualified_name: directive_name_id,
             },
         };
     }
 
+    // The directive is unqualified, but imported. For example, `@external` with an `@link(url: "...", import: ["@external"])`.
     if let Some(imported_definition_id) = ctx
         .subgraphs
         .get_imported_definition(ctx.subgraph_id, directive_name_id)
@@ -68,8 +73,8 @@ fn match_directive_name_inner(
         let imported_definition = ctx.subgraphs.at(imported_definition_id);
         let linked_schema = ctx.subgraphs.at(imported_definition.linked_schema_id);
 
-        return match linked_schema.linked_schema_type {
-            LinkedSchemaType::FederationSpec(FederationSpec::ApolloV2) => {
+        match linked_schema.linked_schema_type {
+            LinkedSchemaType::FederationSpec(FederationSpec::ApolloV2 | FederationSpec::ApolloV1) => {
                 let original_name = &ctx.subgraphs.strings.resolve(imported_definition.original_name);
                 return match_federation_directive_by_original_name(original_name);
             }
@@ -77,10 +82,11 @@ fn match_directive_name_inner(
                 let original_name = &ctx.subgraphs.strings.resolve(imported_definition.original_name);
                 return match_composite_schemas_directive_by_original_name(original_name);
             }
-
-            _ => DirectiveNameMatch::Imported {
-                linked_definition_id: imported_definition_id,
-            },
+            LinkedSchemaType::Other => {
+                return DirectiveNameMatch::Imported {
+                    linked_definition_id: imported_definition_id,
+                };
+            }
         };
     }
 

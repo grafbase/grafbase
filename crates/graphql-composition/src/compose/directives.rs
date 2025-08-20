@@ -1,5 +1,3 @@
-use crate::subgraphs::LinkedSchemaType;
-
 use super::*;
 
 pub(super) fn create_join_type_from_definitions(
@@ -70,32 +68,32 @@ pub(super) fn collect_composed_directives<'a>(
                 subgraphs::DirectiveProvenance::Linked {
                     linked_schema_id,
                     is_composed_directive,
-                } => match (
-                    &ctx.subgraphs[linked_schema_id].linked_schema_type,
-                    is_composed_directive,
-                ) {
-                    (LinkedSchemaType::Extension { .. }, true) => {
-                        ctx.diagnostics.push_fatal(String::from(
-                            "Directives from extensions must not be composed with `@composeDirective`",
-                        ));
-                        None
+                } => {
+                    let extension_id = ctx.get_extension_for_linked_schema(linked_schema_id);
+                    match (extension_id, is_composed_directive) {
+                        (Some(_), true) => {
+                            ctx.diagnostics.push_fatal(String::from(
+                                "Directives from extensions must not be composed with `@composeDirective`",
+                            ));
+                            None
+                        }
+                        (Some(extension_id), false) => {
+                            ctx.mark_used_extension(extension_id);
+                            Some(ir::DirectiveProvenance::LinkedFromExtension {
+                                linked_schema_id,
+                                extension_id,
+                            })
+                        }
+                        (None, true) => Some(ir::DirectiveProvenance::ComposeDirective),
+                        (None, false) => {
+                            ctx.diagnostics.push_warning(format!(
+                                "Directive `{}` is not defined in any extension or composed directive",
+                                &ctx[directive.name]
+                            ));
+                            None
+                        }
                     }
-                    (LinkedSchemaType::Extension(extension_id), false) => {
-                        ctx.mark_used_extension(*extension_id);
-                        Some(ir::DirectiveProvenance::LinkedFromExtension {
-                            linked_schema_id,
-                            extension_id: *extension_id,
-                        })
-                    }
-                    (_, true) => Some(ir::DirectiveProvenance::ComposeDirective),
-                    (_, false) => {
-                        ctx.diagnostics.push_warning(format!(
-                            "Directive `{}` is not defined in any extension or composed directive",
-                            &ctx[directive.name]
-                        ));
-                        None
-                    }
-                },
+                }
             };
 
             let Some(provenance) = provenance else {

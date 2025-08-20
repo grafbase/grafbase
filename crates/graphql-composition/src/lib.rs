@@ -13,8 +13,6 @@ mod result;
 mod subgraphs;
 mod validate;
 
-use crate::subgraphs::LinkedSchemaType;
-
 pub use self::{
     diagnostics::Diagnostics,
     federated_graph::{DomainError, FederatedGraph, render_api_sdl, render_federated_sdl},
@@ -63,7 +61,7 @@ pub fn compose(subgraphs: &Subgraphs) -> CompositionResult {
             continue;
         };
 
-        if let LinkedSchemaType::Extension(extension_id) = context.subgraphs[linked_schema_id].linked_schema_type {
+        if let Some(extension_id) = context.get_extension_for_linked_schema(linked_schema_id) {
             context.mark_used_extension(extension_id);
         } else if !is_composed_directive {
             context.diagnostics.push_warning(format!(
