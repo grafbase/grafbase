@@ -495,12 +495,13 @@ pub(super) fn add_not_fully_implemented_in(graph: &mut Graph) {
 
     let mut exists_in_subgraph_ids = Vec::new();
     for union in graph.union_definitions.iter_mut() {
+        exists_in_subgraph_ids.clear();
         exists_in_subgraph_ids.extend(union.join_member_records.iter().map(|join| join.subgraph_id));
         exists_in_subgraph_ids.sort_unstable();
         exists_in_subgraph_ids.dedup();
 
         for object_id in &union.possible_type_ids {
-            for subgraph_id in exists_in_subgraph_ids.drain(..) {
+            for subgraph_id in exists_in_subgraph_ids.iter().copied() {
                 // The object implements the interface if it defines az `@join__implements`
                 // corresponding to the interface and to the subgraph.
                 if union

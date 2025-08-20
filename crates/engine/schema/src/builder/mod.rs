@@ -78,7 +78,6 @@ impl<'a> Builder<'a> {
             let mut out = String::with_capacity(errors.len() * 100);
             for err in errors {
                 writeln!(&mut out, "{}", err.display(&translator)).unwrap();
-                out.push('\n');
             }
             out
         })
