@@ -16,8 +16,13 @@ pub mod types;
 mod wit;
 
 pub use component::SdkError;
-pub use extension::*;
-pub use grafbase_sdk_derive::*;
+pub use extension::{
+    AuthenticationExtension, AuthorizationExtension, ContractsExtension, HooksExtension, IntoAuthorizeQueryOutput,
+    IntoOnRequestOutput, IntoSubscription, ResolverExtension, Subscription,
+};
+pub use grafbase_sdk_derive::{
+    AuthenticationExtension, AuthorizationExtension, ContractsExtension, HooksExtension, ResolverExtension,
+};
 
 use component::Component;
 

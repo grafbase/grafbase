@@ -22,7 +22,7 @@ codegen-units = 1
 [workspace.dependencies]
 ahash = "0.8"
 common = { path = "common" }
-grafbase-sdk = "0.21.2"
+grafbase-sdk = "0.22.0"
 http = "1"
 insta = "1"
 itertools = "0.14"
