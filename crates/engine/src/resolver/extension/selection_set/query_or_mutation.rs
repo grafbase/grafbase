@@ -64,6 +64,7 @@ impl super::SelectionSetExtensionResolver {
                         result
                     ))
                 })
+                .to_string() // opentelemetry fails otherwise.
         );
 
         let state = response_part.into_seed_state(plan.shape().id);

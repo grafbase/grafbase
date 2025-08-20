@@ -85,9 +85,12 @@ impl super::ExtensionResolver {
                 .await;
             tracing::debug!(
                 "Received:\n{}",
-                batched_field_results.iter().format_with("\n", |(field, result), f| {
-                    f(&format_args!("{}: {}", field.subgraph_response_key_str(), result))
-                })
+                batched_field_results
+                    .iter()
+                    .format_with("\n", |(field, result), f| {
+                        f(&format_args!("{}: {}", field.subgraph_response_key_str(), result))
+                    })
+                    .to_string() // opentelemetry fails otherwise.
             );
 
             let state = response_part.into_seed_state(plan.shape().id);
@@ -169,6 +172,7 @@ impl super::ExtensionResolver {
                             result
                         ))
                     })
+                    .to_string() // opentelemetry fails otherwise.
             );
 
             let state = response_part.into_seed_state(plan.shape().id);
