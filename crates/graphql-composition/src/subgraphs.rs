@@ -157,7 +157,6 @@ impl Subgraphs {
                     self.extensions.push(ExtensionRecord {
                         url: self.strings.intern(extension.url.as_str()),
                         name: self.strings.intern(extension.name),
-                        version: self.strings.intern(extension.version),
                     });
                     ExtensionId::from(self.extensions.len() - 1)
                 }

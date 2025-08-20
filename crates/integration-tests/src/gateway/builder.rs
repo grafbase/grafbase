@@ -155,7 +155,6 @@ impl GatewayBuilder {
                                 link_url: manifest.id.to_string(),
                                 url,
                                 name: manifest.id.name.to_string(),
-                                version: manifest.id.version.to_string(),
                             },
                         ));
 

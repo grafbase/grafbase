@@ -5,8 +5,6 @@ pub(crate) type Extension<'a> = View<'a, ExtensionId, ExtensionRecord>;
 pub(crate) struct ExtensionRecord {
     pub(crate) url: StringId,
     pub(crate) name: StringId,
-    #[expect(unused)]
-    pub(crate) version: StringId,
 }
 
 impl Subgraphs {

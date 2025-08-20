@@ -37,7 +37,6 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
             url: extension.url.parse().unwrap(),
             link_url: extension.url,
             name: extension.name,
-            version: extension.version,
         }
     }));
 
@@ -160,5 +159,4 @@ struct TestExtensions {
 struct TestExtension {
     url: String,
     name: String,
-    version: String,
 }

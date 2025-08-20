@@ -1,4 +1,3 @@
 [[extensions]]
 name = "rest"
-version = "1.0.0"
 url = "https://grafbase.com/extensions/rest"

@@ -1,9 +1,7 @@
 [[extensions]]
 url = "https://grafbase.com/extensions/rest"
 name = "rest"
-version = "1.0.0"
 
 [[extensions]]
 url = "file://my/home/rest-connector-dev"
 name = "REST"
-version = "1.0.0"

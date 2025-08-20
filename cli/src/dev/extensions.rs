@@ -54,7 +54,6 @@ pub(super) async fn detect_extensions(config: &Config, parsed_schema: &TypeSyste
             link_url: link_url.to_owned(),
             url,
             name: manifest.id.name,
-            version: manifest.id.version.to_string(),
         })
         .collect();
 
