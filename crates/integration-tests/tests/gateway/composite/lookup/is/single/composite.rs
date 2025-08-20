@@ -540,9 +540,11 @@ fn cannot_inject_nullable_field_into_required() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup for associated @is directive: Incompatible wrapping, cannot map Product.b (Int) into Key.b (Int!)
-        See schema at 34:40:
-        (graph: EXT, field: "{ a b }")
+        * At site Query.productBatch, for directive @lookup for associated @is directive: Incompatible wrapping, cannot map Product.b (Int) into Key.b (Int!)
+        33 | {
+        34 |   productBatch(key: Key! @composite__is(graph: EXT, field: "{ a b }")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        35 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -583,9 +585,11 @@ fn invalid_single() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup for associated @is directive: Incompatible wrapping, cannot map Product.b (Int) into Key.b (Int!)
-        See schema at 34:40:
-        (graph: EXT, field: "{ a b }")
+        * At site Query.productBatch, for directive @lookup for associated @is directive: Incompatible wrapping, cannot map Product.b (Int) into Key.b (Int!)
+        33 | {
+        34 |   productBatch(key: Key! @composite__is(graph: EXT, field: "{ a b }")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        35 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -626,9 +630,11 @@ fn extra_required_argument() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected by any @is directive.
-        See schema at 34:3:
-        productBatch(ids: Key! @composite__is(graph: EXT, field: "{ a b }"), required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        * At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected by any @is directive.
+        33 | {
+        34 |   productBatch(ids: Key! @composite__is(graph: EXT, field: "{ a b }"), required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        35 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -670,9 +676,11 @@ fn extra_required_field() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup for associated @is directive: For Query.productBatch.key, field 'x' is required but it's missing from the FieldSelectionMap
-        See schema at 34:40:
-        (graph: EXT, field: "{ a b }")
+        * At site Query.productBatch, for directive @lookup for associated @is directive: For Query.productBatch.key, field 'x' is required but it's missing from the FieldSelectionMap
+        33 | {
+        34 |   productBatch(key: Key! @composite__is(graph: EXT, field: "{ a b }")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        35 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }

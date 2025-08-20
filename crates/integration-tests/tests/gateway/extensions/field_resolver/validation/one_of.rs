@@ -1,4 +1,4 @@
-use integration_tests::{gateway::Gateway, runtime};
+use integration_tests::{cleanup_error, gateway::Gateway, runtime};
 
 use super::EchoExt;
 
@@ -121,9 +121,11 @@ fn validate() {
             .try_build()
             .await;
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Exactly one field must be provided for Test with @oneOf: No field was provided at path '.value'
-        See schema at 17:34:
-        (graph: A, extension: ECHO, name: "echo", arguments: {value: {}})
+        * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Exactly one field must be provided for Test with @oneOf: No field was provided at path '.value'
+        16 | {
+        17 |   echo: Int @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {value: {}}) @join__field(graph: A)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        18 | }
         "#);
 
         let result = Gateway::builder()
@@ -142,10 +144,12 @@ fn validate() {
             .with_extension(ext)
             .try_build()
             .await;
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Exactly one field must be provided for Test with @oneOf: No field was provided at path '.value'
-        See schema at 27:97:
-        {graph: A, name: "meta", arguments: {value: {}}}
+        insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
+        * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Exactly one field must be provided for Test with @oneOf: No field was provided at path '.value'
+        26 | {
+        27 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: {}}}])
+                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        28 | }
         "#);
 
         //
@@ -169,9 +173,11 @@ fn validate() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Exactly one field must be provided for Test with @oneOf: 2 fields (a,b) were provided at path '.value'
-        See schema at 17:34:
-        (graph: A, extension: ECHO, name: "echo", arguments: {value: {a: 1, b: "1"}})
+        * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Exactly one field must be provided for Test with @oneOf: 2 fields (a,b) were provided at path '.value'
+        16 | {
+        17 |   echo: Int @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {value: {a: 1, b: "1"}}) @join__field(graph: A)
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        18 | }
         "#);
         let result = Gateway::builder()
             .with_subgraph_sdl(
@@ -190,10 +196,12 @@ fn validate() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Exactly one field must be provided for Test with @oneOf: 2 fields (a,b) were provided at path '.value'
-        See schema at 27:97:
-        {graph: A, name: "meta", arguments: {value: {a: 1, b: "1"}}}
+        insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
+        * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Exactly one field must be provided for Test with @oneOf: 2 fields (a,b) were provided at path '.value'
+        26 | {
+        27 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: {a: 1, b: "1"}}}])
+                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        28 | }
         "#);
     });
 }

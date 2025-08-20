@@ -49,7 +49,10 @@ impl<'a> ExtensionsContext<'a> {
         }
     }
 
-    pub(super) async fn load<'sdl, 'ext>(sdl: &'sdl Sdl<'sdl>, catalog: &'ext ExtensionCatalog) -> Result<Self, Vec<super::Error>>
+    pub(super) async fn load<'sdl, 'ext>(
+        sdl: &'sdl Sdl<'sdl>,
+        catalog: &'ext ExtensionCatalog,
+    ) -> Result<Self, Vec<super::Error>>
     where
         'sdl: 'a,
         'ext: 'a,
@@ -59,7 +62,7 @@ impl<'a> ExtensionsContext<'a> {
             catalog,
         };
         let mut errors = Vec::new();
-        
+
         for (name, extension) in &sdl.extensions {
             let manifest = match extension_catalog::load_manifest(extension.url.clone()).await {
                 Ok(manifest) => manifest,
@@ -72,7 +75,10 @@ impl<'a> ExtensionsContext<'a> {
                 }
             };
             let Some(id) = catalog.find_compatible_extension(&manifest.id) else {
-                errors.push(super::Error::new(format!("Extension {} was not installed", manifest.id)));
+                errors.push(super::Error::new(format!(
+                    "Extension {} was not installed",
+                    manifest.id
+                )));
                 continue;
             };
             let sdl = if let Some(sdl_str) = manifest.sdl.as_ref().filter(|sdl| !sdl.trim().is_empty()) {
@@ -86,10 +92,10 @@ impl<'a> ExtensionsContext<'a> {
                         continue;
                     }
                 };
-                
+
                 let mut grafbase_scalars = Vec::new();
                 let mut had_error = false;
-                
+
                 for definition in parsed.definitions() {
                     let cynic_parser::type_system::Definition::SchemaExtension(ext) = definition else {
                         continue;
@@ -134,11 +140,11 @@ impl<'a> ExtensionsContext<'a> {
                         }
                     }
                 }
-                
+
                 if had_error {
                     continue;
                 }
-                
+
                 Some(ExtensionSdl {
                     doc: parsed,
                     grafbase_scalars,

@@ -24,9 +24,11 @@ fn unexpected_null() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a null where we expected a String! at path '.value'
-        See schema at 19:35:
-        (graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(value: null)"})
+        * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a null where we expected a String! at path '.value'
+        18 | {
+        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(value: null)"}) @join__field(graph: A)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        20 |   field(value: String!): JSON @extension__directive(graph: A, extension: ECHO, name: "echoArgs", arguments: {}) @join__field(graph: A)
         "#);
     });
 }
@@ -54,9 +56,11 @@ fn missing_required_argument() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Missing required argument named 'value'
-        See schema at 19:35:
-        (graph: A, extension: ECHO, name: "echo", arguments: {fields: "field"})
+        * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Missing required argument named 'value'
+        18 | {
+        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {fields: "field"}) @join__field(graph: A)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        20 |   field(value: String!): JSON @extension__directive(graph: A, extension: ECHO, name: "echoArgs", arguments: {}) @join__field(graph: A)
         "#);
     });
 }

@@ -44,6 +44,7 @@ minicbor-serde.workspace = true
 multipart-stream.workspace = true
 openidconnect.workspace = true
 ory-client.workspace = true # overridden by patch, pointing to their last release on GitHub
+regex.workspace = true
 reqwest.workspace = true
 rmcp.workspace = true
 runtime = { workspace = true, features = ["test-utils"] }

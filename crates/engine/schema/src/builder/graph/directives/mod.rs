@@ -15,6 +15,7 @@ pub(crate) struct DirectivesIngester<'a, 'sdl> {
     pub builder: &'a mut GraphBuilder<'sdl>,
     pub possible_composite_entity_keys: PossibleCompositeEntityKeys<'sdl>,
     pub for_operation_analytics_only: bool,
+    pub errors: Vec<Error>,
 }
 
 pub(crate) struct PossibleCompositeEntityKey<'sdl> {
@@ -39,18 +40,16 @@ impl std::ops::DerefMut for DirectivesIngester<'_, '_> {
 pub(crate) fn ingest_directives<'a>(
     builder: &mut GraphBuilder<'a>,
     for_operation_analytics_only: bool,
-) -> Result<(), Error> {
+) -> Result<(), Vec<Error>> {
     if !for_operation_analytics_only {
-        ingest_extension_schema_directives(builder).map_err(|errors| {
-            // Return the first error for now to maintain compatibility
-            errors.into_iter().next().unwrap_or_else(|| Error::new("Unknown extension schema directive error"))
-        })?;
+        ingest_extension_schema_directives(builder)?;
     }
 
     let mut ingester = DirectivesIngester {
         builder,
         possible_composite_entity_keys: Default::default(),
         for_operation_analytics_only,
+        errors: Vec::new(),
     };
 
     let mut directives = Vec::new();
@@ -65,25 +64,36 @@ pub(crate) fn ingest_directives<'a>(
         }
 
         // Add non-federation-aware directives, including extensions
-        ingester.ingest_non_federation_aware_directives(def, &directives)?;
+        ingester.ingest_non_federation_aware_directives(def, &directives);
 
         // Interpret Federation directives
-        ingester.ingest_federation_directives(def, &directives)?;
+        ingester.ingest_federation_directives(def, &directives);
+    }
+
+    if !ingester.errors.is_empty() {
+        return Err(ingester.errors);
     }
 
     common::finalize_inaccessible(&mut ingester.graph);
 
     // Apollo federation entities, Composite Schema @lookup, extension, etc.
     if !for_operation_analytics_only {
-        resolvers::generate(&mut ingester)?;
+        resolvers::generate(&mut ingester);
+        if !ingester.errors.is_empty() {
+            return Err(ingester.errors);
+        }
     }
 
     // Resolvers may change federation data, so we do this last.
     federation::add_not_fully_implemented_in(&mut ingester.graph);
 
     if !for_operation_analytics_only {
-        composite::ingest_composite_field_directives_after_federation_and_resolvers(&mut ingester)?;
+        composite::ingest_composite_field_directives_after_federation_and_resolvers(&mut ingester)
     }
 
-    Ok(())
+    if !ingester.errors.is_empty() {
+        Err(ingester.errors)
+    } else {
+        Ok(())
+    }
 }

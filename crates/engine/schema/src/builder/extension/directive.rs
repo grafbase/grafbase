@@ -9,7 +9,7 @@ use super::LoadedExtension;
 
 pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>) -> Result<(), Vec<Error>> {
     let mut errors = Vec::new();
-    
+
     for (name, ext) in builder.sdl.extensions.iter() {
         let extension = builder.extensions.get(*name);
         for (directive, span) in &ext.directives {
@@ -20,17 +20,16 @@ pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>)
                     continue;
                 }
             };
-            let id = match builder
-                .ingest_extension_directive(
-                    sdl::SdlDefinition::SchemaDirective(subgraph_id),
-                    subgraph_id,
-                    extension,
-                    directive.name,
-                    directive.arguments,
-                ) {
+            let id = match builder.ingest_extension_directive(
+                sdl::SdlDefinition::SchemaDirective(subgraph_id),
+                subgraph_id,
+                extension,
+                directive.name,
+                directive.arguments,
+            ) {
                 Ok(id) => id,
-                Err(txt) => {
-                    errors.push(Error::new(txt).span(*span));
+                Err(err) => {
+                    errors.push(Error::new(err).span(*span));
                     continue;
                 }
             };
@@ -45,12 +44,8 @@ pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>)
             }
         }
     }
-    
-    if !errors.is_empty() {
-        Err(errors)
-    } else {
-        Ok(())
-    }
+
+    if !errors.is_empty() { Err(errors) } else { Ok(()) }
 }
 
 impl<'a> GraphBuilder<'a> {

@@ -284,11 +284,13 @@ fn validate_default_argument() {
             )
             .try_build()
             .await;
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At Query.test.input, found an invalid default value: Exactly one field must be provided for TestInput with @oneOf: No field was provided at path '.input'
-        See schema at 19:27:
-        {}
-        "#);
+        insta::assert_snapshot!(result.unwrap_err(), @r"
+        * At Query.test.input, found an invalid default value: Exactly one field must be provided for TestInput with @oneOf: No field was provided at path '.input'
+        18 | {
+        19 |   test(input: TestInput = {}): JSON @join__field(graph: X)
+                                       ^^
+        20 | }
+        ");
 
         let result = Gateway::builder()
             .with_subgraph_sdl(
@@ -309,9 +311,11 @@ fn validate_default_argument() {
             .try_build()
             .await;
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At Query.test.input, found an invalid default value: Exactly one field must be provided for TestInput with @oneOf: 2 fields (a,b) were provided at path '.input'
-        See schema at 19:27:
-        {a: 1, b: "1"}
+        * At Query.test.input, found an invalid default value: Exactly one field must be provided for TestInput with @oneOf: 2 fields (a,b) were provided at path '.input'
+        18 | {
+        19 |   test(input: TestInput = {a: 1, b: "1"}): JSON @join__field(graph: X)
+                                       ^^^^^^^^^^^^^^
+        20 | }
         "#);
     })
 }

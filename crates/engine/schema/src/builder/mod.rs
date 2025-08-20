@@ -71,11 +71,13 @@ impl<'a> Builder<'a> {
 
     pub async fn build(self) -> Result<Schema, String> {
         let sdl = self.sdl;
-        self.build_inner().await.map_err(|errors| {
+        self.build_inner().await.map_err(|mut errors| {
+            use std::fmt::Write;
             let translator = SpanTranslator::new(sdl);
-            let mut out = String::new();
+            errors.sort_by_key(|err| err.span.map_or(0, |span| span.start));
+            let mut out = String::with_capacity(errors.len() * 100);
             for err in errors {
-                err.write_to_string(&translator, &mut out);
+                writeln!(&mut out, "{}", err.display(&translator)).unwrap();
                 out.push('\n');
             }
             out
@@ -122,7 +124,7 @@ impl BuildContext<'_> {
 
         // From this point on the definitions should have been all added and now we interpret the
         // directives.
-        ingest_directives(&mut graph_builder, for_operation_analytics_only).map_err(|err| vec![err])?;
+        ingest_directives(&mut graph_builder, for_operation_analytics_only)?;
 
         let GraphBuilder {
             ctx:

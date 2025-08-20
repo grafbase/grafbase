@@ -6,9 +6,10 @@ pub mod types;
 
 mod mock_trusted_documents;
 
-use std::sync::OnceLock;
+use std::sync::{LazyLock, OnceLock};
 
 pub use mock_trusted_documents::TestTrustedDocument;
+use regex::{Captures, Regex};
 use tokio::runtime::Runtime;
 pub use types::{Error, ResponseData};
 
@@ -48,4 +49,14 @@ pub fn runtime() -> &'static Runtime {
             .build()
             .unwrap()
     })
+}
+
+pub fn cleanup_error(err: impl std::fmt::Display) -> String {
+    static RE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"file:///tmp/.*/extensions").expect("Failed to compile regex for file URLs"));
+    RE.replace_all(&err.to_string(), |caps: &Captures<'_>| {
+        let n = caps[0].len();
+        format!("file:///tmp/{}/extensions", "X".repeat(n - 23))
+    })
+    .to_string()
 }

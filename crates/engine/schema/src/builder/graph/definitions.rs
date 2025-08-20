@@ -34,7 +34,9 @@ impl std::ops::DerefMut for Ingester<'_> {
     }
 }
 
-pub(crate) fn ingest_definitions(ctx: BuildContext<'_>) -> Result<(GraphBuilder<'_>, IntrospectionSubgraph), Vec<Error>> {
+pub(crate) fn ingest_definitions(
+    ctx: BuildContext<'_>,
+) -> Result<(GraphBuilder<'_>, IntrospectionSubgraph), Vec<Error>> {
     let sdl = ctx.sdl;
     let graph = Graph {
         description_id: None,
@@ -125,10 +127,12 @@ pub(crate) fn ingest_definitions(ctx: BuildContext<'_>) -> Result<(GraphBuilder<
         let id = match ty {
             sdl::TypeDefinition::Scalar(scalar) => Some(ingester.ingest_scalar(scalar).into()),
             sdl::TypeDefinition::Enum(enm) => Some(ingester.ingest_enum(enm).into()),
-            sdl::TypeDefinition::InputObject(input_object) => ingester.ingest_input_object(input_object).map(|id| id.into()),
-            sdl::TypeDefinition::Object(object) => ingester.ingest_object(object).map(|id| id.into()),
+            sdl::TypeDefinition::InputObject(input_object) => {
+                ingester.ingest_input_object(input_object).map(Into::into)
+            }
+            sdl::TypeDefinition::Object(object) => ingester.ingest_object(object).map(Into::into),
             sdl::TypeDefinition::Union(union) => Some(ingester.ingest_union(union).into()),
-            sdl::TypeDefinition::Interface(interface) => ingester.ingest_interface(interface).map(|id| id.into()),
+            sdl::TypeDefinition::Interface(interface) => ingester.ingest_interface(interface).map(Into::into),
         };
         if let Some(id) = id {
             ingester.definitions.type_name_to_id.insert(ty.name(), id);
@@ -217,7 +221,8 @@ impl<'a> Ingester<'a> {
                 .iter()
                 .any(|field| field.name_id == name_id)
             {
-                self.errors.push(Error::new(format!("Duplicate field {}.{}", parent.name(), field.name())).span(field.span()));
+                self.errors
+                    .push(Error::new(format!("Duplicate field {}.{}", parent.name(), field.name())).span(field.span()));
                 continue;
             }
 
@@ -326,10 +331,7 @@ impl<'a> Ingester<'a> {
         enum_id
     }
 
-    fn ingest_input_object(
-        &mut self,
-        input_object: sdl::InputObjectDefinition<'a>,
-    ) -> Option<InputObjectDefinitionId> {
+    fn ingest_input_object(&mut self, input_object: sdl::InputObjectDefinition<'a>) -> Option<InputObjectDefinitionId> {
         let input_object_id = InputObjectDefinitionId::from(self.graph.input_object_definitions.len());
         self.definitions
             .type_name_to_id
@@ -370,11 +372,14 @@ impl<'a> Ingester<'a> {
         let is_one_of = if let Some(dir) = input_object.directives().find(|dir| dir.name() == "oneOf") {
             for input_field in &self.graph[input_field_ids] {
                 if input_field.ty_record.wrapping.is_non_null() {
-                    self.errors.push(Error::new(format!(
-                        "@oneOf requires that all input fields of {} must be nullable, {} isn't.",
-                        input_object.name(),
-                        self[input_field.name_id]
-                    )).span(dir.name_span()));
+                    self.errors.push(
+                        Error::new(format!(
+                            "@oneOf requires that all input fields of {} must be nullable, {} isn't.",
+                            input_object.name(),
+                            self[input_field.name_id]
+                        ))
+                        .span(dir.name_span()),
+                    );
                     return None;
                 }
             }
@@ -422,10 +427,13 @@ impl<'a> Ingester<'a> {
         if let Some(extensions) = self.sdl.type_extensions.get(object.name()) {
             for ext in extensions {
                 let sdl::TypeDefinition::Object(obj) = ext else {
-                    self.errors.push(Error::new(format!(
-                        "Cannot extend object named '{}' with anything else but an object",
-                        object.name()
-                    )).span(object.span()));
+                    self.errors.push(
+                        Error::new(format!(
+                            "Cannot extend object named '{}' with anything else but an object",
+                            object.name()
+                        ))
+                        .span(object.span()),
+                    );
                     return None;
                 };
                 merged_fields.push(obj.fields());
@@ -537,25 +545,29 @@ impl<'a> Ingester<'a> {
             .sdl
             .root_types
             .mutation
-            .and_then(|name| match self.definitions.get_object_id(name, sdl::Span::default()) {
-                Ok(id) => Some(id),
-                Err(err) => {
-                    self.errors.push(err);
-                    None
-                }
-            })
+            .and_then(
+                |name| match self.definitions.get_object_id(name, sdl::Span::default()) {
+                    Ok(id) => Some(id),
+                    Err(err) => {
+                        self.errors.push(err);
+                        None
+                    }
+                },
+            )
             .or_else(|| self.definitions.get_object_id("Mutation", sdl::Span::default()).ok());
         self.graph.root_operation_types_record.subscription_id = self
             .sdl
             .root_types
             .subscription
-            .and_then(|name| match self.definitions.get_object_id(name, sdl::Span::default()) {
-                Ok(id) => Some(id),
-                Err(err) => {
-                    self.errors.push(err);
-                    None
-                }
-            })
+            .and_then(
+                |name| match self.definitions.get_object_id(name, sdl::Span::default()) {
+                    Ok(id) => Some(id),
+                    Err(err) => {
+                        self.errors.push(err);
+                        None
+                    }
+                },
+            )
             .or_else(|| {
                 self.definitions
                     .get_object_id("Subscription", sdl::Span::default())
@@ -598,7 +610,7 @@ impl<'a> Ingester<'a> {
 
     fn add_type_references(&mut self) {
         let builder = &mut self.builder;
-        
+
         for def in self.definitions.site_id_to_sdl.values().copied() {
             match def {
                 sdl::SdlDefinition::FieldDefinition(def) => {
@@ -679,7 +691,13 @@ impl<'a> Ingester<'a> {
                 match self.coerce_input_value(id, default_value) {
                     Ok(coerced) => self.graph[id].default_value_id = Some(coerced),
                     Err(err) => {
-                        self.errors.push(Error::new(format!("At {}, found an invalid default value: {err}", def.to_site_string(self))).span(default_value.span()));
+                        self.errors.push(
+                            Error::new(format!(
+                                "At {}, found an invalid default value: {err}",
+                                def.to_site_string(self)
+                            ))
+                            .span(default_value.span()),
+                        );
                     }
                 }
             }

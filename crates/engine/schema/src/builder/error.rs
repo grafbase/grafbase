@@ -1,7 +1,6 @@
 use cynic_parser::Span;
 
 use super::sdl;
-use std::fmt::Write;
 
 pub(crate) struct Error {
     pub text: String,
@@ -21,15 +20,11 @@ impl Error {
         self
     }
 
-    pub fn write_to_string(self, translator: &sdl::SpanTranslator, out: &mut String) {
-        let Self { text, span } = self;
-        let Some(span) = span.filter(|span| *span != Span::default()) else {
-            out.push_str(&text);
-            return;
-        };
-        let location = translator.span_to_location(span).unwrap();
-        let sdl = &translator.sdl[span.start..span.end];
-        writeln!(out, "{text}\nSee schema at {location}:\n{sdl}").unwrap();
+    pub fn display<'a>(self, translator: &'a sdl::SpanTranslator) -> ErrorDisplay<'a> {
+        ErrorDisplay {
+            error: self,
+            translator,
+        }
     }
 
     pub fn with_prefix(self, mut prefix: String) -> Self {
@@ -42,6 +37,25 @@ impl Error {
             span: self.span.or(Some(span)),
             ..self
         }
+    }
+}
+
+pub(crate) struct ErrorDisplay<'a> {
+    error: Error,
+    translator: &'a sdl::SpanTranslator<'a>,
+}
+
+impl<'a> std::fmt::Display for ErrorDisplay<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let Error { text, span } = &self.error;
+
+        // If no span or default span, just write the text
+        let Some(span) = span.filter(|span| *span != Span::default()) else {
+            return writeln!(f, "{}", text);
+        };
+
+        writeln!(f, "* {}", text)?;
+        writeln!(f, "{}", self.translator.display_span(span))
     }
 }
 
