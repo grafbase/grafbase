@@ -1112,9 +1112,9 @@ checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.19.1"
+version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0599805ed857957092a895dae48631202e95c1499ae72c218b7eb05828cc6735"
+checksum = "926c36e1702a9655a8506c73c853661b1d40ff98a51e2ad296b164c6b3d4c485"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -1335,6 +1335,19 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
+
+[[package]]
+name = "hooks"
+version = "1.0.0"
+dependencies = [
+ "common",
+ "grafbase-sdk",
+ "insta",
+ "postcard",
+ "serde",
+ "serde_json",
+ "tokio",
+]
 
 [[package]]
 name = "http"
@@ -2108,7 +2121,7 @@ checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
 name = "policy"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "ahash 0.8.12",
  "grafbase-sdk",

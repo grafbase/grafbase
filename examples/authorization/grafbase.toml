@@ -4,15 +4,14 @@ schema_path = "./subgraphs/users/schema.graphql"
 
 [extensions]
 my-authentication.path = "./extensions/authentication/build"
+my-authorization.path = "./extensions/authorization/build"
+hooks.path = "./extensions/hooks/build"
+hooks.stdout = true
+policy.path = "./extensions/policy/build"
 
-[extensions.my-authorization]
-path = "./extensions/authorization/build"
 
 [extensions.my-authorization.config]
 auth_service_url = "{{ env.AUTH_SERVICE_URL }}"
-
-[extensions.policy]
-path = "./extensions/policy/build"
 
 [extensions.policy.config]
 auth_service_url = "{{ env.AUTH_SERVICE_URL }}"

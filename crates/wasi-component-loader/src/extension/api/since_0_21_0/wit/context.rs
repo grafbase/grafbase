@@ -135,12 +135,13 @@ pub fn add_to_linker_impl(linker: &mut wasmtime::component::Linker<InstanceState
                         })
                         .unwrap_or_default()),
                     None => {
-                        if ctx.authorization_context().len() <= 1 {
-                            Ok(ctx
-                                .authorization_context()
-                                .first()
-                                .map(|(_, bytes)| bytes.clone())
-                                .unwrap_or_default())
+                        let mut iter = ctx
+                            .authorization_context()
+                            .iter()
+                            .filter(|(_, bytes)| !bytes.is_empty());
+                        let out = iter.next().map(|(_, bytes)| bytes.clone()).unwrap_or_default();
+                        if iter.next().is_none() {
+                            Ok(out)
                         } else {
                             Err("Multiple authorization contexts provided, but no key specified".to_string())
                         }

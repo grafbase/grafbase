@@ -1,7 +1,7 @@
 FROM rust:1.89.0-alpine AS builder
 
 WORKDIR /data
-RUN apk --no-cache add curl bash musl-dev && curl -fsSL https://grafbase.com/downloads/cli | bash -s 0.101.0 && mv ~/.grafbase/bin/grafbase /usr/bin/grafbase
+RUN apk --no-cache add curl bash musl-dev && curl -fsSL https://grafbase.com/downloads/cli | bash -s 0.102.1 && mv ~/.grafbase/bin/grafbase /usr/bin/grafbase
 COPY extensions ./extensions
 
 RUN cd extensions/authentication \
@@ -9,18 +9,21 @@ RUN cd extensions/authentication \
     && cd ../authorization \
     && /usr/bin/grafbase extension build \
     && cd ../policy \
+    && /usr/bin/grafbase extension build \
+    && cd ../hooks \
     && /usr/bin/grafbase extension build
 
 COPY subgraphs/users/schema.graphql ./subgraphs/users/schema.graphql
 COPY grafbase.toml ./
 RUN AUTH_SERVICE_URL='' /usr/bin/grafbase compose > federated-schema.graphql
 
-FROM ghcr.io/grafbase/gateway:0.46.0
+FROM ghcr.io/grafbase/gateway:0.47.1
 
 WORKDIR /data
 COPY --from=builder /data/extensions/authorization/build ./extensions/authorization/build
 COPY --from=builder /data/extensions/authentication/build ./extensions/authentication/build
 COPY --from=builder /data/extensions/policy/build ./extensions/policy/build
+COPY --from=builder /data/extensions/hooks/build ./extensions/hooks/build
 COPY --from=builder /data/federated-schema.graphql ./federated-schema.graphql
 COPY grafbase.toml ./grafbase.toml
 
