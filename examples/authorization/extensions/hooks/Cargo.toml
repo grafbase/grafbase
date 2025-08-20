@@ -1,5 +1,5 @@
 [package]
-name = "policy"
+name = "hooks"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,14 +9,14 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-ahash.workspace = true
+common.workspace = true
 grafbase-sdk.workspace = true
-log.workspace = true
+postcard.workspace = true
 serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
 
 [dev-dependencies]
 grafbase-sdk = { workspace = true, features = ["test-utils"] }
 insta = { workspace = true, features = ["json"] }
 serde_json.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "test-util"] }
-wiremock.workspace = true

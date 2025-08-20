@@ -70,7 +70,7 @@ impl AuthorizedOperationContext {
     ///
     /// Use [authorization_context()](AuthorizedOperationContext::authorization_context()) if you have only one
     /// authorization extension returning a non-empty state.
-    pub fn authorization_icontext_by_key(&self, key: &str) -> Result<Vec<u8>, SdkError> {
+    pub fn authorization_context_by_key(&self, key: &str) -> Result<Vec<u8>, SdkError> {
         self.0.authorization_context(Some(key)).map_err(Into::into)
     }
 }

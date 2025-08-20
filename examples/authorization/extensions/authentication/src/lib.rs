@@ -1,6 +1,6 @@
 use grafbase_sdk::{
     AuthenticationExtension,
-    types::{Configuration, Error, ErrorResponse, GatewayHeaders, Token},
+    types::{Configuration, Error, ErrorResponse, GatewayHeaders, RequestContext, Token},
 };
 
 #[derive(AuthenticationExtension)]
@@ -11,7 +11,7 @@ impl AuthenticationExtension for MyAuthentication {
         Ok(Self)
     }
 
-    fn authenticate(&mut self, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
+    fn authenticate(&mut self, _ctx: &RequestContext, headers: &GatewayHeaders) -> Result<Token, ErrorResponse> {
         headers
             .get("current-user-id")
             .and_then(|value| value.to_str().ok()?.parse().ok())

@@ -1,6 +1,6 @@
 //! A key-value cache shared with all instances of the extension.
 
-use std::{borrow::Cow, time::Duration};
+use std::{borrow::Cow, convert::Infallible, time::Duration};
 
 use crate::wit;
 
@@ -59,15 +59,100 @@ impl Cache {
             timeout: Duration::from_secs(5),
         }
     }
+    ///
+    /// Retrieves a value from the cache by key or initialize it with the provided function using
+    /// the default timeout. If you need to additional validation on the bytes before storing it in the cache, consider using
+    /// [get_or_insert](Cache::get_or_insert) can keep additional state.
+    /// If you need error handling, use [try_get_or_insert_bytes](Cache::try_get_or_insert_bytes).
+    ///
+    /// See [try_get_or_insert_with_timeout](Cache::try_get_or_insert_with_timeout) for more details
+    pub fn get_or_insert_bytes(&self, key: &str, f: impl FnOnce() -> Vec<u8>) -> Vec<u8> {
+        self.try_get_or_insert_with_timeout(key, self.timeout, || {
+            let bytes = f();
+            Result::<_, Infallible>::Ok(((), bytes))
+        })
+        .unwrap()
+        .1
+    }
 
     /// Retrieves a value from the cache by key or initialize it with the provided function using
-    /// the default timeout. See [get_or_init_with_timeout](Cache::get_or_init_with_timeout) for more details
-    pub fn get_or_insert<T, E>(
+    /// the default timeout. If you need to additional validation on the bytes before storing it in the cache, consider using
+    /// [get_or_insert_with_timeout](Cache::get_or_insert_with_timeout) can keep additional state.
+    /// If you need error handling, use [try_get_or_insert_bytes_with_timeout](Cache::try_get_or_insert_bytes_with_timeout).
+    ///
+    /// See [try_get_or_insert_with_timeout](Cache::try_get_or_insert_with_timeout) for more details
+    pub fn get_or_insert_bytes_with_timeout(
+        &self,
+        key: &str,
+        timeout: Duration,
+        f: impl FnOnce() -> Vec<u8>,
+    ) -> Vec<u8> {
+        self.try_get_or_insert_with_timeout(key, timeout, || {
+            let bytes = f();
+            Result::<_, Infallible>::Ok(((), bytes))
+        })
+        .unwrap()
+        .1
+    }
+
+    /// Retrieves a value from the cache by key or initialize it with the provided function using
+    /// the default timeout.[get_or_insert_bytes](Cache::get_or_insert_bytes) is a simpler variant if you only handle bytes.
+    /// If you need error handling, use [try_get_or_insert](Cache::try_get_or_insert).
+    ///
+    /// See [try_get_or_insert_with_timeout](Cache::try_get_or_insert_with_timeout) for more details
+    pub fn get_or_insert<T>(&self, key: &str, f: impl FnOnce() -> (T, Vec<u8>)) -> (Option<T>, Vec<u8>) {
+        self.try_get_or_insert_with_timeout(key, self.timeout, || {
+            let value = f();
+            Result::<_, Infallible>::Ok(value)
+        })
+        .unwrap()
+    }
+
+    /// Retrieves a value from the cache by key or initialize it with the provided function using
+    /// the default timeout.[get_or_insert_bytes_with_timeout](Cache::get_or_insert_bytes_with_timeout) is a simpler variant if you only handle bytes.
+    /// If you need error handling, use [try_get_or_insert_with_timeout](Cache::try_get_or_insert_with_timeout).
+    ///
+    /// See [try_get_or_insert_with_timeout](Cache::try_get_or_insert_with_timeout) for more details
+    pub fn get_or_insert_with_timeout<T>(
+        &self,
+        key: &str,
+        timeout: Duration,
+        f: impl FnOnce() -> (T, Vec<u8>),
+    ) -> (Option<T>, Vec<u8>) {
+        self.try_get_or_insert_with_timeout(key, timeout, || {
+            let value = f();
+            Result::<_, Infallible>::Ok(value)
+        })
+        .unwrap()
+    }
+
+    /// Retrieves a value from the cache by key or initialize it with the provided function using
+    /// the default timeout. See [try_get_or_insert_with_timeout](Cache::try_get_or_insert_with_timeout) for more details
+    pub fn try_get_or_insert_bytes<E>(&self, key: &str, f: impl FnOnce() -> Result<Vec<u8>, E>) -> Result<Vec<u8>, E> {
+        self.try_get_or_insert_with_timeout(key, self.timeout, || f().map(|bytes| ((), bytes)))
+            .map(|(_, bytes)| bytes)
+    }
+
+    /// Retrieves a value from the cache by key or initialize it with the provided function using
+    /// the default timeout. See [try_get_or_insert_with_timeout](Cache::try_get_or_insert_with_timeout) for more details
+    pub fn try_get_or_insert_bytes_with_timeout<E>(
+        &self,
+        key: &str,
+        timeout: Duration,
+        f: impl FnOnce() -> Result<Vec<u8>, E>,
+    ) -> Result<Vec<u8>, E> {
+        self.try_get_or_insert_with_timeout(key, timeout, || f().map(|bytes| ((), bytes)))
+            .map(|(_, bytes)| bytes)
+    }
+
+    /// Retrieves a value from the cache by key or initialize it with the provided function using
+    /// the default timeout. See [try_get_or_insert_with_timeout](Cache::try_get_or_insert_with_timeout) for more details
+    pub fn try_get_or_insert<T, E>(
         &self,
         key: &str,
         f: impl FnOnce() -> Result<(T, Vec<u8>), E>,
     ) -> Result<(Option<T>, Vec<u8>), E> {
-        self.get_or_insert_with_timeout(key, self.timeout, f)
+        self.try_get_or_insert_with_timeout(key, self.timeout, f)
     }
 
     /// Retrieves a value from the cache by key or initialize it with the provided function.
@@ -76,7 +161,7 @@ impl Cache {
     /// the value to be computed. As the callback might crash, a timeout limits how long this
     /// function will wait. Unfortunately it does result in a thundering herd problem where all
     /// Wasm instances will try to compute the value at the same time.
-    pub fn get_or_insert_with_timeout<T, E>(
+    pub fn try_get_or_insert_with_timeout<T, E>(
         &self,
         key: &str,
         timeout: Duration,

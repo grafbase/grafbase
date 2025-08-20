@@ -1,11 +1,14 @@
 use ahash::HashMap;
 use grafbase_sdk::{
-    AuthorizationExtension, IntoQueryAuthorization,
+    AuthorizationExtension, IntoAuthorizeQueryOutput,
     host_io::{
         self,
         http::{HttpRequest, Url},
     },
-    types::{AuthorizationDecisions, Configuration, Error, ErrorResponse, QueryElements, SubgraphHeaders, Token},
+    types::{
+        AuthenticatedRequestContext, AuthorizationDecisions, Configuration, Error, ErrorResponse, QueryElements,
+        SubgraphHeaders,
+    },
 };
 
 const ERROR_MESSAGE: &str = "Not authorized: policy not granted.";
@@ -38,10 +41,10 @@ impl AuthorizationExtension for PolicyExtension {
 
     fn authorize_query(
         &mut self,
-        _headers: &mut SubgraphHeaders,
-        _token: Token,
+        _ctx: &AuthenticatedRequestContext,
+        _headers: &SubgraphHeaders,
         elements: QueryElements<'_>,
-    ) -> Result<impl IntoQueryAuthorization, ErrorResponse> {
+    ) -> Result<impl IntoAuthorizeQueryOutput, ErrorResponse> {
         //
         // Accumulate a list of all policies we need to validate
         //

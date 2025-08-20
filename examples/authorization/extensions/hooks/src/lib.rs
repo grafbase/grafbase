@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use common::AuthContext;
 use grafbase_sdk::{
     HooksExtension,
     types::{AuthorizedOperationContext, Configuration, Error, HttpRequestParts},
@@ -9,7 +10,7 @@ use grafbase_sdk::{
 struct Hooks;
 
 impl HooksExtension for Hooks {
-    fn new(config: Configuration) -> Result<Self, Error> {
+    fn new(_config: Configuration) -> Result<Self, Error> {
         Ok(Self)
     }
 
@@ -19,8 +20,11 @@ impl HooksExtension for Hooks {
         subgraph_name: &str,
         parts: &mut HttpRequestParts,
     ) -> Result<(), Error> {
-        let context: SubgraphTokens = serde_json::from_slice(&ctx.authorization_context()?).unwrap();
-        if let Some(token) = context.tokens.get(subgraph_name) {
+        // FIXME: simplify with gateway 0.47.2 and SDK 0.22
+        let bytes = ctx.authorization_icontext_by_key("my-authorization")?;
+        let AuthContext { scopes } = postcard::from_bytes(&bytes).unwrap();
+
+        if let Some(token) = scopes.get(subgraph_name) {
             parts.headers.append("Authorization", token);
         }
         Ok(())
@@ -32,4 +36,3 @@ struct SubgraphTokens {
     // Token by subgraph name
     tokens: HashMap<String, String>,
 }
-

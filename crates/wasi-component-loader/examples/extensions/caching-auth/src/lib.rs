@@ -49,15 +49,14 @@ impl AuthenticationExtension for CachingProvider {
 
         let jwks_bytes = self
             .cache
-            .get_or_insert(&cache_key, || {
+            .try_get_or_insert_bytes(&cache_key, || {
                 std::thread::sleep(Duration::from_millis(300));
 
                 let jwks = Jwks { key: value };
 
-                serde_json::to_vec(&jwks).map(|bytes| ((), bytes))
+                serde_json::to_vec(&jwks)
             })
-            .unwrap()
-            .1;
+            .unwrap();
 
         Ok(Token::from_bytes(jwks_bytes))
     }

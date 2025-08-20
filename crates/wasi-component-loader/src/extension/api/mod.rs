@@ -50,7 +50,7 @@ impl SdkPre {
             (0, 17) => SdkPre::Since0_17_0(SdkPre0_17_0::new(schema, config, component, linker)?),
             (0, 18) => SdkPre::Since0_18_0(SdkPre0_18_0::new(schema, config, component, linker)?),
             (0, 19..=20) => SdkPre::Since0_19_0(SdkPre0_19_0::new(schema, config, component, linker)?),
-            (0, 21) => SdkPre::Since0_21_0(SdkPre0_21_0::new(schema, config, component, linker)?),
+            (0, 21..=22) => SdkPre::Since0_21_0(SdkPre0_21_0::new(schema, config, component, linker)?),
             (major, minor) => unimplemented!("SDK version {major}.{minor} is not supported",),
         })
     }
