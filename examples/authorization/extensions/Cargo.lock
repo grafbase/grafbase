@@ -1112,9 +1112,9 @@ checksum = "07e28edb80900c19c28f1072f2e8aeca7fa06b23cd4169cefe1af5aa3260783f"
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.21.2"
+version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "926c36e1702a9655a8506c73c853661b1d40ff98a51e2ad296b164c6b3d4c485"
+checksum = "94cb9b5df657c0de052f09777dd9b2574481fb37145469a5dbff97ccc8cfb99e"
 dependencies = [
  "anyhow",
  "async-tungstenite",

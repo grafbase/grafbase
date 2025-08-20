@@ -20,8 +20,7 @@ impl HooksExtension for Hooks {
         subgraph_name: &str,
         parts: &mut HttpRequestParts,
     ) -> Result<(), Error> {
-        // FIXME: simplify with gateway 0.47.2 and SDK 0.22
-        let bytes = ctx.authorization_icontext_by_key("my-authorization")?;
+        let bytes = ctx.authorization_context()?;
         let AuthContext { scopes } = postcard::from_bytes(&bytes).unwrap();
 
         if let Some(token) = scopes.get(subgraph_name) {

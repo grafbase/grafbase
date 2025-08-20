@@ -1,7 +1,7 @@
 FROM rust:1.89.0-alpine AS builder
 
 WORKDIR /data
-RUN apk --no-cache add curl bash musl-dev && curl -fsSL https://grafbase.com/downloads/cli | bash -s 0.102.1 && mv ~/.grafbase/bin/grafbase /usr/bin/grafbase
+RUN apk --no-cache add curl bash musl-dev && curl -fsSL https://grafbase.com/downloads/cli | bash -s 0.102.2 && mv ~/.grafbase/bin/grafbase /usr/bin/grafbase
 COPY extensions ./extensions
 
 RUN cd extensions/authentication \
@@ -17,7 +17,7 @@ COPY subgraphs/users/schema.graphql ./subgraphs/users/schema.graphql
 COPY grafbase.toml ./
 RUN AUTH_SERVICE_URL='' /usr/bin/grafbase compose > federated-schema.graphql
 
-FROM ghcr.io/grafbase/gateway:0.47.1
+FROM ghcr.io/grafbase/gateway:0.47.2
 
 WORKDIR /data
 COPY --from=builder /data/extensions/authorization/build ./extensions/authorization/build
