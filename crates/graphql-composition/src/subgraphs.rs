@@ -29,14 +29,10 @@ pub(crate) use self::{
 };
 
 use crate::VecExt;
-use std::{
-    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
-    path::PathBuf,
-};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 /// A set of subgraphs to be composed.
 pub struct Subgraphs {
-    current_dir: Option<PathBuf>,
     pub(super) strings: strings::Strings,
     subgraphs: Vec<Subgraph>,
     definitions: definitions::Definitions,
@@ -70,7 +66,6 @@ impl Default for Subgraphs {
         });
 
         Self {
-            current_dir: None,
             strings,
             subgraphs: Default::default(),
             definitions: Default::default(),
@@ -113,14 +108,6 @@ impl std::fmt::Display for IngestError {
 }
 
 impl Subgraphs {
-    /// Set the current directory for relative paths in subgraph schemas.
-    /// Only relevant for extensions.
-    #[cfg(feature = "grafbase-extensions")]
-    pub fn with_current_dir(mut self, current_dir: Option<PathBuf>) -> Self {
-        self.current_dir = current_dir;
-        self
-    }
-
     /// Add a subgraph to compose.
     pub fn ingest(&mut self, subgraph_schema: &cynic_parser::TypeSystemDocument, name: &str, url: Option<&str>) {
         crate::ingest_subgraph::ingest_subgraph(subgraph_schema, name, url, self);

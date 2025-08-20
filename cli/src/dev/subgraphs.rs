@@ -193,8 +193,7 @@ impl SubgraphCache {
         .await;
 
         let mut stream = futs.into_stream();
-        let mut subgraphs = graphql_composition::Subgraphs::default()
-            .with_current_dir(config.parent_dir_path().map(|p| p.to_path_buf()));
+        let mut subgraphs = graphql_composition::Subgraphs::default();
         let mut validation_errors = Vec::new();
 
         while let Some(result) = stream.next().await {
