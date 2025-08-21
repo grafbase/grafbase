@@ -57,7 +57,6 @@ exclude = [
     # We publish those crates, so they must have versions
     "crates/grafbase-sdk/**.toml",
     "crates/grafbase-hooks/**.toml",
-    "crates/graphql-federated-graph/Cargo.toml",
     "crates/graphql-composition/Cargo.toml",
     # We cannot upgrade rand here just now
     "crates/integration-tests/Cargo.toml",
