@@ -1,0 +1,135 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@external", "@requires"])
+  @link(url: "https://grafbase.com/extensions/tag/1.1.0", import: ["@tag"])
+
+# Extend Patient type from patients subgraph to add medical record
+type Patient @key(fields: "id") {
+  id: ID!
+
+  # Medical record nested in patient
+  medicalRecord: MedicalRecord @tag(name: "doctor-access") @tag(name: "patient-facing")
+}
+
+type MedicalRecord {
+  # Protected health information
+  bloodType: String! @tag(name: "doctor-access") @tag(name: "patient-facing")
+  allergies: [String!]! @tag(name: "doctor-access") @tag(name: "patient-facing")
+  currentMedications: [Medication!]! @tag(name: "doctor-access")
+
+  # Highly restricted fields
+  diagnoses: [Diagnosis!]! @tag(name: "doctor-access")
+  prescriptions: [Prescription!]! @tag(name: "doctor-access")
+  labResults: [LabResult!]! @tag(name: "doctor-access")
+  medicalHistory: [MedicalHistoryEntry!]! @tag(name: "doctor-access")
+
+  # Vital signs - less restricted but still protected
+  vitalSigns: [VitalSign!]! @tag(name: "doctor-access") @tag(name: "patient-facing")
+
+  # Metadata
+  createdAt: String! @tag(name: "doctor-access")
+  updatedAt: String! @tag(name: "doctor-access")
+}
+
+type Medication @shareable @tag(name: "doctor-access") {
+  name: String!
+  dosage: String!
+  frequency: String!
+  startedAt: String!
+  prescribedBy: String! # Doctor ID who prescribed
+}
+
+type Diagnosis @tag(name: "doctor-access") {
+  id: ID!
+  code: String! # ICD-10 code
+  description: String!
+  diagnosedAt: String!
+  diagnosedBy: String! # Doctor ID
+  severity: Severity!
+  status: DiagnosisStatus!
+  notes: String # Clinical notes - highly restricted
+}
+
+enum Severity @tag(name: "doctor-access") {
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+}
+
+enum DiagnosisStatus @tag(name: "doctor-access") {
+  ACTIVE
+  RESOLVED
+  CHRONIC
+  IN_TREATMENT
+}
+
+type Prescription @tag(name: "doctor-access") {
+  id: ID!
+  medicationName: String!
+  dosage: String!
+  frequency: String!
+  duration: String!
+  refills: Int!
+  prescribedAt: String!
+  prescribedBy: String! # Doctor ID
+  instructions: String!
+  controlledSubstance: Boolean!
+}
+
+type LabResult @tag(name: "doctor-access") {
+  id: ID!
+  testName: String!
+  testCode: String!
+  value: String!
+  unit: String!
+  normalRange: String!
+  isAbnormal: Boolean!
+  performedAt: String!
+  orderedBy: String! # Doctor ID
+  notes: String
+}
+
+type VitalSign @tag(name: "doctor-access") @tag(name: "patient-facing") {
+  recordedAt: String! @tag(name: "doctor-access") @tag(name: "patient-facing")
+  bloodPressureSystolic: Int @tag(name: "doctor-access") @tag(name: "patient-facing")
+  bloodPressureDiastolic: Int @tag(name: "doctor-access") @tag(name: "patient-facing")
+  heartRate: Int @tag(name: "doctor-access") @tag(name: "patient-facing")
+  temperature: Float @tag(name: "doctor-access") @tag(name: "patient-facing")
+  respiratoryRate: Int @tag(name: "doctor-access") @tag(name: "patient-facing")
+  oxygenSaturation: Int @tag(name: "doctor-access") @tag(name: "patient-facing")
+  weight: Float @tag(name: "doctor-access") @tag(name: "patient-facing")
+  height: Float @tag(name: "doctor-access") @tag(name: "patient-facing")
+  bmi: Float @tag(name: "doctor-access") @tag(name: "patient-facing")
+}
+
+type MedicalHistoryEntry @tag(name: "doctor-access") {
+  date: String!
+  type: HistoryEntryType!
+  description: String!
+  provider: String!
+  facility: String!
+  attachments: [String!] # File IDs for scans, reports, etc.
+}
+
+enum HistoryEntryType @tag(name: "doctor-access") {
+  SURGERY
+  HOSPITALIZATION
+  EMERGENCY_VISIT
+  VACCINATION
+  ALLERGY_REACTION
+  CHRONIC_CONDITION
+  FAMILY_HISTORY
+}
+
+type Query {
+  # Audit query - highly restricted
+  accessLog(patientId: ID!): [AccessLogEntry!]! @tag(name: "admin-only")
+}
+
+type AccessLogEntry @tag(name: "admin-only") {
+  timestamp: String! @tag(name: "admin-only")
+  userId: String! @tag(name: "admin-only")
+  action: String! @tag(name: "admin-only")
+  resourceAccessed: String! @tag(name: "admin-only")
+  ipAddress: String! @tag(name: "admin-only")
+}

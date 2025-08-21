@@ -1,0 +1,29 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@inaccessible"])
+  @link(url: "https://grafbase.com/extensions/tag/1.1.0", import: ["@tag"])
+
+type Patient @key(fields: "id") {
+  id: ID! @tag(name: "public")
+  firstName: String! @tag(name: "public")
+  lastName: String! @tag(name: "public")
+  dateOfBirth: String! @tag(name: "patient-facing")
+  email: String! @tag(name: "patient-facing")
+  phone: String! @tag(name: "patient-facing")
+
+  # Restricted fields - would require authentication/authorization
+  ssn: String! @inaccessible @tag(name: "admin-only") # Highly restricted - Social Security Number
+  insuranceProvider: String! @tag(name: "billing") # Restricted - Insurance information
+  insurancePolicyNumber: String! @tag(name: "billing") # Restricted - Insurance policy details
+  # Emergency contact information - protected
+  emergencyContactName: String! @tag(name: "patient-facing") @tag(name: "doctor-access")
+  emergencyContactPhone: String! @tag(name: "patient-facing") @tag(name: "doctor-access")
+  emergencyContactRelation: String! @tag(name: "patient-facing") @tag(name: "doctor-access")
+}
+
+type Query {
+  patient(id: ID!): Patient @tag(name: "public") @tag(name: "patient-facing") @tag(name: "doctor-access")
+  patients: [Patient!]! @tag(name: "doctor-access") @tag(name: "admin-only")
+
+  # Restricted query - would require elevated permissions
+  patientBySsn(ssn: String!): Patient @tag(name: "admin-only")
+}

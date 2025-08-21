@@ -1,0 +1,81 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@external", "@requires"])
+  @link(url: "https://grafbase.com/extensions/tag/1.1.0", import: ["@tag"])
+
+type Doctor @key(fields: "id") @tag(name: "clinic-b") {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  specialty: String!
+  licenseNumber: String! # Restricted - professional license info
+  email: String!
+  phone: String!
+  clinicId: ID!
+}
+
+type Appointment @key(fields: "id") @tag(name: "clinic-b") {
+  id: ID!
+  patientId: ID!
+  patient: Patient
+  doctorId: ID!
+  doctor: Doctor!
+  scheduledAt: String!
+  duration: Int! # Duration in minutes
+  status: AppointmentStatus!
+  reason: String! # Protected - medical reason for visit
+  notes: String # Restricted - appointment notes
+  clinicId: ID!
+}
+
+enum AppointmentStatus @tag(name: "clinic-b") {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+type Clinic @key(fields: "id") @shareable @tag(name: "clinic-b") {
+  id: ID!
+  name: String!
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  phone: String!
+  operatingHours: [OperatingHour!]!
+  services: [String!]!
+}
+
+type OperatingHour @shareable @tag(name: "clinic-b") {
+  dayOfWeek: DayOfWeek!
+  openTime: String!
+  closeTime: String!
+}
+
+enum DayOfWeek @tag(name: "clinic-b") {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+# Reference to Patient entity from patients subgraph
+type Patient @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+type Query {
+  clinic(id: ID!): Clinic @tag(name: "clinic-b")
+  clinics: [Clinic!]! @tag(name: "clinic-b")
+  doctors: [Doctor!]! @tag(name: "clinic-b")
+  doctor(id: ID!): Doctor @tag(name: "clinic-b")
+  appointments: [Appointment!]! @tag(name: "clinic-b")
+  appointment(id: ID!): Appointment @tag(name: "clinic-b")
+  appointmentsByPatient(patientId: ID!): [Appointment!]! @tag(name: "clinic-b")
+  appointmentsByDoctor(doctorId: ID!): [Appointment!]! @tag(name: "clinic-b")
+  appointmentsByDate(date: String!): [Appointment!]! @tag(name: "clinic-b")
+}

@@ -1,0 +1,14 @@
+{
+  "name": "clinic-subgraph",
+  "version": "1.0.0",
+  "description": "Clinic subgraph for healthcare system",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "graphql": "^16.8.1",
+    "graphql-yoga": "^5.0.0",
+    "@graphql-tools/federation": "^1.1.0"
+  }
+}

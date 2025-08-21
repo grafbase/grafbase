@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  patients:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./subgraphs/patients:/app
+    command: sh -c "npm install && npm start"
+    ports:
+      - "4001:4001"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -q -O - --post-data '{\"query\":\"{__typename}\"}' --header='Content-Type: application/json' http://localhost:4001/graphql || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  clinic-a:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./subgraphs/clinic-a:/app
+    command: sh -c "npm install && npm start"
+    ports:
+      - "4002:4002"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -q -O - --post-data '{\"query\":\"{__typename}\"}' --header='Content-Type: application/json' http://localhost:4002/graphql || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  clinic-b:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./subgraphs/clinic-b:/app
+    command: sh -c "npm install && npm start"
+    ports:
+      - "4003:4003"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -q -O - --post-data '{\"query\":\"{__typename}\"}' --header='Content-Type: application/json' http://localhost:4003/graphql || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  medical-records:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./subgraphs/medical-records:/app
+    command: sh -c "npm install && npm start"
+    ports:
+      - "4004:4004"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -q -O - --post-data '{\"query\":\"{__typename}\"}' --header='Content-Type: application/json' http://localhost:4004/graphql || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.gateway
+    ports:
+      - "4000:4000"
+    environment:
+      - GRAFBASE_LOG_LEVEL=debug
+    depends_on:
+      patients:
+        condition: service_healthy
+      clinic-a:
+        condition: service_healthy
+      clinic-b:
+        condition: service_healthy
+      medical-records:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -q -O - --post-data '{\"query\":\"{__typename}\"}' --header='Content-Type: application/json' http://localhost:4000/ || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

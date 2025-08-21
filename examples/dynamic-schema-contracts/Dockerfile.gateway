@@ -1,0 +1,33 @@
+FROM rust:1.88.0-alpine3.20 AS builder
+
+WORKDIR /build
+
+RUN apk --no-cache add curl bash musl-dev
+
+RUN curl -fsSL https://grafbase.com/downloads/cli | bash && \
+    mv ~/.grafbase/bin/grafbase /usr/bin/grafbase
+
+COPY grafbase.toml ./
+COPY grafbase-extensions.lock ./
+
+RUN grafbase extension install
+
+COPY demo-hooks ./demo-hooks
+
+WORKDIR /build/demo-hooks
+RUN grafbase extension build
+
+FROM ghcr.io/grafbase/gateway:fcd8136464841bbe47293ddb449845942411d28d
+
+WORKDIR /var/lib/grafbase
+
+COPY --from=builder /build/demo-hooks/build ./demo-hooks/build
+COPY --from=builder /build/grafbase_extensions ./grafbase_extensions
+
+COPY grafbase.toml ./grafbase.toml
+COPY federated.graphql ./federated.graphql
+
+ENTRYPOINT ["/bin/grafbase-gateway"]
+CMD ["--config", "/var/lib/grafbase/grafbase.toml", "--schema", "/var/lib/grafbase/federated.graphql", "--listen-address", "0.0.0.0:4000", "--log-style=pretty", "--log=debug"]
+
+EXPOSE 4000

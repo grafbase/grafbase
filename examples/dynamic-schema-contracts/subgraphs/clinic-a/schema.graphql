@@ -1,0 +1,79 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@external", "@requires"])
+  @link(url: "https://grafbase.com/extensions/tag/1.1.0", import: ["@tag"])
+
+type Doctor @key(fields: "id") @tag(name: "clinic-a") {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  specialty: String!
+  licenseNumber: String! # Restricted - professional license info
+  email: String!
+  phone: String!
+  clinicId: ID!
+}
+
+type Appointment @key(fields: "id") @tag(name: "clinic-a") {
+  id: ID!
+  patientId: ID!
+  patient: Patient
+  doctorId: ID!
+  doctor: Doctor!
+  scheduledAt: String!
+  duration: Int! # Duration in minutes
+  status: AppointmentStatus!
+  reason: String! # Protected - medical reason for visit
+  notes: String # Restricted - appointment notes
+  clinicId: ID!
+}
+
+enum AppointmentStatus @tag(name: "clinic-a") {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+type Clinic @key(fields: "id") @shareable @tag(name: "clinic-a") {
+  id: ID!
+  name: String!
+  address: String!
+  city: String!
+  state: String!
+  zipCode: String!
+  phone: String!
+  operatingHours: [OperatingHour!]!
+  services: [String!]!
+}
+
+type OperatingHour @shareable @tag(name: "clinic-a") {
+  dayOfWeek: DayOfWeek!
+  openTime: String!
+  closeTime: String!
+}
+
+enum DayOfWeek @tag(name: "clinic-a") {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+# Extend Patient entity from patients subgraph to add appointments
+type Patient @key(fields: "id") {
+  id: ID!
+  
+  # Appointments nested in patient
+  appointments: [Appointment!]! @tag(name: "clinic-a")
+}
+
+type Query {
+  clinic(id: ID!): Clinic @tag(name: "clinic-a")
+  clinics: [Clinic!]! @tag(name: "clinic-a")
+  doctors: [Doctor!]! @tag(name: "clinic-a")
+  doctor(id: ID!): Doctor @tag(name: "clinic-a")
+}

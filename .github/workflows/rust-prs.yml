@@ -453,6 +453,7 @@ jobs:
           - examples/grpc-extension
           - examples/composite-rest
           - examples/grpc-composite-schemas
+          - examples/dynamic-schema-contracts
     runs-on: depot-ubuntu-24.04-8
     steps:
       - name: Get sources
