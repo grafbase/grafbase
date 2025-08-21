@@ -289,7 +289,6 @@ grafbase-telemetry = { path = "crates/telemetry" }
 grafbase-workspace-hack = { path = "crates/grafbase-workspace-hack", version = "0.1" }
 graph-ref = { path = "crates/graph-ref" }
 graphql-composition = { path = "crates/graphql-composition" }
-graphql-federated-graph = { path = "crates/graphql-federated-graph" }
 graphql-lint = { path = "crates/graphql-lint" }
 graphql-mocks = { path = "crates/graphql-mocks" }
 graphql-schema-validation = { path = "crates/graphql-schema-validation" }
