@@ -1,3 +1,7 @@
 [[extensions]]
 name = "rest"
 url = "https://grafbase.com/extensions/rest"
+
+[[extensions]]
+name = "selection-set-resolver"
+url = "file:///selection-set-resolver-015-1.0.0"

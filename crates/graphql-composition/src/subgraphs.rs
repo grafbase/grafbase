@@ -46,7 +46,6 @@ pub struct Subgraphs {
     ingestion_diagnostics: crate::Diagnostics,
 
     extensions: Vec<ExtensionRecord>,
-    link_url_to_extension_id: HashMap<String, ExtensionId>,
 
     // Secondary indexes.
 
@@ -78,7 +77,6 @@ impl Default for Subgraphs {
             definition_names: Default::default(),
             linked_schemas: Default::default(),
             extensions: Vec::new(),
-            link_url_to_extension_id: HashMap::new(),
         }
     }
 }
@@ -129,36 +127,17 @@ impl Subgraphs {
     /// It is safe to add the same extension (same name) multiple times. It will only be an error if the urls are not compatible. Different remote versions are compatible between each other, but different paths are not compatible, and local paths are not compatible with remote urls.
     #[cfg(feature = "grafbase-extensions")]
     pub fn ingest_loaded_extensions(&mut self, extensions: impl IntoIterator<Item = crate::LoadedExtension>) {
-        for extension in extensions {
-            if self.link_url_to_extension_id.contains_key(&extension.link_url) {
-                // Already ingested this extension, skip it.
-                continue;
-            }
-            let id = match self
-                .extensions
-                .iter()
-                .position(|ext| *self[ext.url] == *extension.url.as_str())
-            {
-                Some(ix) => ExtensionId::from(ix),
-                None => {
-                    self.extensions.push(ExtensionRecord {
-                        url: self.strings.intern(extension.url.as_str()),
-                        name: self.strings.intern(extension.name),
-                    });
-                    ExtensionId::from(self.extensions.len() - 1)
-                }
-            };
-            self.link_url_to_extension_id.insert(extension.link_url, id);
-        }
+        self.extensions
+            .extend(extensions.into_iter().map(|ext| ExtensionRecord {
+                url: self.strings.intern(ext.url.as_str()),
+                link_url: self.strings.intern(ext.link_url.as_str()),
+                name: self.strings.intern(ext.name),
+            }));
     }
 
     /// Checks whether any subgraphs have been ingested
     pub fn is_empty(&self) -> bool {
         self.subgraphs.is_empty()
-    }
-
-    pub(crate) fn find_matching_extension(&self, link_url: &str) -> Option<ExtensionId> {
-        self.link_url_to_extension_id.get(link_url).copied()
     }
 
     /// Iterate over groups of definitions to compose. The definitions are grouped by name. The

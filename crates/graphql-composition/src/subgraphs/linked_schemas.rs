@@ -14,14 +14,17 @@ pub(crate) struct LinkedSchemas {
 pub(crate) struct LinkedSchemaRecord {
     /// The subgraph where the schema is @link'ed (imported).
     pub(crate) subgraph_id: SubgraphId,
+    /// See [LinkedSchemaType]
     pub(crate) linked_schema_type: LinkedSchemaType,
+    /// The url of the schema.
+    pub(crate) url: StringId,
     pub(crate) name_from_url: Option<StringId>,
     /// The namespace this schema is linked as.
     pub(crate) r#as: Option<StringId>,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum LinkedSchemaType {
-    Extension(ExtensionId),
     FederationSpec(FederationSpec),
     Other,
 }
@@ -46,7 +49,17 @@ impl LinkedDefinitionRecord {
     }
 }
 
+pub(crate) type LinkedSchema<'a> = View<'a, LinkedSchemaId, LinkedSchemaRecord>;
+
 impl Subgraphs {
+    pub(crate) fn iter_linked_schemas(&self) -> impl ExactSizeIterator<Item = LinkedSchema<'_>> {
+        self.linked_schemas
+            .schemas
+            .iter()
+            .enumerate()
+            .map(|(idx, record)| View { id: idx.into(), record })
+    }
+
     pub(crate) fn get_linked_schema(&self, subgraph_id: SubgraphId, namespace: StringId) -> Option<LinkedSchemaId> {
         self.linked_schemas.namespaces.get(&(subgraph_id, namespace)).copied()
     }
@@ -95,7 +108,8 @@ impl Subgraphs {
             }
         }
 
-        if let LinkedSchemaType::FederationSpec(federation_spec) = linked_schema.linked_schema_type {
+        let url = self.strings.resolve(linked_schema.url);
+        if let Some(federation_spec) = FederationSpec::from_url(url) {
             let existing = &mut self[linked_schema.subgraph_id].federation_spec;
             *existing = (*existing).max(federation_spec);
         }

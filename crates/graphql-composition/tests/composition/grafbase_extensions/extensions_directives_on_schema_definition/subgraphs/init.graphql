@@ -1,0 +1,14 @@
+extend schema @link(url: "file:///selection-set-resolver-015-1.0.0", import: ["@init"]) @init
+
+type Book {
+  id: ID!
+  title: String!
+  pages: Int
+  published: Boolean
+  genres: [String!]
+}
+
+type Query {
+  book(id: ID!): Book
+  books: [Book!]
+}
