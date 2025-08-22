@@ -373,17 +373,6 @@ where
             .for_each(|set| set.clear());
         self.flow.node_to_flow_rates.fill(0);
 
-        // Allows us to use unsafe further on.
-        assert!(
-            (self.flow.saturated_edges.len() == self.graph.edge_bound())
-                & (self.flow.marked_or_saturated_edges.len() == self.graph.edge_bound())
-                & (self.flow.node_to_feeding_terminals.len() == self.graph.node_bound())
-                & (self.flow.node_to_flow_rates.len() == self.graph.node_bound())
-                & (self.steiner_tree.nodes.len() == self.graph.node_bound())
-                & (self.steiner_tree.edges.len() == self.graph.edge_bound()),
-            "Invariant broken, cannot use unsafe"
-        );
-
         // Prepare the initial state
         debug_assert!(
             !self.steiner_tree.nodes.is_empty(),
@@ -430,13 +419,12 @@ where
         let mut min_weight = SteinerWeight::MAX;
         let mut target = usize::MAX;
 
-        // branchless made a 2% diff in the worst benchmarks.
         for edge in self.graph.edges_directed(node, petgraph::Direction::Incoming) {
             let edge_index = edge.id().index();
             let weight = *edge.weight();
             // SAFETY: Guaranteed to be the right size by the assert in the initialization.
             let is_min =
-                unsafe { !self.flow.marked_or_saturated_edges.contains_unchecked(edge_index) } & (weight < min_weight);
+                 !self.flow.marked_or_saturated_edges[edge_index] & (weight < min_weight);
             // if marked or saturated -> 1111_1111
             let is_min_weight_mask = (!is_min as SteinerWeight).wrapping_sub(1);
             let is_min_edge_mask = (!is_min as usize).wrapping_sub(1);
@@ -595,8 +583,7 @@ where
         let new_feeding = &self.state.flow.node_to_feeding_terminals[v.index()];
 
         while let Some(current) = self.state.tmp_stack.pop() {
-            // SAFETY: Guaranteed to be the right size by the assert in the initialization.
-            let current_feeding = unsafe { self.flow.node_to_feeding_terminals.get_unchecked(current.index()) };
+            let current_feeding = self.flow.node_to_feeding_terminals[current.index()];
             // Check for degenerate flow
             if !new_feeding.is_disjoint(current_feeding) {
                 self.tmp_stack.clear();
@@ -610,8 +597,7 @@ where
 
             // Add neighbors reachable through saturated edges
             for edge in self.graph.edges_directed(current, petgraph::Direction::Incoming) {
-                // SAFETY: Guaranteed to be the right size by the assert in the initialization.
-                if unsafe { self.flow.saturated_edges.contains_unchecked(edge.id().index()) } {
+                if self.flow.saturated_edges[edge.id().index()] {
                     let src = edge.source();
                     self.state.tmp_stack.push(src);
                 }
