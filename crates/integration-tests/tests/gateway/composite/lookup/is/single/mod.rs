@@ -276,9 +276,11 @@ fn no_matching_key() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 33:3:
-        productBatch(something: JSON @composite__is(graph: EXT, field: "args")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        * At site Query.productBatch, for directive @lookup no matching @key directive was found
+        32 | {
+        33 |   productBatch(something: JSON @composite__is(graph: EXT, field: "args")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        34 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -313,9 +315,11 @@ fn cannot_inject_nullable_into_required() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup for associated @is directive: Incompatible wrapping, cannot map Product.id (ID) into Query.productBatch.id (ID!)
-        See schema at 33:38:
-        (graph: EXT, field: "id")
+        * At site Query.productBatch, for directive @lookup for associated @is directive: Incompatible wrapping, cannot map Product.id (ID) into Query.productBatch.id (ID!)
+        32 | {
+        33 |   productBatch(id: ID! @composite__is(graph: EXT, field: "id")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+        34 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -350,9 +354,11 @@ fn bad_type() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup for associated @is directive: Cannot map Product.id (ID!) into Query.productBatch.id (Int)
-        See schema at 33:38:
-        (graph: EXT, field: "id")
+        * At site Query.productBatch, for directive @lookup for associated @is directive: Cannot map Product.id (ID!) into Query.productBatch.id (Int)
+        32 | {
+        33 |   productBatch(id: Int @composite__is(graph: EXT, field: "id")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^
+        34 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -387,9 +393,11 @@ fn is_a_list() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup for associated @is directive: Product! is not a list but treated as such
-        See schema at 33:40:
-        (graph: EXT, field: "[id]")
+        * At site Query.productBatch, for directive @lookup for associated @is directive: Product! is not a list but treated as such
+        32 | {
+        33 |   productBatch(id: [ID!] @composite__is(graph: EXT, field: "[id]")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+                                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        34 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -424,9 +432,11 @@ fn extra_required_argument() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected by any @is directive.
-        See schema at 33:3:
-        productBatch(ids: ID! @composite__is(graph: EXT, field: "id"), required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        * At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected by any @is directive.
+        32 | {
+        33 |   productBatch(ids: ID! @composite__is(graph: EXT, field: "id"), required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        34 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }

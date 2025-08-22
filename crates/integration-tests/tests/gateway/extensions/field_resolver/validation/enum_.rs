@@ -1,4 +1,4 @@
-use integration_tests::{gateway::Gateway, runtime};
+use integration_tests::{cleanup_error, gateway::Gateway, runtime};
 
 use super::EchoExt;
 
@@ -85,9 +85,11 @@ fn unknown_enum_value() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found an unknown enum value 'UNKNOWN' for the enum EchoEnum at path '.value'
-        See schema at 19:35:
-        (graph: A, extension: ECHO, name: "echo", arguments: {value: UNKNOWN})
+        * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found an unknown enum value 'UNKNOWN' for the enum EchoEnum at path '.value'
+        18 | {
+        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {value: UNKNOWN}) @join__field(graph: A)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        20 | }
         "#);
 
         // Invalid schema directive
@@ -117,10 +119,12 @@ fn unknown_enum_value() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found an unknown enum value 'UNKNOWN' for the enum EchoEnum at path '.value'
-        See schema at 29:97:
-        {graph: A, name: "meta", arguments: {value: UNKNOWN}}
+        insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
+        * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found an unknown enum value 'UNKNOWN' for the enum EchoEnum at path '.value'
+        28 | {
+        29 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: UNKNOWN}}])
+                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        30 | }
         "#);
     });
 }
@@ -155,9 +159,11 @@ fn invalid_enum_value() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found a String value where we expected a EchoEnum enum value at path '.value'
-        See schema at 19:35:
-        (graph: A, extension: ECHO, name: "echo", arguments: {value: "VALID"})
+        * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found a String value where we expected a EchoEnum enum value at path '.value'
+        18 | {
+        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {value: "VALID"}) @join__field(graph: A)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        20 | }
         "#);
 
         // Invalid schema directive
@@ -187,10 +193,12 @@ fn invalid_enum_value() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a Integer value where we expected a EchoEnum enum value at path '.value'
-        See schema at 29:97:
-        {graph: A, name: "meta", arguments: {value: 1}}
+        insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
+        * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a Integer value where we expected a EchoEnum enum value at path '.value'
+        28 | {
+        29 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: 1}}])
+                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        30 | }
         "#);
     });
 }

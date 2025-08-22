@@ -868,9 +868,11 @@ fn no_matching_argument() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup no matching @key directive was found
-        See schema at 40:3:
-        productBatch(something: JSON @composite__is(graph: EXT, field: "args")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        * At site Query.productBatch, for directive @lookup no matching @key directive was found
+        39 | {
+        40 |   productBatch(something: JSON @composite__is(graph: EXT, field: "args")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        41 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -913,9 +915,11 @@ fn extra_required_argument() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected by any @is directive.
-        See schema at 40:3:
-        productBatch(input: DummyInput! @composite__is(graph: EXT, field: "{ a: nested.id }"), required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        * At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected by any @is directive.
+        39 | {
+        40 |   productBatch(input: DummyInput! @composite__is(graph: EXT, field: "{ a: nested.id }"), required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        41 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -959,9 +963,11 @@ fn extra_required_field() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup for associated @is directive: For Query.productBatch.input, field 'required' is required but it's missing from the FieldSelectionMap
-        See schema at 40:49:
-        (graph: EXT, field: "{ a: nested.id }")
+        * At site Query.productBatch, for directive @lookup for associated @is directive: For Query.productBatch.input, field 'required' is required but it's missing from the FieldSelectionMap
+        39 | {
+        40 |   productBatch(input: DummyInput! @composite__is(graph: EXT, field: "{ a: nested.id }")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        41 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -1004,9 +1010,11 @@ fn invalid_single() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.productBatch, for directive @lookup for associated @is directive: Product! is not a list but treated as such
-        See schema at 40:51:
-        (graph: EXT, field: "[{ a: nested.id }]")
+        * At site Query.productBatch, for directive @lookup for associated @is directive: Product! is not a list but treated as such
+        39 | {
+        40 |   productBatch(input: [DummyInput!] @composite__is(graph: EXT, field: "[{ a: nested.id }]")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+                                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        41 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }

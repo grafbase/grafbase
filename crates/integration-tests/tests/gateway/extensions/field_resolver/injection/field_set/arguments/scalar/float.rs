@@ -100,9 +100,11 @@ fn invalid_float() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a String value where we expected a Float scalar at path '.value'
-        See schema at 19:35:
-        (graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(value: \"7.123\")"})
+        * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a String value where we expected a Float scalar at path '.value'
+        18 | {
+        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(value: \"7.123\")"}) @join__field(graph: A)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        20 |   field(value: Float!): JSON @extension__directive(graph: A, extension: ECHO, name: "echoArgs", arguments: {}) @join__field(graph: A)
         "#);
     });
 }

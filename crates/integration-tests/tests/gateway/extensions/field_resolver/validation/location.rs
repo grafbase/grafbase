@@ -1,4 +1,4 @@
-use integration_tests::{gateway::Gateway, runtime};
+use integration_tests::{cleanup_error, gateway::Gateway, runtime};
 
 use super::EchoExt;
 
@@ -30,9 +30,11 @@ fn invalid_location() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.echo, extension echo-1.0.0 directive @meta used in the wrong location FIELD_DEFINITION, expected one of: SCHEMA
-        See schema at 19:35:
-        (graph: A, extension: ECHO, name: "meta", arguments: {})
+        * At site Query.echo, extension echo-1.0.0 directive @meta used in the wrong location FIELD_DEFINITION, expected one of: SCHEMA
+        18 | {
+        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "meta", arguments: {}) @join__field(graph: A)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        20 | }
         "#);
 
         // Invalid schema directive
@@ -60,10 +62,12 @@ fn invalid_location() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site subgraph named 'a', extension echo-1.0.0 directive @echo used in the wrong location SCHEMA, expected one of: FIELD_DEFINITION
-        See schema at 29:97:
-        {graph: A, name: "echo", arguments: {}}
+        insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
+        * At site subgraph named 'a', extension echo-1.0.0 directive @echo used in the wrong location SCHEMA, expected one of: FIELD_DEFINITION
+        28 | {
+        29 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "echo", arguments: {}}])
+                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        30 | }
         "#);
     });
 }

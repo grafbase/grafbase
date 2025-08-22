@@ -170,7 +170,7 @@ fn ingest_before_federation_directives<'sdl>(
 
 pub(crate) fn ingest_composite_field_directives_after_federation_and_resolvers(
     ingester: &mut DirectivesIngester<'_, '_>,
-) -> Result<(), Error> {
+) {
     for id in 0..ingester.graph.field_definitions.len() {
         let id = FieldDefinitionId::from(id);
         let Some(&sdl::SdlDefinition::FieldDefinition(field)) = ingester.definitions.site_id_to_sdl.get(&id.into())
@@ -178,21 +178,25 @@ pub(crate) fn ingest_composite_field_directives_after_federation_and_resolvers(
             // Introspection fields aren't part of the SDL.
             continue;
         };
-        require::ingest_field(ingester, field).map_err(|err| {
-            err.with_prefix(format!("At site {}: ", field.to_site_string(ingester)))
-                .with_span_if_absent(field.name_span())
-        })?;
+        if let Err(err) = require::ingest_field(ingester, field) {
+            ingester.errors.push(
+                err.with_prefix(format!("At site {}: ", field.to_site_string(ingester)))
+                    .span_if_absent(field.name_span()),
+            );
+            continue;
+        };
         for directive in field.directives() {
-            if let "composite__derive" = directive.name() {
-                derive::ingest(ingester, field, directive).map_err(|err| {
+            if let "composite__derive" = directive.name()
+                && let Err(err) = derive::ingest(ingester, field, directive)
+            {
+                ingester.errors.push(
                     err.with_prefix(format!(
                         "At site {}, for directive @composite__derive: ",
                         field.to_site_string(ingester)
                     ))
-                    .with_span_if_absent(directive.arguments_span())
-                })?
+                    .span_if_absent(directive.arguments_span()),
+                );
             }
         }
     }
-    Ok(())
 }

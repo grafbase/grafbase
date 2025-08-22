@@ -1,4 +1,4 @@
-use integration_tests::{gateway::Gateway, runtime};
+use integration_tests::{cleanup_error, gateway::Gateway, runtime};
 
 use super::EchoExt;
 
@@ -28,9 +28,11 @@ fn unexpected_null() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found a null where we expected a String! at path '.value'
-        See schema at 19:35:
-        (graph: A, extension: ECHO, name: "echo", arguments: {value: null})
+        * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found a null where we expected a String! at path '.value'
+        18 | {
+        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {value: null}) @join__field(graph: A)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        20 | }
         "#);
 
         // Invalid schema directive
@@ -56,10 +58,12 @@ fn unexpected_null() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a null where we expected a String! at path '.value'
-        See schema at 29:97:
-        {graph: A, name: "meta", arguments: {value: null}}
+        insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
+        * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a null where we expected a String! at path '.value'
+        28 | {
+        29 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: null}}])
+                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        30 | }
         "#);
     });
 }
@@ -90,9 +94,11 @@ fn missing_required_argument() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Missing required argument named 'value'
-        See schema at 19:35:
-        (graph: A, extension: ECHO, name: "echo", arguments: {})
+        * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Missing required argument named 'value'
+        18 | {
+        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: A)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        20 | }
         "#);
 
         // Invalid schema directive
@@ -118,10 +124,12 @@ fn missing_required_argument() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Missing required argument named 'value'
-        See schema at 29:97:
-        {graph: A, name: "meta", arguments: {}}
+        insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
+        * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Missing required argument named 'value'
+        28 | {
+        29 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {}}])
+                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        30 | }
         "#);
     });
 }
