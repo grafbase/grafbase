@@ -17,7 +17,7 @@ COPY subgraphs/users/schema.graphql ./subgraphs/users/schema.graphql
 COPY grafbase.toml ./
 RUN AUTH_SERVICE_URL='' /usr/bin/grafbase compose > federated-schema.graphql
 
-FROM ghcr.io/grafbase/gateway:0.47.2
+FROM ghcr.io/grafbase/gateway:latest
 
 WORKDIR /data
 COPY --from=builder /data/extensions/authorization/build ./extensions/authorization/build

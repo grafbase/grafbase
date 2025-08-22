@@ -12,7 +12,7 @@ COPY subgraphs/zendesk/schema.graphql ./subgraphs/zendesk/schema.graphql
 COPY subgraphs/geo-api/schema.graphql ./subgraphs/geo-api/schema.graphql
 COPY grafbase.toml ./
 RUN /usr/bin/grafbase compose > federated-schema.graphql && /usr/bin/grafbase extension install
-FROM ghcr.io/grafbase/gateway:0.46.2
+FROM ghcr.io/grafbase/gateway:latest
 
 WORKDIR /data
 COPY --from=builder /data/extensions/geo/build ./extensions/geo/build

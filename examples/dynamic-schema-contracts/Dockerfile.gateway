@@ -17,7 +17,7 @@ COPY demo-hooks ./demo-hooks
 WORKDIR /build/demo-hooks
 RUN grafbase extension build
 
-FROM ghcr.io/grafbase/gateway:fcd8136464841bbe47293ddb449845942411d28d
+FROM ghcr.io/grafbase/gateway:latest
 
 WORKDIR /var/lib/grafbase
 
