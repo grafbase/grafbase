@@ -1,3 +1,6 @@
+/// Custom logs bridge that fixes trace context propagation
+pub mod bridge;
+
 use crate::{config::TelemetryConfig, error::TracingError};
 
 use gateway_config::OtlpExporterProtocolConfig;

@@ -1,13 +1,16 @@
 use opentelemetry::trace::TracerProvider;
 use opentelemetry::{InstrumentationScope, KeyValue};
-use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
-use opentelemetry_sdk::Resource;
-use opentelemetry_sdk::trace::IdGenerator;
+use opentelemetry_sdk::logs::SdkLoggerProvider;
+use opentelemetry_sdk::metrics::SdkMeterProvider;
+use opentelemetry_sdk::trace::{IdGenerator, SdkTracerProvider};
+use opentelemetry_sdk::{Resource, trace};
 use tracing::Subscriber;
 use tracing_opentelemetry::OpenTelemetryLayer;
 use tracing_subscriber::Layer;
 use tracing_subscriber::filter::Filtered;
 use tracing_subscriber::layer::Filter;
+
+use super::logs::bridge::OtelLogsLayer;
 use tracing_subscriber::registry::LookupSpan;
 
 use crate::config::TelemetryConfig;
@@ -22,19 +25,18 @@ pub type FilteredLayer<S> = Filtered<BoxedLayer<S>, BoxedFilter<S>, S>;
 
 pub struct OtelTelemetry<Subscriber> {
     pub tracer: Option<Tracer<Subscriber>>,
-    pub meter_provider: Option<opentelemetry_sdk::metrics::SdkMeterProvider>,
+    pub meter_provider: Option<SdkMeterProvider>,
     pub logger: Option<Logger>,
 }
 
 pub struct Tracer<Subscriber> {
-    pub layer: OpenTelemetryLayer<Subscriber, opentelemetry_sdk::trace::Tracer>,
-    pub provider: opentelemetry_sdk::trace::SdkTracerProvider,
+    pub layer: OpenTelemetryLayer<Subscriber, trace::Tracer>,
+    pub provider: SdkTracerProvider,
 }
 
 pub struct Logger {
-    pub layer:
-        OpenTelemetryTracingBridge<opentelemetry_sdk::logs::SdkLoggerProvider, opentelemetry_sdk::logs::SdkLogger>,
-    pub provider: opentelemetry_sdk::logs::SdkLoggerProvider,
+    pub layer: OtelLogsLayer,
+    pub provider: SdkLoggerProvider,
 }
 
 /// Creates a new OTEL tracing layer that doesn't collect or export any tracing data.
@@ -71,7 +73,7 @@ where
 
     let logger = match super::logs::build_logs_provider(config, resource.clone())? {
         Some(provider) if config.logs_exporters_enabled() => Some(Logger {
-            layer: OpenTelemetryTracingBridge::new(&provider),
+            layer: OtelLogsLayer::new(provider.clone()),
             provider,
         }),
         _ => None,

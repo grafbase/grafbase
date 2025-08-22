@@ -6711,6 +6711,7 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+ "tracing-opentelemetry",
  "tracing-subscriber",
 ]
 

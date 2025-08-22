@@ -37,6 +37,7 @@ grafbase-workspace-hack.workspace = true
 opentelemetry = { workspace = true, features = ["trace"] }
 opentelemetry-appender-tracing = { workspace = true, features = [
     "experimental_metadata_attributes",
+    "experimental_use_tracing_span_context",
 ] }
 opentelemetry-otlp = { workspace = true, features = [
     "grpc-tonic",
