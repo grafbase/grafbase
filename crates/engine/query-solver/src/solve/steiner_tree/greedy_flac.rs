@@ -423,8 +423,7 @@ where
             let edge_index = edge.id().index();
             let weight = *edge.weight();
             // SAFETY: Guaranteed to be the right size by the assert in the initialization.
-            let is_min =
-                 !self.flow.marked_or_saturated_edges[edge_index] & (weight < min_weight);
+            let is_min = !self.flow.marked_or_saturated_edges[edge_index] & (weight < min_weight);
             // if marked or saturated -> 1111_1111
             let is_min_weight_mask = (!is_min as SteinerWeight).wrapping_sub(1);
             let is_min_edge_mask = (!is_min as usize).wrapping_sub(1);
@@ -583,7 +582,7 @@ where
         let new_feeding = &self.state.flow.node_to_feeding_terminals[v.index()];
 
         while let Some(current) = self.state.tmp_stack.pop() {
-            let current_feeding = self.flow.node_to_feeding_terminals[current.index()];
+            let current_feeding = &self.flow.node_to_feeding_terminals[current.index()];
             // Check for degenerate flow
             if !new_feeding.is_disjoint(current_feeding) {
                 self.tmp_stack.clear();
