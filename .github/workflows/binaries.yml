@@ -62,7 +62,7 @@ jobs:
       packages: write
 
   docker-gateway:
-    needs: [check]
+    needs: [check, detect-change-type]
     if: ${{ (needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/')) }}
     runs-on: depot-ubuntu-24.04
     permissions:
