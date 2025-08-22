@@ -415,31 +415,29 @@ where
     /// will saturate each time.
     #[allow(non_snake_case)]
     fn find_next_edge_in_T_minus(&self, node: NodeIndex) -> Option<NextSaturatingEdge> {
-        let mut min_edge = usize::MAX;
         let mut min_weight = SteinerWeight::MAX;
-        let mut target = usize::MAX;
+        let mut min_edge_and_target = usize::MAX;
 
         for edge in self.graph.edges_directed(node, petgraph::Direction::Incoming) {
             let edge_index = edge.id().index();
             let weight = *edge.weight();
-            // SAFETY: Guaranteed to be the right size by the assert in the initialization.
             let is_min = !self.flow.marked_or_saturated_edges[edge_index] & (weight < min_weight);
             // if marked or saturated -> 1111_1111
             let is_min_weight_mask = (!is_min as SteinerWeight).wrapping_sub(1);
             let is_min_edge_mask = (!is_min as usize).wrapping_sub(1);
 
             min_weight = (is_min_weight_mask & weight) | (!is_min_weight_mask & min_weight);
-            min_edge = (is_min_edge_mask & edge_index) | (!is_min_edge_mask & min_edge);
-            target = (is_min_edge_mask & edge.target().index()) | (!is_min_edge_mask & target);
+            min_edge_and_target = (is_min_edge_mask & (edge_index << u32::BITS | edge.target().index()))
+                | (!is_min_edge_mask & min_edge_and_target);
         }
 
-        if min_edge == usize::MAX {
+        if min_edge_and_target == usize::MAX {
             None
         } else {
             Some(NextSaturatingEdge {
-                id: EdgeIndex::new(min_edge),
+                id: EdgeIndex::new(min_edge_and_target >> u32::BITS),
                 weight: min_weight,
-                target: NodeIndex::new(target),
+                target: NodeIndex::new(min_edge_and_target & (u32::MAX as usize)),
             })
         }
     }
