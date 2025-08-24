@@ -33,11 +33,13 @@ fn invalid_key_field_type() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Post.author, for directive @composite__derive: Derived field must match at least one @key
-        See schema at 18:35:
-        (graph: X)
-        "#);
+        insta::assert_snapshot!(result.unwrap_err(), @r"
+        * At site Post.author, for directive @composite__derive: Derived field must match at least one @key
+        17 | {
+        18 |   author: User! @composite__derive(graph: X)
+                                               ^^^^^^^^^^
+        19 |   authorId: Int!
+        ");
     })
 }
 
@@ -70,15 +72,13 @@ fn incompatible_key_field_wrapping() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Product.author, for directive @composite__derive: Type User doesn't define any keys with @key directive that may be used for @derive
-        See schema at 24:1:
-        type User
-          @join__type(graph: EXT)
-        {
-          id: ID!
-        }
-        "#);
+        insta::assert_snapshot!(result.unwrap_err(), @r"
+        * At site Product.author, for directive @composite__derive: Type User doesn't define any keys with @key directive that may be used for @derive
+        23 | 
+        24 | type User
+             ^^^^^^^^^
+        25 |   @join__type(graph: EXT)
+        ");
     })
 }
 
@@ -114,11 +114,13 @@ fn missing_key_field() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Post.author, for directive @composite__derive: Derived field must match at least one @key
-        See schema at 18:35:
-        (graph: X)
-        "#);
+        insta::assert_snapshot!(result.unwrap_err(), @r"
+        * At site Post.author, for directive @composite__derive: Derived field must match at least one @key
+        17 | {
+        18 |   author: User! @composite__derive(graph: X)
+                                               ^^^^^^^^^^
+        19 |   authorId: ID!
+        ");
     })
 }
 
@@ -153,9 +155,11 @@ fn missing_field() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r"
-        At site Product.author, for directive @composite__derive: Field User.category is unprovidable for this @derive
-        See schema at 18:17:
-        @composite__derive
+        * At site Product.author, for directive @composite__derive: Field User.category is unprovidable for this @derive
+        17 | {
+        18 |   author: User! @composite__derive(graph: EXT)
+                             ^^^^^^^^^^^^^^^^^^
+        19 |   authorId: ID!
         ");
     })
 }

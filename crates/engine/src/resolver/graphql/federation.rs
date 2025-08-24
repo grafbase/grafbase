@@ -3,7 +3,8 @@ mod without_cache;
 
 use error::GraphqlError;
 use grafbase_telemetry::{graphql::OperationType, span::subgraph::SubgraphRequestSpanBuilder};
-use operation::OperationContext;
+use itertools::Itertools as _;
+use operation::{OperationContext, ResponseKeys};
 use schema::{GraphqlFederationEntityResolverDefinition, GraphqlSubgraphId};
 use serde_json::value::RawValue;
 use tracing::Instrument;
@@ -14,7 +15,7 @@ use crate::{
     execution::ExecutionContext,
     prepare::{Plan, PlanError, PlanQueryPartition, PlanResult, RootFieldsShapeId},
     resolver::graphql::request::{SubgraphGraphqlRequest, SubgraphVariables},
-    response::{ParentObjectId, ParentObjectSet, ParentObjects, ResponsePartBuilder},
+    response::{ParentObjectId, ParentObjectSet, ParentObjects, ResponsePartBuilder, ResponseValueId},
 };
 
 use super::{
@@ -84,7 +85,14 @@ impl FederationEntityResolver {
                         entities_to_fetch.push(EntityToFetch { id, representation });
                     }
                     Err(error) => {
-                        entities_without_expected_requirements.push(EntityWithoutExpectedRequirements { id, error });
+                        tracing::error!(
+                            "Could not retrieve entity because of missing requirements at path '{}': {error}",
+                            DisplayPath {
+                                keys: &ctx.ctx.operation.cached.operation.response_keys,
+                                path: &parent_objects.get_object_ref(id).unwrap().path
+                            }
+                        );
+                        entities_without_expected_requirements.push(id);
                     }
                 }
             }
@@ -100,14 +108,29 @@ impl FederationEntityResolver {
     }
 }
 
+struct DisplayPath<'a> {
+    keys: &'a ResponseKeys,
+    path: &'a [ResponseValueId],
+}
+
+impl std::fmt::Display for DisplayPath<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!(
+            "{}",
+            self.path.iter().format_with(".", |value_id, f| match value_id {
+                ResponseValueId::Field { key, .. } => {
+                    let field_key = &self.keys[*key];
+                    f(&format_args!("{field_key}"))
+                }
+                ResponseValueId::Index { index, .. } => f(&format_args!("{index}")),
+            }),
+        ))
+    }
+}
+
 pub(super) struct EntityToFetch {
     pub id: ParentObjectId,
     pub representation: Box<RawValue>,
-}
-
-struct EntityWithoutExpectedRequirements {
-    id: ParentObjectId,
-    error: serde_json::Error,
 }
 
 pub(crate) struct FederationEntityExecutor<'ctx> {
@@ -115,7 +138,7 @@ pub(crate) struct FederationEntityExecutor<'ctx> {
     parent_objects: ParentObjectSet,
     response_part: ResponsePartBuilder<'ctx>,
     entities_to_fetch: Vec<EntityToFetch>,
-    entities_without_expected_requirements: Vec<EntityWithoutExpectedRequirements>,
+    entities_without_expected_requirements: Vec<ParentObjectId>,
 }
 
 impl<'ctx> FederationEntityExecutor<'ctx> {
@@ -137,8 +160,7 @@ impl<'ctx> FederationEntityExecutor<'ctx> {
         async move {
             let subgraph_headers = ctx.subgraph_headers_with_rules(ctx.endpoint().header_rules());
 
-            for EntityWithoutExpectedRequirements { id, error } in entities_without_expected_requirements {
-                tracing::error!("Could not retrieve entity because of missing requirements: {error}");
+            for id in entities_without_expected_requirements {
                 // Not really sure if that's really the right logic. In the federation-audit
                 // `null-keys` test no errors are expected here when an entity could not be
                 // retrieved.

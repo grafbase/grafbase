@@ -28,7 +28,7 @@ fn invalid_link() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @"For extension greet-1.0.0, failed to prase @link directive: Unknown argument `ur` in `@link` directive");
+        insta::assert_snapshot!(result.unwrap_err(), @"For extension greet-1.0.0, failed to parse @link directive: Unknown argument `ur` in `@link` directive");
     });
 }
 

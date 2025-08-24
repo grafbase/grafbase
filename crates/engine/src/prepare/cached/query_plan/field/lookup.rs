@@ -4,10 +4,9 @@ use schema::{FieldDefinition, FieldDefinitionId};
 use walker::Walk;
 
 use crate::prepare::{
-    CachedOperationContext, RequiredFieldSet,
+    CachedOperationContext, RequiredFieldSet, ResponseObjectSetId,
     cached::query_plan::{
         FieldShapeRefId, PartitionSelectionSet, PartitionSelectionSetRecord, QueryPartitionId, RequiredFieldSetRecord,
-        ResponseObjectSetDefinitionId,
     },
 };
 
@@ -20,11 +19,11 @@ pub(crate) struct LookupFieldRecord {
     pub argument_ids: IdRange<PartitionFieldArgumentId>,
     pub definition_id: FieldDefinitionId,
 
+    pub output_id: Option<ResponseObjectSetId>,
     /// Requirement of @authorized, etc.
     pub required_fields_record_by_supergraph: RequiredFieldSetRecord,
     /// All field shape ids generated for this field
     pub shape_ids: IdRange<FieldShapeRefId>,
-    pub output_id: Option<ResponseObjectSetDefinitionId>,
     pub selection_set_record: PartitionSelectionSetRecord,
     pub query_partition_id: QueryPartitionId,
 }

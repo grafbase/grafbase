@@ -9,7 +9,7 @@ use providable_fields::{CreateProvidableFieldsTask, CreateRequirementTask, Unpla
 use schema::{CompositeTypeId, Schema, TypeDefinitionId};
 use walker::Walk;
 
-use crate::{FieldFlags, QueryFieldId};
+use crate::{FieldFlags, QueryFieldId, SplitId};
 
 use super::*;
 
@@ -23,6 +23,8 @@ pub(super) struct QuerySolutionSpaceBuilder<'schema, 'op> {
     create_provideable_fields_task_stack: Vec<CreateProvidableFieldsTask>,
     create_requirement_task_stack: Vec<CreateRequirementTask<'schema>>,
     maybe_unplannable_query_fields_stack: Vec<UnplannableField>,
+    current_split: SplitId,
+    next_split: usize,
 }
 
 impl<'schema> QuerySolutionSpace<'schema> {
@@ -53,6 +55,8 @@ impl<'schema> QuerySolutionSpace<'schema> {
             create_provideable_fields_task_stack: Vec::new(),
             create_requirement_task_stack: Vec::new(),
             maybe_unplannable_query_fields_stack: Vec::new(),
+            current_split: SplitId::from(0usize),
+            next_split: 1,
         }
     }
 }
@@ -114,7 +118,11 @@ where
             }
         }
 
-        let query_field = SpaceNode::QueryField(QueryFieldNode { id, flags });
+        let query_field = SpaceNode::QueryField(QueryFieldNode {
+            id,
+            split_id: self.current_split,
+            flags,
+        });
 
         self.query.graph.add_node(query_field)
     }

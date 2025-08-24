@@ -210,14 +210,11 @@ fn nested_but_unknown_fields() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r"
-        At site Query.productLookup, for directive @lookup Type Namespace doesn't define any keys with @key directive that may be used for @lookup. Tried treating it as a namespace type, but it didn't have any fields that may be used for @lookup.
-        See schema at 23:1:
-        type Namespace
-          @join__type(graph: EXT)
-        {
-          anything: JSON
-          other: String
-        }
+        * At site Query.productLookup, for directive @lookup Type Namespace doesn't define any keys with @key directive that may be used for @lookup. Tried treating it as a namespace type, but it didn't have any fields that may be used for @lookup.
+        22 | 
+        23 | type Namespace
+             ^^^^^^^^^^^^^^
+        24 |   @join__type(graph: EXT)
         ");
     })
 }
@@ -262,14 +259,11 @@ fn multiple_entities() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r"
-        At site Query.productLookup, for directive @lookup Type Namespace doesn't define any keys with @key directive that may be used for @lookup. Tried treating it as a namespace type, but it has multiple fields that may be used for @lookup: product and account
-        See schema at 23:1:
-        type Namespace
-          @join__type(graph: EXT)
-        {
-          account: [Account!]!
-          product: [Product!]!
-        }
+        * At site Query.productLookup, for directive @lookup Type Namespace doesn't define any keys with @key directive that may be used for @lookup. Tried treating it as a namespace type, but it has multiple fields that may be used for @lookup: product and account
+        22 | 
+        23 | type Namespace
+             ^^^^^^^^^^^^^^
+        24 |   @join__type(graph: EXT)
         ");
     })
 }

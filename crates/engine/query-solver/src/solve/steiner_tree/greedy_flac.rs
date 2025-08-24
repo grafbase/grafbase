@@ -6,7 +6,7 @@ use fixedbitset::FixedBitSet;
 use fxhash::FxBuildHasher;
 use petgraph::{
     Graph,
-    graph::{EdgeIndex, EdgeReference, NodeIndex},
+    graph::{EdgeIndex, NodeIndex},
     visit::{EdgeIndexable, EdgeRef, NodeIndexable},
 };
 use priority_queue::PriorityQueue;
@@ -45,14 +45,6 @@ impl PartialOrd for Priority {
 }
 
 impl Eq for Priority {}
-
-struct Flow {
-    saturated_edges: FixedBitSet,
-    marked_or_saturated_edges: FixedBitSet,
-    root_feeding_terminals: FixedBitSet,
-    node_to_feeding_terminals: Vec<FixedBitSet>,
-    node_to_flow_rates: Vec<FlowRate>,
-}
 
 /// # GreedyFLAC
 ///
@@ -226,8 +218,16 @@ pub(crate) struct GreedyFlac {
     tmp_next_saturating_edges_in_T_u: Vec<NextSaturatingEdge>,
 }
 
+struct Flow {
+    saturated_edges: FixedBitSet,
+    marked_or_saturated_edges: FixedBitSet,
+    root_feeding_terminals: FixedBitSet,
+    node_to_feeding_terminals: Vec<FixedBitSet>,
+    node_to_flow_rates: Vec<FlowRate>,
+}
+
 struct NextSaturatingEdge {
-    edge_id: SteinerEdgeId,
+    id: SteinerEdgeId,
     weight: SteinerWeight,
     target: SteinerNodeId,
 }
@@ -390,8 +390,8 @@ where
             has_one_terminal = true;
             if let Some(edge) = self.find_next_edge_in_T_minus(terminal) {
                 // Schedule when this edge will saturate based on its weight (capacity)
-                let saturate_time = self.time + *edge.weight() as Time;
-                self.state.heap.push(edge.id(), saturate_time.into());
+                let saturate_time = self.time + edge.weight as Time;
+                self.state.heap.push(edge.id, saturate_time.into());
                 // Track that this terminal is feeding water to itself
                 let feeding = &mut self.state.flow.node_to_feeding_terminals[terminal.index()];
                 feeding.grow(n_terminals);
@@ -414,21 +414,32 @@ where
     /// expensive to keep track of for every node. Instead we just re-compute the next edge that
     /// will saturate each time.
     #[allow(non_snake_case)]
-    fn find_next_edge_in_T_minus(&self, node: NodeIndex) -> Option<EdgeReference<'g, SteinerWeight>> {
-        let mut min_edge = None;
+    fn find_next_edge_in_T_minus(&self, node: NodeIndex) -> Option<NextSaturatingEdge> {
         let mut min_weight = SteinerWeight::MAX;
+        let mut min_edge_and_target = usize::MAX;
 
         for edge in self.graph.edges_directed(node, petgraph::Direction::Incoming) {
-            if !self.flow.marked_or_saturated_edges.contains(edge.id().index()) {
-                let weight = *edge.weight();
-                if weight < min_weight {
-                    min_weight = weight;
-                    min_edge = Some(edge);
-                }
-            }
+            let edge_index = edge.id().index();
+            let weight = *edge.weight();
+            let is_min = !self.flow.marked_or_saturated_edges[edge_index] & (weight < min_weight);
+            // if marked or saturated -> 1111_1111
+            let is_min_weight_mask = (!is_min as SteinerWeight).wrapping_sub(1);
+            let is_min_edge_mask = (!is_min as usize).wrapping_sub(1);
+
+            min_weight = (is_min_weight_mask & weight) | (!is_min_weight_mask & min_weight);
+            min_edge_and_target = (is_min_edge_mask & (edge_index << u32::BITS | edge.target().index()))
+                | (!is_min_edge_mask & min_edge_and_target);
         }
 
-        min_edge
+        if min_edge_and_target == usize::MAX {
+            None
+        } else {
+            Some(NextSaturatingEdge {
+                id: EdgeIndex::new(min_edge_and_target >> u32::BITS),
+                weight: min_weight,
+                target: NodeIndex::new(min_edge_and_target & (u32::MAX as usize)),
+            })
+        }
     }
 
     /// A saturating edge can end up in one of two situations in the FLAC
@@ -493,7 +504,7 @@ where
                 let v_feeding_terminals = std::mem::take(&mut self.flow.node_to_feeding_terminals[v.index()]);
                 let extra_flow_rate = self.flow.node_to_flow_rates[v.index()];
                 for NextSaturatingEdge {
-                    edge_id,
+                    id: edge_id,
                     weight,
                     target,
                 } in self.state.tmp_next_saturating_edges_in_T_u.drain(..)
@@ -535,9 +546,8 @@ where
                 "Flow rate must be positive, how could it be saturated otherwise?\n{}",
                 self.debug_dot_graph()
             );
-            let saturate_time =
-                self.time + (*edge.weight() - self.graph[saturating_edge]) as Time / (flow_rate as Time);
-            self.heap.push(edge.id(), saturate_time.into());
+            let saturate_time = self.time + (edge.weight - self.graph[saturating_edge]) as Time / (flow_rate as Time);
+            self.heap.push(edge.id, saturate_time.into());
         }
 
         FlacControlFlow::Continue
@@ -570,8 +580,8 @@ where
         let new_feeding = &self.state.flow.node_to_feeding_terminals[v.index()];
 
         while let Some(current) = self.state.tmp_stack.pop() {
-            // Check for degenerate flow
             let current_feeding = &self.flow.node_to_feeding_terminals[current.index()];
+            // Check for degenerate flow
             if !new_feeding.is_disjoint(current_feeding) {
                 self.tmp_stack.clear();
                 self.tmp_next_saturating_edges_in_T_u.clear();
@@ -579,11 +589,7 @@ where
             }
 
             if let Some(edge) = self.find_next_edge_in_T_minus(current) {
-                self.state.tmp_next_saturating_edges_in_T_u.push(NextSaturatingEdge {
-                    edge_id: edge.id(),
-                    weight: *edge.weight(),
-                    target: edge.target(),
-                })
+                self.state.tmp_next_saturating_edges_in_T_u.push(edge)
             }
 
             // Add neighbors reachable through saturated edges

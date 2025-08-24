@@ -61,7 +61,7 @@ pub(crate) struct SdlRootTypes<'a> {
 }
 
 impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
-    type Error = Error;
+    type Error = Vec<Error>;
 
     fn try_from((raw, doc): (&'a str, &'a TypeSystemDocument)) -> Result<Self, Self::Error> {
         let mut sdl = Sdl {
@@ -79,6 +79,7 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
             subgraphs: RapidHashMap::default(),
             extensions: RapidHashMap::default(),
         };
+        let mut errors = Vec::new();
         let mut schema_definition = None;
         let mut schema_definitions = Vec::new();
 
@@ -86,12 +87,14 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
             match def {
                 Definition::Schema(def) => {
                     if schema_definition.is_some() {
-                        return Err(("A document must include at most one schema definition", def.span()).into());
+                        errors
+                            .push(Error::new("A document must include at most one schema definition").span(def.span()));
+                    } else {
+                        schema_definition = Some(def);
+                        schema_definitions.push(def);
+                        let last_ix = schema_definitions.len() - 1;
+                        schema_definitions.swap(0, last_ix);
                     }
-                    schema_definition = Some(def);
-                    schema_definitions.push(def);
-                    let last_ix = schema_definitions.len() - 1;
-                    schema_definitions.swap(0, last_ix);
                 }
                 Definition::SchemaExtension(def) => {
                     schema_definitions.push(def);
@@ -100,28 +103,30 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
                     if let Some(name) = type_definition.name().strip_prefix("join__") {
                         match name {
                             "Graph" => {
-                                ingest_join_graph_enum(&mut sdl, type_definition)?;
+                                if let Err(err) = ingest_join_graph_enum(&mut sdl, type_definition) {
+                                    errors.push(err);
+                                }
                             }
                             "FieldSet" => {}
                             _ => {
-                                return Err((
-                                    format!("join__{name} is an unknown federation type."),
-                                    type_definition.span(),
-                                )
-                                    .into());
+                                errors.push(
+                                    Error::new(format!("join__{name} is an unknown federation type."))
+                                        .span(type_definition.span()),
+                                );
                             }
                         }
                     } else if let Some(name) = type_definition.name().strip_prefix("extension__") {
                         match name {
                             "Link" => {
-                                ingest_extension_link_enum(&mut sdl, type_definition)?;
+                                if let Err(err) = ingest_extension_link_enum(&mut sdl, type_definition) {
+                                    errors.push(err);
+                                }
                             }
                             _ => {
-                                return Err((
-                                    format!("extension__{name} is an unknown extension type.",),
-                                    type_definition.span(),
-                                )
-                                    .into());
+                                errors.push(
+                                    Error::new(format!("extension__{name} is an unknown extension type."))
+                                        .span(type_definition.span()),
+                                );
                             }
                         }
                     } else {
@@ -171,129 +176,161 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
                 match root_type.operation_type() {
                     cynic_parser::common::OperationType::Query => {
                         if sdl.root_types.query.is_some() {
-                            return Err(
-                                ("A document must include at most one query root type", root_type.span()).into(),
+                            errors.push(
+                                Error::new("A document must include at most one query root type")
+                                    .span(root_type.span()),
                             );
+                        } else {
+                            sdl.root_types.query = Some(root_type.named_type());
                         }
-                        sdl.root_types.query = Some(root_type.named_type());
                     }
                     cynic_parser::common::OperationType::Mutation => {
                         if sdl.root_types.mutation.is_some() {
-                            return Err((
-                                "A document must include at most one mutation root type",
-                                root_type.span(),
-                            )
-                                .into());
+                            errors.push(
+                                Error::new("A document must include at most one mutation root type")
+                                    .span(root_type.span()),
+                            );
+                        } else {
+                            sdl.root_types.mutation = Some(root_type.named_type());
                         }
-                        sdl.root_types.mutation = Some(root_type.named_type());
                     }
                     cynic_parser::common::OperationType::Subscription => {
                         if sdl.root_types.subscription.is_some() {
-                            return Err((
-                                "A document must include at most one subscription root type",
-                                root_type.span(),
-                            )
-                                .into());
+                            errors.push(
+                                Error::new("A document must include at most one subscription root type")
+                                    .span(root_type.span()),
+                            );
+                        } else {
+                            sdl.root_types.subscription = Some(root_type.named_type());
                         }
-                        sdl.root_types.subscription = Some(root_type.named_type());
                     }
                 }
             }
         }
 
-        finalize(&mut sdl)?;
+        if let Err(err) = finalize(&mut sdl) {
+            errors.push(err);
+        }
 
-        Ok(sdl)
+        if !errors.is_empty() { Err(errors) } else { Ok(sdl) }
     }
 }
 
 fn ingest_join_graph_enum<'a>(sdl: &mut Sdl<'a>, ty: TypeDefinition<'a>) -> Result<(), Error> {
     let TypeDefinition::Enum(enm) = ty else {
-        return Err(("join__Graph must be an enum type", ty.span()).into());
+        return Err(Error::new("join__Graph must be an enum type").span(ty.span()));
     };
     if !sdl.subgraphs.is_empty() {
-        return Err(("join__Graph must be defined only once", enm.span()).into());
+        return Err(Error::new("join__Graph must be defined only once").span(enm.span()));
     }
+    let mut errors = Vec::new();
     for value in enm.values() {
         let mut directives = value.directives().filter(|dir| dir.name() == "join__graph");
         if let Some(directive) = directives.next() {
-            let dir: JoinGraphDirective<'_> = directive.deserialize().map_err(|err| {
-                (
-                    format!("Invalid @join__graph directive on subgraph {}: {err}", value.value()),
-                    directive.arguments_span(),
-                )
-            })?;
-            let url = dir
-                .url
-                .map(|url| {
-                    url::Url::parse(url).map_err(|err| {
-                        (
-                            format!("Invalid url on subgraph {}: {err}", value.value()),
-                            directive.arguments_span(),
-                        )
-                    })
-                })
-                .transpose()?;
-            sdl.subgraphs
-                .insert(GraphName(value.value()), SdlSubGraph { name: dir.name, url });
-            if let Some(directive) = directives.next() {
-                return Err((
-                    format!(
-                        "@join__graph directive used multiple times on subgraph {}",
-                        value.value(),
-                    ),
-                    directive.name_span(),
-                )
-                    .into());
+            match directive.deserialize::<JoinGraphDirective<'_>>() {
+                Ok(dir) => {
+                    let url = match dir.url {
+                        Some(url_str) => match url::Url::parse(url_str) {
+                            Ok(url) => Some(url),
+                            Err(err) => {
+                                errors.push(
+                                    Error::new(format!("Invalid url on subgraph {}: {err}", value.value()))
+                                        .span(directive.arguments_span()),
+                                );
+                                None
+                            }
+                        },
+                        None => None,
+                    };
+                    if errors.is_empty() {
+                        sdl.subgraphs
+                            .insert(GraphName(value.value()), SdlSubGraph { name: dir.name, url });
+                    }
+                    if let Some(directive) = directives.next() {
+                        errors.push(
+                            Error::new(format!(
+                                "@join__graph directive used multiple times on subgraph {}",
+                                value.value(),
+                            ))
+                            .span(directive.name_span()),
+                        );
+                    }
+                }
+                Err(err) => {
+                    errors.push(
+                        Error::new(format!(
+                            "Invalid @join__graph directive on subgraph {}: {err}",
+                            value.value()
+                        ))
+                        .span(directive.arguments_span()),
+                    );
+                }
             }
         } else {
             sdl.subgraphs
                 .insert(GraphName(value.value()), SdlSubGraph { name: None, url: None });
         }
     }
+    if !errors.is_empty() {
+        return Err(errors.into_iter().next().unwrap());
+    }
     Ok(())
 }
 
 fn ingest_extension_link_enum<'a>(sdl: &mut Sdl<'a>, ty: TypeDefinition<'a>) -> Result<(), Error> {
     let TypeDefinition::Enum(enm) = ty else {
-        return Err(("extension__Link must be an enum type", ty.span()).into());
+        return Err(Error::new("extension__Link must be an enum type").span(ty.span()));
     };
     if !sdl.extensions.is_empty() {
-        return Err(("extension__Link must be defined only once", enm.span()).into());
+        return Err(Error::new("extension__Link must be defined only once").span(enm.span()));
     }
+    let mut errors = Vec::new();
     for value in enm.values() {
         let mut directives = value.directives().filter(|dir| dir.name() == "extension__link");
         let Some(directive) = directives.next() else {
-            return Err((
-                format!("Missing extension__link directive on extension {}", value.value()),
-                value.span(),
-            )
-                .into());
+            errors.push(
+                Error::new(format!(
+                    "Missing extension__link directive on extension {}",
+                    value.value()
+                ))
+                .span(value.span()),
+            );
+            continue;
         };
-        let dir = directives::parse_extension_link(directive)?;
-        let url = url::Url::parse(dir.url).map_err(|err| {
-            (
-                format!("Invalid url on subgraph {}: {err}", value.value()),
-                directive.arguments_span(),
-            )
-        })?;
-        sdl.extensions.insert(
-            ExtensionName(value.value()),
-            SdlExtension {
-                url,
-                directives: dir.schema_directives,
+        match directives::parse_extension_link(directive) {
+            Ok(dir) => match url::Url::parse(dir.url) {
+                Ok(url) => {
+                    sdl.extensions.insert(
+                        ExtensionName(value.value()),
+                        SdlExtension {
+                            url,
+                            directives: dir.schema_directives,
+                        },
+                    );
+                }
+                Err(err) => {
+                    errors.push(
+                        Error::new(format!("Invalid url on extension {}: {err}", value.value()))
+                            .span(directive.arguments_span()),
+                    );
+                }
             },
-        );
+            Err(err) => {
+                errors.push(err);
+            }
+        }
         if let Some(directive) = directives.next() {
-            return Err((
-                format!(
+            errors.push(
+                Error::new(format!(
                     "@extension__link directive used multiple times on extension {}",
                     value.value(),
-                ),
-                directive.name_span(),
-            )
-                .into());
+                ))
+                .span(directive.name_span()),
+            );
         }
+    }
+    if !errors.is_empty() {
+        return Err(errors.into_iter().next().unwrap());
     }
     Ok(())
 }
@@ -302,14 +339,11 @@ fn finalize(sdl: &mut Sdl<'_>) -> Result<(), Error> {
     for (name, ext) in sdl.extensions.iter() {
         for (directive, span) in &ext.directives {
             if !sdl.subgraphs.contains_key(&directive.graph) {
-                return Err((
-                    format!(
-                        "Unknown subgraph {} in @extension__link directive for extension {}",
-                        directive.graph, name
-                    ),
-                    *span,
-                )
-                    .into());
+                return Err(Error::new(format!(
+                    "Unknown subgraph {} in @extension__link directive for extension {}",
+                    directive.graph, name
+                ))
+                .span(*span));
             }
         }
     }

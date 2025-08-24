@@ -4,10 +4,8 @@
 //! Generated with: `cargo run -p engine-codegen`
 //! Source file: <engine-codegen dir>/domain/query_plan.graphql
 use crate::prepare::cached::query_plan::{
-    RequiredFieldSet, RequiredFieldSetRecord,
-    generated::{
-        PartitionSelectionSet, PartitionSelectionSetRecord, ResponseObjectSetDefinition, ResponseObjectSetDefinitionId,
-    },
+    RequiredFieldSet, RequiredFieldSetRecord, ResponseObjectSetId,
+    generated::{PartitionSelectionSet, PartitionSelectionSetRecord},
     prelude::*,
 };
 use schema::{EntityDefinition, EntityDefinitionId, ResolverDefinition, ResolverDefinitionId};
@@ -22,7 +20,7 @@ use walker::{Iter, Walk};
 ///   resolver_definition: ResolverDefinition!
 ///   selection_set: PartitionSelectionSet!
 ///   required_fields: RequiredFieldSet!
-///   input: ResponseObjectSetDefinition!
+///   input_id: ResponseObjectSetId!
 ///   shape_id: RootFieldsShapeId!
 /// }
 /// ```
@@ -32,7 +30,7 @@ pub(crate) struct QueryPartitionRecord {
     pub resolver_definition_id: ResolverDefinitionId,
     pub selection_set_record: PartitionSelectionSetRecord,
     pub required_fields_record: RequiredFieldSetRecord,
-    pub input_id: ResponseObjectSetDefinitionId,
+    pub input_id: ResponseObjectSetId,
     pub shape_id: RootFieldsShapeId,
 }
 
@@ -71,9 +69,6 @@ impl<'a> QueryPartition<'a> {
     pub(crate) fn required_fields(&self) -> RequiredFieldSet<'a> {
         self.as_ref().required_fields_record.walk(self.ctx)
     }
-    pub(crate) fn input(&self) -> ResponseObjectSetDefinition<'a> {
-        self.input_id.walk(self.ctx)
-    }
 }
 
 impl<'a> Walk<CachedOperationContext<'a>> for QueryPartitionId {
@@ -100,7 +95,7 @@ impl std::fmt::Debug for QueryPartition<'_> {
             .field("resolver_definition", &self.resolver_definition())
             .field("selection_set", &self.selection_set())
             .field("required_fields", &self.required_fields())
-            .field("input", &self.input())
+            .field("input_id", &self.input_id)
             .field("shape_id", &self.shape_id)
             .finish()
     }

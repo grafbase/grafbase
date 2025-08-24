@@ -2,7 +2,7 @@ use petgraph::{Direction, stable_graph::NodeIndex, visit::EdgeRef};
 use schema::{CompositeType, CompositeTypeId, FieldDefinition};
 use walker::Walk;
 
-use crate::{FieldFlags, QueryField, QueryFieldId};
+use crate::{FieldFlags, QueryField, QueryFieldId, SplitId};
 
 use super::{
     QueryFieldNode, SpaceEdge, SpaceNode, builder::QuerySolutionSpaceBuilder, providable_fields::UnplannableField,
@@ -22,6 +22,7 @@ where
         let SpaceNode::QueryField(QueryFieldNode {
             id: query_field_id,
             flags,
+            ..
         }) = self.query.graph[query_field_node_ix]
         else {
             return Ok(());
@@ -192,25 +193,28 @@ where
                             return false;
                         }
 
-                        self.query.fields.push(QueryField {
-                            definition_id: Some(object_field_definition.id),
-                            ..self.query[existing_query_field_id].clone()
+                        let could_provide_new_field = self.with_new_split(|this| {
+                            this.query.fields.push(QueryField {
+                                definition_id: Some(object_field_definition.id),
+                                ..this.query[existing_query_field_id].clone()
+                            });
+                            let new_field_id = QueryFieldId::from(this.query.fields.len() - 1);
+                            let new_query_field_node_ix = this.push_query_field_node(new_field_id, existing_flags);
+                            this.query.graph.add_edge(
+                                parent_query_field_node_ix,
+                                new_query_field_node_ix,
+                                SpaceEdge::Field,
+                            );
+                            this.deep_copy_query_field_nodes(existing_query_field_node_ix, new_query_field_node_ix);
+                            this.could_provide_new_field(
+                                parent_query_field_node_ix,
+                                parent_output.id(),
+                                new_query_field_node_ix,
+                                new_field_id,
+                            )
                         });
-                        let new_field_id = QueryFieldId::from(self.query.fields.len() - 1);
-                        let new_query_field_node_ix = self.push_query_field_node(new_field_id, existing_flags);
-                        self.query.graph.add_edge(
-                            parent_query_field_node_ix,
-                            new_query_field_node_ix,
-                            SpaceEdge::Field,
-                        );
-                        self.deep_copy_query_field_nodes(existing_query_field_node_ix, new_query_field_node_ix);
 
-                        if !self.could_provide_new_field(
-                            parent_query_field_node_ix,
-                            parent_output.id(),
-                            new_query_field_node_ix,
-                            new_field_id,
-                        ) {
+                        if !could_provide_new_field {
                             return false;
                         }
                         found_alternative = true;
@@ -301,7 +305,11 @@ where
                     self.query.graph[existing_edge_ix],
                     SpaceEdge::Field | SpaceEdge::TypenameField
                 ));
-                let new_target = self.query.graph.add_node(self.query.graph[existing_target].clone());
+                let mut new_weight = self.query.graph[existing_target].clone();
+                if let SpaceNode::QueryField(node) = &mut new_weight {
+                    node.split_id = self.current_split;
+                }
+                let new_target = self.query.graph.add_node(new_weight);
                 self.query
                     .graph
                     .add_edge(new_node_ix, new_target, self.query.graph[existing_edge_ix]);
@@ -329,5 +337,14 @@ where
             .unwrap()
             .flags
             .contains(FieldFlags::PROVIDABLE)
+    }
+
+    fn with_new_split<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> T {
+        let old = self.current_split;
+        self.current_split = SplitId::from(self.next_split);
+        self.next_split += 1;
+        let res = f(self);
+        self.current_split = old;
+        res
     }
 }

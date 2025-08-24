@@ -8,14 +8,23 @@ pub(crate) struct Error {
 }
 
 impl Error {
-    pub fn into_string(self, translator: &sdl::SpanTranslator) -> String {
-        let Self { text, span } = self;
-        let Some(span) = span.filter(|span| *span != Span::default()) else {
-            return text;
-        };
-        let location = translator.span_to_location(span).unwrap();
-        let sdl = &translator.sdl[span.start..span.end];
-        format!("{text}\nSee schema at {location}:\n{sdl}")
+    pub fn new(text: impl std::fmt::Display) -> Self {
+        Error {
+            text: text.to_string(),
+            span: None,
+        }
+    }
+
+    pub fn span(mut self, span: Span) -> Self {
+        self.span = Some(span);
+        self
+    }
+
+    pub fn display<'a>(self, translator: &'a sdl::SpanTranslator) -> ErrorDisplay<'a> {
+        ErrorDisplay {
+            error: self,
+            translator,
+        }
     }
 
     pub fn with_prefix(self, mut prefix: String) -> Self {
@@ -23,11 +32,30 @@ impl Error {
         Error { text: prefix, ..self }
     }
 
-    pub fn with_span_if_absent(self, span: Span) -> Self {
+    pub fn span_if_absent(self, span: Span) -> Self {
         Error {
             span: self.span.or(Some(span)),
             ..self
         }
+    }
+}
+
+pub(crate) struct ErrorDisplay<'a> {
+    error: Error,
+    translator: &'a sdl::SpanTranslator<'a>,
+}
+
+impl<'a> std::fmt::Display for ErrorDisplay<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let Error { text, span } = &self.error;
+
+        // If no span or default span, just write the text
+        let Some(span) = span.filter(|span| *span != Span::default()) else {
+            return writeln!(f, "{}", text);
+        };
+
+        writeln!(f, "* {}", text)?;
+        writeln!(f, "{}", self.translator.display_span(span))
     }
 }
 

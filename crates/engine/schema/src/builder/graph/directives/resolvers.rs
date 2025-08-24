@@ -13,12 +13,11 @@ use crate::{
 
 use super::DirectivesIngester;
 
-pub(super) fn generate(ingester: &mut DirectivesIngester<'_, '_>) -> Result<(), Error> {
+pub(super) fn generate(ingester: &mut DirectivesIngester<'_, '_>) {
     create_root_graphql_resolvers(ingester);
-    create_extension_resolvers(ingester)?;
-    create_apollo_federation_entity_resolvers(ingester)?;
-    ingest_composite_schema_lookup(ingester)?;
-    Ok(())
+    create_extension_resolvers(ingester);
+    create_apollo_federation_entity_resolvers(ingester);
+    ingest_composite_schema_lookup(ingester);
 }
 
 fn create_root_graphql_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
@@ -55,7 +54,7 @@ fn create_root_graphql_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
     }
 }
 
-fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Result<(), Error> {
+fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
     let graph = &mut ingester.builder.graph;
     for field in &mut graph.field_definitions {
         for id in &field.directive_ids {
@@ -67,11 +66,10 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
                 ExtensionDirectiveType::FieldResolver => {
                     let subgraph_id = directive.subgraph_id;
                     if !directive.subgraph_id.is_virtual() {
-                        return Err(
-                            "Field resolver extensions can only be used with virtual subgraphs (subgraphs without a URL)."
-                                .to_string()
-                                .into(),
+                        ingester.errors.push(
+                            Error::new("Field resolver extensions can only be used with virtual subgraphs (subgraphs without a URL).")
                         );
+                        continue;
                     }
                     if !field.exists_in_subgraph_ids.contains(&subgraph_id) {
                         field.exists_in_subgraph_ids.push(subgraph_id);
@@ -90,11 +88,10 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
                     let virtual_subgraph_id = match directive.subgraph_id.as_virtual() {
                         Some(id) => id,
                         None => {
-                            return Err(
-                                "Resolver extensions can only be used with virtual subgraphs (subgraphs without a URL)."
-                                    .to_string()
-                                    .into(),
+                            ingester.errors.push(
+                                Error::new("Resolver extensions can only be used with virtual subgraphs (subgraphs without a URL).")
                             );
+                            continue;
                         }
                     };
                     if !field.exists_in_subgraph_ids.contains(&subgraph_id) {
@@ -117,6 +114,8 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
         }
     }
 
+    // Validate and collect errors, then process rest of the function
+    let mut errors = std::mem::take(&mut ingester.errors);
     let builder = ingester.deref_mut();
     // Ensure they're not mixed with field resolvers.
     for resolver in &builder.graph.resolver_definitions {
@@ -126,16 +125,18 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
                 continue;
             };
             if let Some(id) = builder.virtual_subgraph_to_selection_set_resolver[usize::from(subgraph_id)] {
-                return Err(format!(
+                errors.push(Error::new(format!(
                     "Selection Set Resolver extension {} cannot be mixed with other resolvers in subgraph '{}', found {}",
                     builder[id].manifest.id,
                     builder[builder.subgraphs[subgraph_id].name_id],
                     builder[builder.graph[*directive_id].extension_id].manifest.id
-                ).into());
+                )));
             }
         }
     }
+    ingester.errors = errors;
 
+    let builder = ingester.deref_mut();
     let field_ids_list = {
         let mut list = vec![builder.graph[builder.graph.root_operation_types_record.query_id].field_ids];
         if let Some(mutation_id) = builder.graph.root_operation_types_record.mutation_id {
@@ -174,11 +175,9 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Resu
         }
     }
     builder.graph.resolver_definitions = resolver_definitions;
-
-    Ok(())
 }
 
-fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'_, '_>) -> Result<(), Error> {
+fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
     for ty in ingester.definitions.clone().site_id_to_sdl.values().copied() {
         let Some(entity) = ty.as_entity() else {
             continue;
@@ -201,18 +200,38 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
             .chain(ext.iter().flat_map(|ext| ext.directives()))
             .filter_map(|dir| sdl::as_join_type(&dir))
         {
-            let (join_type, span) = result?;
-            let subgraph_id = ingester.subgraphs.try_get(join_type.graph, span)?;
+            let (join_type, span) = match result {
+                Ok(v) => v,
+                Err(err) => {
+                    ingester.errors.push(err);
+                    continue;
+                }
+            };
+            let subgraph_id = match ingester.subgraphs.try_get(join_type.graph, span) {
+                Ok(id) => id,
+                Err(err) => {
+                    ingester.errors.push(err);
+                    continue;
+                }
+            };
             let Some(key_str) = join_type.key.filter(|key| !key.is_empty()) else {
                 continue;
             };
 
-            let key = ingester.parse_field_set(entity.id().into(), key_str).map_err(|err| {
-                (
-                    format!("At {}, invalid key FieldSet: {}", entity.to_site_string(ingester), err),
-                    span,
-                )
-            })?;
+            let key = match ingester.parse_field_set(entity.id().into(), key_str) {
+                Ok(k) => k,
+                Err(err) => {
+                    ingester.errors.push(
+                        Error::new(format!(
+                            "At {}, invalid key FieldSet: {}",
+                            entity.to_site_string(ingester),
+                            err
+                        ))
+                        .span(span),
+                    );
+                    continue;
+                }
+            };
 
             // Any field that is part of a key has to exist in the subgraph.
             let mut stack = vec![&key];
@@ -263,11 +282,9 @@ fn create_apollo_federation_entity_resolvers(ingester: &mut DirectivesIngester<'
             }
         }
     }
-
-    Ok(())
 }
 
-fn ingest_composite_schema_lookup(ingester: &mut DirectivesIngester<'_, '_>) -> Result<(), Error> {
+fn ingest_composite_schema_lookup(ingester: &mut DirectivesIngester<'_, '_>) {
     let query_object_id = ingester.graph.root_operation_types_record.query_id;
     for field_id in ingester.graph[query_object_id].field_ids {
         let Some(&SdlDefinition::FieldDefinition(field)) = ingester.definitions.site_id_to_sdl.get(&field_id.into())
@@ -276,13 +293,11 @@ fn ingest_composite_schema_lookup(ingester: &mut DirectivesIngester<'_, '_>) -> 
             continue;
         };
         for directive in field.directives() {
-            if directive.name() == "composite__lookup" {
-                ingester
-                    .ingest_composite_lookup(field, directive)
-                    .map_err(|err| err.with_span_if_absent(directive.arguments_span()))?
+            if directive.name() == "composite__lookup"
+                && let Err(err) = ingester.ingest_composite_lookup(field, directive)
+            {
+                ingester.errors.push(err.span_if_absent(directive.arguments_span()));
             }
         }
     }
-
-    Ok(())
 }

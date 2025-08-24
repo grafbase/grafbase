@@ -140,8 +140,7 @@ impl<'ctx> ResponseBuilder<'ctx> {
             }
             (ResponseValue::Null, ResponseValue::Null) => {}
             (l, r) => {
-                // FIXME: Unlikely, but we should generate an error here.
-                tracing::error!(
+                unreachable!(
                     "Trying to merge something values that aren't a couple of objects/list/couple of nulls {l:?} | {r:?}"
                 );
             }

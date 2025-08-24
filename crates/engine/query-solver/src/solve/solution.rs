@@ -1,4 +1,5 @@
 use fixedbitset::FixedBitSet;
+use id_newtypes::IdToMany;
 use operation::{Operation, OperationContext};
 use petgraph::{
     Direction, Graph,
@@ -11,7 +12,10 @@ use crate::{
     Derive, QueryField, QueryFieldNode, SpaceNodeId,
     query::{Edge, Node},
     solution_space::{SpaceEdge, SpaceNode},
-    solve::{input::SteinerInput, steiner_tree::SteinerTree},
+    solve::{
+        input::{SteinerInput, SteinerNodeId},
+        steiner_tree::SteinerTree,
+    },
 };
 
 use super::CrudeSolvedQuery;
@@ -75,24 +79,31 @@ impl Solution<'_> {
                     if let SpaceNode::QueryField(QueryFieldNode {
                         id: query_field_id,
                         flags,
+                        split_id: split,
                     }) = space.graph[edge.target()]
                         && space[query_field_id].definition_id.is_none()
                     {
-                        let typename_field_ix = graph.add_node(Node::Field {
+                        let typename_field_id = graph.add_node(Node::Field {
                             id: query_field_id,
+                            split_id: split,
                             flags,
                         });
-                        graph.add_edge(root_node_id, typename_field_ix, Edge::Field);
+                        graph.add_edge(root_node_id, typename_field_id, Edge::Field);
                     }
                 }
                 _ => (),
             }
         }
 
-        let mut node_requires_space_node_tuples = Vec::new();
+        struct RequiredEdge {
+            source_node_id: SteinerNodeId,
+            weight: Edge,
+            target_space_node_id: SpaceNodeId,
+        }
+
+        let mut required_edges = Vec::<RequiredEdge>::new();
         let mut space_edges_to_remove = Vec::new();
-        // FIXME: doesn't take into account shared roots.
-        let mut field_to_node = vec![root_node_id; space.fields.len()];
+        let mut query_field_to_node = Vec::with_capacity(space.fields.len());
         while let Some((parent_node_id, space_parent_node_id, space_node_id)) = stack.pop() {
             debug_assert!(
                 steiner_tree.nodes[steiner_input_map.space_node_id_to_node_id[space_node_id.index()].index()]
@@ -107,7 +118,14 @@ impl Solution<'_> {
                     id
                 }
                 SpaceNode::ProvidableField(providable_field) => {
-                    let (field_space_node_id, &QueryFieldNode { id, flags }) = space
+                    let (
+                        field_space_node_id,
+                        &QueryFieldNode {
+                            id: query_field_id,
+                            split_id,
+                            flags,
+                        },
+                    ) = space
                         .graph
                         .edges_directed(space_node_id, Direction::Outgoing)
                         .find_map(|edge| {
@@ -123,9 +141,13 @@ impl Solution<'_> {
                         })
                         .expect("Providable field should have at least one outgoing provides edge");
 
-                    let field_node_id = graph.add_node(Node::Field { id, flags });
+                    let field_node_id = graph.add_node(Node::Field {
+                        id: query_field_id,
+                        split_id,
+                        flags,
+                    });
                     graph.add_edge(parent_node_id, field_node_id, Edge::Field);
-                    field_to_node[usize::from(id)] = field_node_id;
+                    query_field_to_node.push(((query_field_id, split_id), field_node_id));
 
                     // FIXME: Move this logic to the solution space.
                     if let Some(derive) = providable_field.derive {
@@ -159,7 +181,7 @@ impl Solution<'_> {
                                     })
                                     .unwrap_or_else(|| {
                                         let field = QueryField {
-                                            type_conditions: space[id].type_conditions,
+                                            type_conditions: space[query_field_id].type_conditions,
                                             query_position: None,
                                             response_key: Some(
                                                 operation
@@ -170,12 +192,13 @@ impl Solution<'_> {
                                             definition_id: Some(batch_field_id),
                                             matching_field_id: None,
                                             argument_ids: Default::default(),
-                                            location: space[id].location,
+                                            location: space[query_field_id].location,
                                             flat_directive_id: None,
                                         };
                                         space.fields.push(field);
                                         let node_id = graph.add_node(Node::Field {
                                             id: (space.fields.len() - 1).into(),
+                                            split_id: Default::default(),
                                             flags,
                                         });
                                         graph.add_edge(parent_node_id, node_id, Edge::Field);
@@ -246,12 +269,13 @@ impl Solution<'_> {
                                             definition_id: Some(from_id),
                                             matching_field_id: None,
                                             argument_ids: Default::default(),
-                                            location: space[id].location,
+                                            location: space[query_field_id].location,
                                             flat_directive_id: None,
                                         };
                                         space.fields.push(field);
                                         let ix = graph.add_node(Node::Field {
                                             id: (space.fields.len() - 1).into(),
+                                            split_id: Default::default(),
                                             flags,
                                         });
                                         graph.add_edge(source_node_id, ix, Edge::Field);
@@ -266,23 +290,27 @@ impl Solution<'_> {
                         }
                     }
 
-                    for edge in space.graph.edges(field_space_node_id) {
-                        match edge.weight() {
-                            SpaceEdge::Requires => {
-                                node_requires_space_node_tuples.push((field_node_id, field_space_node_id));
-                            }
+                    for space_edge in space.graph.edges(field_space_node_id) {
+                        match space_edge.weight() {
+                            SpaceEdge::Requires => required_edges.push(RequiredEdge {
+                                source_node_id: field_node_id,
+                                weight: Edge::RequiredBySupergraph,
+                                target_space_node_id: space_edge.target(),
+                            }),
                             // Assigning __typename fields to the first resolver that provides the
                             // parent field. There might be multiple with shared root fields.
                             SpaceEdge::TypenameField => {
-                                space_edges_to_remove.push(edge.id());
+                                space_edges_to_remove.push(space_edge.id());
                                 if let SpaceNode::QueryField(QueryFieldNode {
                                     id: query_field_id,
+                                    split_id: split,
                                     flags,
-                                }) = space.graph[edge.target()]
+                                }) = space.graph[space_edge.target()]
                                     && space[query_field_id].definition_id.is_none()
                                 {
                                     let typename_field_ix = graph.add_node(Node::Field {
                                         id: query_field_id,
+                                        split_id: split,
                                         flags,
                                     });
                                     graph.add_edge(field_node_id, typename_field_ix, Edge::Field);
@@ -300,11 +328,13 @@ impl Solution<'_> {
                 }
                 SpaceNode::QueryField(QueryFieldNode {
                     id: query_field_id,
+                    split_id: split,
                     flags,
                 }) if space[*query_field_id].definition_id.is_none() => {
                     let typename_field_ix = graph.add_node(Node::Field {
                         id: *query_field_id,
                         flags: *flags,
+                        split_id: *split,
                     });
                     graph.add_edge(parent_node_id, typename_field_ix, Edge::Field);
                     typename_field_ix
@@ -312,12 +342,15 @@ impl Solution<'_> {
                 _ => continue,
             };
 
-            if space
-                .graph
-                .edges(space_node_id)
-                .any(|edge| matches!(edge.weight(), SpaceEdge::Requires))
-            {
-                node_requires_space_node_tuples.push((new_node_id, space_node_id));
+            for space_edge in space.graph.edges(space_node_id) {
+                if !matches!(space_edge.weight(), SpaceEdge::Requires) {
+                    continue;
+                }
+                required_edges.push(RequiredEdge {
+                    source_node_id: new_node_id,
+                    weight: Edge::RequiredBySubgraph,
+                    target_space_node_id: space_edge.target(),
+                });
             }
 
             stack.extend(
@@ -335,23 +368,19 @@ impl Solution<'_> {
             );
         }
 
-        for (node_id, space_node_id) in node_requires_space_node_tuples {
-            let weight = match &space.graph[space_node_id] {
-                SpaceNode::QueryField(_) => Edge::RequiredBySupergraph,
-                _ => Edge::RequiredBySubgraph,
+        let field_to_node = IdToMany::from(query_field_to_node);
+
+        for RequiredEdge {
+            source_node_id,
+            weight,
+            target_space_node_id,
+        } in required_edges
+        {
+            let SpaceNode::QueryField(field) = &space.graph[target_space_node_id] else {
+                unreachable!()
             };
-            for edge in space.graph.edges(space_node_id) {
-                if !matches!(edge.weight(), SpaceEdge::Requires) {
-                    continue;
-                }
-                let SpaceNode::QueryField(field) = &space.graph[edge.target()] else {
-                    continue;
-                };
-
-                let required_node_ix = field_to_node[usize::from(field.id)];
-                debug_assert_ne!(required_node_ix, root_node_id);
-
-                graph.add_edge(node_id, required_node_ix, weight);
+            for node_id in field_to_node.find_all((field.id, field.split_id)).copied() {
+                graph.add_edge(source_node_id, node_id, weight);
             }
         }
 

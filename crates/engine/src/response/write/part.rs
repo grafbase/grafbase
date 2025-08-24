@@ -3,9 +3,7 @@ use schema::Schema;
 use walker::Walk as _;
 
 use crate::{
-    prepare::{
-        DefaultFieldShapeId, OnRootFieldsError, PreparedOperation, ResponseObjectSetDefinitionId, RootFieldsShapeId,
-    },
+    prepare::{DefaultFieldShapeId, OnRootFieldsError, PreparedOperation, ResponseObjectSetId, RootFieldsShapeId},
     response::{
         DataPart, ErrorPartBuilder, GraphqlError, ResponseObjectField, ResponseObjectId, ResponseObjectRef,
         ResponseObjectSet, ResponsePath, ResponseValueId,
@@ -23,7 +21,7 @@ pub(crate) struct ResponsePartBuilder<'ctx> {
     pub(super) propagated_null_up_to_root: bool,
     pub(super) propagated_null_at: Vec<ResponseValueId>,
     pub(super) object_updates: Vec<ObjectUpdate>,
-    pub(super) object_sets: Vec<(ResponseObjectSetDefinitionId, ResponseObjectSet)>,
+    pub(super) object_sets: Vec<(ResponseObjectSetId, ResponseObjectSet)>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, id_derives::Id)]
@@ -243,7 +241,7 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
         }
     }
 
-    pub fn push_object_ref(&mut self, set_id: ResponseObjectSetDefinitionId, obj: ResponseObjectRef) {
+    pub fn push_object_ref(&mut self, set_id: ResponseObjectSetId, obj: ResponseObjectRef) {
         if let Some((_, set)) = self.object_sets.iter_mut().find(|(id, _)| set_id == *id) {
             set.push(obj);
         } else {

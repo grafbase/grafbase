@@ -4,7 +4,7 @@ use operation::OperationContext;
 use schema::{DeriveDefinitionId, EntityDefinitionId, FieldDefinitionId, FieldSetRecord, ResolverDefinitionId};
 use walker::Walk as _;
 
-use crate::{FieldFlags, QueryFieldId, dot_graph::Attrs};
+use crate::{FieldFlags, QueryFieldId, SplitId, dot_graph::Attrs};
 
 use super::QuerySolutionSpace;
 
@@ -71,6 +71,7 @@ impl SpaceNode<'_> {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct QueryFieldNode {
     pub id: QueryFieldId,
+    pub split_id: SplitId,
     pub flags: FieldFlags,
 }
 

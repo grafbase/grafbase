@@ -2,11 +2,12 @@ mod ser;
 
 use std::borrow::Cow;
 
+use operation::ResponseKeys;
 use schema::{FieldSetRecord, Schema, ValueInjection};
 
 use crate::{
     prepare::RequiredFieldSet,
-    response::{ParentObjectId, ParentObjectSet, ResponseBuilder, ResponseObject, ResponseValue},
+    response::{ParentObjectId, ParentObjectSet, ResponseBuilder, ResponseObject, ResponseObjectRef, ResponseValue},
 };
 
 // A struct to wrap this ref is overkill, but I've changed this so many times that I'm keeping
@@ -20,6 +21,10 @@ impl<'a> ViewContext<'a> {
     fn schema(&self) -> &'a Schema {
         self.response.schema
     }
+
+    fn response_keys(&self) -> &'a ResponseKeys {
+        &self.response.operation.cached.operation.response_keys
+    }
 }
 
 pub(crate) struct ParentObjects<'a> {
@@ -31,6 +36,10 @@ pub(crate) struct ParentObjects<'a> {
 impl<'a> ParentObjects<'a> {
     pub fn len(&self) -> usize {
         self.object_set.len()
+    }
+
+    pub fn get_object_ref(&self, id: ParentObjectId) -> Option<&ResponseObjectRef> {
+        self.object_set.get(usize::from(id))
     }
 
     pub fn into_object_set(self) -> ParentObjectSet {

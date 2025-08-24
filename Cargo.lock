@@ -5433,6 +5433,7 @@ dependencies = [
  "pprof",
  "pretty_assertions",
  "rand 0.8.5",
+ "regex",
  "reqwest 0.12.22",
  "rmcp",
  "rstest",

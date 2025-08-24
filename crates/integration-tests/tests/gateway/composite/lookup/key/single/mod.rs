@@ -369,9 +369,11 @@ fn no_arguments() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        ProductLookup: Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        * At site Query.ProductLookup, for directive @lookup no matching @key directive was found
+        28 | {
+        29 |   ProductLookup: Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        30 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -406,9 +408,11 @@ fn no_matching_argument() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        ProductLookup(somethign: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        * At site Query.ProductLookup, for directive @lookup no matching @key directive was found
+        28 | {
+        29 |   ProductLookup(somethign: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        30 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -443,9 +447,11 @@ fn cannot_inject_nullable_into_required() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        ProductLookup(id: ID!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        * At site Query.ProductLookup, for directive @lookup no matching @key directive was found
+        28 | {
+        29 |   ProductLookup(id: ID!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        30 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -480,9 +486,11 @@ fn good_name_bad_type() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        ProductLookup(id: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        * At site Query.ProductLookup, for directive @lookup no matching @key directive was found
+        28 | {
+        29 |   ProductLookup(id: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        30 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -517,9 +525,11 @@ fn good_name_but_is_a_list() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        ProductLookup(id: ID!): [Product!] @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        * At site Query.ProductLookup, for directive @lookup no matching @key directive was found
+        28 | {
+        29 |   ProductLookup(id: ID!): [Product!] @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        30 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -554,9 +564,11 @@ fn ambiguous_multiple_matches() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        ProductLookup(a: ID!, b: ID!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        * At site Query.ProductLookup, for directive @lookup no matching @key directive was found
+        28 | {
+        29 |   ProductLookup(a: ID!, b: ID!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        30 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -591,9 +603,11 @@ fn extra_required_argument() {
             .await;
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
-        At site Query.ProductLookup, for directive @lookup no matching @key directive was found
-        See schema at 29:3:
-        ProductLookup(id: ID!, required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        * At site Query.ProductLookup, for directive @lookup no matching @key directive was found
+        28 | {
+        29 |   ProductLookup(id: ID!, required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        30 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }

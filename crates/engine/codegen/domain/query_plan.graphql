@@ -16,6 +16,7 @@ scalar String @prelude
 # ------------------
 
 scalar RootFieldsShapeId @prelude @id
+scalar ResponseObjectSetId @id
 scalar RequiredFieldSet @record
 
 type QueryPartition @indexed(id_size: "u16") @meta(module: "query_partition") {
@@ -23,13 +24,8 @@ type QueryPartition @indexed(id_size: "u16") @meta(module: "query_partition") {
   resolver_definition: ResolverDefinition!
   selection_set: PartitionSelectionSet!
   required_fields: RequiredFieldSet!
-  input: ResponseObjectSetDefinition!
+  input_id: ResponseObjectSetId!
   shape_id: RootFieldsShapeId!
-}
-
-type ResponseObjectSetDefinition @meta(module: "response_object_set") @indexed(id_size: "u16", deduplicated: true) {
-  ty: CompositeType!
-  query_partition: [QueryPartition!]! @vec
 }
 
 # ----------------

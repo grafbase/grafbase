@@ -12,14 +12,14 @@ use super::{
     DataParts, ErrorPartBuilder, ErrorParts, ExecutedResponse, GraphqlError, Response, ResponseData, ResponseObject,
     ResponseObjectId, ResponseObjectRef, ResponseObjectSet, ResponseValueId,
 };
-use crate::prepare::{OperationPlanContext, PreparedOperation, ResponseObjectSetDefinitionId};
+use crate::prepare::{OperationPlanContext, PreparedOperation, ResponseObjectSetId};
 pub(crate) use deserialize::*;
 pub(crate) use part::*;
 
 pub(crate) struct ResponseBuilder<'ctx> {
     // will be None if an error propagated up to the root.
     pub(in crate::response) schema: &'ctx Arc<Schema>,
-    operation: &'ctx Arc<PreparedOperation>,
+    pub(in crate::response) operation: &'ctx Arc<PreparedOperation>,
     pub(super) root: Option<(ResponseObjectId, ObjectDefinitionId)>,
     pub(super) data_parts: DataParts,
     pub(super) error_parts: ErrorParts,
@@ -151,7 +151,7 @@ impl<'ctx> ResponseBuilder<'ctx> {
 
 pub(crate) enum PartIngestionResult {
     Data {
-        response_object_sets: Vec<(ResponseObjectSetDefinitionId, ResponseObjectSet)>,
+        response_object_sets: Vec<(ResponseObjectSetId, ResponseObjectSet)>,
     },
     SubgraphFailure,
 }

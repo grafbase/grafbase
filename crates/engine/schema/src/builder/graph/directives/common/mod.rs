@@ -18,40 +18,59 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
         &mut self,
         def: sdl::SdlDefinition<'sdl>,
         directives: &[sdl::Directive<'sdl>],
-    ) -> Result<(), Error> {
+    ) {
         let mut directive_ids = Vec::new();
 
         let mut inaccessible = false;
         for &directive in directives {
             match directive.name() {
                 "inaccessible" => inaccessible = true,
-                "deprecated" => {
-                    directive_ids.push(self.create_deprecated_directive(def, directive)?);
-                }
-                "cost" => {
-                    directive_ids.push(self.create_cost_directive(def, directive)?);
-                }
-                "listSize" => {
-                    directive_ids.push(self.create_list_size_directive(def, directive)?);
-                }
+                "deprecated" => match self.create_deprecated_directive(def, directive) {
+                    Ok(id) => directive_ids.push(id),
+                    Err(err) => self.errors.push(err),
+                },
+                "cost" => match self.create_cost_directive(def, directive) {
+                    Ok(id) => directive_ids.push(id),
+                    Err(err) => self.errors.push(err),
+                },
+                "listSize" => match self.create_list_size_directive(def, directive) {
+                    Ok(id) => directive_ids.push(id),
+                    Err(err) => self.errors.push(err),
+                },
                 "oneOf" => {
                     let sdl::SdlDefinition::InputObject(_) = def else {
-                        return Err(("@oneOf can only be used on input objects.", directive.name_span()).into());
+                        self.errors
+                            .push(Error::new("@oneOf can only be used on input objects.").span(directive.name_span()));
+                        continue;
                     };
                     // Only directive to be processed immediately as rely on it for default values.
                 }
                 "extension__directive" if !self.for_operation_analytics_only => {
-                    let dir = sdl::parse_extension_directive(directive)?;
-                    let subgraph_id = self.subgraphs.try_get(dir.graph, directive.arguments_span())?;
-                    let extension = self.extensions.get(dir.extension);
-                    let id = self
-                        .ingest_extension_directive(def, subgraph_id, extension, dir.name, dir.arguments)
-                        .map_err(|txt| (txt, directive.arguments_span()))?;
-                    directive_ids.push(TypeSystemDirectiveId::Extension(id))
+                    match sdl::parse_extension_directive(directive) {
+                        Ok(dir) => match self.subgraphs.try_get(dir.graph, directive.arguments_span()) {
+                            Ok(subgraph_id) => {
+                                let extension = self.extensions.get(dir.extension);
+                                match self.ingest_extension_directive(
+                                    def,
+                                    subgraph_id,
+                                    extension,
+                                    dir.name,
+                                    dir.arguments,
+                                ) {
+                                    Ok(id) => directive_ids.push(TypeSystemDirectiveId::Extension(id)),
+                                    Err(txt) => self.errors.push(Error::new(txt).span(directive.arguments_span())),
+                                }
+                            }
+                            Err(err) => self.errors.push(err),
+                        },
+                        Err(err) => self.errors.push(err),
+                    }
                 }
-                name if name.starts_with("composite__") && !self.for_operation_analytics_only => self
-                    .ingest_composite_directive_before_federation(def, directive)
-                    .map_err(|err| err.with_span_if_absent(directive.arguments_span()))?,
+                name if name.starts_with("composite__") && !self.for_operation_analytics_only => {
+                    if let Err(err) = self.ingest_composite_directive_before_federation(def, directive) {
+                        self.errors.push(err.span_if_absent(directive.arguments_span()));
+                    }
+                }
                 _ => {}
             };
         }
@@ -108,8 +127,6 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                 self.graph.inaccessible.enum_values.set(def.id, inaccessible);
             }
         }
-
-        Ok(())
     }
 }
 

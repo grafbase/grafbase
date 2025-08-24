@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use itertools::Itertools as _;
 use schema::{EntityDefinition, KeyValueInjectionRecord, ValueInjection};
 use serde::ser::{Error, SerializeMap};
 use walker::Walk as _;
@@ -40,7 +41,17 @@ impl serde::Serialize for ResponseObjectView<'_, WithExtraFields<'_>> {
                 value: self
                     .response_object
                     .find_by_response_key(field.response_key)
-                    .ok_or_else(|| S::Error::custom(format_args!("Could not retrieve field {key}",)))?,
+                    .ok_or_else(|| {
+                        S::Error::custom(format_args!(
+                            "Could not retrieve field '{key}' within object having fields {}",
+                            self.response_object
+                                .fields()
+                                .format_with(",", |field, f| f(&format_args!(
+                                    "{}",
+                                    &self.ctx.response_keys()[field.key]
+                                )))
+                        ))
+                    })?,
                 view: ForwardView(selection.subselection()),
             };
             map.serialize_entry(key, &value)?;

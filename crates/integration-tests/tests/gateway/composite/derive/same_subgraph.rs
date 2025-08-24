@@ -90,10 +90,12 @@ fn missing_lookup_resolver() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r"
-        At site Query.userLookup, for directive @lookup The @lookup field Query.userLookup does not have a any resolvers for the key: id
-        See schema at 35:3:
-        userLookup(id: ID!): User! @composite__lookup(graph: X) @join__field(graph: X)
-        ")
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
+        * At site Query.userLookup, for directive @lookup The @lookup field Query.userLookup does not have a any resolvers for the key: id
+        34 |   post: Post! @extension__directive(graph: X, extension: RESOLVER, name: "resolve", arguments: {}) @join__field(graph: X)
+        35 |   userLookup(id: ID!): User! @composite__lookup(graph: X) @join__field(graph: X)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        36 | }
+        "#)
     })
 }

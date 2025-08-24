@@ -1,14 +1,8 @@
-//! ===================
-//! !!! DO NOT EDIT !!!
-//! ===================
-//! Generated with: `cargo run -p engine-codegen`
-//! Source file: <engine-codegen dir>/domain/query_plan.graphql
 use crate::prepare::cached::query_plan::{
     generated::{QueryPartition, QueryPartitionId},
     prelude::*,
 };
 use schema::{CompositeType, CompositeTypeId};
-#[allow(unused_imports)]
 use walker::{Iter, Walk};
 
 /// Generated from:
@@ -20,32 +14,32 @@ use walker::{Iter, Walk};
 /// }
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
-pub(crate) struct ResponseObjectSetDefinitionRecord {
+pub(crate) struct ResponseObjectSetMetadataRecord {
     pub ty_id: CompositeTypeId,
     pub query_partition_ids: Vec<QueryPartitionId>,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub(crate) struct ResponseObjectSetDefinitionId(std::num::NonZero<u16>);
+pub(crate) struct ResponseObjectSetId(std::num::NonZero<u16>);
 
 #[derive(Clone, Copy)]
-pub(crate) struct ResponseObjectSetDefinition<'a> {
+pub(crate) struct ResponseObjectSetMetadata<'a> {
     pub(in crate::prepare::cached::query_plan) ctx: CachedOperationContext<'a>,
-    pub(crate) id: ResponseObjectSetDefinitionId,
+    pub(crate) id: ResponseObjectSetId,
 }
 
-impl std::ops::Deref for ResponseObjectSetDefinition<'_> {
-    type Target = ResponseObjectSetDefinitionRecord;
+impl std::ops::Deref for ResponseObjectSetMetadata<'_> {
+    type Target = ResponseObjectSetMetadataRecord;
     fn deref(&self) -> &Self::Target {
         self.as_ref()
     }
 }
 
 #[allow(unused)]
-impl<'a> ResponseObjectSetDefinition<'a> {
+impl<'a> ResponseObjectSetMetadata<'a> {
     /// Prefer using Deref unless you need the 'a lifetime.
     #[allow(clippy::should_implement_trait)]
-    pub(crate) fn as_ref(&self) -> &'a ResponseObjectSetDefinitionRecord {
+    pub(crate) fn as_ref(&self) -> &'a ResponseObjectSetMetadataRecord {
         &self.ctx.cached.query_plan[self.id]
     }
     pub(crate) fn ty(&self) -> CompositeType<'a> {
@@ -56,9 +50,9 @@ impl<'a> ResponseObjectSetDefinition<'a> {
     }
 }
 
-impl<'a> Walk<CachedOperationContext<'a>> for ResponseObjectSetDefinitionId {
+impl<'a> Walk<CachedOperationContext<'a>> for ResponseObjectSetId {
     type Walker<'w>
-        = ResponseObjectSetDefinition<'w>
+        = ResponseObjectSetMetadata<'w>
     where
         'a: 'w;
     fn walk<'w>(self, ctx: impl Into<CachedOperationContext<'a>>) -> Self::Walker<'w>
@@ -66,14 +60,14 @@ impl<'a> Walk<CachedOperationContext<'a>> for ResponseObjectSetDefinitionId {
         Self: 'w,
         'a: 'w,
     {
-        ResponseObjectSetDefinition {
+        ResponseObjectSetMetadata {
             ctx: ctx.into(),
             id: self,
         }
     }
 }
 
-impl std::fmt::Debug for ResponseObjectSetDefinition<'_> {
+impl std::fmt::Debug for ResponseObjectSetMetadata<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ResponseObjectSetDefinition")
             .field("ty", &self.ty())
