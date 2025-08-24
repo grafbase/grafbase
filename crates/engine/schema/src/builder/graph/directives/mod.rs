@@ -1,12 +1,17 @@
+mod cache;
 mod common;
 mod composite;
 mod federation;
 mod resolvers;
 
-use crate::builder::{Error, extension::ingest_extension_schema_directives, sdl};
+use crate::builder::{
+    Error, extension::ingest_extension_schema_directives, graph::directives::cache::CachedJoinTypeDirective, sdl,
+};
 
 use super::*;
 pub(in crate::builder) use common::finalize_inaccessible;
+use cynic_parser::Span;
+use cynic_parser_deser::ConstDeserializer as _;
 
 pub(crate) type PossibleCompositeEntityKeys<'sdl> =
     FxHashMap<(EntityDefinitionId, SubgraphId), Vec<PossibleCompositeEntityKey<'sdl>>>;
@@ -16,6 +21,53 @@ pub(crate) struct DirectivesIngester<'a, 'sdl> {
     pub possible_composite_entity_keys: PossibleCompositeEntityKeys<'sdl>,
     pub for_operation_analytics_only: bool,
     pub errors: Vec<Error>,
+    pub cache: FxHashMap<HashableSpan, Option<CachedJoinTypeDirective<'sdl>>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct HashableSpan {
+    start: usize,
+    end: usize,
+}
+
+impl From<Span> for HashableSpan {
+    fn from(span: Span) -> Self {
+        Self {
+            start: span.start,
+            end: span.end,
+        }
+    }
+}
+
+impl<'sdl> DirectivesIngester<'_, 'sdl> {
+    pub(crate) fn get_join_type(&mut self, dir: sdl::Directive<'sdl>) -> Option<CachedJoinTypeDirective<'sdl>> {
+        if dir.name() != "join__type" {
+            return None;
+        }
+
+        self.cache
+            .entry(dir.name_span().into())
+            .or_insert_with(|| match dir.deserialize::<sdl::JoinTypeDirective<'sdl>>() {
+                Ok(join_type) => match self.builder.subgraphs.try_get(join_type.graph, dir.arguments_span()) {
+                    Ok(subgraph_id) => Some(CachedJoinTypeDirective {
+                        subgraph_id,
+                        key: join_type.key,
+                        resolvable: join_type.resolvable,
+                        is_interface_object: join_type.is_interface_object,
+                        arguments_span: dir.arguments_span(),
+                    }),
+                    Err(err) => {
+                        self.errors.push(err);
+                        None
+                    }
+                },
+                Err(err) => {
+                    self.errors.push(Error::new(err).span(dir.arguments_span()));
+                    None
+                }
+            })
+            .clone()
+    }
 }
 
 pub(crate) struct PossibleCompositeEntityKey<'sdl> {
@@ -50,6 +102,7 @@ pub(crate) fn ingest_directives<'a>(
         possible_composite_entity_keys: Default::default(),
         for_operation_analytics_only,
         errors: Vec::new(),
+        cache: FxHashMap::default(),
     };
 
     let mut directives = Vec::new();
