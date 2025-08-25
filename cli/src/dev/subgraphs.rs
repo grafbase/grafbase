@@ -216,7 +216,7 @@ impl SubgraphCache {
             ));
         }
 
-        let result = graphql_composition::compose(&subgraphs);
+        let result = graphql_composition::compose(&mut subgraphs);
 
         {
             let mut warnings = result.diagnostics().iter_warnings().peekable();

@@ -40,14 +40,7 @@ pub(super) fn merge_field_arguments<'a>(
 
         if !intersection.contains(&argument_name) {
             if let Some((_, required)) = arguments.iter().find(|(_name, arg)| arg.r#type().is_required()) {
-                required_argument_not_in_intersection_error(
-                    fields,
-                    *required,
-                    parent_definition_name,
-                    field_name,
-                    argument_name,
-                    ctx,
-                );
+                required_argument_not_in_intersection_error(fields, *required, ctx);
             }
 
             continue;
@@ -56,29 +49,25 @@ pub(super) fn merge_field_arguments<'a>(
         let directive_containers = arguments.iter().map(|(_, arg)| arg.directives());
         let directives = collect_composed_directives(directive_containers, ctx);
 
-        let Some(argument_type) = fields::compose_argument_types(
-            parent_definition_name,
-            field_name,
-            arguments.iter().map(|(_, arg)| *arg),
-            ctx,
-        ) else {
+        let Some(argument_type) =
+            fields::compose_argument_types(parent_definition_name, arguments.iter().map(|(_, arg)| *arg), ctx)
+        else {
             continue;
         };
 
         let argument_is_inaccessible = || arguments.iter().any(|(_, arg)| arg.directives().inaccessible());
         let argument_type_is_inaccessible = arguments.iter().any(|(_, arg)| {
-            arg.r#type()
-                .definition(arg.field().parent_definition().subgraph_id())
-                .map(|def| def.directives().inaccessible())
-                .unwrap_or(false)
+            let parent_definition = arg.id.0.0;
+            let subgraph_id = ctx.subgraphs.at(parent_definition).subgraph_id;
+            let arg_type = arg.r#type().definition(subgraph_id);
+
+            arg_type.map(|def| def.directives().inaccessible()).unwrap_or(false)
         });
 
         if argument_type_is_inaccessible && !argument_is_inaccessible() {
             ctx.diagnostics.push_fatal(format!(
                 "The argument `{}.{}({}:)` is of an @inaccessible type, but is itself not marked as @inaccessible.",
-                ctx.subgraphs.walk(parent_definition_name).as_str(),
-                ctx.subgraphs.walk(field_name).as_str(),
-                ctx.subgraphs.walk(argument_name).as_str(),
+                ctx.subgraphs[parent_definition_name], ctx.subgraphs[field_name], ctx.subgraphs[argument_name],
             ));
         }
 
@@ -128,14 +117,23 @@ fn compose_field_argument_defaults<'a>(
                 default = Some((value, *argument));
             }
             Some((default, _)) if default == &value => (),
-            Some((_, other_argument)) => ctx.diagnostics.push_fatal(format!(
+            Some((_, other_argument)) => {
+                let subgraphs::ArgumentPath(definition_id, field_name, _argument_name) = argument.id.0;
+                let definition = ctx.subgraphs.at(definition_id);
+
+                let first_subgraph_id = ctx.subgraphs.at(other_argument.id.0.0).subgraph_id;
+                let first_subgraph = ctx.subgraphs.at(first_subgraph_id);
+                let second_subgraph = ctx.subgraphs.at(definition.subgraph_id);
+
+                ctx.diagnostics.push_fatal(format!(
                 r#"The argument {type_name}.{field_name}.{argument_name} has incompatible defaults in subgraphs "{first_subgraph}" and "{second_subgraph}""#,
-                type_name = argument.field().parent_definition().name().as_str(),
-                field_name = argument.field().name().as_str(),
+                type_name = ctx.subgraphs[definition.name],
+                field_name = ctx.subgraphs[field_name],
                 argument_name = argument.name().as_str(),
-                first_subgraph = other_argument.field().parent_definition().subgraph().name().as_str(),
-                second_subgraph = argument.field().parent_definition().subgraph().name().as_str(),
-            )),
+                first_subgraph = ctx.subgraphs[first_subgraph.name],
+                second_subgraph = ctx.subgraphs[second_subgraph.name],
+            ))
+            }
         }
     }
 
@@ -145,23 +143,25 @@ fn compose_field_argument_defaults<'a>(
 fn required_argument_not_in_intersection_error(
     fields: &[FieldWalker<'_>],
     required_arg: subgraphs::FieldArgumentWalker<'_>,
-    parent_definition_name: StringId,
-    field_name: StringId,
-    argument_name: StringId,
     ctx: &mut Context<'_>,
 ) {
-    let subgraph_where_required = required_arg.field().parent_definition().subgraph().name().as_str();
+    let subgraphs::ArgumentPath(definition_id_where_required, field_name, argument_name) = required_arg.id.0;
+
+    let definition_where_required = ctx.subgraphs.at(definition_id_where_required);
+    let subgraph_where_required = ctx.subgraphs.at(definition_where_required.subgraph_id);
+
     let subgraphs_where_missing = fields
         .iter()
         .filter(|field| field.argument_by_name(argument_name).is_none())
         .map(|field| field.parent_definition().subgraph().name().as_str())
         .collect::<Vec<_>>();
+
     ctx.diagnostics.push_fatal(format!(
         "The argument `{}.{}({}:)` is required in {} but missing in {}.",
-        ctx.subgraphs.walk(parent_definition_name).as_str(),
-        ctx.subgraphs.walk(field_name).as_str(),
-        ctx.subgraphs.walk(argument_name).as_str(),
-        subgraph_where_required,
+        ctx.subgraphs[ctx.subgraphs[definition_id_where_required].name],
+        ctx.subgraphs[field_name],
+        ctx.subgraphs[argument_name],
+        ctx.subgraphs[subgraph_where_required.name],
         subgraphs_where_missing.join(", "),
     ));
 }

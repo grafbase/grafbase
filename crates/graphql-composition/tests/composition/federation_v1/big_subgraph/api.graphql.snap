@@ -1,0 +1,56 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: API SDL
+input_file: crates/graphql-composition/tests/composition/federation_v1/big_subgraph/test.md
+---
+enum Enum553 {
+  VALUE_1
+}
+
+type Year22 {
+  field2: Enum553!
+}
+
+type Year26 {
+  field132: ID!
+}
+
+type Year1989 {
+  field30097: [ID!]
+}
+
+type Year2009 {
+  field2: ID!
+  field30098: ID
+  field7: Int
+}
+
+type Year1996 {
+  field2: ID!
+  field30099: ID
+  field7: Int
+}
+
+type Year1990 {
+  field2: ID!
+  field7: Int
+}
+
+type Year1946 {
+  field2: ID!
+  field24: [Year1990!]
+}
+
+type Year2000 {
+  field2: ID!
+}
+
+type Query {
+  field30156(arg1: [ID!]!): [Year1996]
+}
+
+scalar Scalar8
+
+scalar Scalar1
+
+scalar Scalar4

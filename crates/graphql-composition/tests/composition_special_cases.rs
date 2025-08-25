@@ -10,7 +10,7 @@ fn subgraph_names_that_differ_only_by_case_are_not_allowed() {
         .ingest_str("type Query { fullName: String }", "Valid", Some("example.com"))
         .unwrap();
 
-    let result = graphql_composition::compose(&subgraphs);
+    let result = graphql_composition::compose(&mut subgraphs);
     let diagnostics = result.diagnostics();
     let messages: Vec<_> = diagnostics.iter_messages().collect();
     assert_eq!(messages.len(), 1);

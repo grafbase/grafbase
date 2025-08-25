@@ -49,7 +49,7 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
         }
     }));
 
-    let result = graphql_composition::compose(&subgraphs);
+    let result = graphql_composition::compose(&mut subgraphs);
 
     let diagnostics = result.diagnostics();
     let mut rendered_diagnostics = String::new();

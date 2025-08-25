@@ -38,7 +38,7 @@ pub(super) fn ingest_input_fields(
 
 fn ingest_field_arguments(
     ctx: &mut Context<'_>,
-    field_id: FieldPath,
+    field_path @ FieldPath(parent_definition_id, field_name): FieldPath,
     arguments: ast::iter::Iter<'_, InputValueDefinition<'_>>,
 ) {
     for argument in arguments {
@@ -48,13 +48,9 @@ fn ingest_field_arguments(
         let argument_directives = ctx.subgraphs.new_directive_site();
 
         ingest_directives(ctx, argument_directives, argument.directives(), |subgraphs| {
-            let field = subgraphs.walk_field(field_id);
-            format!(
-                "{}.{}({}:)",
-                field.parent_definition().name().as_str(),
-                field.name().as_str(),
-                argument.name()
-            )
+            let field_name = &subgraphs[field_name];
+            let parent_definition_name = &subgraphs[subgraphs.at(parent_definition_id).name];
+            format!("{}.{}({}:)", parent_definition_name, field_name, argument.name())
         });
 
         let description = argument
@@ -67,7 +63,7 @@ fn ingest_field_arguments(
             .map(|default| ast_value_to_subgraph_value(default, ctx.subgraphs));
 
         ctx.subgraphs
-            .insert_field_argument(field_id, name, r#type, argument_directives, description, default);
+            .insert_field_argument(field_path, name, r#type, argument_directives, description, default);
     }
 }
 
