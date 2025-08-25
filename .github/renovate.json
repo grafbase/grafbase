@@ -1,5 +1,8 @@
 {
-  "extends": ["github>grafbase/renovate", "github>grafbase/renovate:post-upgrade"],
+  "extends": [
+    "github>grafbase/renovate",
+    "github>grafbase/renovate:post-upgrade"
+  ],
   "packageRules": [
     {
       "matchPackageNames": ["axum"],
@@ -7,12 +10,17 @@
       "matchUpdateTypes": ["patch"]
     },
     {
-      "matchPackageNames": ["async-tungstenite", "ory-client", "grafbase-sdk", "tonic"],
+      "matchPackageNames": [
+        "async-tungstenite",
+        "ory-client",
+        "grafbase-sdk",
+        "tonic"
+      ],
       "enabled": false
     },
     {
       "matchPackageNames": ["rand"],
-      "matchPaths": ["crates/integration-tests/Cargo.toml"],
+      "matchFileNames": ["crates/integration-tests/Cargo.toml"],
       "enabled": false
     }
   ]
