@@ -11,6 +11,6 @@
   "dependencies": {
     "@apollo/generate-persisted-query-manifest": "^1.2.2",
     "@urql/exchange-persisted": "^4.3.1",
-    "urql": "^4.2.2"
+    "urql": "^5.0.0"
   }
 }
