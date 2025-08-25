@@ -583,7 +583,7 @@ jobs:
         run: docker compose up -d
 
       - name: Install Protoc for the gRPC extension
-        uses: arduino/setup-protoc@f4d5893b897028ff5739576ea0409746887fa536 # v3
+        uses: arduino/setup-protoc@c65c819552d16ad3c9b72d9dfd5ba5237b9c906b # v3
 
       - name: Build test matrix
         working-directory: extensions
