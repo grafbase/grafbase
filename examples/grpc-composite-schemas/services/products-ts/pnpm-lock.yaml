@@ -19,8 +19,8 @@ importers:
         version: 4.20.4
     devDependencies:
       '@types/node':
-        specifier: ^20.0.0
-        version: 20.19.11
+        specifier: ^22.0.0
+        version: 22.18.0
 
 packages:
 
@@ -222,8 +222,8 @@ packages:
   '@protobufjs/utf8@1.1.0':
     resolution: {integrity: sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==}
 
-  '@types/node@20.19.11':
-    resolution: {integrity: sha512-uug3FEEGv0r+jrecvUUpbY8lLisvIjg6AAic6a2bSP5OEOLeJsDSnvhCDov7ipFFMXS3orMpzlmi0ZcuGkBbow==}
+  '@types/node@22.18.0':
+    resolution: {integrity: sha512-m5ObIqwsUp6BZzyiy4RdZpzWGub9bqLJMvZDD0QMXhxjqMHMENlj+SqF5QxoUwaQNFe+8kz8XM8ZQhqkQPTgMQ==}
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -438,7 +438,7 @@ snapshots:
 
   '@protobufjs/utf8@1.1.0': {}
 
-  '@types/node@20.19.11':
+  '@types/node@22.18.0':
     dependencies:
       undici-types: 6.21.0
 
@@ -520,7 +520,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 20.19.11
+      '@types/node': 22.18.0
       long: 5.3.2
 
   require-directory@2.1.1: {}

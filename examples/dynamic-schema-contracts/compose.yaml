@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   patients:
-    image: node:20-alpine
+    image: node:22-alpine
     working_dir: /app
     volumes:
       - ./subgraphs/patients:/app
@@ -16,7 +16,7 @@ services:
       retries: 5
 
   clinic-a:
-    image: node:20-alpine
+    image: node:22-alpine
     working_dir: /app
     volumes:
       - ./subgraphs/clinic-a:/app
@@ -30,7 +30,7 @@ services:
       retries: 5
 
   clinic-b:
-    image: node:20-alpine
+    image: node:22-alpine
     working_dir: /app
     volumes:
       - ./subgraphs/clinic-b:/app
@@ -44,7 +44,7 @@ services:
       retries: 5
 
   medical-records:
-    image: node:20-alpine
+    image: node:22-alpine
     working_dir: /app
     volumes:
       - ./subgraphs/medical-records:/app
