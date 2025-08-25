@@ -505,11 +505,26 @@ jobs:
           hurl --test test.hurl
 
   extensions:
+    name: extensions SDK (${{ matrix.version.label }})
     needs: [what-changed]
     strategy:
       fail-fast: false
       matrix:
         platform: [{ 'runner': 'depot-ubuntu-24.04-8' }]
+        version:
+          # From the gateway 0.46 onwards, we dropped support for the native JWT authentication.
+          # So we're skipping authenticated & requires-scopes which are simple enough that we shouldn't have to worry.
+          # grpc fails with a directory not found error.
+          - { label: '0.12.0', ref: 'sdk-0.12.0', args: "--skip 'authenticated,requires-scopes,nats,grpc'" }
+          # Not sure why NATS fails, but it's old enough that it doesn't matter.
+          - { label: '0.14.0', ref: 'sdk-0.14.0', args: "--skip 'authenticated,requires-scopes,nats'" }
+          # NATS test isn't reliable in 0.15
+          - { label: '0.15.7', ref: 'sdk-0.15.7', args: "--skip 'authenticated,requires-scopes,nats'" }
+          - { label: '0.16.1', ref: 'sdk-0.16.1', args: "--skip 'authenticated,requires-scopes'" }
+          - { label: '0.17.5', ref: 'sdk-0.17.5', args: "--skip 'authenticated,requires-scopes'" }
+          - { label: '0.18.2', ref: 'sdk-0.18.2', args: "--skip 'authenticated,requires-scopes'" }
+          - { label: '0.20.0', ref: 'sdk-0.20.0', args: "--skip 'authenticated,requires-scopes'" }
+          - { label: 'latest', ref: 'main' }
     runs-on: ${{ matrix.platform.runner }}
     if: |
       needs.what-changed.outputs.changed-packages != '[]'
@@ -529,12 +544,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'grafbase/extensions'
+          ref: ${{ matrix.version.ref }}
           path: extensions
 
       - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
         with:
           cache-workspace-crates: true
-          prefix-key: cargo-v1
+          prefix-key: cargo-v1-${{ matrix.version.ref }}
           workspaces: |
             . -> target
             extensions -> target
@@ -594,11 +610,10 @@ jobs:
 
       - name: Test all extensions
         working-directory: extensions
-        continue-on-error: true
         env:
           RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo run -p test-matrix
+          cargo run -p test-matrix -- -v ${{ matrix.version.args }}
 
   after-build-rust:
     # This job is responsible for reacting to build success or failure. It must
