@@ -1,4 +1,5 @@
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   packages = with pkgs; [
     rustup
     cargo-make
@@ -7,6 +8,8 @@
     cargo-hakari
     cargo-about # license check
     git-cliff
+
+    action-validator
 
     # TOML
     taplo

@@ -505,11 +505,15 @@ jobs:
           hurl --test test.hurl
 
   extensions:
+    name: extensions SDK (${{ matrix.version.label }})
     needs: [what-changed]
     strategy:
       fail-fast: false
       matrix:
         platform: [{ 'runner': 'depot-ubuntu-24.04-8' }]
+        version:
+          - { label: '0.20.0', ref: '8f6390dfb7c61a24b84748c55a70e04777b533df' }
+          - { label: 'latest', ref: 'main' }
     runs-on: ${{ matrix.platform.runner }}
     if: |
       needs.what-changed.outputs.changed-packages != '[]'
@@ -529,6 +533,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'grafbase/extensions'
+          ref: ${{ matrix.version.ref }}
           path: extensions
 
       - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0

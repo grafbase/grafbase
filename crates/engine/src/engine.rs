@@ -206,7 +206,9 @@ impl<R: Runtime> Engine<R> {
             }
         }
 
-        tracing::info!("Finished warming {} operations", count);
+        if count > 0 {
+            tracing::info!("Finished warming {} operations", count);
+        }
     }
 
     pub(crate) async fn execute<F>(
