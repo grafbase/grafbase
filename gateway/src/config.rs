@@ -39,7 +39,7 @@ fn merge_grafbase_telemetry_config(config: &mut Config, args: &impl Args) -> any
         config.endpoint = Some(
             ::std::env::var("GRAFBASE_OTEL_URL")
                 .as_deref()
-                .unwrap_or("https://otel.grafbase.com")
+                .unwrap_or("https://otel.grafbase.com:443")
                 .parse()
                 .unwrap(),
         );
