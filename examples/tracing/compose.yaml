@@ -10,7 +10,7 @@ services:
   #    - otel-collector
 
   otel-collector:
-    image: otel/opentelemetry-collector:0.132.4
+    image: otel/opentelemetry-collector:0.133.0
     command: ['--config=/etc/otel-collector.yaml']
     volumes:
       - ./resources/otel-collector.yaml:/etc/otel-collector.yaml
