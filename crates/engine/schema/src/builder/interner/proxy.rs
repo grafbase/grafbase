@@ -1,13 +1,15 @@
 use std::marker::PhantomData;
 
-use rapidhash::fast::RapidBuildHasher;
 use regex::Regex;
 
 /// An interner made for types that do not implement Ord (and therefore Hash), and which are expensive
 /// to create (looking at you Regex). In many cases using the Interner in the parent module is what
 /// you want. This one allocates more and in general should be used in cases where you have no other
 /// choice.
-pub struct ProxyKeyInterner<T, Id>(indexmap::IndexMap<Vec<u8>, T, RapidBuildHasher>, PhantomData<Id>);
+pub struct ProxyKeyInterner<T, Id>(
+    indexmap::IndexMap<Vec<u8>, T, rapidhash::fast::RandomState>,
+    PhantomData<Id>,
+);
 
 impl<T, Id> Default for ProxyKeyInterner<T, Id> {
     fn default() -> Self {
@@ -66,7 +68,7 @@ impl<T, Id: Into<usize>> std::ops::Index<Id> for ProxyKeyInterner<T, Id> {
 
 impl<T, Id> IntoIterator for ProxyKeyInterner<T, Id> {
     type Item = (Vec<u8>, T);
-    type IntoIter = <indexmap::IndexMap<Vec<u8>, T, RapidBuildHasher> as IntoIterator>::IntoIter;
+    type IntoIter = <indexmap::IndexMap<Vec<u8>, T, rapidhash::fast::RandomState> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()

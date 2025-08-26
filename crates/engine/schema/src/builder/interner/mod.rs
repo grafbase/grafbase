@@ -1,12 +1,11 @@
 mod proxy;
 
 pub use proxy::ProxyKeyInterner;
-use rapidhash::fast::RapidBuildHasher;
 
 use std::{borrow::Borrow, marker::PhantomData};
 
 #[derive(Debug)]
-pub struct Interner<T, Id>(indexmap::IndexSet<T, RapidBuildHasher>, PhantomData<Id>);
+pub struct Interner<T, Id>(indexmap::IndexSet<T, rapidhash::fast::RandomState>, PhantomData<Id>);
 
 impl<T, Id> Default for Interner<T, Id> {
     fn default() -> Self {
@@ -17,7 +16,7 @@ impl<T, Id> Default for Interner<T, Id> {
 impl<T: core::hash::Hash + PartialEq + Eq, Id: Copy + From<usize> + Into<usize>> Interner<T, Id> {
     pub fn with_capacity(capacity: usize) -> Self {
         Self(
-            indexmap::IndexSet::with_capacity_and_hasher(capacity, RapidBuildHasher::default()),
+            indexmap::IndexSet::with_capacity_and_hasher(capacity, Default::default()),
             PhantomData,
         )
     }
@@ -63,7 +62,7 @@ impl<T, Id: Into<usize>> std::ops::Index<Id> for Interner<T, Id> {
 
 impl<T, Id> IntoIterator for Interner<T, Id> {
     type Item = T;
-    type IntoIter = <indexmap::IndexSet<T, RapidBuildHasher> as IntoIterator>::IntoIter;
+    type IntoIter = <indexmap::IndexSet<T, rapidhash::fast::RandomState> as IntoIterator>::IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
