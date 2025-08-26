@@ -180,7 +180,7 @@ ramhorns = { git = "https://github.com/grafbase/ramhorns", branch = "grafbase", 
     "export_derive",
 ] }
 rand = "0.9"
-rapidhash = "3"
+rapidhash = "4"
 redis = { version = "0.30.0", features = [
     "tokio-rustls-comp",
     "connection-manager",
