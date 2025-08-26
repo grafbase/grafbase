@@ -1,0 +1,9 @@
+directive @directiveTwo on FIELD_DEFINITION
+
+type Query @directiveOne @directiveTwo {
+  typeOne: TypeOne
+}
+
+type TypeOne @directiveTwo {
+  fieldOne: String! @directiveOne
+}

@@ -1,6 +1,0 @@
----
-source: crates/graphql-composition/tests/composition_tests.rs
-expression: Federated SDL
-input_file: crates/graphql-composition/tests/composition/authorized_with_composeDirective/test.md
----
-

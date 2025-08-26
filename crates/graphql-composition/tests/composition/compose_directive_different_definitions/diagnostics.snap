@@ -1,10 +1,8 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: Federated SDL
+expression: Diagnostics
 input_file: crates/graphql-composition/tests/composition/compose_directive_different_definitions/test.md
 ---
-- ⚠️ [chocolate]: Unknown directive `@ghi` at `Chocolate.id`
-- ⚠️ [nougat]: Unknown directive `@ghi` at `Nougat.id`
 - ⚠️ Directive `jkl` is defined with different arguments:
 - (a: Int, b: String!) in chocolate
 - (a: Int, b: String!, c: [Float]) in nougat
@@ -13,13 +11,13 @@ input_file: crates/graphql-composition/tests/composition/compose_directive_diffe
 - (a: Int, b: String) in chocolate
 - (a: Int, b: String!) in nougat
 
-- ❌ Directive `stu` is defined with incompatible arguments:
-- (a: String = "NO CAP") in chocolate
-- (a: String = "TEST") in nougat
-
 - ⚠️ Directive `pqr` is defined with different locations:
  FIELD_DEFINITION in chocolate
  OBJECT | FIELD_DEFINITION in nougat
+
+- ❌ Directive `stu` is defined with incompatible arguments:
+- (a: String = "NO CAP") in chocolate
+- (a: String = "TEST") in nougat
 
 - ⚠️ Directive `vwx` is defined with different arguments:
 - (a: Int, b: String! @b @c(d: "boom")) in chocolate

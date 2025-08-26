@@ -1,6 +1,6 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
 expression: "The directives from extensions that are on schema definitions are treated slightly differently, so this is a dedicated test case to check that they are emitted and roundtrip through SDL correctly."
-input_file: crates/graphql-composition/tests/composition/extensions_directives_on_schema_definition/test.md
+input_file: crates/graphql-composition/tests/composition/grafbase_extensions/extensions_directives_on_schema_definition/test.md
 ---
-- ⚠️ [schema-extension]: Unknown directive `@unrelated` on schema definition or extension.
+

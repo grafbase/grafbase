@@ -28,9 +28,6 @@ impl DirectiveSiteId {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct DirectiveDefinitionId(usize);
-
 type Arguments = Vec<(StringId, Value)>;
 
 #[derive(Debug, PartialEq, PartialOrd, Clone)]
@@ -69,7 +66,7 @@ pub(super) struct Directives {
     costs: BTreeMap<DirectiveSiteId, i32>,
     list_sizes: BTreeMap<DirectiveSiteId, ListSizeDirective>,
 
-    directive_definitions: Vec<DirectiveDefinition>,
+    pub(super) directive_definitions: Vec<DirectiveDefinition>,
     composed_directives: HashSet<(SubgraphId, StringId)>,
 
     /// Directives that can go straight to composition IR.
@@ -146,8 +143,7 @@ impl Subgraphs {
     }
 
     pub(crate) fn push_directive_definition(&mut self, definition: DirectiveDefinition) -> DirectiveDefinitionId {
-        let idx = self.directives.directive_definitions.push_return_idx(definition);
-        DirectiveDefinitionId(idx)
+        self.directives.directive_definitions.push_return_idx(definition).into()
     }
 
     /// Push a directive that can go straight to composition IR.
@@ -368,4 +364,25 @@ impl<'a> DeprecatedWalker<'a> {
 /// Corresponds to an `@deprecated` directive.
 pub(crate) struct Deprecated {
     pub(crate) reason: Option<StringId>,
+}
+
+impl SubgraphId {
+    pub(crate) fn iter_directive_definitions(
+        self,
+        subgraphs: &Subgraphs,
+    ) -> impl Iterator<Item = View<'_, DirectiveDefinitionId, DirectiveDefinition>> {
+        let start = subgraphs
+            .directives
+            .directive_definitions
+            .partition_point(|def| def.subgraph_id < self);
+
+        subgraphs.directives.directive_definitions[start..]
+            .iter()
+            .take_while(move |def| def.subgraph_id == self)
+            .enumerate()
+            .map(move |(idx, record)| View {
+                id: (start + idx).into(),
+                record,
+            })
+    }
 }

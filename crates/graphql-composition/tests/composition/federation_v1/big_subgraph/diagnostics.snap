@@ -3,12 +3,4 @@ source: crates/graphql-composition/tests/composition_tests.rs
 expression: Diagnostics
 input_file: crates/graphql-composition/tests/composition/federation_v1/big_subgraph/test.md
 ---
-- ⚠️ [big]: Unknown directive `@directive1` at `Year1990`
-- ⚠️ [big]: Unknown directive `@directive1` at `Year1946`
-- ⚠️ [big]: Unknown directive `@directive1` at `Year2009`
-- ⚠️ [big]: Unknown directive `@directive1` at `Year1996`
-- ⚠️ [big]: Unknown directive `@directive2` at `Year1990.field2`
-- ⚠️ [big]: Unknown directive `@directive2` at `Year1946.field2`
-- ⚠️ [big]: Unknown directive `@directive1` at `Year1946.field24`
-- ⚠️ [big]: Unknown directive `@directive2` at `Year2009.field2`
-- ⚠️ [big]: Unknown directive `@directive2` at `Year1996.field2`
+
