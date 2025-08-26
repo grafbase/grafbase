@@ -90,7 +90,7 @@ impl From<SdlAndErrors> for CallToolResult {
             content.push(Content::json(ErrorList { errors }).unwrap());
         }
         CallToolResult {
-            content: Some(content),
+            content: content,
             structured_content: None,
             is_error: None,
         }
