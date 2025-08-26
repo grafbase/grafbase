@@ -84,7 +84,7 @@ impl<R: engine::Runtime> Tool for ExecuteTool<R> {
             content.push(Content::text(sdl));
         }
         Ok(CallToolResult {
-            content: content,
+            content,
             structured_content: None,
             is_error: None,
         })
