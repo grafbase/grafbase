@@ -63,17 +63,19 @@ impl Runner {
 }
 
 fn dot_graph(dot: &'static str) -> (Graph<String, SteinerWeight>, HashMap<String, NodeIndex>) {
-    let dot_graph: dot_parser::canonical::Graph<(&'static str, &'static str)> =
-        dot_parser::ast::Graph::try_from(dot).unwrap().into();
-    let node_number = dot_graph.nodes.set.len();
-    let edge_number = dot_graph.edges.set.len();
+    let ast_graph = dot_parser::ast::Graph::try_from(dot).unwrap();
+    let canonical_graph: dot_parser::canonical::Graph<(String, String)> =
+        dot_parser::canonical::Graph::from(ast_graph).filter_map(|(name, value)| Some((name.into(), value.into())));
+
+    let node_number = canonical_graph.nodes.set.len();
+    let edge_number = canonical_graph.edges.set.len();
     let mut graph = Graph::with_capacity(node_number, edge_number);
     let mut nodes = HashMap::new();
-    for (node, attrs) in dot_graph.nodes.set {
+    for (node, attrs) in canonical_graph.nodes.set {
         let id = graph.add_node(attrs.id);
         nodes.insert(node, id);
     }
-    for edge in dot_graph.edges.set {
+    for edge in canonical_graph.edges.set {
         let from_ni = nodes.get(&edge.from).unwrap();
         let to_ni = nodes.get(&edge.to).unwrap();
         let weight = edge
@@ -81,7 +83,7 @@ fn dot_graph(dot: &'static str) -> (Graph<String, SteinerWeight>, HashMap<String
             .elems
             .iter()
             .find_map(|(name, value)| {
-                if *name == "label" {
+                if name == "label" {
                     value.parse::<SteinerWeight>().ok()
                 } else {
                     None
