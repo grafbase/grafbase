@@ -182,9 +182,11 @@ impl DataPart {
         match value_id {
             ResponseValueId::Field {
                 object_id: ResponseObjectId { part_id, object_id },
-                key,
+                query_position,
+                response_key,
                 nullable,
             } => {
+                let key = response_key.with_position(query_position);
                 debug_assert!(part_id == self.id && nullable, "{part_id} == {} && {nullable}", self.id);
                 match self[object_id]
                     .fields_sorted_by_key

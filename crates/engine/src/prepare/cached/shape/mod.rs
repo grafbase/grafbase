@@ -29,3 +29,26 @@ pub(crate) struct Shapes {
     #[indexed_by(DefaultFieldShapeId)]
     pub default_fields: Vec<DefaultFieldShapeRecord>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_field_size() {
+        assert_eq!(std::mem::size_of::<FieldShapeRecord>(), 24);
+        assert_eq!(std::mem::align_of::<FieldShapeRecord>(), 4);
+    }
+
+    #[test]
+    fn check_concrete_size() {
+        assert_eq!(std::mem::size_of::<ConcreteShapeRecord>(), 32);
+        assert_eq!(std::mem::align_of::<ConcreteShapeRecord>(), 4);
+    }
+
+    #[test]
+    fn check_polymorphic_size() {
+        assert_eq!(std::mem::size_of::<PolymorphicShapeRecord>(), 32);
+        assert_eq!(std::mem::align_of::<PolymorphicShapeRecord>(), 8);
+    }
+}

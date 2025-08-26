@@ -103,11 +103,11 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                                 for (element_ix, error_ix) in element_to_error {
                                     let obj_ref = &parent_objects[element_ix as usize];
                                     let err = errors[error_ix as usize].clone();
-                                    response.make_inacessible(ResponseValueId::Field {
-                                        object_id: obj_ref.id,
-                                        key: target_field.key(),
-                                        nullable: true,
-                                    });
+                                    response.make_inacessible(ResponseValueId::field(
+                                        obj_ref.id,
+                                        target_field.key(),
+                                        true,
+                                    ));
                                     response.push_error(
                                         err.clone()
                                             .with_path((&obj_ref.path, target_field.response_key))
@@ -133,11 +133,11 @@ impl<'ctx, R: Runtime> ExecutionContext<'ctx, R> {
                                 // the current value as inaccessible. So null for the client, but
                                 // available for requirements to be sent to subgraphs.
                                 for obj_ref in parent_objects.iter() {
-                                    response.make_inacessible(ResponseValueId::Field {
-                                        object_id: obj_ref.id,
-                                        key: target_field.key(),
-                                        nullable: true,
-                                    });
+                                    response.make_inacessible(ResponseValueId::field(
+                                        obj_ref.id,
+                                        target_field.key(),
+                                        true,
+                                    ));
                                     response.push_error(
                                         err.clone()
                                             .with_path((&obj_ref.path, target_field.response_key))

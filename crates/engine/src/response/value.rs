@@ -157,3 +157,10 @@ fn check_response_value_size() {
     assert_eq!(std::mem::size_of::<ResponseValue>(), 24);
     assert_eq!(std::mem::align_of::<ResponseValue>(), 8);
 }
+
+#[cfg(test)]
+#[test]
+fn check_response_object_field_size() {
+    assert_eq!(std::mem::size_of::<ResponseObjectField>(), 32);
+    assert_eq!(std::mem::align_of::<ResponseObjectField>(), 8);
+}

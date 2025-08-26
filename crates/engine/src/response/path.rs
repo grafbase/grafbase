@@ -1,7 +1,7 @@
 use std::cell::Ref;
 
 use error::{ErrorPath, InsertIntoErrorPath};
-use operation::PositionedResponseKey;
+use operation::{PositionedResponseKey, QueryPosition, ResponseKey};
 
 use super::{DataPartId, ResponseListId, ResponseObjectId};
 
@@ -11,7 +11,8 @@ use super::{DataPartId, ResponseListId, ResponseObjectId};
 pub(crate) enum ResponseValueId {
     Field {
         object_id: ResponseObjectId,
-        key: PositionedResponseKey,
+        query_position: Option<QueryPosition>,
+        response_key: ResponseKey,
         nullable: bool,
     },
     Index {
@@ -22,6 +23,14 @@ pub(crate) enum ResponseValueId {
 }
 
 impl ResponseValueId {
+    pub fn field(object_id: ResponseObjectId, key: PositionedResponseKey, nullable: bool) -> Self {
+        Self::Field {
+            object_id,
+            query_position: key.query_position,
+            response_key: key.response_key,
+            nullable,
+        }
+    }
     pub fn is_nullable(&self) -> bool {
         match self {
             ResponseValueId::Field { nullable, .. } => *nullable,
@@ -40,7 +49,7 @@ impl ResponseValueId {
 impl InsertIntoErrorPath for &ResponseValueId {
     fn insert_into(self, path: &mut ErrorPath) {
         match self {
-            ResponseValueId::Field { key, .. } => key.insert_into(path),
+            ResponseValueId::Field { response_key, .. } => response_key.insert_into(path),
             ResponseValueId::Index { index, .. } => index.insert_into(path),
         }
     }

@@ -401,11 +401,11 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
         }
         .with_query_position_if(included);
 
-        self.state.local_path_mut().push(ResponseValueId::Field {
-            object_id: self.object_id,
+        self.state.local_path_mut().push(ResponseValueId::field(
+            self.object_id,
             key,
-            nullable: field.wrapping.is_nullable(),
-        });
+            field.wrapping.is_nullable(),
+        ));
         let result = map.next_value_seed(FieldSeed {
             state: self.state,
             field,

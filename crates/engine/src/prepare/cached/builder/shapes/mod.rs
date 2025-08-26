@@ -6,7 +6,7 @@ use fixedbitset::FixedBitSet;
 use id_newtypes::IdRange;
 use im::HashSet;
 use itertools::Itertools;
-use operation::ResponseKey;
+use operation::{QueryPosition, ResponseKey};
 use schema::{
     CompositeType, CompositeTypeId, ObjectDefinitionId, Schema, SubgraphId, TypeDefinition, TypeDefinitionId,
 };
@@ -233,12 +233,9 @@ impl<'ctx> ShapesBuilder<'ctx> {
             let mut fields = self.data_fields_buffer_pool.pop();
             fields.extend(selection_set.data_fields());
             fields.sort_unstable_by(|left, right| {
-                keys[left.response_key].cmp(&keys[right.response_key]).then(
-                    left.query_position
-                        .map(u16::from)
-                        .unwrap_or(u16::MAX)
-                        .cmp(&right.query_position.map(u16::from).unwrap_or(u16::MAX)),
-                )
+                keys[left.response_key]
+                    .cmp(&keys[right.response_key])
+                    .then_with(|| QueryPosition::cmp_with_none_last(left.query_position, right.query_position))
             });
             fields
         };
@@ -247,12 +244,9 @@ impl<'ctx> ShapesBuilder<'ctx> {
             let mut fields = self.typename_fields_buffer_pool.pop();
             fields.extend(selection_set.typename_fields());
             fields.sort_unstable_by(|left, right| {
-                keys[left.response_key].cmp(&keys[right.response_key]).then(
-                    left.query_position
-                        .map(u16::from)
-                        .unwrap_or(u16::MAX)
-                        .cmp(&right.query_position.map(u16::from).unwrap_or(u16::MAX)),
-                )
+                keys[left.response_key]
+                    .cmp(&keys[right.response_key])
+                    .then_with(|| QueryPosition::cmp_with_none_last(left.query_position, right.query_position))
             });
             fields
         };
@@ -477,20 +471,14 @@ impl<'ctx> ShapesBuilder<'ctx> {
             }
             let keys = &self.ctx.cached.operation.response_keys;
             data_fields.sort_unstable_by(|left, right| {
-                keys[left.response_key].cmp(&keys[right.response_key]).then(
-                    left.query_position
-                        .map(u16::from)
-                        .unwrap_or(u16::MAX)
-                        .cmp(&right.query_position.map(u16::from).unwrap_or(u16::MAX)),
-                )
+                keys[left.response_key]
+                    .cmp(&keys[right.response_key])
+                    .then_with(|| QueryPosition::cmp_with_none_last(left.query_position, right.query_position))
             });
             typename_fields.sort_unstable_by(|left, right| {
-                keys[left.response_key].cmp(&keys[right.response_key]).then(
-                    left.query_position
-                        .map(u16::from)
-                        .unwrap_or(u16::MAX)
-                        .cmp(&right.query_position.map(u16::from).unwrap_or(u16::MAX)),
-                )
+                keys[left.response_key]
+                    .cmp(&keys[right.response_key])
+                    .then_with(|| QueryPosition::cmp_with_none_last(left.query_position, right.query_position))
             });
             (data_fields, typename_fields)
         };
@@ -612,20 +600,14 @@ impl<'ctx> ShapesBuilder<'ctx> {
             }
             let keys = &self.ctx.cached.operation.response_keys;
             data_fields.sort_unstable_by(|left, right| {
-                keys[left.response_key].cmp(&keys[right.response_key]).then(
-                    left.query_position
-                        .map(u16::from)
-                        .unwrap_or(u16::MAX)
-                        .cmp(&right.query_position.map(u16::from).unwrap_or(u16::MAX)),
-                )
+                keys[left.response_key]
+                    .cmp(&keys[right.response_key])
+                    .then_with(|| QueryPosition::cmp_with_none_last(left.query_position, right.query_position))
             });
             typename_fields.sort_unstable_by(|left, right| {
-                keys[left.response_key].cmp(&keys[right.response_key]).then(
-                    left.query_position
-                        .map(u16::from)
-                        .unwrap_or(u16::MAX)
-                        .cmp(&right.query_position.map(u16::from).unwrap_or(u16::MAX)),
-                )
+                keys[left.response_key]
+                    .cmp(&keys[right.response_key])
+                    .then_with(|| QueryPosition::cmp_with_none_last(left.query_position, right.query_position))
             });
             (data_fields, typename_fields)
         };

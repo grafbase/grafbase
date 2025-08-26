@@ -22,11 +22,11 @@ pub(super) struct DeriveContext<'ctx, 'parent, 'seed> {
 impl DeriveContext<'_, '_, '_> {
     pub fn ingest(mut self, parent_object_id: ResponseObjectId, response_fields: &mut Vec<ResponseObjectField>) {
         let key = self.field.key();
-        self.local_path.push(ResponseValueId::Field {
-            object_id: parent_object_id,
+        self.local_path.push(ResponseValueId::field(
+            parent_object_id,
             key,
-            nullable: self.field.wrapping.is_nullable(),
-        });
+            self.field.wrapping.is_nullable(),
+        ));
         let value = if let Some(batch_field) = self.shape.batch_field_shape {
             let value = response_fields
                 .iter()

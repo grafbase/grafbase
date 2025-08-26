@@ -1,10 +1,24 @@
+use std::num::NonZero;
+
 use walker::Walk;
 
 #[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct QueryPosition(std::num::NonZero<u16>);
+pub struct QueryPosition(NonZero<u32>);
 
 impl QueryPosition {
-    pub const MAX: QueryPosition = QueryPosition(std::num::NonZero::new(u16::MAX - 1).unwrap());
+    pub const MAX: QueryPosition = QueryPosition(NonZero::new(u32::MAX - 1).unwrap());
+
+    pub fn cmp_with_none_last(a: Option<QueryPosition>, b: Option<QueryPosition>) -> std::cmp::Ordering {
+        // None -> 0
+        // Some(x) -> x
+        let mut a: u32 = zerocopy::transmute!(a.map(|qp| qp.0));
+        let mut b: u32 = zerocopy::transmute!(b.map(|qp| qp.0));
+        // x -> x -1
+        // 0 -> u32::MAX
+        a = a.wrapping_sub(1);
+        b = b.wrapping_sub(1);
+        a.cmp(&b)
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
@@ -16,9 +30,9 @@ pub struct PositionedResponseKey {
 
 impl PositionedResponseKey {
     pub fn with_query_position_if(self, included: bool) -> PositionedResponseKey {
-        let mut qp: u16 = zerocopy::transmute!(self.query_position.map(|qp| qp.0));
-        qp &= (!(included as u16)).wrapping_add(1);
-        let qp: Option<std::num::NonZero<u16>> = zerocopy::transmute!(qp);
+        let mut qp: u32 = zerocopy::transmute!(self.query_position.map(|qp| qp.0));
+        qp &= (!(included as u32)).wrapping_add(1);
+        let qp: Option<NonZero<u32>> = zerocopy::transmute!(qp);
         Self {
             query_position: qp.map(QueryPosition),
             response_key: self.response_key,
