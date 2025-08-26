@@ -47,10 +47,13 @@ impl<'de> DeserializeSeed<'de> for RootObjectSeed<'_, '_, '_> {
                     tracing::debug!(
                         "Updating object at '{}' with fields {}",
                         state.display_path(),
-                        fields.iter().format_with(",", |field, f| f(&format_args!(
-                            "{}",
-                            &state.response_keys()[field.key]
-                        )))
+                        fields
+                            .iter()
+                            .format_with(",", |field, f| f(&format_args!(
+                                "{}",
+                                &state.response_keys()[field.key]
+                            )))
+                            .to_string() // this panics otherwise if opentelemetry is enabled
                     );
                     state.response.borrow_mut().insert_fields_update(parent_object, fields)
                 }
