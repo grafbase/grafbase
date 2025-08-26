@@ -72,19 +72,22 @@ impl ContractsExtension for EngineWasmExtensions {
             "Contract(hide_unreachable_types: {}, accessible_by_default: {})\n{}",
             contract.hide_unreachable_types,
             contract.accessible_by_default,
-            output.iter().format_with("\n", |result, f| {
-                let directive = &directives[result.index as usize];
-                f(&format_args!(
-                    "{}({}): {} -> {}",
-                    directive.name,
-                    serde_json::to_string(&cbor::from_slice::<serde_json::Value>(&directive.arguments).unwrap())
-                        .unwrap(),
-                    result.accessible,
-                    sites_by_directive[result.index as usize]
-                        .iter()
-                        .format_with(",", |id, f| f(&format_args!("{}", schema.walk(*id))))
-                ))
-            })
+            output
+                .iter()
+                .format_with("\n", |result, f| {
+                    let directive = &directives[result.index as usize];
+                    f(&format_args!(
+                        "{}({}): {} -> {}",
+                        directive.name,
+                        serde_json::to_string(&cbor::from_slice::<serde_json::Value>(&directive.arguments).unwrap())
+                            .unwrap(),
+                        result.accessible,
+                        sites_by_directive[result.index as usize]
+                            .iter()
+                            .format_with(",", |id, f| f(&format_args!("{}", schema.walk(*id))))
+                    ))
+                })
+                .to_string() // this panics otherwise if opentelemetry is enabled
         );
 
         let mut ingester = InaccessibilityIngester::new(schema, contract.accessible_by_default);

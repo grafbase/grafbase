@@ -39,7 +39,7 @@ fn merge_grafbase_telemetry_config(config: &mut Config, args: &impl Args) -> any
         config.endpoint = Some(
             ::std::env::var("GRAFBASE_OTEL_URL")
                 .as_deref()
-                .unwrap_or("https://otel.grafbase.com:443")
+                .unwrap_or("https://otel.grafbase.com")
                 .parse()
                 .unwrap(),
         );
@@ -69,19 +69,11 @@ fn merge_grafbase_telemetry_config(config: &mut Config, args: &impl Args) -> any
     // Merge configuration based on protocol
     match config.protocol {
         Some(OtlpExporterProtocol::Grpc) | None => {
-            let endpoint = config.endpoint.as_mut().unwrap();
-            if endpoint.port().is_none() {
-                endpoint.set_port(Some(4317)).unwrap();
-            }
             // GRPC is the default if not specified
             let grpc = config.grpc.get_or_insert_with(Default::default);
             merge_headers(&mut grpc.headers, &auth_header, &graph_ref_header)?;
         }
         Some(OtlpExporterProtocol::Http) => {
-            let endpoint = config.endpoint.as_mut().unwrap();
-            if endpoint.port().is_none() {
-                endpoint.set_port(Some(4318)).unwrap();
-            }
             let http = config.http.get_or_insert_with(Default::default);
             merge_headers(&mut http.headers, &auth_header, &graph_ref_header)?;
         }
