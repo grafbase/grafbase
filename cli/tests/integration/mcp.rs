@@ -72,7 +72,7 @@ async fn test_mcp() {
       },
       "serverInfo": {
         "name": "rmcp",
-        "version": "0.5.0"
+        "version": "0.6.0"
       }
     }
     "#);

@@ -8,7 +8,7 @@ fn single_terminal_direct_path() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> t1 [label=5];
+            root -> t1 [label="5"];
         }
         "#,
     );
@@ -27,10 +27,10 @@ fn multiple_terminals_shared_edges() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> shared [label=10];
-            shared -> t1 [label=3];
-            shared -> t2 [label=5];
-            shared -> t3 [label=2];
+            root -> shared [label="10"];
+            shared -> t1 [label="3"];
+            shared -> t2 [label="5"];
+            shared -> t3 [label="2"];
         }
         "#,
     );
@@ -58,11 +58,11 @@ fn degenerate_flow_detection() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> a [label=10];
-            a -> b [label=2];
-            a -> c [label=3];
-            b -> t1 [label=1];
-            c -> t1 [label=1];
+            root -> a [label="10"];
+            a -> b [label="2"];
+            a -> c [label="3"];
+            b -> t1 [label="1"];
+            c -> t1 [label="1"];
         }
         "#,
     );
@@ -89,14 +89,14 @@ fn complex_graph_multiple_paths() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> a [label=5];
-            root -> b [label=8];
-            a -> c [label=3];
-            b -> c [label=2];
-            c -> t1 [label=4];
-            c -> t2 [label=6];
-            a -> t2 [label=10];
-            b -> t3 [label=7];
+            root -> a [label="5"];
+            root -> b [label="8"];
+            a -> c [label="3"];
+            b -> c [label="2"];
+            c -> t1 [label="4"];
+            c -> t2 [label="6"];
+            a -> t2 [label="10"];
+            b -> t3 [label="7"];
         }
         "#,
     );
@@ -128,11 +128,11 @@ fn incremental_terminal_addition() {
     let (graph, nodes) = dot_graph(
         r#"
         digraph {
-            root -> a [label=4];
-            root -> b [label=6];
-            a -> t1 [label=2];
-            b -> t2 [label=3];
-            a -> t3 [label=5];
+            root -> a [label="4"];
+            root -> b [label="6"];
+            a -> t1 [label="2"];
+            b -> t2 [label="3"];
+            a -> t3 [label="5"];
         }
         "#,
     );
@@ -190,13 +190,13 @@ fn weighted_edges_different_weights() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> a [label=1];
-            root -> b [label=100];
-            a -> c [label=50];
-            b -> c [label=1];
-            c -> t1 [label=1];
-            a -> t2 [label=2];
-            b -> t3 [label=2];
+            root -> a [label="1"];
+            root -> b [label="100"];
+            a -> c [label="50"];
+            b -> c [label="1"];
+            c -> t1 [label="1"];
+            a -> t2 [label="2"];
+            b -> t3 [label="2"];
         }
         "#,
     );
@@ -229,14 +229,14 @@ fn diamond_shaped_graph() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> top [label=5];
-            top -> left [label=3];
-            top -> right [label=4];
-            left -> bottom [label=6];
-            right -> bottom [label=2];
-            bottom -> t1 [label=1];
-            left -> t2 [label=8];
-            right -> t3 [label=7];
+            root -> top [label="5"];
+            top -> left [label="3"];
+            top -> right [label="4"];
+            left -> bottom [label="6"];
+            right -> bottom [label="2"];
+            bottom -> t1 [label="1"];
+            left -> t2 [label="8"];
+            right -> t3 [label="7"];
         }
         "#,
     );
@@ -267,13 +267,13 @@ fn linear_chain_graph() {
     let mut runner = Runner::from_dot_graph(
         r#"
     digraph {
-        root -> n1 [label=2];
-        n1 -> n2 [label=3];
-        n2 -> n3 [label=4];
-        n3 -> n4 [label=5];
-        n4 -> t1 [label=6];
-        n2 -> t2 [label=10];
-        n3 -> t3 [label=8];
+        root -> n1 [label="2"];
+        n1 -> n2 [label="3"];
+        n2 -> n3 [label="4"];
+        n3 -> n4 [label="5"];
+        n4 -> t1 [label="6"];
+        n2 -> t2 [label="10"];
+        n3 -> t3 [label="8"];
     }
     "#,
     );
@@ -305,17 +305,17 @@ fn properly_decrease_saturating_time() {
         r#"
         digraph {
             a -> t1;
-            root -> a [label=10];
+            root -> a [label="10"];
             b -> t1;
-            root -> b [label=10];
+            root -> b [label="10"];
             c -> t1;
-            root -> c [label=10];
-            c -> t2 [label=10];
-            b -> t2 [label=10];
-            a -> t2 [label=10];
+            root -> c [label="10"];
+            c -> t2 [label="10"];
+            b -> t2 [label="10"];
+            a -> t2 [label="10"];
             d -> t3;
-            c -> d [label=10];
-            a -> d [label=10];
+            c -> d [label="10"];
+            a -> d [label="10"];
             b -> t3;
         }
         "#,
@@ -349,13 +349,13 @@ fn star_graph_greedy_trap() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> cheap_path [label=1];
-            cheap_path -> t1 [label=1];
-            root -> expensive_hub [label=50];
-            expensive_hub -> t1 [label=1];
-            expensive_hub -> t2 [label=1];
-            expensive_hub -> t3 [label=1];
-            expensive_hub -> t4 [label=1];
+            root -> cheap_path [label="1"];
+            cheap_path -> t1 [label="1"];
+            root -> expensive_hub [label="50"];
+            expensive_hub -> t1 [label="1"];
+            expensive_hub -> t2 [label="1"];
+            expensive_hub -> t3 [label="1"];
+            expensive_hub -> t4 [label="1"];
         }
         "#,
     );
@@ -392,15 +392,15 @@ fn asymmetric_multi_level() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> level1_cheap [label=1];
-            root -> level1_expensive [label=20];
-            level1_cheap -> level2_trap [label=50];
-            level1_expensive -> level2_good [label=2];
-            level2_trap -> t1 [label=1];
-            level2_trap -> t2 [label=1];
-            level2_good -> t1 [label=1];
-            level2_good -> t2 [label=1];
-            level2_good -> t3 [label=1];
+            root -> level1_cheap [label="1"];
+            root -> level1_expensive [label="20"];
+            level1_cheap -> level2_trap [label="50"];
+            level1_expensive -> level2_good [label="2"];
+            level2_trap -> t1 [label="1"];
+            level2_trap -> t2 [label="1"];
+            level2_good -> t1 [label="1"];
+            level2_good -> t2 [label="1"];
+            level2_good -> t3 [label="1"];
         }
         "#,
     );
@@ -429,16 +429,16 @@ fn high_cost_shared_edge() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> shared_expensive [label=100];
-            shared_expensive -> t1 [label=1];
-            shared_expensive -> t2 [label=1];
-            shared_expensive -> t3 [label=1];
-            root -> path1 [label=35];
-            path1 -> t1 [label=1];
-            root -> path2 [label=35];
-            path2 -> t2 [label=1];
-            root -> path3 [label=35];
-            path3 -> t3 [label=1];
+            root -> shared_expensive [label="100"];
+            shared_expensive -> t1 [label="1"];
+            shared_expensive -> t2 [label="1"];
+            shared_expensive -> t3 [label="1"];
+            root -> path1 [label="35"];
+            path1 -> t1 [label="1"];
+            root -> path2 [label="35"];
+            path2 -> t2 [label="1"];
+            root -> path3 [label="35"];
+            path3 -> t3 [label="1"];
         }
         "#,
     );
@@ -465,14 +465,14 @@ fn longer_cheaper_paths() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> direct_expensive [label=100];
-            direct_expensive -> t1 [label=1];
-            root -> hop1 [label=10];
-            hop1 -> hop2 [label=10];
-            hop2 -> hop3 [label=10];
-            hop3 -> t1 [label=1];
-            hop3 -> t2 [label=1];
-            direct_expensive -> t2 [label=50];
+            root -> direct_expensive [label="100"];
+            direct_expensive -> t1 [label="1"];
+            root -> hop1 [label="10"];
+            hop1 -> hop2 [label="10"];
+            hop2 -> hop3 [label="10"];
+            hop3 -> t1 [label="1"];
+            hop3 -> t2 [label="1"];
+            direct_expensive -> t2 [label="50"];
         }
         "#,
     );
@@ -500,16 +500,16 @@ fn unoptimal_equal_initial_costs_different_outcomes() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> option_a [label=10];
-            root -> option_b [label=10];
-            option_a -> hub_a [label=1];
-            option_b -> hub_b [label=50];
-            hub_a -> t1 [label=50];
-            hub_a -> t2 [label=50];
-            hub_b -> t1 [label=1];
-            hub_b -> t2 [label=1];
-            hub_b -> t3 [label=1];
-            option_a -> t3 [label=1];
+            root -> option_a [label="10"];
+            root -> option_b [label="10"];
+            option_a -> hub_a [label="1"];
+            option_b -> hub_b [label="50"];
+            hub_a -> t1 [label="50"];
+            hub_a -> t2 [label="50"];
+            hub_b -> t1 [label="1"];
+            hub_b -> t2 [label="1"];
+            hub_b -> t3 [label="1"];
+            option_a -> t3 [label="1"];
         }
         "#,
     );
@@ -538,19 +538,19 @@ fn cascading_suboptimal_choices() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> early_trap [label=1];
-            early_trap -> connector1 [label=20];
-            connector1 -> t1 [label=1];
-            connector1 -> expensive_bridge [label=30];
-            expensive_bridge -> t2 [label=1];
+            root -> early_trap [label="1"];
+            early_trap -> connector1 [label="20"];
+            connector1 -> t1 [label="1"];
+            connector1 -> expensive_bridge [label="30"];
+            expensive_bridge -> t2 [label="1"];
 
-            root -> late_optimal [label=15];
-            late_optimal -> connector2 [label=2];
-            connector2 -> t1 [label=1];
-            connector2 -> t2 [label=1];
-            connector2 -> t3 [label=1];
+            root -> late_optimal [label="15"];
+            late_optimal -> connector2 [label="2"];
+            connector2 -> t1 [label="1"];
+            connector2 -> t2 [label="1"];
+            connector2 -> t3 [label="1"];
 
-            early_trap -> t3 [label=60];
+            early_trap -> t3 [label="60"];
         }
         "#,
     );
@@ -578,20 +578,20 @@ fn unoptimal_deceptive_density() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> cheap_dense [label=2];
-            cheap_dense -> t1 [label=1];
-            cheap_dense -> t2 [label=1];
-            cheap_dense -> dead_end [label=100];
+            root -> cheap_dense [label="2"];
+            cheap_dense -> t1 [label="1"];
+            cheap_dense -> t2 [label="1"];
+            cheap_dense -> dead_end [label="100"];
 
-            root -> expensive_sparse [label=30];
-            expensive_sparse -> t1 [label=1];
-            expensive_sparse -> good_path [label=1];
-            good_path -> t2 [label=1];
-            good_path -> t3 [label=1];
-            good_path -> t4 [label=1];
+            root -> expensive_sparse [label="30"];
+            expensive_sparse -> t1 [label="1"];
+            expensive_sparse -> good_path [label="1"];
+            good_path -> t2 [label="1"];
+            good_path -> t3 [label="1"];
+            good_path -> t4 [label="1"];
 
-            dead_end -> t3 [label=1];
-            dead_end -> t4 [label=1];
+            dead_end -> t3 [label="1"];
+            dead_end -> t4 [label="1"];
         }
         "#,
     );
@@ -621,17 +621,17 @@ fn zero_weight_edges_trap() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> trap_path [label=0];
-            trap_path -> expensive_connector [label=0];
-            expensive_connector -> t1 [label=100];
-            expensive_connector -> t2 [label=100];
+            root -> trap_path [label="0"];
+            trap_path -> expensive_connector [label="0"];
+            expensive_connector -> t1 [label="100"];
+            expensive_connector -> t2 [label="100"];
  
-            root -> good_path [label=30];
-            good_path -> t1 [label=1];
-            good_path -> t2 [label=1];
-            good_path -> t3 [label=1];
+            root -> good_path [label="30"];
+            good_path -> t1 [label="1"];
+            good_path -> t2 [label="1"];
+            good_path -> t3 [label="1"];
 
-            trap_path -> t3 [label=200];
+            trap_path -> t3 [label="200"];
         }
         "#,
     );
@@ -658,18 +658,18 @@ fn terminal_ordering_sensitivity() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> path_a [label=10];
-            root -> path_b [label=10];
-            path_a -> t1 [label=1];
-            path_a -> connector_a [label=40];
-            connector_a -> t2 [label=1];
+            root -> path_a [label="10"];
+            root -> path_b [label="10"];
+            path_a -> t1 [label="1"];
+            path_a -> connector_a [label="40"];
+            connector_a -> t2 [label="1"];
 
-            path_b -> t2 [label=1];
-            path_b -> connector_b [label=40];
-            connector_b -> t1 [label=1];
+            path_b -> t2 [label="1"];
+            path_b -> connector_b [label="40"];
+            connector_b -> t1 [label="1"];
 
-            path_a -> t3 [label=5];
-            path_b -> t3 [label=5];
+            path_a -> t3 [label="5"];
+            path_b -> t3 [label="5"];
         }
         "#,
     );
@@ -697,23 +697,23 @@ fn large_approximation_ratio() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> hub [label=1000];
-            hub -> t1 [label=1];
-            hub -> t2 [label=1];
-            hub -> t3 [label=1];
-            hub -> t4 [label=1];
+            root -> hub [label="1000"];
+            hub -> t1 [label="1"];
+            hub -> t2 [label="1"];
+            hub -> t3 [label="1"];
+            hub -> t4 [label="1"];
 
-            root -> direct1 [label=100];
-            direct1 -> t1 [label=1];
+            root -> direct1 [label="100"];
+            direct1 -> t1 [label="1"];
 
-            root -> direct2 [label=100];
-            direct2 -> t2 [label=1];
+            root -> direct2 [label="100"];
+            direct2 -> t2 [label="1"];
 
-            root -> direct3 [label=100];
-            direct3 -> t3 [label=1];
+            root -> direct3 [label="100"];
+            direct3 -> t3 [label="1"];
 
-            root -> direct4 [label=100];
-            direct4 -> t4 [label=1];
+            root -> direct4 [label="100"];
+            direct4 -> t4 [label="1"];
         }
         "#,
     );
@@ -744,18 +744,18 @@ fn bottleneck_graph() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> bottleneck [label=50];
-            bottleneck -> branch1 [label=10];
-            bottleneck -> branch2 [label=10];
-            branch1 -> t1 [label=1];
-            branch1 -> t2 [label=1];
-            branch2 -> t3 [label=1];
-            branch2 -> t4 [label=1];
+            root -> bottleneck [label="50"];
+            bottleneck -> branch1 [label="10"];
+            bottleneck -> branch2 [label="10"];
+            branch1 -> t1 [label="1"];
+            branch1 -> t2 [label="1"];
+            branch2 -> t3 [label="1"];
+            branch2 -> t4 [label="1"];
 
-            root -> expensive_bypass1 [label=60];
-            expensive_bypass1 -> t1 [label=1];
-            root -> expensive_bypass2 [label=60];
-            expensive_bypass2 -> t2 [label=1];
+            root -> expensive_bypass1 [label="60"];
+            expensive_bypass1 -> t1 [label="1"];
+            root -> expensive_bypass2 [label="60"];
+            expensive_bypass2 -> t2 [label="1"];
         }
         "#,
     );
@@ -783,24 +783,24 @@ fn overlapping_paths_interdependencies() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> shared1 [label=20];
-            root -> shared2 [label=20];
+            root -> shared1 [label="20"];
+            root -> shared2 [label="20"];
  
-            shared1 -> middle [label=15];
-            shared2 -> middle [label=15];
+            shared1 -> middle [label="15"];
+            shared2 -> middle [label="15"];
 
-            middle -> t1 [label=5];
-            middle -> t2 [label=5];
+            middle -> t1 [label="5"];
+            middle -> t2 [label="5"];
 
-            shared1 -> direct_t1 [label=30];
-            direct_t1 -> t1 [label=1];
+            shared1 -> direct_t1 [label="30"];
+            direct_t1 -> t1 [label="1"];
 
-            shared2 -> direct_t2 [label=30];
-            direct_t2 -> t2 [label=1];
+            shared2 -> direct_t2 [label="30"];
+            direct_t2 -> t2 [label="1"];
 
-            root -> independent [label=35];
-            independent -> t1 [label=1];
-            independent -> t2 [label=1];
+            root -> independent [label="35"];
+            independent -> t1 [label="1"];
+            independent -> t2 [label="1"];
         }
         "#,
     );
@@ -827,19 +827,19 @@ fn late_arriving_better_options() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> early_cheap [label=1];
-            early_cheap -> slow_path1 [label=20];
-            slow_path1 -> slow_path2 [label=20];
-            slow_path2 -> slow_path3 [label=20];
-            slow_path3 -> t1 [label=1];
-            slow_path3 -> t2 [label=1];
+            root -> early_cheap [label="1"];
+            early_cheap -> slow_path1 [label="20"];
+            slow_path1 -> slow_path2 [label="20"];
+            slow_path2 -> slow_path3 [label="20"];
+            slow_path3 -> t1 [label="1"];
+            slow_path3 -> t2 [label="1"];
 
-            root -> late_expensive [label=40];
-            late_expensive -> t1 [label=1];
-            late_expensive -> t2 [label=1];
-            late_expensive -> t3 [label=1];
+            root -> late_expensive [label="40"];
+            late_expensive -> t1 [label="1"];
+            late_expensive -> t2 [label="1"];
+            late_expensive -> t3 [label="1"];
  
-            early_cheap -> t3 [label=100];
+            early_cheap -> t3 [label="100"];
         }
         "#,
     );
@@ -865,21 +865,21 @@ fn unoptimal_multiple_terminals_different_depths() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> shallow [label=5];
-            shallow -> t1 [label=1];
+            root -> shallow [label="5"];
+            shallow -> t1 [label="1"];
  
-            root -> medium [label=10];
-            medium -> level2 [label=10];
-            level2 -> t2 [label=1];
+            root -> medium [label="10"];
+            medium -> level2 [label="10"];
+            level2 -> t2 [label="1"];
  
-            root -> deep [label=15];
-            deep -> deep2 [label=15];
-            deep2 -> deep3 [label=15];
-            deep3 -> t3 [label=1];
+            root -> deep [label="15"];
+            deep -> deep2 [label="15"];
+            deep2 -> deep3 [label="15"];
+            deep3 -> t3 [label="1"];
  
-            shallow -> cross_link [label=50];
-            cross_link -> t2 [label=1];
-            cross_link -> t3 [label=1];
+            shallow -> cross_link [label="50"];
+            cross_link -> t2 [label="1"];
+            cross_link -> t3 [label="1"];
         }
         "#,
     );
@@ -910,23 +910,23 @@ fn flow_rate_confusion() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> split1 [label=30];
-            root -> split2 [label=30];
+            root -> split1 [label="30"];
+            root -> split2 [label="30"];
  
-            split1 -> merge [label=20];
-            split2 -> merge [label=20];
+            split1 -> merge [label="20"];
+            split2 -> merge [label="20"];
  
-            merge -> t1 [label=10];
-            merge -> t2 [label=10];
+            merge -> t1 [label="10"];
+            merge -> t2 [label="10"];
  
-            split1 -> t3 [label=15];
-            split2 -> t4 [label=15];
+            split1 -> t3 [label="15"];
+            split2 -> t4 [label="15"];
  
-            root -> direct [label=60];
-            direct -> t1 [label=1];
-            direct -> t2 [label=1];
-            direct -> t3 [label=1];
-            direct -> t4 [label=1];
+            root -> direct [label="60"];
+            direct -> t1 [label="1"];
+            direct -> t2 [label="1"];
+            direct -> t3 [label="1"];
+            direct -> t4 [label="1"];
         }
         "#,
     );
@@ -952,26 +952,26 @@ fn parallel_asymmetric_branches() {
     let mut runner = Runner::from_dot_graph(
         r#"
         digraph {
-            root -> branch_a [label=5];
-            root -> branch_b [label=50];
+            root -> branch_a [label="5"];
+            root -> branch_b [label="50"];
 
-            branch_a -> a_split1 [label=10];
-            branch_a -> a_split2 [label=10];
-            a_split1 -> t1 [label=1];
-            a_split2 -> t2 [label=1];
+            branch_a -> a_split1 [label="10"];
+            branch_a -> a_split2 [label="10"];
+            a_split1 -> t1 [label="1"];
+            a_split2 -> t2 [label="1"];
 
-            branch_b -> b_split1 [label=1];
-            branch_b -> b_split2 [label=1];
-            b_split1 -> t3 [label=1];
-            b_split1 -> t4 [label=1];
-            b_split2 -> t5 [label=1];
-            b_split2 -> t6 [label=1];
+            branch_b -> b_split1 [label="1"];
+            branch_b -> b_split2 [label="1"];
+            b_split1 -> t3 [label="1"];
+            b_split1 -> t4 [label="1"];
+            b_split2 -> t5 [label="1"];
+            b_split2 -> t6 [label="1"];
 
-            a_split1 -> expensive_cross [label=100];
-            expensive_cross -> t3 [label=1];
-            expensive_cross -> t4 [label=1];
-            expensive_cross -> t5 [label=1];
-            expensive_cross -> t6 [label=1];
+            a_split1 -> expensive_cross [label="100"];
+            expensive_cross -> t3 [label="1"];
+            expensive_cross -> t4 [label="1"];
+            expensive_cross -> t5 [label="1"];
+            expensive_cross -> t6 [label="1"];
         }
         "#,
     );

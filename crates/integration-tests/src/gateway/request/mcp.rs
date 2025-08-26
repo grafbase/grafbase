@@ -191,7 +191,7 @@ impl StreamableHttpClient for RouterClient {
         let mut router = self.0.clone();
         let Ok(response) = router.as_service().call(request).await;
         if response.status() == reqwest::StatusCode::METHOD_NOT_ALLOWED {
-            return Err(StreamableHttpError::SeverDoesNotSupportSse);
+            return Err(StreamableHttpError::ServerDoesNotSupportSse);
         }
 
         if !response.status().is_success() {
@@ -274,7 +274,6 @@ impl McpHttpClient {
             result: ToolResponse {
                 content: result
                     .content
-                    .unwrap_or_default()
                     .into_iter()
                     .map(|annotated| match annotated.raw {
                         rmcp::model::RawContent::Text(raw_text_content) => serde_json::from_str(&raw_text_content.text)
