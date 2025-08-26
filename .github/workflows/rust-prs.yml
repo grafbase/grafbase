@@ -408,6 +408,8 @@ jobs:
       COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
     runs-on: depot-ubuntu-24.04-8
+    outputs:
+      image-tag: ${{ steps.set-output.outputs.image-tag }}
     permissions:
       packages: write
     steps:
@@ -439,6 +441,10 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ghcr.io/grafbase/gateway:${{ env.COMMIT_SHA }}
           file: ./gateway/Dockerfile
+
+      - name: Set output
+        id: set-output
+        run: echo "image-tag=ghcr.io/grafbase/gateway:${{ env.COMMIT_SHA }}" >> $GITHUB_OUTPUT
 
   examples:
     needs: [docker-gateway]
@@ -479,7 +485,7 @@ jobs:
       - name: Use current image
         working-directory: ${{ matrix.working_directory }}
         run: |
-          sed -i "s/\(FROM ghcr.io\/grafbase\/gateway:\)latest/\1$COMMIT_SHA/" Dockerfile.gateway
+          sed -i "s|FROM ghcr.io/grafbase/gateway:latest|FROM ${{ needs.docker-gateway.outputs.image-tag }}|" Dockerfile.gateway
 
       - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
 
@@ -510,7 +516,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [{ 'runner': 'depot-ubuntu-24.04-8' }]
         version:
           # From the gateway 0.46 onwards, we dropped support for the native JWT authentication.
           # So we're skipping authenticated & requires-scopes which are simple enough that we shouldn't have to worry.
@@ -525,7 +530,7 @@ jobs:
           - { label: '0.18.2', ref: 'sdk-0.18.2', args: "--skip 'authenticated,requires-scopes'" }
           - { label: '0.20.0', ref: 'sdk-0.20.0', args: "--skip 'authenticated,requires-scopes'" }
           - { label: 'latest', ref: 'main' }
-    runs-on: ${{ matrix.platform.runner }}
+    runs-on: 'depot-ubuntu-24.04-8'
     if: |
       needs.what-changed.outputs.changed-packages != '[]'
             && contains(needs.what-changed.outputs.changed-packages, 'grafbase')
@@ -614,6 +619,82 @@ jobs:
           RUSTC_WRAPPER: 'sccache'
         run: |
           cargo run -p test-matrix -- -v ${{ matrix.version.args }}
+
+  clickhouse-integration-tests:
+    name: extensions SDK (${{ matrix.version.label }})
+    needs: [what-changed, docker-gateway]
+    runs-on: 'depot-ubuntu-24.04-8'
+    if: |
+      needs.what-changed.outputs.changed-packages != '[]'
+            && contains(needs.what-changed.outputs.changed-packages, 'grafbase')
+            && contains(needs.what-changed.outputs.changed-packages, 'grafbase-gateway')
+            && !(cancelled())
+            && !(contains(needs.*.result, 'failure'))
+    steps:
+      - name: Checkout API repo
+        uses: actions/checkout@v4
+        with:
+          repository: 'grafbase/api'
+          ref: main
+
+      - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - uses: ./.github/actions/install-rust
+        with:
+          target: x86_64-unknown-linux-musl
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+        with:
+          cache-workspace-crates: true
+          prefix-key: cargo-v1
+
+      - name: Install cargo-nextest
+        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
+        with:
+          tool: nextest
+
+      - name: Login to Docker Hub
+        env:
+          dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+        if: env.dockerhub_username != '' && runner.os == 'Linux'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
+
+      - name: Build docker compose
+        # Will fail if there is nothing to build.
+        continue-on-error: true
+        uses: depot/bake-action@6f9796efa5235be338972e30e7b93977a7f18855 # v1
+        with:
+          project: ${{ env.DEPOT_PROJECT }}
+          token: ${{ secrets.DEPOT_TOKEN }}
+          workdir: extensions
+          load: true
+          pull: true
+
+      - name: docker compose up
+        working-directory: extensions
+        run: docker compose up -d
+
+      - name: Install Protoc for the gRPC extension
+        uses: arduino/setup-protoc@c65c819552d16ad3c9b72d9dfd5ba5237b9c906b # v3
+
+      - name: Build tests
+        working-directory: extensions
+        env:
+          RUSTC_WRAPPER: 'sccache'
+        run: |
+          cargo build -p clickhouse-integration-tests
+
+      - name: Test all extensions
+        working-directory: extensions
+        env:
+          RUSTC_WRAPPER: 'sccache'
+        run: |
+          GATEWAY_IMAGE="${{ needs.docker-gateway.outputs.image-tag }}" cargo run -p clickhouse-integration-tests
 
   after-build-rust:
     # This job is responsible for reacting to build success or failure. It must
