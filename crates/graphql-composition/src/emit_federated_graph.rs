@@ -296,6 +296,7 @@ fn attach_selection(
                     field,
                     arguments,
                     subselection,
+                    has_directives: _,
                 }) => {
                     if &ctx[*field] == "__typename" {
                         federated::Selection::Typename
@@ -330,7 +331,11 @@ fn attach_selection(
                         })
                     }
                 }
-                subgraphs::Selection::InlineFragment { on, subselection } => {
+                subgraphs::Selection::InlineFragment {
+                    on,
+                    subselection,
+                    has_directives: _,
+                } => {
                     let on = ctx.insert_string(ctx.subgraphs.walk(*on));
                     let on = ctx.definitions[&on];
 

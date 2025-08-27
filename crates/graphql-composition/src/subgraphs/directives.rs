@@ -10,21 +10,9 @@ use crate::federated_graph::ListSizeDirective;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct DirectiveSiteId(usize);
 
-impl DirectiveSiteId {
-    pub(crate) fn interface_object(&self, subgraphs: &Subgraphs) -> bool {
-        subgraphs.directives.interface_object.contains(self)
-    }
-}
-
 impl From<usize> for DirectiveSiteId {
     fn from(value: usize) -> Self {
         DirectiveSiteId(value)
-    }
-}
-
-impl DirectiveSiteId {
-    pub(crate) fn inaccessible(&self, subgraphs: &Subgraphs) -> bool {
-        subgraphs.directives.inaccessible.contains(self)
     }
 }
 
@@ -205,10 +193,6 @@ impl Subgraphs {
 pub(crate) type DirectiveSiteWalker<'a> = Walker<'a, DirectiveSiteId>;
 
 impl<'a> DirectiveSiteWalker<'a> {
-    pub(crate) fn authenticated(self) -> bool {
-        self.subgraphs.directives.authenticated.contains(&self.id)
-    }
-
     pub(crate) fn deprecated(self) -> Option<DeprecatedWalker<'a>> {
         self.subgraphs
             .directives
@@ -320,6 +304,28 @@ impl<'a> DirectiveSiteWalker<'a> {
         self.subgraphs.directives.shareable.contains(&self.id)
     }
 
+    pub(crate) fn cost(self) -> Option<i32> {
+        self.subgraphs.directives.costs.get(&self.id).copied()
+    }
+
+    pub(crate) fn list_size(self) -> Option<&'a ListSizeDirective> {
+        self.subgraphs.directives.list_sizes.get(&self.id)
+    }
+}
+
+impl DirectiveSiteId {
+    pub(crate) fn authenticated(self, subgraphs: &Subgraphs) -> bool {
+        subgraphs.directives.authenticated.contains(&self)
+    }
+
+    pub(crate) fn inaccessible(&self, subgraphs: &Subgraphs) -> bool {
+        subgraphs.directives.inaccessible.contains(self)
+    }
+
+    pub(crate) fn interface_object(&self, subgraphs: &Subgraphs) -> bool {
+        subgraphs.directives.interface_object.contains(self)
+    }
+
     /// ```graphql,ignore
     /// type Query {
     ///     findManyUser(
@@ -329,20 +335,12 @@ impl<'a> DirectiveSiteWalker<'a> {
     ///                 ^^^^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^ ^^^^^^^^^^^^^^^^^^^^^^
     /// }
     /// ```
-    pub(crate) fn tags(self) -> impl Iterator<Item = StringWalker<'a>> {
-        self.subgraphs
+    pub(crate) fn tags(self, subgraphs: &Subgraphs) -> impl Iterator<Item = StringId> {
+        subgraphs
             .directives
             .tags
-            .range((self.id, StringId::MIN)..(self.id, StringId::MAX))
-            .map(move |(_, id)| self.walk(*id))
-    }
-
-    pub(crate) fn cost(self) -> Option<i32> {
-        self.subgraphs.directives.costs.get(&self.id).copied()
-    }
-
-    pub(crate) fn list_size(self) -> Option<&'a ListSizeDirective> {
-        self.subgraphs.directives.list_sizes.get(&self.id)
+            .range((self, StringId::MIN)..(self, StringId::MAX))
+            .map(|(_, tag)| *tag)
     }
 }
 

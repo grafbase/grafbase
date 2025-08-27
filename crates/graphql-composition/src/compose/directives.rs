@@ -49,11 +49,11 @@ pub(super) fn collect_composed_directives<'a>(
     }
 
     for site in sites.clone() {
-        tags.extend(site.tags().map(|t| t.id));
+        tags.extend(site.id.tags(ctx.subgraphs));
 
         // The directive is added whenever it's applied in any subgraph.
-        is_inaccessible = is_inaccessible || site.inaccessible();
-        authenticated = authenticated || site.authenticated();
+        is_inaccessible = is_inaccessible || site.id.inaccessible(ctx.subgraphs);
+        authenticated = authenticated || site.id.authenticated(ctx.subgraphs);
 
         cost = cost.or(site.cost());
         list_size = list_size.or(site.list_size());
