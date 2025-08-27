@@ -1,16 +1,13 @@
 use super::*;
-use crate::{
-    diagnostics::CompositeSchemasPreMergeValidationErrorCode,
-    subgraphs::{FieldWalker, StringId},
-};
+use crate::{diagnostics::CompositeSchemasPreMergeValidationErrorCode, subgraphs::StringId};
 
-pub(super) fn override_source_has_override(fields: &[FieldWalker<'_>], ctx: &mut Context<'_>) {
+pub(super) fn override_source_has_override(fields: &[subgraphs::FieldView<'_>], ctx: &mut Context<'_>) {
     use std::collections::BTreeMap;
 
     // Early exit if we don't have at least 2 overrides
     if fields
         .iter()
-        .filter(|f| f.id.1.directives.r#override(ctx.subgraphs).is_some())
+        .filter(|f| f.directives.r#override(ctx.subgraphs).is_some())
         .take(2)
         .count()
         < 2
@@ -19,27 +16,27 @@ pub(super) fn override_source_has_override(fields: &[FieldWalker<'_>], ctx: &mut
     }
 
     enum OverrideEntry<'a> {
-        Single(&'a FieldWalker<'a>),
-        Multiple(Vec<&'a FieldWalker<'a>>),
+        Single(subgraphs::FieldView<'a>),
+        Multiple(Vec<subgraphs::FieldView<'a>>),
     }
 
     let mut overrides_by_source: BTreeMap<StringId, OverrideEntry<'_>> = BTreeMap::new();
 
     for field in fields {
-        if let Some(override_directive) = field.id.1.directives.r#override(ctx.subgraphs) {
+        if let Some(override_directive) = field.directives.r#override(ctx.subgraphs) {
             use std::collections::btree_map::Entry;
             match overrides_by_source.entry(override_directive.from) {
                 Entry::Vacant(e) => {
-                    e.insert(OverrideEntry::Single(field));
+                    e.insert(OverrideEntry::Single(*field));
                 }
                 Entry::Occupied(mut e) => {
                     let val = e.get_mut();
                     match val {
                         OverrideEntry::Single(first) => {
-                            *val = OverrideEntry::Multiple(vec![first, field]);
+                            *val = OverrideEntry::Multiple(vec![*first, *field]);
                         }
                         OverrideEntry::Multiple(vec) => {
-                            vec.push(field);
+                            vec.push(*field);
                         }
                     }
                 }
@@ -49,14 +46,19 @@ pub(super) fn override_source_has_override(fields: &[FieldWalker<'_>], ctx: &mut
 
     for (source, entry) in overrides_by_source {
         if let OverrideEntry::Multiple(overriding_fields) = entry {
-            let field_name = overriding_fields[0].name().as_str();
-            let type_name = overriding_fields[0].parent_definition().name().as_str();
-            let source_subgraph = ctx.subgraphs.walk(source).as_str();
+            let field_name = ctx.subgraphs[overriding_fields[0].name].as_ref();
+            let type_name = ctx.subgraphs[ctx.subgraphs.at(overriding_fields[0].parent_definition_id).name].as_ref();
+            let source_subgraph = ctx.subgraphs[source].as_ref();
 
             let source_has_override = fields
                 .iter()
-                .find(|f| f.parent_definition().subgraph().name().id == source)
-                .and_then(|f| f.id.1.directives.r#override(ctx.subgraphs))
+                .find(|f| {
+                    ctx.subgraphs
+                        .at(ctx.subgraphs.at(f.parent_definition_id).subgraph_id)
+                        .name
+                        == source
+                })
+                .and_then(|f| f.directives.r#override(ctx.subgraphs))
                 .is_some();
 
             let message = if source_has_override {
@@ -64,7 +66,7 @@ pub(super) fn override_source_has_override(fields: &[FieldWalker<'_>], ctx: &mut
                     r#"Field "{}.{}" on subgraphs {} all override from "{}" which itself has an @override directive. Only one @override directive is allowed per field."#,
                     type_name,
                     field_name,
-                    format_subgraph_list(&overriding_fields),
+                    format_subgraph_list(ctx, &overriding_fields),
                     source_subgraph
                 )
             } else {
@@ -72,7 +74,7 @@ pub(super) fn override_source_has_override(fields: &[FieldWalker<'_>], ctx: &mut
                     r#"Field "{}.{}" on subgraphs {} all override from "{}". Only one @override directive is allowed per field."#,
                     type_name,
                     field_name,
-                    format_subgraph_list(&overriding_fields),
+                    format_subgraph_list(ctx, &overriding_fields),
                     source_subgraph
                 )
             };
@@ -85,22 +87,35 @@ pub(super) fn override_source_has_override(fields: &[FieldWalker<'_>], ctx: &mut
     }
 }
 
-fn format_subgraph_list(fields: &[&FieldWalker<'_>]) -> String {
-    match fields.len() {
-        0 => String::new(),
-        1 => fields[0].parent_definition().subgraph().name().as_str().to_string(),
-        2 => format!(
-            "{} and {}",
-            fields[0].parent_definition().subgraph().name().as_str(),
-            fields[1].parent_definition().subgraph().name().as_str()
-        ),
+fn format_subgraph_list(ctx: &mut Context<'_>, fields: &[subgraphs::FieldView<'_>]) -> String {
+    match fields {
+        [] => String::new(),
+        [field] => {
+            let parent_definition = ctx.subgraphs.at(field.parent_definition_id);
+            let subgraph = ctx.subgraphs.at(parent_definition.subgraph_id);
+            ctx.subgraphs[subgraph.name].to_string()
+        }
+        [a, b] => {
+            let [subgraph_a, subgraph_b] = [a, b].map(|field| {
+                let parent_definition = ctx.subgraphs.at(field.parent_definition_id);
+                let subgraph = ctx.subgraphs.at(parent_definition.subgraph_id);
+                ctx.subgraphs[subgraph.name].as_ref()
+            });
+
+            format!("{subgraph_a} and {subgraph_b}",)
+        }
         _ => {
             let mut result = String::new();
             for (i, field) in fields.iter().enumerate() {
                 if i > 0 {
                     result.push_str(if i == fields.len() - 1 { " and " } else { ", " });
                 }
-                result.push_str(field.parent_definition().subgraph().name().as_str());
+
+                let parent_definition = ctx.subgraphs.at(field.parent_definition_id);
+                let subgraph = ctx.subgraphs.at(parent_definition.subgraph_id);
+                let subgraph_name = ctx.subgraphs[subgraph.name].as_ref();
+
+                result.push_str(subgraph_name);
             }
             result
         }

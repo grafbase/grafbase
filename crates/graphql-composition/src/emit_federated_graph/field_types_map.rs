@@ -13,19 +13,19 @@ pub(super) struct FieldTypesMap {
 
 impl Context<'_> {
     /// Subgraphs field type -> federated graph field type.
-    pub(super) fn insert_field_type(&mut self, field_type: subgraphs::FieldTypeWalker<'_>) -> federated::Type {
-        let type_name = self.insert_string(field_type.type_name());
-        *self.field_types_map.map.entry(field_type.id).or_insert_with(|| {
+    pub(super) fn insert_field_type(&mut self, field_type: subgraphs::FieldType) -> federated::Type {
+        let type_name = self.insert_str(&self.subgraphs[field_type.definition_name_id]);
+        *self.field_types_map.map.entry(field_type).or_insert_with(|| {
             let Some(definition) = self.definitions.get(&type_name).copied() else {
                 panic!(
                     "Invariant violation: definition {:?} from field type not registered.",
-                    field_type.type_name().as_str()
+                    self.subgraphs[field_type.definition_name_id],
                 )
             };
 
             federated::Type {
                 definition,
-                wrapping: field_type.id.wrapping,
+                wrapping: field_type.wrapping,
             }
         })
     }

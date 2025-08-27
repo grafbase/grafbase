@@ -19,7 +19,7 @@ pub(crate) fn validate_pre_merge(ctx: &mut ValidateContext<'_>) {
 
 fn validate_root_nonempty(ctx: &mut ValidateContext<'_>) {
     if ctx.subgraphs.iter_subgraphs().all(|subgraph| {
-        subgraph.query_type().is_none() && subgraph.mutation_type().is_none() && subgraph.subscription_type().is_none()
+        subgraph.query_type.is_none() && subgraph.mutation_type.is_none() && subgraph.subscription_type.is_none()
     }) {
         ctx.diagnostics.push_fatal(String::from(
             "None of the subgraphs define any root (Query, Mutation, Subscription) type. The federated graph cannot be empty.",
@@ -29,19 +29,14 @@ fn validate_root_nonempty(ctx: &mut ValidateContext<'_>) {
 
 fn validate_fields(ctx: &mut ValidateContext<'_>) {
     for field in ctx.subgraphs.iter_fields() {
-        let path = subgraphs::FieldPath(field.parent_definition_id, field.name);
-        let field = subgraphs::FieldWalker {
-            id: (path, *field.record),
-            subgraphs: ctx.subgraphs,
-        };
         selection::validate_selections(ctx, field);
-        validate_override_labels(ctx, field.id.1);
+        validate_override_labels(ctx, field);
         composite_schemas::source_schema::lookup_returns_non_nullable_type(ctx, field);
         composite_schemas::source_schema::override_from_self(ctx, field);
     }
 }
 
-fn validate_override_labels(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldTuple) {
+fn validate_override_labels(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldView<'_>) {
     let Some(label) = field
         .directives
         .r#override(ctx.subgraphs)

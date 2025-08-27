@@ -10,7 +10,7 @@ pub(super) fn emit_directive_definitions(ir: &CompositionIr, ctx: &mut Context<'
         });
 
         for argument in &definition.arguments {
-            let r#type = ctx.insert_field_type(ctx.subgraphs.walk(argument.r#type));
+            let r#type = ctx.insert_field_type(argument.r#type);
             let default = argument
                 .default
                 .as_ref()

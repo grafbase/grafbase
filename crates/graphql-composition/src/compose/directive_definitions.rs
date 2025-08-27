@@ -33,7 +33,7 @@ pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
             if definition.locations != first_definition.locations {
                 let mut diagnostic = format!(
                     "Directive `{}` is defined with different locations:\n",
-                    ctx.subgraphs.walk(first_definition.name).as_str()
+                    ctx.subgraphs[first_definition.name].as_ref()
                 );
 
                 for def in [first_definition, definition] {
@@ -41,7 +41,7 @@ pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
                         diagnostic,
                         " {} in {}",
                         def.locations,
-                        ctx.subgraphs.walk_subgraph(def.subgraph_id).name().as_str(),
+                        ctx.subgraphs[ctx.subgraphs.at(def.subgraph_id).name].as_ref(),
                     )
                     .unwrap();
                 }
@@ -67,7 +67,7 @@ pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
                 {
                     let mut diagnostic = format!(
                         "Directive `{}` is defined with incompatible arguments:\n",
-                        ctx.subgraphs.walk(first_definition.name).as_str(),
+                        ctx.subgraphs[first_definition.name].as_ref(),
                     );
 
                     for def in [first_definition, definition] {
@@ -77,10 +77,9 @@ pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
                             def.arguments
                                 .iter()
                                 .cloned()
-                                .map(|arg| ctx.subgraphs.walk(arg).to_string())
-                                .collect::<Vec<_>>()
+                                .map(|arg| arg.display(ctx.subgraphs).to_string())
                                 .join(", "),
-                            ctx.subgraphs.walk_subgraph(def.subgraph_id).name().as_str(),
+                            ctx.subgraphs[ctx.subgraphs.at(def.subgraph_id).name].as_ref(),
                         )
                         .unwrap();
                     }
@@ -115,7 +114,7 @@ pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
             if definition.arguments != first_definition.arguments {
                 let mut diagnostic = format!(
                     "Directive `{}` is defined with different arguments:\n",
-                    ctx.subgraphs.walk(first_definition.name).as_str()
+                    ctx.subgraphs[first_definition.name].as_ref()
                 );
 
                 for def in [first_definition, definition] {
@@ -125,10 +124,9 @@ pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
                         def.arguments
                             .iter()
                             .cloned()
-                            .map(|arg| ctx.subgraphs.walk(arg).to_string())
-                            .collect::<Vec<_>>()
+                            .map(|arg| arg.display(ctx.subgraphs).to_string())
                             .join(", "),
-                        ctx.subgraphs.walk_subgraph(def.subgraph_id).name().as_str(),
+                        ctx.subgraphs[ctx.subgraphs.at(def.subgraph_id).name].as_ref(),
                     )
                     .unwrap();
                 }
@@ -138,12 +136,9 @@ pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
             if definition.repeatable != first_definition.repeatable {
                 ctx.diagnostics.push_fatal(format!(
                     "Directive `{}` is defined as repeatable in {} but not in {}.",
-                    ctx.subgraphs.walk(first_definition.name).as_str(),
-                    ctx.subgraphs.walk_subgraph(definition.subgraph_id).name().as_str(),
-                    ctx.subgraphs
-                        .walk_subgraph(first_definition.subgraph_id)
-                        .name()
-                        .as_str(),
+                    ctx.subgraphs[first_definition.name].as_ref(),
+                    ctx.subgraphs[ctx.subgraphs.at(definition.subgraph_id).name].as_ref(),
+                    ctx.subgraphs[ctx.subgraphs.at(first_definition.subgraph_id).name].as_ref(),
                 ));
                 continue 'directives;
             }

@@ -3,7 +3,7 @@ use crate::diagnostics::CompositeSchemasSourceSchemaValidationErrorCode;
 
 /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Query-Root-Type-Inaccessible
 pub(crate) fn query_root_type_inaccessible(ctx: &mut ValidateContext<'_>) {
-    for subgraph in ctx.subgraphs.iter_subgraph_views() {
+    for subgraph in ctx.subgraphs.iter_subgraphs() {
         let Some(query_root) = subgraph.query_type else {
             continue;
         };
@@ -24,18 +24,17 @@ pub(crate) fn query_root_type_inaccessible(ctx: &mut ValidateContext<'_>) {
 }
 
 /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Lookup-Returns-Non-Nullable-Type
-pub(crate) fn lookup_returns_non_nullable_type(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldWalker<'_>) {
-    if field.r#type().is_required()
+pub(crate) fn lookup_returns_non_nullable_type(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldView<'_>) {
+    if field.r#type.is_required()
         && field
-            .id
-            .1
             .directives
             .iter_ir_directives(ctx.subgraphs)
             .any(|directive| matches!(directive, crate::composition_ir::Directive::CompositeLookup(_)))
     {
-        let source_schema_name = field.parent_definition().subgraph().name().as_str();
-        let parent_definition_name = field.parent_definition().name().as_str();
-        let field_name = field.name().as_str();
+        let parent_definition = ctx.subgraphs.at(field.parent_definition_id);
+        let source_schema_name = ctx.subgraphs[ctx.subgraphs.at(parent_definition.subgraph_id).name].as_ref();
+        let parent_definition_name = ctx.subgraphs[parent_definition.name].as_ref();
+        let field_name = ctx.subgraphs[field.name].as_ref();
 
         let message = format!(
             "The \"{parent_definition_name}.{field_name}\" lookup field is required, but fields annotated with @lookup should be nullable.",
@@ -49,22 +48,25 @@ pub(crate) fn lookup_returns_non_nullable_type(ctx: &mut ValidateContext<'_>, fi
     }
 }
 
-pub(crate) fn override_from_self(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldWalker<'_>) {
-    let Some(r#override) = field.id.1.directives.r#override(ctx.subgraphs) else {
+pub(crate) fn override_from_self(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldView<'_>) {
+    let Some(r#override) = field.directives.r#override(ctx.subgraphs) else {
         return;
     };
 
-    if r#override.from != field.parent_definition().subgraph().name().id {
+    let parent_definition = ctx.subgraphs.at(field.parent_definition_id);
+    let parent_subgraph = ctx.subgraphs.at(parent_definition.subgraph_id);
+
+    if r#override.from != parent_subgraph.name {
         return;
     }
 
     ctx.diagnostics.push_composite_schemas_source_schema_validation_error(
-        field.parent_definition().subgraph().name().as_str(),
+        &ctx.subgraphs[parent_subgraph.name],
         format!(
             r#"Source and destination subgraphs "{subgraph_name}" are the same for overridden field "{parent_definition_name}.{field_name}""#,
-            subgraph_name = field.parent_definition().subgraph().name().as_str(),
-            parent_definition_name = field.parent_definition().name().as_str(),
-            field_name = field.name().as_str()
+            subgraph_name = ctx.subgraphs[parent_subgraph.name],
+            parent_definition_name = ctx.subgraphs[parent_definition.name],
+            field_name = ctx.subgraphs[field.name]
         ),
         CompositeSchemasSourceSchemaValidationErrorCode::OverrideFromSelf,
     );

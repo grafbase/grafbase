@@ -11,6 +11,8 @@ pub(crate) struct Definitions {
     interface_definitions_to_subgraphs: BTreeMap<(StringId, StringId), Vec<SubgraphId>>,
 }
 
+pub(crate) type DefinitionView<'a> = View<'a, DefinitionId, Definition>;
+
 #[derive(Debug)]
 pub(crate) struct Definition {
     pub(crate) subgraph_id: SubgraphId,
@@ -114,14 +116,14 @@ impl Subgraphs {
     }
 
     pub(crate) fn push_interface_impl(&mut self, implementer: DefinitionId, implemented_interface: DefinitionId) {
-        let implementer_name = self.walk(implementer).name().id;
-        let implementee_name = self.walk(implemented_interface).name().id;
+        let implementer_name = self.at(implementer).name;
+        let implementee_name = self.at(implemented_interface).name;
 
         self.definitions
             .interface_impls
             .insert((implementee_name, implementer_name));
 
-        let subgraph_id = self.walk(implementer).subgraph_id();
+        let subgraph_id = self.at(implementer).subgraph_id;
 
         match self
             .definitions
@@ -138,28 +140,8 @@ impl Subgraphs {
     }
 }
 
-pub(crate) type DefinitionWalker<'a> = Walker<'a, DefinitionId>;
-
-impl<'a> DefinitionWalker<'a> {
-    pub fn name(self) -> StringWalker<'a> {
-        self.walk(self.view().name)
-    }
-
-    pub fn kind(self) -> DefinitionKind {
-        self.view().kind
-    }
-
-    pub(crate) fn subgraph_id(self) -> SubgraphId {
-        self.view().subgraph_id
-    }
-
-    pub(crate) fn subgraph(self) -> SubgraphWalker<'a> {
-        self.subgraphs.walk_subgraph(self.subgraph_id())
-    }
-}
-
 impl SubgraphId {
-    pub(crate) fn definitions(self, subgraphs: &Subgraphs) -> impl Iterator<Item = View<'_, DefinitionId, Definition>> {
+    pub(crate) fn definitions(self, subgraphs: &Subgraphs) -> impl Iterator<Item = DefinitionView<'_>> {
         let definitions = &subgraphs.definitions.definitions;
         let start = definitions.partition_point(|def| def.subgraph_id < self);
         let subgraph_definitions = definitions[start..]

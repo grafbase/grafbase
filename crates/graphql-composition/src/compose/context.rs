@@ -166,13 +166,13 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_interface_resolvable_key(
         &mut self,
         id: federated::InterfaceId,
-        key: subgraphs::KeyWalker<'_>,
+        key: subgraphs::KeyView<'_>,
         is_interface_object: bool,
     ) {
         self.ir.interfaces[usize::from(id)]
             .1
             .push(ir::Directive::JoinType(ir::JoinTypeDirective {
-                subgraph_id: federated::SubgraphId::from(key.parent_definition().subgraph_id().idx()),
+                subgraph_id: federated::SubgraphId::from(self.subgraphs.at(key.definition_id).subgraph_id.idx()),
                 key: Some(key.id),
                 is_interface_object,
             }))
@@ -255,7 +255,7 @@ impl<'a> Context<'a> {
     }
 
     pub(crate) fn insert_string(&mut self, string_id: subgraphs::StringId) -> federated::StringId {
-        self.ir.strings.insert(self.subgraphs.walk(string_id).as_str())
+        self.ir.strings.insert(self.subgraphs[string_id].as_ref())
     }
 
     // We need a separate method for strings that appear in the federated graph but were not

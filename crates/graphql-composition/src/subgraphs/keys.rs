@@ -181,29 +181,15 @@ pub(crate) struct FieldSelection {
     pub(crate) has_directives: bool,
 }
 
-pub(crate) type KeyWalker<'a> = Walker<'a, KeyId>;
+pub(crate) type KeyView<'a> = View<'a, KeyId, Key>;
 
-impl<'a> KeyWalker<'a> {
+impl<'a> KeyView<'a> {
     pub(crate) fn fields(self) -> &'a [Selection] {
-        self.view().record.selection_set.as_slice()
+        &self.record.selection_set
     }
 
     pub(crate) fn is_resolvable(self) -> bool {
-        self.view().resolvable
-    }
-
-    pub(crate) fn parent_definition(self) -> DefinitionWalker<'a> {
-        self.walk(self.view().definition_id)
-    }
-}
-
-impl<'a> DefinitionWalker<'a> {
-    pub(crate) fn is_entity(self) -> bool {
-        self.entity_keys().next().is_some()
-    }
-
-    pub(crate) fn entity_keys(self) -> impl Iterator<Item = KeyWalker<'a>> {
-        self.id.keys(self.subgraphs).map(move |view| self.walk(view.id))
+        self.record.resolvable
     }
 }
 
@@ -223,22 +209,5 @@ impl DefinitionId {
                 id: KeyId::from(start + idx),
                 record,
             })
-    }
-}
-
-impl FieldWalker<'_> {
-    /// Returns true iff there is an `@key` directive containing this field, possibly with others
-    /// as part of a composite key.
-    pub(crate) fn is_part_of_key(self) -> bool {
-        let (field_id @ FieldPath(_, field_name), _) = self.id;
-        self.parent_definition()
-            .entity_keys()
-            .flat_map(|key| key.fields().iter())
-            .filter_map(|selection| match selection {
-                Selection::Field(FieldSelection { field, .. }) => Some(field),
-                _ => None,
-            })
-            .any(|key_field| *key_field == field_name)
-            || self.subgraphs.keys.nested_key_fields.fields.contains(&field_id)
     }
 }

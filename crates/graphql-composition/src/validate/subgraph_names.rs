@@ -7,7 +7,7 @@ pub(crate) fn validate_subgraph_names(ctx: &mut ValidateContext<'_>) {
     let mut seen = HashSet::with_capacity(subgraphs.len());
 
     for subgraph in subgraphs {
-        let name = subgraph.name().as_str();
+        let name = ctx.subgraphs[subgraph.name].as_ref();
         validate_name(name, ctx);
 
         if !seen.insert(name.to_ascii_lowercase()) {

@@ -14,7 +14,8 @@ pub(super) fn ingest_input_fields(
         let field_name = field.name();
 
         directives::ingest_directives(ctx, directives, field.directives(), |subgraphs| {
-            format!("{}.{field_name}", subgraphs.walk(parent_definition_id).name().as_str(),)
+            let parent_definition = subgraphs.at(parent_definition_id);
+            format!("{}.{field_name}", subgraphs[parent_definition.name])
         });
 
         let description = field
@@ -98,7 +99,8 @@ pub(super) fn ingest_fields(
         });
 
         directives::ingest_directives(ctx, directives, field.directives(), |subgraphs| {
-            format!("{}.{}", subgraphs.walk(definition_id).name().as_str(), field_name)
+            let definition = subgraphs.at(definition_id);
+            format!("{}.{}", subgraphs[definition.name], field_name)
         });
 
         ingest_field_arguments(ctx, field_id, field.arguments());

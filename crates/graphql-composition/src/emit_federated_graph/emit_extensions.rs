@@ -21,9 +21,9 @@ pub(super) fn emit_extensions(ctx: &mut Context<'_>, ir: &CompositionIr) {
         if !ir.used_extensions[usize::from(extension.id)] {
             continue;
         }
-        let url = ctx.insert_string(ctx.subgraphs.walk(extension.url));
+        let url = ctx.insert_string(extension.url);
 
-        let extension_name_str = ctx.subgraphs.walk(extension.name).as_str();
+        let extension_name_str = ctx.subgraphs[extension.name].as_ref();
         let mut value = String::with_capacity(extension_name_str.len());
 
         for char in extension_name_str.chars() {
@@ -41,12 +41,12 @@ pub(super) fn emit_extensions(ctx: &mut Context<'_>, ir: &CompositionIr) {
                     let arguments = directive
                         .arguments
                         .iter()
-                        .map(|(name, value)| (ctx.insert_string(ctx.subgraphs.walk(*name)), ctx.insert_value(value)))
+                        .map(|(name, value)| (ctx.insert_string(*name), ctx.insert_value(value)))
                         .collect();
 
                     federated::ExtensionLinkSchemaDirective {
                         subgraph_id: subgraph_id.idx().into(),
-                        name: ctx.insert_string(ctx.subgraphs.walk(directive.name)),
+                        name: ctx.insert_string(directive.name),
                         arguments: Some(arguments),
                     }
                 })

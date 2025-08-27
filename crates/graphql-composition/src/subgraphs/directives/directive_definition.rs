@@ -1,6 +1,6 @@
 use super::*;
 use crate::federated_graph::{DirectiveLocations, display_graphql_string_literal};
-use std::fmt::Display;
+use std::fmt::{self, Display};
 
 pub(crate) struct DirectiveDefinition {
     pub(crate) subgraph_id: SubgraphId,
@@ -24,73 +24,102 @@ pub(crate) struct InputValueDefinitionDirective {
     pub(crate) arguments: Vec<(StringId, Value)>,
 }
 
-impl Display for Walker<'_, InputValueDefinition> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.subgraphs.walk(self.id.name).as_str())?;
-        f.write_str(": ")?;
-        Display::fmt(&self.subgraphs.walk(self.id.r#type), f)?;
+impl InputValueDefinition {
+    pub(crate) fn display<'a>(&'a self, subgraphs: &'a Subgraphs) -> impl fmt::Display + 'a {
+        struct DisplayImpl<'a>(&'a InputValueDefinition, &'a Subgraphs);
 
-        if let Some(default) = &self.id.default_value {
-            f.write_str(" = ")?;
-            Display::fmt(&self.subgraphs.walk(default), f)?;
+        impl fmt::Display for DisplayImpl<'_> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                let DisplayImpl(input_value_definition, subgraphs) = self;
+
+                f.write_str(&subgraphs[input_value_definition.name])?;
+                f.write_str(": ")?;
+                Display::fmt(&input_value_definition.r#type.display(subgraphs), f)?;
+
+                if let Some(default) = &input_value_definition.default_value {
+                    f.write_str(" = ")?;
+                    Display::fmt(&default.display(subgraphs), f)?;
+                }
+
+                for directive in &input_value_definition.directives {
+                    f.write_str(" ")?;
+                    Display::fmt(&directive.display(subgraphs), f)?;
+                }
+
+                Ok(())
+            }
         }
 
-        for directive in &self.id.directives {
-            f.write_str(" ")?;
-            Display::fmt(&self.subgraphs.walk(directive), f)?;
-        }
-
-        Ok(())
+        DisplayImpl(self, subgraphs)
     }
 }
 
-impl Display for Walker<'_, &'_ Value> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let subgraphs = self.subgraphs;
-        match self.id {
-            Value::String(string_id) => display_graphql_string_literal(subgraphs.walk(*string_id).as_str(), f),
-            Value::Int(int) => Display::fmt(int, f),
-            Value::Float(float) => Display::fmt(float, f),
-            Value::Boolean(b) => Display::fmt(b, f),
-            Value::Enum(string_id) => Display::fmt(subgraphs.walk(*string_id).as_str(), f),
-            Value::Object(vec) => {
-                f.write_str("{")?;
-                for (key, value) in vec {
-                    Display::fmt(subgraphs.walk(*key).as_str(), f)?;
+impl Value {
+    pub(crate) fn display<'a>(&'a self, subgraphs: &'a Subgraphs) -> impl fmt::Display + 'a {
+        struct DisplayImpl<'a>(&'a Value, &'a Subgraphs);
+
+        impl fmt::Display for DisplayImpl<'_> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                let DisplayImpl(value, subgraphs) = self;
+
+                match value {
+                    Value::String(string_id) => display_graphql_string_literal(&subgraphs[*string_id], f),
+                    Value::Int(int) => Display::fmt(int, f),
+                    Value::Float(float) => Display::fmt(float, f),
+                    Value::Boolean(b) => Display::fmt(b, f),
+                    Value::Enum(string_id) => Display::fmt(&subgraphs[*string_id], f),
+                    Value::Object(vec) => {
+                        f.write_str("{")?;
+                        for (key, value) in vec {
+                            Display::fmt(&subgraphs[*key], f)?;
+                            f.write_str(": ")?;
+                            Display::fmt(&value.display(subgraphs), f)?;
+                        }
+                        f.write_str("}")
+                    }
+                    Value::List(vec) => {
+                        f.write_str("[")?;
+                        for value in vec {
+                            Display::fmt(&value.display(subgraphs), f)?;
+                        }
+                        f.write_str("]")
+                    }
+                    Value::Null => f.write_str("null"),
+                }
+            }
+        }
+
+        DisplayImpl(self, subgraphs)
+    }
+}
+
+impl InputValueDefinitionDirective {
+    pub(crate) fn display<'a>(&'a self, subgraphs: &'a Subgraphs) -> impl fmt::Display + 'a {
+        struct DisplayImpl<'a>(&'a InputValueDefinitionDirective, &'a Subgraphs);
+
+        impl fmt::Display for DisplayImpl<'_> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                let DisplayImpl(directive, subgraphs) = self;
+
+                f.write_str("@")?;
+                f.write_str(&subgraphs[directive.name])?;
+
+                if directive.arguments.is_empty() {
+                    return Ok(());
+                }
+
+                f.write_str("(")?;
+
+                for argument in &directive.arguments {
+                    f.write_str(&subgraphs[argument.0])?;
                     f.write_str(": ")?;
-                    Display::fmt(&subgraphs.walk(value), f)?;
+                    argument.1.display(subgraphs).fmt(f)?;
                 }
-                f.write_str("}")
+
+                f.write_str(")")
             }
-            Value::List(vec) => {
-                f.write_str("[")?;
-                for value in vec {
-                    Display::fmt(&subgraphs.walk(value), f)?;
-                }
-                f.write_str("]")
-            }
-            Value::Null => f.write_str("null"),
-        }
-    }
-}
-
-impl Display for Walker<'_, &'_ InputValueDefinitionDirective> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("@")?;
-        f.write_str(self.subgraphs.walk(self.id.name).as_str())?;
-
-        if self.id.arguments.is_empty() {
-            return Ok(());
         }
 
-        f.write_str("(")?;
-
-        for argument in &self.id.arguments {
-            f.write_str(self.subgraphs.walk(argument.0).as_str())?;
-            f.write_str(": ")?;
-            Display::fmt(&self.subgraphs.walk(&argument.1), f)?;
-        }
-
-        f.write_str(")")
+        DisplayImpl(self, subgraphs)
     }
 }

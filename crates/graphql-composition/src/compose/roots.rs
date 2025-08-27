@@ -8,16 +8,16 @@ pub(super) fn merge_root_fields(ctx: &mut Context<'_>) {
     let mut subscription_types = Vec::new();
 
     for subgraph in ctx.subgraphs.iter_subgraphs() {
-        if let Some(query_type) = subgraph.query_type() {
-            query_types.push(query_type);
+        if let Some(query_type) = subgraph.query_type {
+            query_types.push(ctx.subgraphs.at(query_type));
         }
 
-        if let Some(mutation_type) = subgraph.mutation_type() {
-            mutation_types.push(mutation_type);
+        if let Some(mutation_type) = subgraph.mutation_type {
+            mutation_types.push(ctx.subgraphs.at(mutation_type));
         }
 
-        if let Some(subscription_type) = subgraph.subscription_type() {
-            subscription_types.push(subscription_type);
+        if let Some(subscription_type) = subgraph.subscription_type {
+            subscription_types.push(ctx.subgraphs.at(subscription_type));
         }
     }
 
@@ -36,7 +36,7 @@ pub(super) fn merge_root_fields(ctx: &mut Context<'_>) {
 
 fn merge_fields<'a>(
     root: &'static str,
-    definitions: &[subgraphs::DefinitionWalker<'a>],
+    definitions: &[subgraphs::DefinitionView<'a>],
     ctx: &mut Context<'a>,
 ) -> Option<federated::ObjectId> {
     if definitions.is_empty() {
@@ -44,12 +44,12 @@ fn merge_fields<'a>(
     }
 
     let type_name = ctx.insert_static_str(root);
-    let directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
+    let directives = collect_composed_directives(definitions.iter().map(|def| def.directives), ctx);
 
     let object_id = ctx.insert_object(type_name, None, directives);
 
     if let "Subscription" = root {
-        for definition in definitions.iter().map(|def| def.view()) {
+        for definition in definitions {
             if definition.directives.shareable(ctx.subgraphs) {
                 ctx.diagnostics.push_composite_schemas_post_merge_validation_error(
                     format!(
@@ -61,17 +61,17 @@ fn merge_fields<'a>(
             }
         }
 
-        fields::for_each_field_group(definitions, |fields| {
-            for shareable_field in fields
-                .iter()
-                .filter(|field| field.id.1.directives.shareable(ctx.subgraphs))
-            {
+        fields::for_each_field_group(ctx.subgraphs, definitions, |fields| {
+            for shareable_field in fields.iter().filter(|field| field.directives.shareable(ctx.subgraphs)) {
                 ctx.diagnostics.push_composite_schemas_post_merge_validation_error(
                     format!(
                         "[{}] Subscription root fields cannot be marked as @shareable: {}.{}.",
-                        shareable_field.parent_definition().subgraph().name().as_str(),
-                        shareable_field.parent_definition().name().as_str(),
-                        shareable_field.name().as_str()
+                        {
+                            let def = ctx.subgraphs.at(shareable_field.parent_definition_id);
+                            ctx.subgraphs[ctx.subgraphs.at(def.subgraph_id).name].as_ref()
+                        },
+                        ctx.subgraphs[ctx.subgraphs.at(shareable_field.parent_definition_id).name].as_ref(),
+                        ctx.subgraphs[shareable_field.name].as_ref()
                     ),
                     CompositeSchemasPostMergeValidationErrorCode::InvalidFieldSharing,
                 );

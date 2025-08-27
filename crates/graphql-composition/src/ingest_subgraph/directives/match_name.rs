@@ -112,7 +112,7 @@ fn match_directive_name_inner(
         _ => (),
     }
 
-    let federation_schema_has_been_linked = ctx.subgraphs[ctx.subgraph_id].federation_spec.is_apollo_v2();
+    let federation_schema_has_been_linked = ctx.subgraphs.at(ctx.subgraph_id).federation_spec.is_apollo_v2();
     let is_virtual_subgraph = ctx.subgraphs.at(ctx.subgraph_id).is_virtual();
 
     // We auto-import federation directives only in cases where the federation spec hasn't been `@link`ed, to match federation v1 behaviour, or when the subgraph is virtual, because there is no legacy use case there, these are a new Grafbase feature.

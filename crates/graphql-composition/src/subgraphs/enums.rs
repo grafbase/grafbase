@@ -11,36 +11,30 @@ impl Subgraphs {
     }
 }
 
-impl<'a> DefinitionWalker<'a> {
-    pub(crate) fn enum_value_by_name(self, name: StringId) -> Option<EnumValueWalker<'a>> {
-        self.subgraphs
-            .enums
-            .values
-            .get(&(self.id, name))
-            .map(|directives| EnumValueWalker {
-                id: (self.id, name, *directives),
-                subgraphs: self.subgraphs,
-            })
-    }
-
-    pub(crate) fn enum_values(self) -> impl Iterator<Item = EnumValueWalker<'a>> + 'a {
-        let id = self.id;
-        self.subgraphs
-            .enums
-            .values
-            .range((id, StringId::MIN)..(id, StringId::MAX))
-            .map(|((enum_id, value_name), directives)| EnumValueWalker {
-                id: (*enum_id, *value_name, *directives),
-                subgraphs: self.subgraphs,
-            })
-    }
+pub(crate) struct EnumValue {
+    pub(crate) parent_enum_id: DefinitionId,
+    pub(crate) name: StringId,
+    pub(crate) directives: DirectiveSiteId,
 }
 
-pub(crate) type EnumValueWalker<'a> = Walker<'a, (DefinitionId, StringId, DirectiveSiteId)>;
+impl DefinitionId {
+    pub(crate) fn enum_value_by_name(self, subgraphs: &Subgraphs, name: StringId) -> Option<EnumValue> {
+        subgraphs.enums.values.get(&(self, name)).map(|directives| EnumValue {
+            parent_enum_id: self,
+            name,
+            directives: *directives,
+        })
+    }
 
-impl<'a> EnumValueWalker<'a> {
-    pub(crate) fn name(self) -> StringWalker<'a> {
-        let (_enum_id, value_name, _directives) = self.id;
-        self.walk(value_name)
+    pub(crate) fn enum_values(self, subgraphs: &Subgraphs) -> impl Iterator<Item = EnumValue> {
+        subgraphs
+            .enums
+            .values
+            .range((self, StringId::MIN)..(self, StringId::MAX))
+            .map(|((enum_id, value_name), directives)| EnumValue {
+                parent_enum_id: *enum_id,
+                name: *value_name,
+                directives: *directives,
+            })
     }
 }

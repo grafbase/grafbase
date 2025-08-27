@@ -13,7 +13,7 @@ pub(super) fn ingest_enum_values(
             .push_enum_value(definition_id, value_name, value_directives);
 
         directives::ingest_directives(ctx, value_directives, value.directives(), |subgraphs| {
-            subgraphs.walk(definition_id).name().as_str().to_owned()
+            subgraphs[subgraphs.at(definition_id).name].as_ref().to_owned()
         });
     }
 }
