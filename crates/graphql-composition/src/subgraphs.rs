@@ -201,6 +201,6 @@ impl Subgraphs {
             .sort_unstable_by_key(|directive| directive.directive_site_id);
         self.fields
             .fields
-            .sort_unstable_by_key(|field| field.parent_definition_id);
+            .sort_unstable_by_key(|field| (field.parent_definition_id, field.name))
     }
 }

@@ -14,7 +14,11 @@ pub(super) fn merge_input_object_definitions(
     let intersection: HashSet<StringId> = first
         .fields()
         .map(|field| field.name().id)
-        .filter(|field_name| definitions[1..].iter().all(|def| def.find_field(*field_name).is_some()))
+        .filter(|field_name| {
+            definitions[1..]
+                .iter()
+                .all(|def| def.field_by_name(*field_name).is_some())
+        })
         .collect();
 
     let mut all_fields: Vec<_> = definitions

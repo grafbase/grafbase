@@ -26,7 +26,20 @@ pub(crate) struct Fields {
 /// An argument on an output field.
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub(crate) struct ArgumentRecord {
+    /// ```graphql,ignore
+    /// type Query {
+    ///   findManyUser(filters: FindManyUserFilter!): [User!]!
+    ///                ^^^^^^^
+    /// }
+    /// ```
+    pub(crate) name: StringId,
     pub(crate) parent_field: FieldPath,
+    /// ```graphql,ignore
+    /// type Query {
+    ///   findManyUser(filters: FindManyUserFilter!): [User!]!
+    ///                         ^^^^^^^^^^^^^^^^^^^
+    /// }
+    /// ```
     pub(crate) r#type: FieldType,
     pub(crate) description: Option<StringId>,
     pub(crate) directives: DirectiveSiteId,
@@ -93,6 +106,7 @@ impl Subgraphs {
             .fields
             .arguments
             .push_return_idx(ArgumentRecord {
+                name: argument_name,
                 r#type,
                 directives,
                 description,
@@ -225,6 +239,18 @@ impl DefinitionId {
                 record: field,
             })
     }
+
+    pub(crate) fn field_by_name(self, subgraphs: &Subgraphs, name: StringId) -> Option<View<'_, FieldId, FieldTuple>> {
+        subgraphs
+            .fields
+            .fields
+            .binary_search_by_key(&(self, name), |field| (field.parent_definition_id, field.name))
+            .ok()
+            .map(|idx| View {
+                id: idx.into(),
+                record: &subgraphs.fields.fields[idx],
+            })
+    }
 }
 
 impl<'a> DefinitionWalker<'a> {
@@ -234,25 +260,16 @@ impl<'a> DefinitionWalker<'a> {
             .map(move |field| self.walk((FieldPath(self.id, field.name), *field.record)))
     }
 
-    pub(crate) fn find_field(self, name: StringId) -> Option<FieldWalker<'a>> {
-        self.fields().find(|field| field.name().id == name)
+    pub(crate) fn field_by_name(self, name: StringId) -> Option<FieldWalker<'a>> {
+        self.id
+            .field_by_name(self.subgraphs, name)
+            .map(|field| self.walk((FieldPath(field.parent_definition_id, field.name), *field.record)))
     }
 }
 
 pub(crate) type FieldArgumentWalker<'a> = Walker<'a, (ArgumentPath, &'a ArgumentRecord)>;
 
 impl<'a> FieldArgumentWalker<'a> {
-    /// ```graphql,ignore
-    /// type Query {
-    ///   findManyUser(filters: FindManyUserFilter?): [User!]!
-    ///                ^^^^^^^
-    /// }
-    /// ```
-    pub(crate) fn name(&self) -> StringWalker<'a> {
-        let (ArgumentPath(_, _, name), _) = self.id;
-        self.walk(name)
-    }
-
     /// ```graphql,ignore
     /// type Query {
     ///   findManyUser(filters: FindManyUserFilter?): [User!]!
@@ -271,11 +288,5 @@ impl<'a> FieldArgumentWalker<'a> {
 
     pub(crate) fn default(&self) -> Option<&'a Value> {
         self.subgraphs.fields.field_argument_defaults.get(&self.id.0)
-    }
-
-    pub(crate) fn description(&self) -> Option<StringWalker<'a>> {
-        let (_, tuple) = self.id;
-        let description = tuple.description?;
-        Some(self.walk(description))
     }
 }

@@ -15,14 +15,14 @@ pub(super) fn merge_field_arguments<'a>(
 
     let intersection: HashSet<StringId> = first
         .arguments()
-        .map(|arg| arg.name().id)
+        .map(|arg| arg.id.1.name)
         .filter(|arg_name| fields[1..].iter().all(|def| def.argument_by_name(*arg_name).is_some()))
         .collect();
 
     let mut all_arguments = fields
         .iter()
         .flat_map(|def| def.arguments())
-        .map(|arg| (arg.name().id, arg))
+        .map(|arg| (arg.id.1.name, arg))
         .collect::<Vec<_>>();
 
     all_arguments.sort_by_key(|(name, _)| *name);
@@ -73,8 +73,8 @@ pub(super) fn merge_field_arguments<'a>(
 
         let description = arguments
             .iter()
-            .find_map(|(_, arg)| arg.description())
-            .map(|description| ctx.insert_string(description.id));
+            .find_map(|(_, arg)| arg.id.1.description)
+            .map(|description| ctx.insert_string(description));
 
         let name = ctx.insert_string(argument_name);
         let id = ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
@@ -129,7 +129,7 @@ fn compose_field_argument_defaults<'a>(
                 r#"The argument {type_name}.{field_name}.{argument_name} has incompatible defaults in subgraphs "{first_subgraph}" and "{second_subgraph}""#,
                 type_name = ctx.subgraphs[definition.name],
                 field_name = ctx.subgraphs[field_name],
-                argument_name = argument.name().as_str(),
+                argument_name = ctx.subgraphs[argument.id.1.name],
                 first_subgraph = ctx.subgraphs[first_subgraph.name],
                 second_subgraph = ctx.subgraphs[second_subgraph.name],
             ))
@@ -314,7 +314,7 @@ pub(crate) fn validate_shareable_object_fields_match(
 
     for definition in definitions {
         for field in all_fields.difference(&inaccessible_fields) {
-            if definition.find_field(*field).is_none() {
+            if definition.field_by_name(*field).is_none() {
                 ctx.diagnostics.push_fatal(format!(
                     "[{}] The shareable object `{}` is missing the `{}` field defined in other subgraphs.",
                     definition.subgraph().name().as_str(),

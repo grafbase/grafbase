@@ -117,7 +117,7 @@ fn validate_field_selection(
         return;
     }
     // The selected field must exist.
-    let Some(field) = on_definition.find_field(selection.field) else {
+    let Some(field) = on_definition.field_by_name(selection.field) else {
         return ctx.diagnostics.push_fatal(format!(
             "[{subgraph_name}] Error in @{directive_name} at {directive_path}: the {field_in_selection} field does not exist on {definition_name}",
             field_in_selection = ctx.subgraphs.walk(selection.field).as_str(),
@@ -130,12 +130,12 @@ fn validate_field_selection(
         .arguments()
         .filter(|arg| arg.r#type().is_required() && arg.default().is_none())
     {
-        let arg_name = required_argument.name();
-        if selection.arguments.iter().all(|(name, _)| *name != arg_name.id) {
+        let arg_name = required_argument.id.1.name;
+        if selection.arguments.iter().all(|(name, _)| *name != arg_name) {
             ctx.diagnostics.push_fatal(format!(
                 "[{subgraph_name}] Error in @{directive_name} on {directive_path}: the {field_name}.{arg_name} argument is required but not provided.",
                 field_name = field.name().as_str(),
-                arg_name = arg_name.as_str(),
+                arg_name = ctx.subgraphs[arg_name],
                 directive_path = directive_path(),
             ));
         }
@@ -204,7 +204,7 @@ fn argument_type_matches(
             };
 
             fields.iter().all(|(field_name, field_value)| {
-                let Some(inner_field) = input_object_type.find_field(*field_name) else {
+                let Some(inner_field) = input_object_type.field_by_name(*field_name) else {
                     return false;
                 };
 
