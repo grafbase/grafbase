@@ -20,6 +20,7 @@ use super::{SpaceEdge, SpaceNode, builder::QuerySolutionSpaceBuilder, providable
 struct IngestSelectionSet<'op> {
     parent_query_field_node_ix: NodeIndex,
     parent_output_type: CompositeTypeId,
+    depth: usize,
     selection_set: operation::SelectionSet<'op>,
 }
 
@@ -35,6 +36,7 @@ where
         let queue = vec![IngestSelectionSet {
             parent_query_field_node_ix: self.query.root_node_id,
             parent_output_type: CompositeTypeId::Object(self.operation.root_object_id),
+            depth: 0,
             selection_set: OperationContext {
                 schema: self.schema,
                 operation: self.operation,
@@ -47,6 +49,7 @@ where
             builder: self,
             queue,
             next_query_position: 0,
+            current_depth: 0,
             parent_type_conditions: Vec::new(),
             parent_directive_ids: Vec::new(),
             response_key_bloom_filter: 0,
@@ -62,7 +65,8 @@ struct OperationFieldsIngestor<'schema, 'op, 'builder> {
     builder: &'builder mut QuerySolutionSpaceBuilder<'schema, 'op>,
     // Needs to be a queue to have the right query_position for fields.
     queue: VecDeque<IngestSelectionSet<'op>>,
-    next_query_position: u32,
+    next_query_position: u16,
+    current_depth: usize,
     // Temporary structures for DFS
     parent_type_conditions: Vec<CompositeTypeId>,
     parent_directive_ids: Vec<ExecutableDirectiveId>,
@@ -79,11 +83,20 @@ where
             HashMap::with_capacity_and_hasher(self.builder.operation.data_fields.len() >> 2, Default::default());
         // We traverse in BFS to optimize our use of the QueryPosition which is a u16.
         while let Some(IngestSelectionSet {
+            depth,
             parent_query_field_node_ix,
             parent_output_type,
             selection_set,
         }) = self.queue.pop_front()
         {
+            debug_assert!(
+                self.current_depth <= depth,
+                "We should be iterating in BFS order, depth can only increase."
+            );
+            if self.current_depth < depth {
+                self.next_query_position = 0;
+                self.current_depth = depth;
+            }
             self.parent_type_conditions.clear();
             self.parent_directive_ids.clear();
             let bloom_filter = selection_set_to_response_key_bloom_filter
@@ -99,7 +112,10 @@ where
 
     fn next_query_position(&mut self) -> QueryPosition {
         let p = self.next_query_position;
-        self.next_query_position += 1;
+        // It doesn't really matter whether we wrap around. We're iterating on selection sets in
+        // BFS order and we reset whenever we go lower. So we there would need to be u16::MAX
+        // fields at a single level for us to provide inaccurate ordering.
+        self.next_query_position = self.next_query_position.wrapping_add(1);
         p.into()
     }
 
@@ -385,6 +401,7 @@ where
 
         if let Some(ty) = output_ty.and_then(|ty| ty.definition_id.as_composite_type()) {
             self.queue.push_back(IngestSelectionSet {
+                depth: self.current_depth + 1,
                 parent_query_field_node_ix: query_field_node_ix,
                 parent_output_type: ty,
                 selection_set: field.selection_set(),

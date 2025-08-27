@@ -94,11 +94,9 @@ where
         }
 
         loop {
-            state.local_path_mut().push(ResponseValueId::Index {
-                list_id,
-                index,
-                nullable: element_is_nullable,
-            });
+            state
+                .local_path_mut()
+                .push(ResponseValueId::index(list_id, index, element_is_nullable));
             let result = seq.next_element_seed(seed.clone());
             state.local_path_mut().pop();
             match result {

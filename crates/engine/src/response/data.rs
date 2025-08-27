@@ -181,12 +181,11 @@ impl DataPart {
     pub fn make_inaccessible(&mut self, value_id: ResponseValueId) {
         match value_id {
             ResponseValueId::Field {
-                object_id: ResponseObjectId { part_id, object_id },
-                query_position,
-                response_key,
+                part_id,
+                object_id,
+                key,
                 nullable,
             } => {
-                let key = response_key.with_position(query_position);
                 debug_assert!(part_id == self.id && nullable, "{part_id} == {} && {nullable}", self.id);
                 match self[object_id]
                     .fields_sorted_by_key
@@ -219,7 +218,8 @@ impl DataPart {
                 }
             }
             ResponseValueId::Index {
-                list_id: ResponseListId { part_id, list_id },
+                part_id,
+                list_id,
                 index,
                 nullable,
             } => {

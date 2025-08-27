@@ -1,7 +1,9 @@
 use std::cell::Ref;
 
 use error::{ErrorPath, InsertIntoErrorPath};
-use operation::{PositionedResponseKey, QueryPosition, ResponseKey};
+use operation::PositionedResponseKey;
+
+use crate::response::{PartListId, PartObjectId};
 
 use super::{DataPartId, ResponseListId, ResponseObjectId};
 
@@ -10,27 +12,41 @@ use super::{DataPartId, ResponseListId, ResponseObjectId};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ResponseValueId {
     Field {
-        object_id: ResponseObjectId,
-        query_position: Option<QueryPosition>,
-        response_key: ResponseKey,
+        part_id: DataPartId,
+        object_id: PartObjectId,
+        key: PositionedResponseKey,
         nullable: bool,
     },
     Index {
-        list_id: ResponseListId,
+        part_id: DataPartId,
+        list_id: PartListId,
         index: u32,
         nullable: bool,
     },
 }
 
 impl ResponseValueId {
-    pub fn field(object_id: ResponseObjectId, key: PositionedResponseKey, nullable: bool) -> Self {
+    pub fn field(
+        ResponseObjectId { part_id, object_id }: ResponseObjectId,
+        key: PositionedResponseKey,
+        nullable: bool,
+    ) -> Self {
         Self::Field {
+            part_id,
             object_id,
-            query_position: key.query_position,
-            response_key: key.response_key,
+            key,
             nullable,
         }
     }
+    pub fn index(ResponseListId { part_id, list_id }: ResponseListId, index: u32, nullable: bool) -> Self {
+        Self::Index {
+            part_id,
+            list_id,
+            index,
+            nullable,
+        }
+    }
+
     pub fn is_nullable(&self) -> bool {
         match self {
             ResponseValueId::Field { nullable, .. } => *nullable,
@@ -40,8 +56,8 @@ impl ResponseValueId {
 
     pub fn part_id(&self) -> DataPartId {
         match self {
-            ResponseValueId::Field { object_id, .. } => object_id.part_id,
-            ResponseValueId::Index { list_id, .. } => list_id.part_id,
+            ResponseValueId::Field { part_id, .. } => *part_id,
+            ResponseValueId::Index { part_id, .. } => *part_id,
         }
     }
 }
@@ -49,7 +65,7 @@ impl ResponseValueId {
 impl InsertIntoErrorPath for &ResponseValueId {
     fn insert_into(self, path: &mut ErrorPath) {
         match self {
-            ResponseValueId::Field { response_key, .. } => response_key.insert_into(path),
+            ResponseValueId::Field { key, .. } => key.insert_into(path),
             ResponseValueId::Index { index, .. } => index.insert_into(path),
         }
     }
@@ -86,6 +102,6 @@ impl ResponsePath for Ref<'_, Vec<ResponseValueId>> {
 #[cfg(test)]
 #[test]
 fn response_value_id_size() {
-    assert_eq!(std::mem::size_of::<ResponseValueId>(), 16);
+    assert_eq!(std::mem::size_of::<ResponseValueId>(), 12);
     assert_eq!(std::mem::align_of::<ResponseValueId>(), 4);
 }

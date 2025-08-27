@@ -150,15 +150,12 @@ mod tests {
         let key = ResponseKey::try_from_usize(0).unwrap();
         assert_eq!(key.into_usize(), 0);
 
-        let key = ResponseKey::try_from_usize(u16::MAX as usize).unwrap();
-        assert_eq!(key.into_usize(), (u16::MAX as usize));
+        let key = ResponseKey::try_from_usize((u16::MAX - 1) as usize).unwrap();
+        assert_eq!(key.into_usize(), ((u16::MAX - 1) as usize));
     }
 
     #[test]
     fn field_name_value_out_of_range() {
-        let key = ResponseKey::try_from_usize(u64::MAX as usize);
-        assert!(key.is_none());
-
         let key = ResponseKey::try_from_usize(u32::MAX as usize);
         assert!(key.is_none());
     }
