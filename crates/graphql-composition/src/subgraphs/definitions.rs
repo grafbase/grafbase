@@ -166,26 +166,30 @@ impl<'a> DefinitionWalker<'a> {
     }
 }
 
-impl<'a> SubgraphWalker<'a> {
-    pub(crate) fn definitions(self) -> impl Iterator<Item = DefinitionWalker<'a>> {
-        let (subgraph_id, _) = self.id;
-        let definitions = &self.subgraphs.definitions.definitions;
-        let start = definitions.partition_point(|def| def.subgraph_id < subgraph_id);
+impl SubgraphId {
+    pub(crate) fn definitions(self, subgraphs: &Subgraphs) -> impl Iterator<Item = View<'_, DefinitionId, Definition>> {
+        let definitions = &subgraphs.definitions.definitions;
+        let start = definitions.partition_point(|def| def.subgraph_id < self);
         let subgraph_definitions = definitions[start..]
             .iter()
-            .take_while(move |def| def.subgraph_id == subgraph_id);
-        subgraph_definitions
-            .enumerate()
-            .map(move |(idx, _)| self.walk(DefinitionId::from(idx + start)))
+            .take_while(move |def| def.subgraph_id == self);
+        subgraph_definitions.enumerate().map(move |(idx, record)| View {
+            id: (start + idx).into(),
+            record,
+        })
     }
 
-    pub(crate) fn interface_implementers(self, interface_name: StringId) -> impl Iterator<Item = DefinitionWalker<'a>> {
-        self.subgraphs
+    /// Implementers of the given interface in this subgraph.
+    pub(crate) fn interface_implementers(
+        self,
+        subgraphs: &Subgraphs,
+        interface_name: StringId,
+    ) -> impl Iterator<Item = DefinitionId> {
+        subgraphs
             .definitions
             .interface_impls
             .iter()
             .filter(move |(implementee, _implementer)| *implementee == interface_name)
-            .filter_map(move |(_, implementer)| self.subgraphs.definition_names.get(&(*implementer, self.id.0)))
-            .map(move |id| self.walk(*id))
+            .filter_map(move |(_, implementer)| subgraphs.definition_names.get(&(*implementer, self)).copied())
     }
 }

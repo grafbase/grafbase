@@ -1,3 +1,5 @@
+use crate::emit_federated_graph::context::UsedDirectives;
+
 use super::*;
 use wrapping::Wrapping;
 
@@ -354,6 +356,34 @@ pub(super) fn emit_federation_builtins(ctx: &mut Context<'_>, join_graph_enum_id
                 directives: Vec::new(),
                 description: None,
                 default: Some(federated::Value::Boolean(false)),
+            },
+        );
+    }
+
+    // directive @join__enumValue(
+    //   graph: join__Graph!,
+    // ) repeatable on ENUM_VALUE
+    if ctx.used_directives.contains(UsedDirectives::JOIN_ENUM_VALUE) {
+        let name = ctx.insert_str("enumValue");
+
+        let directive_definition_id = ctx.out.push_directive_definition(federated::DirectiveDefinitionRecord {
+            namespace: join_namespace,
+            name,
+            locations: federated::DirectiveLocations::ENUM_VALUE,
+            repeatable: true,
+        });
+
+        ctx.out.push_directive_definition_argument(
+            directive_definition_id,
+            federated::InputValueDefinition {
+                name: graph_str,
+                r#type: federated::Type {
+                    wrapping: Wrapping::default().non_null(),
+                    definition: federated::Definition::Enum(join_graph_enum_id),
+                },
+                directives: Vec::new(),
+                description: None,
+                default: None,
             },
         );
     }

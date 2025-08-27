@@ -13,6 +13,8 @@ directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: j
 
 directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
 
+directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
+
 directive @join__owner(graph: join__Graph!) on OBJECT
 
 scalar DateTime
@@ -74,9 +76,9 @@ type Query
 enum ObserverType
   @join__type(graph: OBSERVATIONS)
 {
-  AMATEUR
-  SEMIPROFESSIONAL @deprecated(reason: "No such thing as semiprofessionals")
-  PROFESSIONAL
+  AMATEUR @join__enumValue(graph: OBSERVATIONS)
+  SEMIPROFESSIONAL @deprecated(reason: "No such thing as semiprofessionals") @join__enumValue(graph: OBSERVATIONS)
+  PROFESSIONAL @join__enumValue(graph: OBSERVATIONS)
 }
 
 enum join__Graph

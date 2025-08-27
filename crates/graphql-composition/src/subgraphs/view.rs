@@ -1,6 +1,7 @@
 use super::Subgraphs;
 use std::ops::{Deref, Index};
 
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct View<'a, Id, Record> {
     pub(crate) id: Id,
     pub(crate) record: &'a Record,

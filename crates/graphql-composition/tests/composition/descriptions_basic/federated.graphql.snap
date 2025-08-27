@@ -13,6 +13,8 @@ directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: j
 
 directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
 
+directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
+
 directive @join__owner(graph: join__Graph!) on OBJECT
 
 """
@@ -151,9 +153,9 @@ enum TofuType
   @join__type(graph: SELFEXPLANATORYTOFU)
   @join__type(graph: TOFU)
 {
-  SILKEN
-  FIRM
-  EXTRA_FIRM
+  SILKEN @join__enumValue(graph: SELFEXPLANATORYTOFU) @join__enumValue(graph: TOFU)
+  FIRM @join__enumValue(graph: SELFEXPLANATORYTOFU) @join__enumValue(graph: TOFU)
+  EXTRA_FIRM @join__enumValue(graph: SELFEXPLANATORYTOFU) @join__enumValue(graph: TOFU)
 }
 
 enum join__Graph

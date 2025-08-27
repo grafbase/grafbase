@@ -13,6 +13,8 @@ directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: j
 
 directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
 
+directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
+
 directive @join__owner(graph: join__Graph!) on OBJECT
 
 scalar Scalar8
@@ -88,7 +90,7 @@ type Query
 enum Enum553
   @join__type(graph: BIG)
 {
-  VALUE_1
+  VALUE_1 @join__enumValue(graph: BIG)
 }
 
 enum join__Graph

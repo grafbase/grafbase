@@ -100,6 +100,10 @@ pub(crate) fn write_directive<'a, 'b: 'a>(
         Directive::ExtensionDirective(directive) => {
             render_extension_directive(f, directive, graph)?;
         }
+        Directive::JoinEnumValue(JoinEnumValueDirective { graph: subgraph_id }) => {
+            DirectiveWriter::new("join__enumValue", f, graph)?
+                .arg("graph", Value::EnumValue(graph.at(*subgraph_id).join_graph_enum_value))?;
+        }
         Directive::JoinField(directive) => {
             render_join_field_directive(f, directive, graph)?;
         }

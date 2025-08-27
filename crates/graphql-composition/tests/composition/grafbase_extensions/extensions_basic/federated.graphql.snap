@@ -1,7 +1,7 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
 expression: "A test with three extensions, used in different subgraphs with different imports. We expect to see the `extension__Link` enum and `extension__directive` instances in the right places.\n\nAlso note we have a facebook linked schema, that should not appear in the federated graph."
-input_file: crates/graphql-composition/tests/composition/extensions_basic/test.md
+input_file: crates/graphql-composition/tests/composition/grafbase_extensions/extensions_basic/test.md
 ---
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
@@ -12,6 +12,8 @@ directive @join__graph(name: String!, url: String) on ENUM_VALUE
 directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
 
 directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
@@ -86,18 +88,18 @@ enum AppointmentStatus
   @extension__directive(graph: APPOINTMENTS, extension: KAFKA, name: "message", arguments: {topic: "appointments"})
   @join__type(graph: APPOINTMENTS)
 {
-  SCHEDULED
-  COMPLETED
-  CANCELLED
+  SCHEDULED @join__enumValue(graph: APPOINTMENTS)
+  COMPLETED @join__enumValue(graph: APPOINTMENTS)
+  CANCELLED @join__enumValue(graph: APPOINTMENTS)
 }
 
 enum DoctorType
   @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "databaseEnum", arguments: {name: "dr_type"})
   @join__type(graph: DOCTORS)
 {
-  CARDIOLOGIST @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "databaseEnumValue", arguments: {value: "cardiologist_t"})
-  PEDIATRICIAN @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "databaseEnumValue", arguments: {value: "pediatrician_t"})
-  SURGEON
+  CARDIOLOGIST @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "databaseEnumValue", arguments: {value: "cardiologist_t"}) @join__enumValue(graph: DOCTORS)
+  PEDIATRICIAN @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "databaseEnumValue", arguments: {value: "pediatrician_t"}) @join__enumValue(graph: DOCTORS)
+  SURGEON @join__enumValue(graph: DOCTORS)
 }
 
 enum join__Graph

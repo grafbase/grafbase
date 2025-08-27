@@ -149,10 +149,9 @@ pub(crate) struct NestedKeyFields {
 }
 
 impl NestedKeyFields {
-    pub(crate) fn insert(&mut self, field: FieldWalker<'_>) {
-        let (id, _) = field.id;
-        self.fields.insert(id);
-        self.objects_with_nested_keys.insert(field.parent_definition().id);
+    pub(crate) fn insert(&mut self, field: &FieldTuple) {
+        self.fields.insert(FieldPath(field.parent_definition_id, field.name));
+        self.objects_with_nested_keys.insert(field.parent_definition_id);
     }
 }
 
@@ -204,7 +203,7 @@ impl<'a> DefinitionWalker<'a> {
     }
 
     pub(crate) fn entity_keys(self) -> impl Iterator<Item = KeyWalker<'a>> {
-        self.id.keys(self.subgraphs).map(move |id| self.walk(id))
+        self.id.keys(self.subgraphs).map(move |view| self.walk(view.id))
     }
 }
 
@@ -213,14 +212,17 @@ impl DefinitionId {
         self.keys(subgraphs).next().is_some()
     }
 
-    pub(crate) fn keys(self, subgraphs: &Subgraphs) -> impl Iterator<Item = KeyId> + '_ {
+    pub(crate) fn keys(self, subgraphs: &Subgraphs) -> impl Iterator<Item = View<'_, KeyId, Key>> + '_ {
         let start = subgraphs.keys.keys.partition_point(|key| key.definition_id < self);
 
         subgraphs.keys.keys[start..]
             .iter()
             .take_while(move |key| key.definition_id == self)
             .enumerate()
-            .map(move |(idx, _)| KeyId::from(start + idx))
+            .map(move |(idx, record)| View {
+                id: KeyId::from(start + idx),
+                record,
+            })
     }
 }
 

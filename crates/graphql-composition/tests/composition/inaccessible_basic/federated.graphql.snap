@@ -13,6 +13,8 @@ directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: j
 
 directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
 
+directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
+
 directive @join__owner(graph: join__Graph!) on OBJECT
 
 scalar Time
@@ -119,11 +121,11 @@ enum UngulateType
   @inaccessible
   @join__type(graph: FIVE_WITH_ENUM)
 {
-  DEER
-  HORSE @inaccessible
-  CAMEL
-  RHINOCEROS
-  GIRAFFE
+  DEER @join__enumValue(graph: FIVE_WITH_ENUM)
+  HORSE @inaccessible @join__enumValue(graph: FIVE_WITH_ENUM)
+  CAMEL @join__enumValue(graph: FIVE_WITH_ENUM)
+  RHINOCEROS @join__enumValue(graph: FIVE_WITH_ENUM)
+  GIRAFFE @join__enumValue(graph: FIVE_WITH_ENUM)
 }
 
 enum join__Graph

@@ -13,6 +13,8 @@ directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: j
 
 directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
 
+directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
+
 directive @join__owner(graph: join__Graph!) on OBJECT
 
 scalar join__FieldSet
@@ -41,9 +43,9 @@ type Query
 enum Status
   @join__type(graph: SEARCH)
 {
-  ACTIVE
-  INACTIVE
-  PENDING
+  ACTIVE @join__enumValue(graph: SEARCH)
+  INACTIVE @join__enumValue(graph: SEARCH)
+  PENDING @join__enumValue(graph: SEARCH)
 }
 
 enum join__Graph

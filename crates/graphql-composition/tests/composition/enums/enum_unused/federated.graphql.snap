@@ -1,7 +1,7 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
 expression: Federated SDL
-input_file: crates/graphql-composition/tests/composition/enum_unused/test.md
+input_file: crates/graphql-composition/tests/composition/enums/enum_unused/test.md
 ---
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
@@ -12,6 +12,8 @@ directive @join__graph(name: String!, url: String) on ENUM_VALUE
 directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
 
 directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
@@ -32,8 +34,8 @@ type Query
 enum UserType
   @join__type(graph: THESCHEMA)
 {
-  ADMIN
-  REGULAR
+  ADMIN @join__enumValue(graph: THESCHEMA)
+  REGULAR @join__enumValue(graph: THESCHEMA)
 }
 
 enum join__Graph

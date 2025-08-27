@@ -172,6 +172,11 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
                 arguments: Some(arguments),
             })
         }
+        ir::Directive::JoinEnumValue(directive) => {
+            ctx.used_directives |= UsedDirectives::JOIN_ENUM_VALUE;
+            federated::Directive::JoinEnumValue(directive.clone())
+        }
+
         ir::Directive::JoinField(_)
         | ir::Directive::JoinType(_)
         | ir::Directive::ListSize(_)

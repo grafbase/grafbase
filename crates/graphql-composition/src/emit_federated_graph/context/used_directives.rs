@@ -9,5 +9,6 @@ bitflags! {
         const COMPOSITE_IS = 1 << 4;
         const COMPOSITE_DERIVE = 1 << 5;
         const COMPOSITE_INTERNAL = 1 << 6;
+        const JOIN_ENUM_VALUE = 1 << 7;
     }
 }

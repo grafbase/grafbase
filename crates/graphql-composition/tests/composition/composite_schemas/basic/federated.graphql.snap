@@ -1,8 +1,14 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
 expression: Federated SDL
-input_file: crates/graphql-composition/tests/composition/composite_schema/test.md
+input_file: crates/graphql-composition/tests/composition/composite_schemas/basic/test.md
 ---
+directive @composite__lookup on FIELD_DEFINITION
+
+directive @composite__require(field: composite__FieldSelectionMap!) on ARGUMENT_DEFINITION
+
+directive @composite__is(field: composite__FieldSelectionMap!) on FIELD_DEFINITION | ARGUMENT_DEFINITION
+
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -15,15 +21,9 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolea
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-directive @composite__lookup on FIELD_DEFINITION
-
-directive @composite__require(field: composite__FieldSelectionMap!) on ARGUMENT_DEFINITION
-
-directive @composite__is(field: composite__FieldSelectionMap!) on FIELD_DEFINITION | ARGUMENT_DEFINITION
+scalar composite__FieldSelectionMap
 
 scalar join__FieldSet
-
-scalar composite__FieldSelectionMap
 
 type User
   @join__type(graph: A, key: "id", resolvable: false)

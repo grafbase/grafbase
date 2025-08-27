@@ -5,20 +5,19 @@ use crate::subgraphs::*;
 pub(super) fn ingest_nested_key_fields(ctx: &mut Context<'_>) {
     let subgraph_id = ctx.subgraph_id;
     ctx.subgraphs.with_nested_key_fields(|subgraphs, nested_key_fields| {
-        for definition in subgraphs.walk_subgraph(subgraph_id).definitions() {
-            for key in definition.entity_keys() {
-                for selection in key.fields() {
+        for definition in subgraph_id.definitions(subgraphs) {
+            for key in definition.id.keys(subgraphs) {
+                for selection in &key.selection_set {
                     let Selection::Field(field) = selection else { continue };
 
-                    let Some(field_type) = definition
-                        .field_by_name(field.field)
-                        .and_then(|field| field.r#type().definition(subgraph_id))
-                    else {
+                    let Some(field_type) = definition.id.field_by_name(subgraphs, field.field).and_then(|field| {
+                        subgraphs.definition_by_name_id(field.r#type.definition_name_id, subgraph_id)
+                    }) else {
                         continue;
                     };
 
                     for subselection_field in &field.subselection {
-                        ingest_nested_key_fields_rec(field_type, subselection_field, nested_key_fields);
+                        ingest_nested_key_fields_rec(subgraphs, field_type, subselection_field, nested_key_fields);
                     }
                 }
             }
@@ -27,7 +26,8 @@ pub(super) fn ingest_nested_key_fields(ctx: &mut Context<'_>) {
 }
 
 fn ingest_nested_key_fields_rec(
-    parent_definition: DefinitionWalker<'_>,
+    subgraphs: &Subgraphs,
+    parent_definition: DefinitionId,
     selection: &Selection,
     nested_key_fields: &mut NestedKeyFields,
 ) {
@@ -41,21 +41,24 @@ fn ingest_nested_key_fields_rec(
         return;
     };
 
-    let Some(field) = parent_definition.field_by_name(*field) else {
+    let Some(field) = parent_definition.field_by_name(subgraphs, *field) else {
         return;
     };
 
-    nested_key_fields.insert(field);
+    nested_key_fields.insert(field.record);
 
     if subselection.is_empty() {
         return;
     }
 
-    let Some(selection_field_type) = field.r#type().definition(parent_definition.subgraph_id()) else {
+    let Some(selection_field_type) = subgraphs.definition_by_name_id(
+        field.r#type.definition_name_id,
+        subgraphs.at(parent_definition).subgraph_id,
+    ) else {
         return;
     };
 
     for subselection in subselection {
-        ingest_nested_key_fields_rec(selection_field_type, subselection, nested_key_fields);
+        ingest_nested_key_fields_rec(subgraphs, selection_field_type, subselection, nested_key_fields);
     }
 }
