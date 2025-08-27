@@ -270,6 +270,10 @@ pub(super) fn ingest_directives(
                 )
             }
 
+            DirectiveNameMatch::LocallyDefined(_) => {
+                // do nothing
+            }
+
             DirectiveNameMatch::NoMatch => {
                 let location = location(ctx.subgraphs);
                 let directive_name = ctx.subgraphs.at(directive_name_id);

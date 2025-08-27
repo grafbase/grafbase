@@ -1,0 +1,12 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: API SDL
+input_file: crates/graphql-composition/tests/composition/warnings/unknown_directive_basic/test.md
+---
+type TypeOne {
+  fieldOne: String!
+}
+
+type Query {
+  typeOne: TypeOne
+}

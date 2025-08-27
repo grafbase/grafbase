@@ -1,7 +1,22 @@
 use super::*;
 use crate::federated_graph::DirectiveLocations;
 
-pub(super) fn ingest_directive_definition(
+pub(super) fn ingest_directive_definitions(ctx: &mut Context<'_>) {
+    for definition in ctx.document.definitions() {
+        match definition {
+            ast::Definition::Directive(directive_definition) => {
+                let definition_name_id = ctx.subgraphs.strings.intern(directive_definition.name());
+                ingest_directive_definition(ctx, directive_definition, definition_name_id);
+            }
+            ast::Definition::Schema(_)
+            | ast::Definition::SchemaExtension(_)
+            | ast::Definition::TypeExtension(_)
+            | ast::Definition::Type(_) => {}
+        }
+    }
+}
+
+fn ingest_directive_definition(
     ctx: &mut Context<'_>,
     directive_definition: ast::DirectiveDefinition<'_>,
     name: subgraphs::StringId,

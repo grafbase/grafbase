@@ -9,7 +9,9 @@ mod fields;
 mod nested_key_fields;
 mod schema_definitions;
 
-use self::{directives::*, nested_key_fields::ingest_nested_key_fields, schema_definitions::*};
+use self::{
+    directive_definitions::*, directives::*, nested_key_fields::ingest_nested_key_fields, schema_definitions::*,
+};
 use crate::{
     Subgraphs,
     subgraphs::{self, DefinitionId, DefinitionKind, DirectiveSiteId, SubgraphId},
@@ -44,6 +46,7 @@ pub(crate) fn ingest_subgraph(
         root_type_matcher: Default::default(),
     };
 
+    ingest_directive_definitions(&mut ctx);
     ingest_schema_definitions(&mut ctx);
 
     ingest_top_level_definitions(&mut ctx);
@@ -130,15 +133,7 @@ fn ingest_top_level_definitions(ctx: &mut Context<'_>) {
 
                 directives::ingest_keys(definition_id, type_definition.directives(), ctx);
             }
-            ast::Definition::Directive(directive_definition) => {
-                let definition_name_id = ctx.subgraphs.strings.intern(directive_definition.name());
-
-                if !ctx.subgraphs.is_composed_directive(ctx.subgraph_id, definition_name_id) {
-                    continue;
-                }
-                directive_definitions::ingest_directive_definition(ctx, directive_definition, definition_name_id);
-            }
-            ast::Definition::Schema(_) | ast::Definition::SchemaExtension(_) => (),
+            ast::Definition::Directive(_) | ast::Definition::Schema(_) | ast::Definition::SchemaExtension(_) => (),
         }
     }
 }

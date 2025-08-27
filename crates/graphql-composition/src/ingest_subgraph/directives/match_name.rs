@@ -35,7 +35,20 @@ pub(in crate::ingest_subgraph) fn match_directive_name(
 
     let directive_name_id = ctx.subgraphs.strings.intern(directive_name);
 
-    let matched = match_directive_name_inner(ctx, directive_name_id, linked_schema_id, directive_name);
+    let matched = match match_directive_name_inner(ctx, directive_name_id, linked_schema_id, directive_name) {
+        DirectiveNameMatch::NoMatch => {
+            if let Some(definition) = ctx
+                .subgraph_id
+                .iter_directive_definitions(ctx.subgraphs)
+                .find(|definition| directive_name_id == definition.name)
+            {
+                DirectiveNameMatch::LocallyDefined(definition.id)
+            } else {
+                DirectiveNameMatch::NoMatch
+            }
+        }
+        other => other,
+    };
 
     (directive_name_id, matched)
 }
@@ -159,6 +172,7 @@ pub(in crate::ingest_subgraph) enum DirectiveNameMatch {
     Imported {
         linked_definition_id: subgraphs::LinkedDefinitionId,
     },
+    LocallyDefined(#[expect(unused)] subgraphs::DirectiveDefinitionId),
 
     // GraphQL built-ins
     Deprecated,

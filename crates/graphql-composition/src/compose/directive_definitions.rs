@@ -5,7 +5,15 @@ use std::fmt::Write as _;
 
 pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
     // Filtered definitions. Sort by name, dedup.
-    let mut definitions: Vec<&subgraphs::DirectiveDefinition> = ctx.subgraphs.directive_definitions().iter().collect();
+    let mut definitions: Vec<&subgraphs::DirectiveDefinition> = ctx
+        .subgraphs
+        .directive_definitions()
+        .iter()
+        .filter(|definition| {
+            ctx.subgraphs
+                .is_composed_directive(definition.subgraph_id, definition.name)
+        })
+        .collect();
 
     definitions.sort_unstable_by_key(|definition| definition.name);
 
@@ -15,6 +23,7 @@ pub(super) fn compose_directive_definitions(ctx: &mut Context<'_>) {
         chunk.extend(definitions);
 
         let name = ctx.insert_string(name);
+
         let first_definition = chunk
             .first()
             .expect("There should be at least one definition for each name");

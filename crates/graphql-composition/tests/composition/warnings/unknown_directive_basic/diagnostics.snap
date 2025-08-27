@@ -1,0 +1,7 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Diagnostics
+input_file: crates/graphql-composition/tests/composition/warnings/unknown_directive_basic/test.md
+---
+- ⚠️ [basic]: Unknown directive `@directiveOne` at `Query`
+- ⚠️ [basic]: Unknown directive `@directiveOne` at `TypeOne.fieldOne`
