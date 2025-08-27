@@ -1,7 +1,6 @@
-pub(crate) mod deduplication;
 pub(crate) mod dot_graph;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, num::NonZero};
 
 use bitflags::bitflags;
 use id_newtypes::IdRange;
@@ -16,7 +15,6 @@ use walker::Walk;
 pub enum Node {
     Root,
     QueryPartition {
-        dedup_id: DeduplicationId,
         entity_definition_id: EntityDefinitionId,
         resolver_definition_id: ResolverDefinitionId,
     },
@@ -26,7 +24,6 @@ pub enum Node {
 #[derive(Debug, Clone, Copy)]
 pub struct FieldNode {
     pub id: QueryFieldId,
-    pub dedup_id: DeduplicationId,
     pub split_id: SplitId,
     pub flags: FieldFlags,
 }
@@ -86,15 +83,10 @@ pub enum Edge {
 }
 
 pub(crate) mod steps {
-    use crate::deduplication::DeduplicationMap;
 
-    pub(crate) struct SolutionSpace {
-        pub deduplication_map: DeduplicationMap,
-    }
+    pub(crate) struct SolutionSpace {}
 
-    pub(crate) struct SteinerSolution {
-        pub deduplication_map: DeduplicationMap,
-    }
+    pub(crate) struct SteinerSolution {}
 
     pub struct Solution {
         // If necessary we generate a new subgraph key for a field.
@@ -141,14 +133,11 @@ pub struct QueryFieldId(u32);
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, id_derives::Id)]
 pub struct SplitId(u32);
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
-pub struct DeduplicationId(u16);
-
 #[derive(Clone, Copy, id_derives::Id, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TypeConditionSharedVecId(u32);
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, id_derives::Id)]
-pub struct DeduplicatedFlatExecutableDirectivesId(std::num::NonZero<u32>);
+pub struct DeduplicatedFlatExecutableDirectivesId(NonZero<u32>);
 
 #[derive(Clone)]
 pub struct QueryField {
