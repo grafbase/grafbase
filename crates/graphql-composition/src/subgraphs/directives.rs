@@ -279,7 +279,7 @@ impl DirectiveSiteId {
         subgraphs.directives.r#override.get(&self)
     }
 
-    pub(crate) fn policies<'a>(self, subgraphs: &'a Subgraphs) -> impl Iterator<Item = &'a [StringId]> {
+    pub(crate) fn policies(self, subgraphs: &Subgraphs) -> impl Iterator<Item = &[StringId]> {
         subgraphs
             .directives
             .policies
@@ -288,7 +288,7 @@ impl DirectiveSiteId {
             .map(|(_, policies)| policies.as_slice())
     }
 
-    pub(crate) fn requires_scopes<'a>(self, subgraphs: &'a Subgraphs) -> impl Iterator<Item = &'a [StringId]> {
+    pub(crate) fn requires_scopes(self, subgraphs: &Subgraphs) -> impl Iterator<Item = &[StringId]> {
         subgraphs
             .directives
             .requires_scopes
