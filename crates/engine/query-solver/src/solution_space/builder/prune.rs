@@ -14,7 +14,7 @@ impl QuerySolutionSpaceBuilder<'_, '_> {
         let mut extra_leafs = Vec::new();
 
         for (node_ix, node) in self.query.graph.node_references() {
-            let SpaceNode::QueryField(node) = node else {
+            let SpaceNode::Field(node) = node else {
                 continue;
             };
             // Any resolver that can eventually provide a scalar/__typename must be kept
@@ -25,7 +25,7 @@ impl QuerySolutionSpaceBuilder<'_, '_> {
                     .edges_directed(node_ix, Direction::Incoming)
                     .find(|edge| {
                         matches!(edge.weight(), SpaceEdge::TypenameField)
-                            && matches!(self.query.graph[edge.source()], SpaceNode::QueryField(_))
+                            && matches!(self.query.graph[edge.source()], SpaceNode::Field(_))
                     })
                 else {
                     continue;
@@ -49,7 +49,7 @@ impl QuerySolutionSpaceBuilder<'_, '_> {
         }
 
         for leaf_node_ix in extra_leafs {
-            let SpaceNode::QueryField(field) = &mut self.query.graph[leaf_node_ix] else {
+            let SpaceNode::Field(field) = &mut self.query.graph[leaf_node_ix] else {
                 continue;
             };
             // If dispensable, how could it have a __typename?
@@ -76,7 +76,7 @@ impl QuerySolutionSpaceBuilder<'_, '_> {
         }
 
         self.query.graph.retain_nodes(|graph, ix| match graph[ix] {
-            SpaceNode::Root | SpaceNode::QueryField(_) => true,
+            SpaceNode::Root | SpaceNode::Field(_) => true,
             SpaceNode::Resolver(_) | SpaceNode::ProvidableField(_) => visited[ix.index()],
         });
     }

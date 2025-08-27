@@ -6,14 +6,14 @@ mod response_object_sets;
 mod shapes;
 
 use operation::Operation;
-use query_solver::SolvedQuery;
+use query_solver::QuerySolution;
 use schema::Schema;
 
 use super::*;
 
 pub(super) struct Solver<'a> {
     schema: &'a Schema,
-    solution: SolvedQuery,
+    solution: QuerySolution,
     output: CachedOperation,
 }
 

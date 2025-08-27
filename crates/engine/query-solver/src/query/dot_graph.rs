@@ -1,18 +1,21 @@
 use std::borrow::Cow;
 
-use operation::OperationContext;
+use operation::{OperationContext, ResponseKey};
 use petgraph::dot::{Config, Dot};
 use walker::Walk;
 
-use crate::{FieldFlags, dot_graph::Attrs};
+use crate::{FieldFlags, QueryFieldId, dot_graph::Attrs};
 
 use super::{Edge, Node, Query, QueryField, SolutionGraph};
 
-#[allow(unused)]
+#[allow(unused, private_bounds)]
 impl<Step> Query<SolutionGraph, Step> {
     /// Use https://dreampuf.github.io/GraphvizOnline
     /// or `echo '..." | dot -Tsvg` from graphviz
-    pub(crate) fn to_pretty_dot_graph(&self, ctx: OperationContext<'_>) -> String {
+    pub(crate) fn to_pretty_dot_graph(&self, ctx: OperationContext<'_>) -> String
+    where
+        Step: GetSubgraphKey,
+    {
         format!(
             "{:?}",
             Dot::with_attr_getters(
@@ -26,7 +29,10 @@ impl<Step> Query<SolutionGraph, Step> {
 
     /// Use https://dreampuf.github.io/GraphvizOnline
     /// or `echo '..." | dot -Tsvg` from graphviz
-    pub(crate) fn to_dot_graph(&self, ctx: OperationContext<'_>) -> String {
+    pub(crate) fn to_dot_graph(&self, ctx: OperationContext<'_>) -> String
+    where
+        Step: GetSubgraphKey,
+    {
         format!(
             "{:?}",
             Dot::with_attr_getters(
@@ -43,27 +49,57 @@ impl<Step> Query<SolutionGraph, Step> {
 }
 
 impl Node {
-    fn label<Step>(&self, solution: &Query<SolutionGraph, Step>, ctx: OperationContext<'_>) -> Attrs<'static> {
+    fn label<Step: GetSubgraphKey>(
+        &self,
+        solution: &Query<SolutionGraph, Step>,
+        ctx: OperationContext<'_>,
+    ) -> Attrs<'static> {
         Attrs::label(match self {
             Node::Root => "root".into(),
             Node::QueryPartition {
                 resolver_definition_id, ..
             } => resolver_definition_id.walk(ctx.schema).name().into(),
-            Node::Field { id, flags, .. } => {
-                let field = field_label(ctx, &solution[*id]);
-                format!("{}{}", if flags.contains(FieldFlags::EXTRA) { "*" } else { "" }, field,)
+            Node::Field(node) => {
+                let field = field_label(ctx, solution.get_subgraph_key(node.id), &solution[node.id]);
+                format!(
+                    "{}{}",
+                    if node.flags.contains(FieldFlags::EXTRA) {
+                        "*"
+                    } else {
+                        ""
+                    },
+                    field,
+                )
             }
         })
     }
 
     /// Meant to be as readable as possible for large graphs with colors.
-    fn pretty_label<Step>(&self, solution: &Query<SolutionGraph, Step>, ctx: OperationContext<'_>) -> String {
+    fn pretty_label<Step: GetSubgraphKey>(
+        &self,
+        solution: &Query<SolutionGraph, Step>,
+        ctx: OperationContext<'_>,
+    ) -> String {
         self.label(solution, ctx)
             .with_if(
                 matches!(self, Node::QueryPartition { .. }),
                 "color=royalblue,shape=parallelogram",
             )
             .to_string()
+    }
+}
+
+trait GetSubgraphKey {
+    fn get_subgraph_key(&self, _id: QueryFieldId) -> Option<ResponseKey> {
+        None
+    }
+}
+
+impl GetSubgraphKey for crate::steps::SolutionSpace {}
+impl GetSubgraphKey for crate::steps::SteinerSolution {}
+impl GetSubgraphKey for crate::steps::Solution {
+    fn get_subgraph_key(&self, id: QueryFieldId) -> Option<ResponseKey> {
+        self.field_to_subgraph_key[usize::from(id)]
     }
 }
 
@@ -92,7 +128,11 @@ pub(crate) fn short_field_label<'a>(ctx: OperationContext<'a>, field: &QueryFiel
     }
 }
 
-pub(crate) fn field_label<'a>(ctx: OperationContext<'a>, field: &QueryField) -> Cow<'a, str> {
+pub(crate) fn field_label<'a>(
+    ctx: OperationContext<'a>,
+    subgraph_key: Option<ResponseKey>,
+    field: &QueryField,
+) -> Cow<'a, str> {
     if let Some(definition) = field.definition_id.walk(ctx) {
         let alias = if let Some(alias) = field.response_key.walk(ctx).filter(|key| *key != definition.name()) {
             format!("{alias}: ")
@@ -104,7 +144,7 @@ pub(crate) fn field_label<'a>(ctx: OperationContext<'a>, field: &QueryField) -> 
         let common = format!("{parent_name}.{def_name}");
         let subgraph_key = if let Some((_, subgraph_key)) = field
             .response_key
-            .zip(field.subgraph_key)
+            .zip(subgraph_key)
             .filter(|(key, subgraph_key)| key != subgraph_key)
         {
             format!(" ({})", subgraph_key.walk(ctx))

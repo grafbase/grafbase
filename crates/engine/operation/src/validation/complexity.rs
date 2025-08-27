@@ -108,7 +108,7 @@ fn field_complexity(
     let child_count = calculate_child_count(context, field, list_size_directive, preset_list_size)?;
 
     let argument_cost = field
-        .arguments()
+        .sorted_arguments()
         .map(|argument| cost_for_argument(argument, context.variables))
         .sum::<usize>();
 
@@ -226,7 +226,7 @@ fn calculate_child_count<'a>(
         let slicing_arguments = slicing_arguments
             .filter_map(|def| {
                 let value = field
-                    .arguments()
+                    .sorted_arguments()
                     .find(|arg| arg.definition().id == def.id)?
                     .value(context.variables);
                 Option::<usize>::deserialize(value).ok().flatten()

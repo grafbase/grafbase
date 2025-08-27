@@ -41,7 +41,7 @@ type DataField @meta(module: "field/data", debug: false) @indexed(id_size: "u16"
   directives: [ExecutableDirective!]!
   definition: FieldDefinition!
   "Ordered by input value definition id"
-  arguments: [FieldArgument!]!
+  sorted_arguments: [FieldArgument!]!
   selection_set: SelectionSet!
 }
 

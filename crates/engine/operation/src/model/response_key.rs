@@ -3,16 +3,16 @@ use std::num::NonZero;
 use walker::Walk;
 
 #[derive(Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, serde::Serialize, serde::Deserialize, id_derives::Id)]
-pub struct QueryPosition(NonZero<u32>);
+pub struct QueryPosition(NonZero<u16>);
 
 impl QueryPosition {
-    pub const MAX: QueryPosition = QueryPosition(NonZero::new(u32::MAX - 1).unwrap());
+    pub const MAX: QueryPosition = QueryPosition(NonZero::new(u16::MAX - 1).unwrap());
 
     pub fn cmp_with_none_last(a: Option<QueryPosition>, b: Option<QueryPosition>) -> std::cmp::Ordering {
         // None -> 0
         // Some(x) -> x
-        let mut a: u32 = zerocopy::transmute!(a.map(|qp| qp.0));
-        let mut b: u32 = zerocopy::transmute!(b.map(|qp| qp.0));
+        let mut a: u16 = zerocopy::transmute!(a.map(|qp| qp.0));
+        let mut b: u16 = zerocopy::transmute!(b.map(|qp| qp.0));
         // x -> x -1
         // 0 -> u32::MAX
         a = a.wrapping_sub(1);
@@ -30,9 +30,9 @@ pub struct PositionedResponseKey {
 
 impl PositionedResponseKey {
     pub fn with_query_position_if(self, included: bool) -> PositionedResponseKey {
-        let mut qp: u32 = zerocopy::transmute!(self.query_position.map(|qp| qp.0));
-        qp &= (!(included as u32)).wrapping_add(1);
-        let qp: Option<NonZero<u32>> = zerocopy::transmute!(qp);
+        let mut qp: u16 = zerocopy::transmute!(self.query_position.map(|qp| qp.0));
+        qp &= (!(included as u16)).wrapping_add(1);
+        let qp: Option<NonZero<u16>> = zerocopy::transmute!(qp);
         Self {
             query_position: qp.map(QueryPosition),
             response_key: self.response_key,
@@ -60,11 +60,27 @@ impl ResponseKey {
 /// performance by around 1% since we're doing a binary search for each
 /// incoming field name during deserialization.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
-pub struct ResponseKey(u16);
+pub struct ResponseKey(NonZero<u16>);
 
 impl From<ResponseKey> for usize {
     fn from(key: ResponseKey) -> usize {
-        key.0 as usize
+        (key.0.get() - 1) as usize
+    }
+}
+
+impl From<ResponseKey> for u32 {
+    fn from(key: ResponseKey) -> u32 {
+        (key.0.get() - 1) as u32
+    }
+}
+
+unsafe impl lasso2::Key for ResponseKey {
+    fn into_usize(self) -> usize {
+        usize::from(self)
+    }
+
+    fn try_from_usize(id: usize) -> Option<Self> {
+        u16::try_from(id + 1).ok().map(|n| Self(NonZero::new(n).unwrap()))
     }
 }
 
@@ -86,12 +102,6 @@ impl<'a> Walk<&'a ResponseKeys> for ResponseKey {
 /// Interns all of the response keys strings.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ResponseKeys(lasso2::Rodeo<ResponseKey>);
-
-impl From<ResponseKey> for u32 {
-    fn from(key: ResponseKey) -> u32 {
-        key.0 as u32
-    }
-}
 
 impl Default for ResponseKeys {
     fn default() -> Self {
@@ -127,16 +137,6 @@ impl std::ops::Index<ResponseKey> for ResponseKeys {
     fn index(&self, key: ResponseKey) -> &Self::Output {
         // SAFETY: SafeResponseKey are only created by ResponseKeys, either by `get_or_intern` or `ensure_safety`.
         unsafe { self.0.resolve_unchecked(&key) }
-    }
-}
-
-unsafe impl lasso2::Key for ResponseKey {
-    fn into_usize(self) -> usize {
-        self.0 as usize
-    }
-
-    fn try_from_usize(id: usize) -> Option<Self> {
-        u16::try_from(id).ok().map(Self)
     }
 }
 

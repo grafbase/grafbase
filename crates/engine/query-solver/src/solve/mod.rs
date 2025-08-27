@@ -28,4 +28,4 @@ pub(crate) use solver::*;
 
 use crate::{Query, SolutionGraph};
 
-pub(crate) type CrudeSolvedQuery = Query<SolutionGraph, crate::query::steps::SteinerTreeSolution>;
+pub(crate) type QuerySteinerSolution = Query<SolutionGraph, crate::steps::SteinerSolution>;

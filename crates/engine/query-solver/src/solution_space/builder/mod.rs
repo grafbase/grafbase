@@ -3,13 +3,15 @@ mod operation_fields;
 mod providable_fields;
 mod prune;
 
-use id_newtypes::BitSet;
 use petgraph::stable_graph::NodeIndex;
 use providable_fields::{CreateProvidableFieldsTask, CreateRequirementTask, UnplannableField};
 use schema::{CompositeTypeId, Schema, TypeDefinitionId};
 use walker::Walk;
 
-use crate::{FieldFlags, QueryFieldId, SplitId};
+use crate::{
+    DeduplicationId, FieldFlags, FieldNode, QueryFieldId, SplitId, deduplication::DeduplicationMap,
+    steps::SolutionSpace,
+};
 
 use super::*;
 
@@ -18,8 +20,6 @@ pub(super) struct QuerySolutionSpaceBuilder<'schema, 'op> {
     schema: &'schema Schema,
     operation: &'op Operation,
     query: QuerySolutionSpace<'schema>,
-    providable_fields_bitset: BitSet<QueryFieldId>,
-    deleted_fields_bitset: BitSet<QueryFieldId>,
     create_provideable_fields_task_stack: Vec<CreateProvidableFieldsTask>,
     create_requirement_task_stack: Vec<CreateRequirementTask<'schema>>,
     maybe_unplannable_query_fields_stack: Vec<UnplannableField>,
@@ -37,21 +37,23 @@ impl<'schema> QuerySolutionSpace<'schema> {
     {
         let n = operation.data_fields.len() + operation.typename_fields.len();
         let mut graph = petgraph::stable_graph::StableGraph::with_capacity(n * 2, n * 2);
-        let root_ix = graph.add_node(SpaceNode::Root);
+        let root_node_id = graph.add_node(SpaceNode::Root);
 
         QuerySolutionSpaceBuilder {
             schema,
             operation,
             query: Query {
-                step: SolutionSpace {},
-                root_node_id: root_ix,
+                step: SolutionSpace {
+                    deduplication_map: DeduplicationMap::with_capacity(
+                        operation.data_fields.len() + operation.typename_fields.len(),
+                    ),
+                },
+                root_node_id,
                 graph,
                 fields: Vec::with_capacity(n),
                 shared_type_conditions: Vec::new(),
                 deduplicated_flat_sorted_executable_directives: Default::default(),
             },
-            providable_fields_bitset: BitSet::with_capacity(n),
-            deleted_fields_bitset: BitSet::with_capacity(n),
             create_provideable_fields_task_stack: Vec::new(),
             create_requirement_task_stack: Vec::new(),
             maybe_unplannable_query_fields_stack: Vec::new(),
@@ -108,7 +110,17 @@ where
         }
     }
 
-    fn push_query_field_node(&mut self, id: QueryFieldId, mut flags: FieldFlags) -> NodeIndex {
+    fn push_query_field_node(&mut self, id: QueryFieldId, flags: FieldFlags) -> NodeIndex {
+        let dedup_id = self.query.get_or_insert_field_deduplication_id(self.ctx(), id);
+        self.push_query_field_node_with_dedup_id(id, dedup_id, flags)
+    }
+
+    fn push_query_field_node_with_dedup_id(
+        &mut self,
+        id: QueryFieldId,
+        dedup_id: DeduplicationId,
+        mut flags: FieldFlags,
+    ) -> NodeIndex {
         if let Some(field_definition) = self.query[id].definition_id {
             match field_definition.walk(self.schema).ty().definition_id {
                 TypeDefinitionId::Scalar(_) | TypeDefinitionId::Enum(_) => {
@@ -118,8 +130,9 @@ where
             }
         }
 
-        let query_field = SpaceNode::QueryField(QueryFieldNode {
+        let query_field = SpaceNode::Field(FieldNode {
             id,
+            dedup_id,
             split_id: self.current_split,
             flags,
         });

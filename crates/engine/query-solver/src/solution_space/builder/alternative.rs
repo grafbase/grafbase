@@ -4,9 +4,7 @@ use walker::Walk;
 
 use crate::{FieldFlags, QueryField, QueryFieldId, SplitId};
 
-use super::{
-    QueryFieldNode, SpaceEdge, SpaceNode, builder::QuerySolutionSpaceBuilder, providable_fields::UnplannableField,
-};
+use super::{FieldNode, SpaceEdge, SpaceNode, builder::QuerySolutionSpaceBuilder, providable_fields::UnplannableField};
 
 impl<'schema, 'op> QuerySolutionSpaceBuilder<'schema, 'op>
 where
@@ -19,7 +17,7 @@ where
             query_field_node_ix,
         }: UnplannableField,
     ) -> crate::Result<()> {
-        let SpaceNode::QueryField(QueryFieldNode {
+        let SpaceNode::Field(FieldNode {
             id: query_field_id,
             flags,
             ..
@@ -34,8 +32,7 @@ where
                 .edges_directed(query_field_node_ix, Direction::Incoming)
                 .any(|edge| matches!(edge.weight(), SpaceEdge::Provides))
             {
-                let SpaceNode::QueryField(QueryFieldNode { flags, .. }) = &mut self.query.graph[query_field_node_ix]
-                else {
+                let SpaceNode::Field(FieldNode { flags, .. }) = &mut self.query.graph[query_field_node_ix] else {
                     return Ok(());
                 };
                 flags.remove(FieldFlags::UNREACHABLE);
@@ -167,10 +164,10 @@ where
             let mut l = 0;
             let mut r = 0;
 
-            let existing_flags = self.query.graph[existing_query_field_node_ix]
+            let existing_node = self.query.graph[existing_query_field_node_ix]
                 .as_query_field()
-                .unwrap()
-                .flags;
+                .copied()
+                .unwrap();
 
             let mut found_alternative = false;
             while let Some((left_id, right_id)) = left.get(l).copied().zip(right.get(r).copied()) {
@@ -199,7 +196,7 @@ where
                                 ..this.query[existing_query_field_id].clone()
                             });
                             let new_field_id = QueryFieldId::from(this.query.fields.len() - 1);
-                            let new_query_field_node_ix = this.push_query_field_node(new_field_id, existing_flags);
+                            let new_query_field_node_ix = this.push_query_field_node(new_field_id, existing_node.flags);
                             this.query.graph.add_edge(
                                 parent_query_field_node_ix,
                                 new_query_field_node_ix,
@@ -306,7 +303,7 @@ where
                     SpaceEdge::Field | SpaceEdge::TypenameField
                 ));
                 let mut new_weight = self.query.graph[existing_target].clone();
-                if let SpaceNode::QueryField(node) = &mut new_weight {
+                if let SpaceNode::Field(node) = &mut new_weight {
                     node.split_id = self.current_split;
                 }
                 let new_target = self.query.graph.add_node(new_weight);

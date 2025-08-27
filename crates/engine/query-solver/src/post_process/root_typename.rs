@@ -4,10 +4,10 @@ use schema::Schema;
 
 use crate::{
     query::{Edge, Node},
-    solve::CrudeSolvedQuery,
+    solve::QuerySteinerSolution,
 };
 
-pub(super) fn assign_root_typename_fields(schema: &Schema, operation: &Operation, query: &mut CrudeSolvedQuery) {
+pub(super) fn assign_root_typename_fields(schema: &Schema, operation: &Operation, query: &mut QuerySteinerSolution) {
     // There is always at least one field in the query, otherwise validation would fail. So
     // either there is an existing partition or there is only __typename fields and we have to
     // create one.
@@ -20,15 +20,19 @@ pub(super) fn assign_root_typename_fields(schema: &Schema, operation: &Operation
                 .graph
                 .neighbors(*partition_node_ix)
                 .filter_map(|neighbor| match query.graph[neighbor] {
-                    Node::Field { id, .. } => query[id].query_position,
+                    Node::Field(node) => query[node.id].query_position,
                     _ => None,
                 })
                 .min()
                 .unwrap_or(QueryPosition::MAX)
         })
         .unwrap_or_else(|| {
+            let dedup_id = query
+                .deduplication_map
+                .get_or_insert_resolver(schema.subgraphs.introspection.resolver_definition_id);
             let ix = query.graph.add_node(Node::QueryPartition {
                 entity_definition_id: operation.root_object_id.into(),
+                dedup_id,
                 resolver_definition_id: schema.subgraphs.introspection.resolver_definition_id,
             });
             query.graph.add_edge(query.root_node_id, ix, Edge::QueryPartition);
@@ -39,7 +43,7 @@ pub(super) fn assign_root_typename_fields(schema: &Schema, operation: &Operation
         .edges(query.root_node_id)
         .filter_map(|edge| match edge.weight() {
             Edge::Field => match query.graph[edge.target()] {
-                Node::Field { id, .. } if query[id].definition_id.is_none() => Some(edge.target()),
+                Node::Field(node) if query[node.id].definition_id.is_none() => Some(edge.target()),
                 _ => None,
             },
             _ => None,

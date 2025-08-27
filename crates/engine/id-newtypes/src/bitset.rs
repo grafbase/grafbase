@@ -51,11 +51,6 @@ where
         self.inner.set_range(start..end, value);
     }
 
-    pub fn push(&mut self, value: bool) {
-        self.inner.grow(self.inner.len() + 1);
-        self.inner.set(self.inner.len() - 1, value);
-    }
-
     pub fn grow(&mut self, n: usize) {
         self.inner.grow(n)
     }

@@ -8,28 +8,32 @@ use walker::Walk;
 use crate::{
     QueryFieldId,
     query::{Edge, Node},
-    solve::CrudeSolvedQuery,
+    solve::QuerySteinerSolution,
 };
 
 pub(super) fn adjust_response_keys_to_avoid_collisions(
     schema: &Schema,
     operation: &mut Operation,
-    query: &mut CrudeSolvedQuery,
-) {
+    query: &mut QuerySteinerSolution,
+) -> Vec<Option<ResponseKey>> {
+    let mut field_to_subgraph_key = vec![None; query.fields.len()];
     KeyGenerationContext {
         schema,
         operation,
         query,
         field_renames: HashMap::new(),
+        field_to_subgraph_key: &mut field_to_subgraph_key,
     }
-    .adjust_response_keys_to_avoid_collision()
+    .adjust_response_keys_to_avoid_collision();
+    field_to_subgraph_key
 }
 
 struct KeyGenerationContext<'a> {
     schema: &'a Schema,
     operation: &'a mut Operation,
-    query: &'a mut CrudeSolvedQuery,
+    query: &'a mut QuerySteinerSolution,
     field_renames: HashMap<FieldRenameConsistencyKey, ResponseKey>,
+    field_to_subgraph_key: &'a mut [Option<ResponseKey>],
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -78,9 +82,9 @@ impl KeyGenerationContext<'_> {
                     continue;
                 }
                 match self.query.graph[edge.target()] {
-                    Node::Field { id, .. } => {
-                        let field = &self.query[id];
-                        selection_set.push_field(subgraph_id, id, field.response_key);
+                    Node::Field(node) => {
+                        let field = &self.query[node.id];
+                        selection_set.push_field(subgraph_id, node.id, field.response_key);
                         if let Some(parent_type) = field
                             .definition_id
                             .and_then(|id| id.walk(self.schema).ty().definition_id.as_composite_type())
@@ -96,9 +100,9 @@ impl KeyGenerationContext<'_> {
                             if !matches!(second_degree_edge.weight(), Edge::Field | Edge::QueryPartition) {
                                 continue;
                             }
-                            if let Node::Field { id, .. } = self.query.graph[second_degree_edge.target()] {
-                                let field = &self.query[id];
-                                selection_set.push_field(subgraph_id, id, field.response_key);
+                            if let Node::Field(node) = self.query.graph[second_degree_edge.target()] {
+                                let field = &self.query[node.id];
+                                selection_set.push_field(subgraph_id, node.id, field.response_key);
                                 if let Some(parent_type) = field
                                     .definition_id
                                     .and_then(|id| id.walk(self.schema).ty().definition_id.as_composite_type())
@@ -156,7 +160,7 @@ impl KeyGenerationContext<'_> {
                 continue;
             };
 
-            self.query[query_field_id].subgraph_key = Some(new_response_key);
+            self.field_to_subgraph_key[usize::from(query_field_id)] = Some(new_response_key);
             selection_set.response_keys.push(new_response_key);
         }
 

@@ -4,7 +4,7 @@ use operation::OperationContext;
 use schema::{DeriveDefinitionId, EntityDefinitionId, FieldDefinitionId, FieldSetRecord, ResolverDefinitionId};
 use walker::Walk as _;
 
-use crate::{FieldFlags, QueryFieldId, SplitId, dot_graph::Attrs};
+use crate::{FieldNode, QueryFieldId, dot_graph::Attrs};
 
 use super::QuerySolutionSpace;
 
@@ -13,7 +13,7 @@ pub(crate) enum SpaceNode<'ctx> {
     /// Root node, unique
     Root,
     /// Field in the operation, or an extra one to satisfy requirements
-    QueryField(QueryFieldNode),
+    Field(FieldNode),
     /// Defines how to access data from a subgraph
     Resolver(Resolver),
     /// Field that can be provided by a resolver with extra metadata such as field's @provides
@@ -29,10 +29,10 @@ impl SpaceNode<'_> {
     pub(crate) fn label<'a>(&self, space: &QuerySolutionSpace<'_>, ctx: OperationContext<'a>) -> Cow<'a, str> {
         match self {
             SpaceNode::Root => "root".into(),
-            SpaceNode::QueryField(node) => format!(
+            SpaceNode::Field(node) => format!(
                 "{}{}",
                 if node.is_extra() { "*" } else { "" },
-                crate::query::dot_graph::field_label(ctx, &space[node.id])
+                crate::query::dot_graph::field_label(ctx, None, &space[node.id])
             )
             .into(),
             SpaceNode::ProvidableField(ProvidableField {
@@ -65,27 +65,6 @@ impl SpaceNode<'_> {
             SpaceNode::Resolver(_) => attrs.with("shape=parallelogram").with("color=dodgerblue"),
             _ => attrs,
         }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub(crate) struct QueryFieldNode {
-    pub id: QueryFieldId,
-    pub split_id: SplitId,
-    pub flags: FieldFlags,
-}
-
-impl QueryFieldNode {
-    pub fn is_indispensable(&self) -> bool {
-        self.flags.contains(FieldFlags::INDISPENSABLE)
-    }
-
-    pub fn is_extra(&self) -> bool {
-        self.flags.contains(FieldFlags::EXTRA)
-    }
-
-    pub fn is_leaf(&self) -> bool {
-        self.flags.contains(FieldFlags::LEAF_NODE)
     }
 }
 
@@ -139,17 +118,32 @@ impl<'ctx> SpaceNode<'ctx> {
         matches!(self, SpaceNode::ProvidableField(_))
     }
 
-    pub fn as_query_field_mut(&mut self) -> Option<&mut QueryFieldNode> {
+    pub fn as_query_field_mut(&mut self) -> Option<&mut FieldNode> {
         match self {
-            SpaceNode::QueryField(field) => Some(field),
+            SpaceNode::Field(field) => Some(field),
             _ => None,
         }
     }
 
-    pub fn as_query_field(&self) -> Option<&QueryFieldNode> {
+    pub fn as_query_field(&self) -> Option<&FieldNode> {
         match self {
-            SpaceNode::QueryField(field) => Some(field),
+            SpaceNode::Field(field) => Some(field),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_node_size() {
+        // FIXME: wayyy too big
+        assert_eq!(std::mem::size_of::<SpaceNode<'static>>(), 48);
+        assert_eq!(std::mem::align_of::<SpaceNode<'static>>(), 8);
+        assert_eq!(std::mem::size_of::<FieldNode>(), 12);
+        assert_eq!(std::mem::size_of::<Resolver>(), 12);
+        assert_eq!(std::mem::size_of::<ProvidableField<'static>>(), 48);
     }
 }

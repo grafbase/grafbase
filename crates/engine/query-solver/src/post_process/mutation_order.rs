@@ -7,10 +7,10 @@ use schema::ResolverDefinitionId;
 
 use crate::{
     query::{Edge, Node},
-    solve::CrudeSolvedQuery,
+    solve::QuerySteinerSolution,
 };
 
-pub(super) fn ensure_mutation_execution_order(query: &mut CrudeSolvedQuery) -> Vec<NodeIndex> {
+pub(super) fn ensure_mutation_execution_order(query: &mut QuerySteinerSolution) -> Vec<NodeIndex> {
     struct Field {
         position: Option<QueryPosition>,
         original_partition_node_ix: NodeIndex,
@@ -25,9 +25,9 @@ pub(super) fn ensure_mutation_execution_order(query: &mut CrudeSolvedQuery) -> V
         } = query.graph[partition_node_ix]
         {
             for field_node_ix in query.graph.neighbors(partition_node_ix) {
-                if let Node::Field { id, .. } = query.graph[field_node_ix] {
+                if let Node::Field(node) = query.graph[field_node_ix] {
                     selection_set.push(Field {
-                        position: query[id].query_position,
+                        position: query[node.id].query_position,
                         original_partition_node_ix: partition_node_ix,
                         resolver_definition_id,
                         field_node_ix,
