@@ -43,9 +43,4 @@ impl<'a> EnumValueWalker<'a> {
         let (_enum_id, value_name, _directives) = self.id;
         self.walk(value_name)
     }
-
-    pub(crate) fn directives(self) -> DirectiveSiteWalker<'a> {
-        let (_enum_id, _value_name, directives) = self.id;
-        self.walk(directives)
-    }
 }

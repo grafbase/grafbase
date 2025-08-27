@@ -1,3 +1,5 @@
+use crate::subgraphs::DirectiveSiteId;
+
 use super::*;
 
 pub(super) fn create_join_type_from_definitions(
@@ -17,8 +19,8 @@ pub(super) fn create_join_type_from_definitions(
     })
 }
 
-pub(super) fn collect_composed_directives<'a>(
-    sites: impl Iterator<Item = subgraphs::DirectiveSiteWalker<'a>> + Clone,
+pub(super) fn collect_composed_directives(
+    sites: impl Iterator<Item = DirectiveSiteId> + Clone,
     ctx: &mut ComposeContext<'_>,
 ) -> Vec<ir::Directive> {
     let mut tags: BTreeSet<StringId> = BTreeSet::new();
@@ -32,37 +34,40 @@ pub(super) fn collect_composed_directives<'a>(
     out.extend(
         sites
             .clone()
-            .filter_map(|dir| dir.list_size().cloned())
+            .filter_map(|dir| dir.list_size(ctx.subgraphs).cloned())
             .reduce(|lhs, rhs| lhs.merge(rhs))
             .map(ir::Directive::ListSize),
     );
 
-    if let Some(deprecated) = sites.clone().find_map(|directives| directives.deprecated()) {
+    if let Some(deprecated) = sites
+        .clone()
+        .find_map(|directives| directives.deprecated(ctx.subgraphs))
+    {
         let directive = ir::Directive::Deprecated {
-            reason: deprecated.reason().map(|reason| ctx.insert_string(reason.id)),
+            reason: deprecated.reason.map(|reason| ctx.insert_string(reason)),
         };
         out.push(directive);
     }
 
-    if sites.clone().any(|dirs| dirs.one_of()) {
+    if sites.clone().any(|dirs| dirs.one_of(ctx.subgraphs)) {
         out.push(ir::Directive::OneOf);
     }
 
     for site in sites.clone() {
-        tags.extend(site.id.tags(ctx.subgraphs));
+        tags.extend(site.tags(ctx.subgraphs));
 
         // The directive is added whenever it's applied in any subgraph.
-        is_inaccessible = is_inaccessible || site.id.inaccessible(ctx.subgraphs);
-        authenticated = authenticated || site.id.authenticated(ctx.subgraphs);
+        is_inaccessible = is_inaccessible || site.inaccessible(ctx.subgraphs);
+        authenticated = authenticated || site.authenticated(ctx.subgraphs);
 
-        cost = cost.or(site.cost());
-        list_size = list_size.or(site.list_size());
+        cost = cost.or(site.cost(ctx.subgraphs));
+        list_size = list_size.or(site.list_size(ctx.subgraphs));
 
-        for directive in site.iter_ir_directives() {
+        for directive in site.iter_ir_directives(ctx.subgraphs) {
             extra_directives.push(directive.clone());
         }
 
-        for directive in site.iter_extra_directives() {
+        for directive in site.iter_extra_directives(ctx.subgraphs) {
             let provenance = match directive.provenance {
                 subgraphs::DirectiveProvenance::ComposedDirective => Some(ir::DirectiveProvenance::ComposeDirective),
                 subgraphs::DirectiveProvenance::Linked {
@@ -132,7 +137,10 @@ pub(super) fn collect_composed_directives<'a>(
     {
         let mut scopes: Vec<Vec<federated::StringId>> = Vec::new();
 
-        for scopes_arg in sites.clone().flat_map(|directives| directives.requires_scopes()) {
+        for scopes_arg in sites
+            .clone()
+            .flat_map(|directives| directives.requires_scopes(ctx.subgraphs))
+        {
             scopes.push(
                 scopes_arg
                     .iter()
@@ -153,7 +161,7 @@ pub(super) fn collect_composed_directives<'a>(
     {
         let mut policies: Vec<Vec<federated::StringId>> = Vec::new();
 
-        for policies_arg in sites.clone().flat_map(|directives| directives.policies()) {
+        for policies_arg in sites.clone().flat_map(|directives| directives.policies(ctx.subgraphs)) {
             policies.push(
                 policies_arg
                     .iter()

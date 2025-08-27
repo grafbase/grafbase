@@ -1,8 +1,7 @@
 use crate::{
     Diagnostics, VecExt,
     composition_ir::{self as ir, CompositionIr},
-    federated_graph as federated,
-    subgraphs::{self, StringWalker},
+    federated_graph as federated, subgraphs,
 };
 use std::collections::HashMap;
 
@@ -182,10 +181,10 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_object(
         &mut self,
         name: federated::StringId,
-        description: Option<StringWalker<'_>>,
+        description: Option<&str>,
         directives: Vec<ir::Directive>,
     ) -> federated::ObjectId {
-        let description = description.map(|description| self.ir.strings.insert(description.as_str()));
+        let description = description.map(|description| self.ir.strings.insert(description));
 
         let object = federated::Object {
             name,
@@ -230,9 +229,9 @@ impl<'a> Context<'a> {
         &mut self,
         name: federated::StringId,
         directives: Vec<ir::Directive>,
-        description: Option<StringWalker<'_>>,
+        description: Option<&str>,
     ) -> federated::UnionId {
-        let description = description.map(|description| self.ir.strings.insert(description.as_str()));
+        let description = description.map(|description| self.ir.strings.insert(description));
 
         let union = ir::UnionIr {
             federated: federated::Union {

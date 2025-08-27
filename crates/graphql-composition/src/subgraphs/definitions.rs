@@ -16,6 +16,15 @@ pub(crate) struct Definition {
     pub(crate) subgraph_id: SubgraphId,
     pub(crate) name: StringId,
     pub(crate) kind: DefinitionKind,
+    /// ```graphql,ignore
+    /// """
+    /// The root query type.
+    /// """
+    /// ^^^^^^^^^^^^^^^^^^^^
+    /// type Query {
+    ///   # ...
+    /// }
+    /// ```
     pub(crate) description: Option<StringId>,
     pub(crate) directives: DirectiveSiteId,
 }
@@ -140,29 +149,12 @@ impl<'a> DefinitionWalker<'a> {
         self.view().kind
     }
 
-    /// ```graphql,ignore
-    /// """
-    /// The root query type.
-    /// """
-    /// ^^^^^^^^^^^^^^^^^^^^
-    /// type Query {
-    ///   # ...
-    /// }
-    /// ```
-    pub fn description(self) -> Option<StringWalker<'a>> {
-        self.view().description.map(|id| self.walk(id))
-    }
-
     pub(crate) fn subgraph_id(self) -> SubgraphId {
         self.view().subgraph_id
     }
 
     pub(crate) fn subgraph(self) -> SubgraphWalker<'a> {
         self.subgraphs.walk_subgraph(self.subgraph_id())
-    }
-
-    pub(crate) fn directives(self) -> DirectiveSiteWalker<'a> {
-        self.walk(self.view().directives)
     }
 }
 

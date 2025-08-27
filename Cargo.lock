@@ -3323,7 +3323,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.10.0",
+ "graphql-composition 0.11.0",
  "http 1.3.1",
  "http-body 1.0.1",
  "http-body-util",
@@ -3364,7 +3364,7 @@ version = "0.0.0"
 dependencies = [
  "cynic-parser",
  "grafbase-workspace-hack",
- "graphql-composition 0.10.0",
+ "graphql-composition 0.11.0",
  "integration-tests",
  "libtest-mimic",
  "reqwest 0.12.22",
@@ -3898,7 +3898,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.10.0",
+ "graphql-composition 0.11.0",
  "graphql-lint",
  "graphql-mocks",
  "graphql-schema-validation",
@@ -3985,7 +3985,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "graph-ref",
- "graphql-composition 0.10.0",
+ "graphql-composition 0.11.0",
  "graphql-mocks",
  "handlebars 6.3.2",
  "http 1.3.1",
@@ -4092,7 +4092,7 @@ dependencies = [
  "fxhash",
  "grafbase-sdk-derive",
  "grafbase-sdk-mock",
- "graphql-composition 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graphql-composition 0.10.0",
  "graphql-ws-client",
  "hashbrown 0.15.4",
  "http 1.3.1",
@@ -4348,6 +4348,24 @@ dependencies = [
 [[package]]
 name = "graphql-composition"
 version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "628239fc5052b42ee1306fe83e0c95235a08f737029495f730dfa4b01927cabb"
+dependencies = [
+ "bitflags 2.9.1",
+ "cynic-parser",
+ "cynic-parser-deser",
+ "fixedbitset",
+ "graphql-wrapping-types 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "indexmap 2.10.0",
+ "itertools 0.14.0",
+ "serde",
+ "serde_json",
+ "url",
+]
+
+[[package]]
+name = "graphql-composition"
+version = "0.11.0"
 dependencies = [
  "anyhow",
  "bitflags 2.9.1",
@@ -4365,24 +4383,6 @@ dependencies = [
  "serde_json",
  "tokio",
  "toml 0.9.2",
- "url",
-]
-
-[[package]]
-name = "graphql-composition"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "628239fc5052b42ee1306fe83e0c95235a08f737029495f730dfa4b01927cabb"
-dependencies = [
- "bitflags 2.9.1",
- "cynic-parser",
- "cynic-parser-deser",
- "fixedbitset",
- "graphql-wrapping-types 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "indexmap 2.10.0",
- "itertools 0.14.0",
- "serde",
- "serde_json",
  "url",
 ]
 
@@ -5414,7 +5414,7 @@ dependencies = [
  "gateway-config",
  "grafbase-telemetry",
  "grafbase-workspace-hack",
- "graphql-composition 0.10.0",
+ "graphql-composition 0.11.0",
  "graphql-mocks",
  "graphql-ws-client",
  "headers",

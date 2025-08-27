@@ -8,7 +8,9 @@ use crate::{
 // https://graphql.github.io/composite-schemas-spec/draft/#sec-Invalid-Field-Sharing
 pub(crate) fn invalid_field_sharing(ctx: &mut ValidateContext<'_>, fields: &[subgraphs::FieldWalker<'_>]) {
     if fields.iter().any(|field| {
-        field.is_part_of_key() || field.directives().shareable() || field.parent_definition().directives().shareable()
+        field.is_part_of_key()
+            || field.id.1.directives.shareable(ctx.subgraphs)
+            || field.parent_definition().view().directives.shareable(ctx.subgraphs)
     }) {
         return;
     }
@@ -16,15 +18,18 @@ pub(crate) fn invalid_field_sharing(ctx: &mut ValidateContext<'_>, fields: &[sub
     let mut sources_of_truth = fields
         .iter()
         .filter(|field| {
-            field.directives().r#override().is_none()
-                && !field.directives().external()
-                && !field.parent_definition().directives().external()
-                && !field
-                    .directives()
-                    .iter_ir_directives()
+            let directives = field.id.1.directives;
+            let parent_definition = ctx.subgraphs.at(field.id.1.parent_definition_id);
+            let subgraph = ctx.subgraphs.at(parent_definition.subgraph_id);
+
+            directives.r#override(ctx.subgraphs).is_none()
+                && !directives.external(ctx.subgraphs)
+                && !parent_definition.directives.external(ctx.subgraphs)
+                && !directives
+                    .iter_ir_directives(ctx.subgraphs)
                     .any(|d| matches!(d, ir::Directive::CompositeInternal(_)))
                 // Federation v1 subgraphs are excluded, since shareable rules were different.
-                && !field.parent_definition().subgraph().id.1.federation_spec.is_apollo_v1()
+                && !subgraph.federation_spec.is_apollo_v1()
         })
         .peekable();
 

@@ -27,8 +27,10 @@ pub(crate) fn query_root_type_inaccessible(ctx: &mut ValidateContext<'_>) {
 pub(crate) fn lookup_returns_non_nullable_type(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldWalker<'_>) {
     if field.r#type().is_required()
         && field
-            .directives()
-            .iter_ir_directives()
+            .id
+            .1
+            .directives
+            .iter_ir_directives(ctx.subgraphs)
             .any(|directive| matches!(directive, crate::composition_ir::Directive::CompositeLookup(_)))
     {
         let source_schema_name = field.parent_definition().subgraph().name().as_str();
@@ -48,7 +50,7 @@ pub(crate) fn lookup_returns_non_nullable_type(ctx: &mut ValidateContext<'_>, fi
 }
 
 pub(crate) fn override_from_self(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldWalker<'_>) {
-    let Some(r#override) = field.directives().r#override() else {
+    let Some(r#override) = field.id.1.directives.r#override(ctx.subgraphs) else {
         return;
     };
 

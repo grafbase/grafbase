@@ -296,12 +296,16 @@ fn transform_join_field_directive(
             field.parent_definition().subgraph_id().idx(),
         )),
         requires: field
-            .directives()
-            .requires()
+            .id
+            .1
+            .directives
+            .requires(ctx.subgraphs)
             .map(|field_set| attach_selection(field_set, ctx.out[field_id].parent_entity_id.into(), ctx)),
         provides: field
-            .directives()
-            .provides()
+            .id
+            .1
+            .directives
+            .provides(ctx.subgraphs)
             .map(|field_set| attach_selection(field_set, ctx.out[field_id].r#type.definition, ctx)),
         r#type: r#type.map(|ty| ctx.insert_field_type(ctx.subgraphs.walk(ty))),
         external: *external,

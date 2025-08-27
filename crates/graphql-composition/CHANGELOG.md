@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.11.0 - 2025-08-27
+
 ### Improvements
 
 - Significant performance improvements. We saw a 66% improvement on a very large federated graph, from various optimizations, including iterating over flat data structures instead of BTrees.

@@ -5,14 +5,20 @@ pub(super) fn merge_interface_definitions<'a>(
     first: &DefinitionWalker<'a>,
     definitions: &[DefinitionWalker<'a>],
 ) {
-    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
     directives.extend(create_join_type_from_definitions(definitions));
-    let interface_description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
+    let interface_description = definitions
+        .iter()
+        .find_map(|def| def.view().description)
+        .map(|d| ctx.subgraphs[d].as_ref());
     let interface_name = ctx.insert_string(first.name().id);
     ctx.insert_interface(interface_name, interface_description, directives);
 
     fields::for_each_field_group(definitions, |fields| {
-        if fields.iter().any(|field| field.directives().shareable()) {
+        if fields
+            .iter()
+            .any(|field| field.id.1.directives.shareable(ctx.subgraphs))
+        {
             ctx.diagnostics.push_fatal(format!(
                 "The field {}.{} is marked as shareable but this is not allowed on interfaces.",
                 first.name().as_str(),
