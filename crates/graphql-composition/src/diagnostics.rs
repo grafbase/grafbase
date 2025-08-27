@@ -193,6 +193,8 @@ pub enum CompositeSchemasSourceSchemaValidationErrorCode {
     LookupReturnsNonNullableType,
     /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Override-from-Self
     OverrideFromSelf,
+    /// https://graphql.github.io/composite-schemas-spec/draft/#sec-Provides-Directive-in-Fields-Argument
+    ProvidesDirectiveInFieldsArgument,
 }
 
 impl CompositeSchemasSourceSchemaValidationErrorCode {
@@ -200,7 +202,7 @@ impl CompositeSchemasSourceSchemaValidationErrorCode {
         use CompositeSchemasSourceSchemaValidationErrorCode::*;
 
         match self {
-            QueryRootTypeInaccessible | OverrideFromSelf => Severity::Error,
+            QueryRootTypeInaccessible | OverrideFromSelf | ProvidesDirectiveInFieldsArgument => Severity::Error,
 
             LookupReturnsNonNullableType => Severity::Warning,
         }

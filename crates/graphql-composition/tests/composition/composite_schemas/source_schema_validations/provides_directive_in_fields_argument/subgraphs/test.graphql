@@ -1,0 +1,16 @@
+extend schema @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup"])
+
+type Query {
+  me: User
+}
+
+type User {
+  id: ID!
+  address: Address! @provides(fields: "name @test country")
+}
+
+type Address @key(fields: "id") {
+  id: ID!
+  name: String! @external
+  country: String! @external
+}

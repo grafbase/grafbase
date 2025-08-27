@@ -78,6 +78,7 @@ impl Subgraphs {
                             field,
                             arguments,
                             subselection,
+                            has_directives: item.directives().next().is_some(),
                         }))
                     }
                     ast::Selection::InlineFragment(fragment) => {
@@ -89,6 +90,7 @@ impl Subgraphs {
                         Ok(Selection::InlineFragment {
                             on: subgraphs.strings.intern(on),
                             subselection,
+                            has_directives: fragment.directives().next().is_some(),
                         })
                     }
                     _ => Err("fragment spreads are not allowed.".to_owned()),
@@ -165,7 +167,11 @@ pub(crate) struct Key {
 #[derive(PartialEq, PartialOrd, Debug)]
 pub(crate) enum Selection {
     Field(FieldSelection),
-    InlineFragment { on: StringId, subselection: Vec<Selection> },
+    InlineFragment {
+        on: StringId,
+        subselection: Vec<Selection>,
+        has_directives: bool,
+    },
 }
 
 #[derive(PartialEq, PartialOrd, Debug)]
@@ -173,6 +179,7 @@ pub(crate) struct FieldSelection {
     pub(crate) field: StringId,
     pub(crate) arguments: Vec<(StringId, Value)>,
     pub(crate) subselection: Vec<Selection>,
+    pub(crate) has_directives: bool,
 }
 
 pub(crate) type KeyWalker<'a> = Walker<'a, KeyId>;

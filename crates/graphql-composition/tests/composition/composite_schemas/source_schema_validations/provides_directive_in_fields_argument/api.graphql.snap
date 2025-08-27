@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "https://graphql.github.io/composite-schemas-spec/draft/#sec-Provides-Directive-in-Fields-Argument"
+input_file: crates/graphql-composition/tests/composition/composite_schemas/source_schema_validations/provides_directive_in_fields_argument/test.md
+---
+

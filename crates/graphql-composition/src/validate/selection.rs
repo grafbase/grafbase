@@ -1,3 +1,5 @@
+use crate::diagnostics::CompositeSchemasSourceSchemaValidationErrorCode;
+
 use super::*;
 
 pub(super) fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldWalker<'_>) {
@@ -46,7 +48,53 @@ pub(super) fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraph
             continue;
         };
 
+        validate_selection_in_provides(ctx, selection, &directive_path, subgraph_name);
         validate_selection(ctx, selection, field_type, &directive_path, "provides", subgraph_name);
+    }
+}
+
+fn validate_selection_in_provides(
+    ctx: &mut ValidateContext<'_>,
+    selection: &subgraphs::Selection,
+    directive_path: &dyn Fn() -> String,
+    subgraph_name: &str,
+) {
+    match selection {
+        subgraphs::Selection::Field(subgraphs::FieldSelection {
+            field: _,
+            arguments: _,
+            subselection: _,
+            has_directives,
+        })
+        | subgraphs::Selection::InlineFragment {
+            on: _,
+            subselection: _,
+            has_directives,
+        } if *has_directives => {
+            ctx.diagnostics.push_composite_schemas_source_schema_validation_error(
+                subgraph_name,
+                format!(
+                    "Error at {}: no directives are allowed in the selection sets in `@provides(fields:)`.",
+                    directive_path()
+                ),
+                CompositeSchemasSourceSchemaValidationErrorCode::ProvidesDirectiveInFieldsArgument,
+            );
+        }
+        subgraphs::Selection::Field(subgraphs::FieldSelection {
+            field: _,
+            arguments: _,
+            subselection,
+            has_directives: _,
+        })
+        | subgraphs::Selection::InlineFragment {
+            on: _,
+            subselection,
+            has_directives: _,
+        } => {
+            for selection in subselection {
+                validate_selection_in_provides(ctx, selection, directive_path, subgraph_name);
+            }
+        }
     }
 }
 
@@ -67,7 +115,11 @@ fn validate_selection(
             directive_name,
             subgraph_name,
         ),
-        subgraphs::Selection::InlineFragment { on, subselection } => {
+        subgraphs::Selection::InlineFragment {
+            on,
+            subselection,
+            has_directives: _,
+        } => {
             let subgraph_id = on_definition.subgraph_id();
             let Some(on) = ctx.subgraphs.definition_by_name_id(*on, subgraph_id) else {
                 let directive_path = directive_path();

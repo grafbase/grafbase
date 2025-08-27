@@ -35,6 +35,7 @@ fn ingest_nested_key_fields_rec(
         field,
         arguments: _,
         subselection,
+        has_directives: _,
     }) = selection
     else {
         return;
