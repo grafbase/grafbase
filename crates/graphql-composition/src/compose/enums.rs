@@ -9,9 +9,12 @@ pub(super) fn merge_enum_definitions<'a>(
     ctx: &mut Context<'a>,
 ) {
     let enum_name = first.name().id;
-    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
     directives.extend(create_join_type_from_definitions(definitions));
-    let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
+    let description = definitions
+        .iter()
+        .find_map(|def| def.view().description)
+        .map(|d| ctx.subgraphs[d].as_ref());
 
     match (
         enum_is_used_in_input(enum_name, ctx.subgraphs),
@@ -94,7 +97,7 @@ fn merge_intersection<'a>(
 
     for value in intersection {
         let value_definitions = definitions.iter().filter_map(|enm| enm.enum_value_by_name(value));
-        let sites = value_definitions.clone().map(|value| value.directives());
+        let sites = value_definitions.clone().map(|value| value.id.2);
         let mut composed_directives = collect_composed_directives(sites, ctx);
 
         for value_definition in value_definitions {
@@ -116,10 +119,7 @@ fn merge_union<'a>(
 ) {
     let mut all_values: Vec<(StringId, subgraphs::DefinitionId, _)> = definitions
         .iter()
-        .flat_map(|def| {
-            def.enum_values()
-                .map(|value| (value.name().id, value.id.0, value.directives().id))
-        })
+        .flat_map(|def| def.enum_values().map(|value| (value.name().id, value.id.0, value.id.2)))
         .collect();
 
     all_values.sort();
@@ -129,9 +129,7 @@ fn merge_union<'a>(
     while start < all_values.len() {
         let name = all_values[start].0;
         let end = all_values[start..].partition_point(|(n, _, _)| *n == name) + start;
-        let sites = all_values[start..end]
-            .iter()
-            .map(|(_, _, directives)| first.walk(*directives));
+        let sites = all_values[start..end].iter().map(|(_, _, directives)| *directives);
         let mut composed_directives = collect_composed_directives(sites, ctx);
 
         for (_, parent_definition_id, _) in &all_values[start..end] {
@@ -173,7 +171,7 @@ fn merge_exactly_matching<'a>(
     for value in expected {
         let enum_value_definitions = definitions.iter().filter_map(|enm| enm.enum_value_by_name(value));
 
-        let sites = enum_value_definitions.clone().map(|value| value.directives());
+        let sites = enum_value_definitions.clone().map(|value| value.id.2);
         let mut composed_directives = collect_composed_directives(sites, ctx);
 
         for value_definition in enum_value_definitions {

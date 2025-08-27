@@ -44,17 +44,17 @@ fn merge_fields<'a>(
     }
 
     let type_name = ctx.insert_static_str(root);
-    let directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
+    let directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
 
     let object_id = ctx.insert_object(type_name, None, directives);
 
     if let "Subscription" = root {
-        for definition in definitions {
-            if definition.directives().shareable() {
+        for definition in definitions.iter().map(|def| def.view()) {
+            if definition.directives.shareable(ctx.subgraphs) {
                 ctx.diagnostics.push_composite_schemas_post_merge_validation_error(
                     format!(
                         "[{}] The Subscription type cannot be marked as @shareable.",
-                        definition.subgraph().name().as_str()
+                        ctx.subgraphs[ctx.subgraphs.at(definition.subgraph_id).name],
                     ),
                     CompositeSchemasPostMergeValidationErrorCode::InvalidFieldSharing,
                 );
@@ -62,7 +62,10 @@ fn merge_fields<'a>(
         }
 
         fields::for_each_field_group(definitions, |fields| {
-            for shareable_field in fields.iter().filter(|field| field.directives().shareable()) {
+            for shareable_field in fields
+                .iter()
+                .filter(|field| field.id.1.directives.shareable(ctx.subgraphs))
+            {
                 ctx.diagnostics.push_composite_schemas_post_merge_validation_error(
                     format!(
                         "[{}] Subscription root fields cannot be marked as @shareable: {}.{}.",

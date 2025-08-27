@@ -7,9 +7,9 @@ pub(super) fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraph
     let parent_definition = ctx.subgraphs.at(field_record.parent_definition_id);
     let subgraph_name = &ctx.subgraphs[ctx.subgraphs[parent_definition.subgraph_id].name];
 
-    let directives = field.directives();
-    for (selection, directive_name) in directives
-        .requires()
+    for (selection, directive_name) in field_record
+        .directives
+        .requires(ctx.subgraphs)
         .into_iter()
         .flatten()
         .map(|selection| (selection, "requires"))
@@ -17,8 +17,7 @@ pub(super) fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraph
         let directive_path = || {
             format!(
                 "{}.{}",
-                field.parent_definition().name().as_str(),
-                field.name().as_str()
+                ctx.subgraphs[parent_definition.name], ctx.subgraphs[field_record.name]
             )
         };
         validate_selection(
@@ -31,12 +30,11 @@ pub(super) fn validate_selections(ctx: &mut ValidateContext<'_>, field: subgraph
         );
     }
 
-    for selection in directives.provides().into_iter().flatten() {
+    for selection in field_record.directives.provides(ctx.subgraphs).into_iter().flatten() {
         let directive_path = || {
             format!(
                 "{}.{}",
-                field.parent_definition().name().as_str(),
-                field.name().as_str()
+                ctx.subgraphs[parent_definition.name], ctx.subgraphs[field_record.name]
             )
         };
 

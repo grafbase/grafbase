@@ -6,7 +6,10 @@ pub(super) fn merge_input_object_definitions(
     definitions: &[DefinitionWalker<'_>],
 ) {
     let mut fields_range: Option<federated::InputValueDefinitions> = None;
-    let description = definitions.iter().find_map(|def| def.description()).map(|d| d.as_str());
+    let description = definitions
+        .iter()
+        .find_map(|def| def.view().description)
+        .map(|d| ctx.subgraphs[d].as_ref());
 
     let input_object_name = ctx.insert_string(first.name().id);
 
@@ -51,7 +54,7 @@ pub(super) fn merge_input_object_definitions(
             continue;
         }
 
-        let directive_containers = fields.iter().map(|(_, field)| field.directives());
+        let directive_containers = fields.iter().map(|(_, field)| field.id.1.directives);
         let mut directives = collect_composed_directives(directive_containers, ctx);
 
         let description = fields
@@ -93,7 +96,7 @@ pub(super) fn merge_input_object_definitions(
         }
     }
 
-    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
     directives.extend(create_join_type_from_definitions(definitions));
     let fields = fields_range.unwrap_or(federated::NO_INPUT_VALUE_DEFINITION);
     ctx.insert_input_object(input_object_name, description, directives, fields);

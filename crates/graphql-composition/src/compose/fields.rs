@@ -54,7 +54,7 @@ fn compose_field_types<'a>(
 ) -> Option<subgraphs::FieldType> {
     let mut fields = fields.map(|field| {
         let is_guest_batched = field.arguments().any(|arg| {
-            arg.directives().iter_ir_directives().any(|dir| {
+            arg.id.1.directives.iter_ir_directives(ctx.subgraphs).any(|dir| {
                 let ir::Directive::CompositeRequire { field, .. } = dir else {
                     return false;
                 };

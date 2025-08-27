@@ -58,7 +58,9 @@ fn merge_object_definitions<'a>(
     first: &DefinitionWalker<'a>,
     definitions: &[DefinitionWalker<'a>],
 ) {
-    let is_shareable = definitions.iter().any(|definition| definition.directives().shareable());
+    let is_shareable = definitions
+        .iter()
+        .any(|definition| definition.view().directives.shareable(ctx.subgraphs));
 
     if let Some(incompatible) = definitions
         .iter()
@@ -77,8 +79,11 @@ fn merge_object_definitions<'a>(
 
     let is_entity = validate_consistent_entityness(ctx, definitions);
 
-    let description = definitions.iter().find_map(|def| def.description());
-    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
+    let description = definitions
+        .iter()
+        .find_map(|def| def.view().description)
+        .map(|desc| ctx.subgraphs[desc].as_ref());
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
 
     if is_entity {
         directives.extend(definitions.iter().flat_map(|def| def.entity_keys()).map(|key| {
@@ -158,8 +163,11 @@ fn merge_union_definitions(
 ) {
     let union_name = ctx.insert_string(first_union.name().id);
 
-    let description = definitions.iter().find_map(|def| def.description());
-    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
+    let description = definitions
+        .iter()
+        .find_map(|def| def.view().description)
+        .map(|desc| ctx.subgraphs[desc].as_ref());
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
 
     for member in definitions
         .iter()

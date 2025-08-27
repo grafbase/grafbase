@@ -84,7 +84,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 ));
             }
 
-            if interface.directives().interface_object() {
+            if interface.view().directives.interface_object(ctx.subgraphs) {
                 ctx.diagnostics.push_fatal(format!(
                     "[{}] The @interfaceObject directive is not valid on interfaces (on `{}`).",
                     interface.subgraph().name().as_str(),
@@ -94,9 +94,9 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         }
     }
 
-    let description = interface_def.description().map(|d| d.as_str());
+    let description = interface_def.view().description.map(|d| ctx.subgraphs[d].as_ref());
     let interface_name = ctx.insert_string(interface_name.id);
-    let directives = collect_composed_directives(definitions.iter().map(|def| def.directives()), ctx);
+    let directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
     let interface_id = ctx.insert_interface(interface_name, description, directives);
 
     let Some(expected_key) = interface_def.entity_keys().next() else {
@@ -112,7 +112,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
 
     // Each object in other subgraphs has to have @interfaceObject and the same key as the entity interface.
     for definition in definitions.iter().filter(|def| def.kind() == DefinitionKind::Object) {
-        if !definition.directives().interface_object() {
+        if !definition.view().directives.interface_object(ctx.subgraphs) {
             ctx.diagnostics.push_fatal(format!(
                 "`{}` is an entity interface but the object type `{}` is missing the @interfaceObject directive in the `{}` subgraph.",
                 definition.name().as_str(),

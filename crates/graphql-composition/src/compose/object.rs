@@ -46,7 +46,7 @@ pub(super) fn merge_field_arguments<'a>(
             continue;
         }
 
-        let directive_containers = arguments.iter().map(|(_, arg)| arg.directives());
+        let directive_containers = arguments.iter().map(|(_, arg)| arg.id.1.directives);
         let directives = collect_composed_directives(directive_containers, ctx);
 
         let Some(argument_type) =
@@ -55,13 +55,19 @@ pub(super) fn merge_field_arguments<'a>(
             continue;
         };
 
-        let argument_is_inaccessible = || arguments.iter().any(|(_, arg)| arg.directives().inaccessible());
+        let argument_is_inaccessible = || {
+            arguments
+                .iter()
+                .any(|(_, arg)| arg.id.1.directives.inaccessible(ctx.subgraphs))
+        };
         let argument_type_is_inaccessible = arguments.iter().any(|(_, arg)| {
             let parent_definition = arg.id.0.0;
             let subgraph_id = ctx.subgraphs.at(parent_definition).subgraph_id;
             let arg_type = arg.r#type().definition(subgraph_id);
 
-            arg_type.map(|def| def.directives().inaccessible()).unwrap_or(false)
+            arg_type
+                .map(|def| def.view().directives.inaccessible(ctx.subgraphs))
+                .unwrap_or(false)
         });
 
         if argument_type_is_inaccessible && !argument_is_inaccessible() {
@@ -195,11 +201,11 @@ pub(super) fn compose_field<'a>(
     }
 
     if fields.iter().any(|field| {
-        !field.directives().inaccessible()
+        !field.id.1.directives.inaccessible(ctx.subgraphs)
             && field
                 .r#type()
                 .definition(field.parent_definition().subgraph_id())
-                .filter(|parent| parent.directives().inaccessible())
+                .filter(|parent| parent.view().directives.inaccessible(ctx.subgraphs))
                 .is_some()
     }) {
         let name = format!(
@@ -207,7 +213,9 @@ pub(super) fn compose_field<'a>(
             first.parent_definition().name().as_str(),
             first.name().as_str()
         );
-        let non_marked_subgraphs = fields.iter().filter(|field| !field.directives().inaccessible());
+        let non_marked_subgraphs = fields
+            .iter()
+            .filter(|field| !field.id.1.directives.inaccessible(ctx.subgraphs));
 
         ctx.diagnostics.push_fatal(format!(
             "The field `{name}` is of an @inaccessible type, but is itself not marked as @inaccessible in subgraphs {}",
@@ -222,7 +230,7 @@ pub(super) fn compose_field<'a>(
 
     let field_type = fields::compose_output_field_types(fields.iter().copied(), ctx)?;
 
-    let mut directives = collect_composed_directives(fields.iter().map(|f| f.directives()), ctx);
+    let mut directives = collect_composed_directives(fields.iter().map(|f| f.id.1.directives), ctx);
     ingest_join_field_directives(ctx, first.walk(field_type), fields, &mut directives);
 
     let description = fields
@@ -248,11 +256,16 @@ fn ingest_join_field_directives(
     super::validate::override_source_has_override(fields, ctx);
 
     for field in fields {
+        let directives = field.id.1.directives;
+        let field_name = field.id.1.name;
+        let parent_definition = ctx.subgraphs.at(field.id.1.parent_definition_id);
+        let is_external = directives.external(ctx.subgraphs) || parent_definition.directives.external(ctx.subgraphs);
+
         let mut directive = ir::JoinFieldDirective {
             source_field: field.id,
             r#override: None,
             override_label: None,
-            external: field.is_external() && !field.is_part_of_key(),
+            external: is_external && !field.is_part_of_key(),
             r#type: if field.r#type() != composed_field_type {
                 Some(field.r#type().id)
             } else {
@@ -260,7 +273,7 @@ fn ingest_join_field_directives(
             },
         };
 
-        if let Some(r#override) = field.directives().r#override() {
+        if let Some(r#override) = field.id.1.directives.r#override(ctx.subgraphs) {
             directive.override_label = r#override
                 .label
                 .and_then(|label| ctx.subgraphs.walk(label).as_str().parse().ok());
@@ -274,19 +287,19 @@ fn ingest_join_field_directives(
             );
         }
 
-        if field.directives().requires().is_some() && field.is_external() {
+        if directives.requires(ctx.subgraphs).is_some() && is_external {
             ctx.diagnostics.push_fatal(format!(
                 "field `{}` on `{}` declared as `@external` in subgraph `{}` cannot have a `@requires`.",
-                field.name().as_str(),
+                ctx.subgraphs[field_name],
                 field.parent_definition().name().as_str(),
                 field.parent_definition().subgraph().name().as_str(),
             ));
         }
 
-        if field.directives().provides().is_some() && field.is_external() {
+        if directives.provides(ctx.subgraphs).is_some() && is_external {
             ctx.diagnostics.push_fatal(format!(
                 "field `{}` on `{}` declared as `@external` in subgraph `{}` cannot have a `@provides`.",
-                field.name().as_str(),
+                ctx.subgraphs[field_name],
                 field.parent_definition().name().as_str(),
                 field.parent_definition().subgraph().name().as_str(),
             ));
@@ -307,9 +320,9 @@ pub(crate) fn validate_shareable_object_fields_match(
         .collect();
     let inaccessible_fields: BTreeSet<StringId> = definitions
         .iter()
-        .flat_map(|def| def.fields())
-        .filter(|field| field.directives().inaccessible())
-        .map(|field| field.name().id)
+        .flat_map(|def| def.id.fields(ctx.subgraphs))
+        .filter(|field| field.directives.inaccessible(ctx.subgraphs))
+        .map(|field| field.name)
         .collect();
 
     for definition in definitions {

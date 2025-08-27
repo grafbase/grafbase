@@ -10,7 +10,7 @@ pub(super) fn override_source_has_override(fields: &[FieldWalker<'_>], ctx: &mut
     // Early exit if we don't have at least 2 overrides
     if fields
         .iter()
-        .filter(|f| f.directives().r#override().is_some())
+        .filter(|f| f.id.1.directives.r#override(ctx.subgraphs).is_some())
         .take(2)
         .count()
         < 2
@@ -26,7 +26,7 @@ pub(super) fn override_source_has_override(fields: &[FieldWalker<'_>], ctx: &mut
     let mut overrides_by_source: BTreeMap<StringId, OverrideEntry<'_>> = BTreeMap::new();
 
     for field in fields {
-        if let Some(override_directive) = field.directives().r#override() {
+        if let Some(override_directive) = field.id.1.directives.r#override(ctx.subgraphs) {
             use std::collections::btree_map::Entry;
             match overrides_by_source.entry(override_directive.from) {
                 Entry::Vacant(e) => {
@@ -56,7 +56,7 @@ pub(super) fn override_source_has_override(fields: &[FieldWalker<'_>], ctx: &mut
             let source_has_override = fields
                 .iter()
                 .find(|f| f.parent_definition().subgraph().name().id == source)
-                .and_then(|f| f.directives().r#override())
+                .and_then(|f| f.id.1.directives.r#override(ctx.subgraphs))
                 .is_some();
 
             let message = if source_has_override {

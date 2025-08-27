@@ -190,40 +190,34 @@ impl Subgraphs {
     }
 }
 
-pub(crate) type DirectiveSiteWalker<'a> = Walker<'a, DirectiveSiteId>;
-
-impl<'a> DirectiveSiteWalker<'a> {
-    pub(crate) fn deprecated(self) -> Option<DeprecatedWalker<'a>> {
-        self.subgraphs
-            .directives
-            .deprecated
-            .get(&self.id)
-            .map(|deprecated| self.walk(deprecated))
+impl DirectiveSiteId {
+    pub(crate) fn authenticated(&self, subgraphs: &Subgraphs) -> bool {
+        subgraphs.directives.authenticated.contains(self)
     }
 
-    pub(crate) fn external(self) -> bool {
-        self.subgraphs.directives.external.contains(&self.id)
+    pub(crate) fn deprecated<'a>(&self, subgraphs: &'a Subgraphs) -> Option<&'a Deprecated> {
+        subgraphs.directives.deprecated.get(self)
     }
 
-    pub(crate) fn inaccessible(self) -> bool {
-        self.subgraphs.directives.inaccessible.contains(&self.id)
+    pub(crate) fn external(&self, subgraphs: &Subgraphs) -> bool {
+        subgraphs.directives.external.contains(self)
     }
 
-    pub(crate) fn one_of(self) -> bool {
-        self.subgraphs.directives.one_of.contains(&self.id)
+    pub(crate) fn inaccessible(&self, subgraphs: &Subgraphs) -> bool {
+        subgraphs.directives.inaccessible.contains(self)
     }
 
-    pub(crate) fn interface_object(self) -> bool {
-        self.subgraphs.directives.interface_object.contains(&self.id)
+    pub(crate) fn interface_object(&self, subgraphs: &Subgraphs) -> bool {
+        subgraphs.directives.interface_object.contains(self)
     }
 
-    pub(crate) fn iter_extra_directives(&self) -> impl Iterator<Item = ExtraDirective<'_>> {
-        let instances = &self.subgraphs.directives.extra_directives;
-        let partition_point = instances.partition_point(|record| record.directive_site_id < self.id);
+    pub(crate) fn iter_extra_directives(self, subgraphs: &Subgraphs) -> impl Iterator<Item = ExtraDirective<'_>> {
+        let instances = &subgraphs.directives.extra_directives;
+        let partition_point = instances.partition_point(|record| record.directive_site_id < self);
 
         instances[partition_point..]
             .iter()
-            .take_while(|record| record.directive_site_id == self.id)
+            .take_while(move |record| record.directive_site_id == self)
             .enumerate()
             .map(move |(idx, record)| ExtraDirective {
                 id: (partition_point + idx).into(),
@@ -231,33 +225,25 @@ impl<'a> DirectiveSiteWalker<'a> {
             })
     }
 
-    pub(crate) fn iter_ir_directives(&self) -> impl Iterator<Item = &crate::composition_ir::Directive> {
-        let instances = &self.subgraphs.directives.ir_directives;
-        let partition_point = instances.partition_point(|(directive_site_id, _)| *directive_site_id < self.id);
+    pub(crate) fn iter_ir_directives(
+        self,
+        subgraphs: &Subgraphs,
+    ) -> impl Iterator<Item = &crate::composition_ir::Directive> {
+        let instances = &subgraphs.directives.ir_directives;
+        let partition_point = instances.partition_point(|(directive_site_id, _)| *directive_site_id < self);
 
         instances[partition_point..]
             .iter()
-            .take_while(|(directive_site_id, _)| *directive_site_id == self.id)
+            .take_while(move |(directive_site_id, _)| *directive_site_id == self)
             .map(|(_, record)| record)
     }
 
-    /// ```graphql,ignore
-    /// type Query {
-    ///   getRandomMammoth: Mammoth @override(from: "steppe")
-    ///                             ^^^^^^^^^^^^^^^^^^^^^^^^^
-    /// }
-    /// ```
-    pub(crate) fn r#override(self) -> Option<&'a OverrideDirective> {
-        self.subgraphs.directives.r#override.get(&self.id)
+    pub(crate) fn one_of(self, subgraphs: &Subgraphs) -> bool {
+        subgraphs.directives.one_of.contains(&self)
     }
 
-    pub(crate) fn policies(self) -> impl Iterator<Item = &'a [StringId]> {
-        self.subgraphs
-            .directives
-            .policies
-            .range((self.id, vec![])..)
-            .take_while(move |(site, _)| *site == self.id)
-            .map(|(_, policies)| policies.as_slice())
+    pub(crate) fn shareable(self, subgraphs: &Subgraphs) -> bool {
+        subgraphs.directives.shareable.contains(&self)
     }
 
     /// ```ignore,graphql
@@ -267,12 +253,8 @@ impl<'a> DirectiveSiteWalker<'a> {
     ///                          ^^^^^^^^^^^^^^^^^^^^^^^^
     /// }
     /// ```
-    pub(crate) fn provides(self) -> Option<&'a [Selection]> {
-        self.subgraphs
-            .directives
-            .provides
-            .get(&self.id)
-            .map(|provides| &**provides)
+    pub(crate) fn provides(self, subgraphs: &Subgraphs) -> Option<&[Selection]> {
+        subgraphs.directives.provides.get(&self).map(|provides| &**provides)
     }
 
     /// ```ignore.graphql
@@ -283,47 +265,44 @@ impl<'a> DirectiveSiteWalker<'a> {
     ///                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     /// }
     /// ```
-    pub(crate) fn requires(self) -> Option<&'a [Selection]> {
-        self.subgraphs
-            .directives
-            .requires
-            .get(&self.id)
-            .map(|requires| &**requires)
+    pub(crate) fn requires(self, subgraphs: &Subgraphs) -> Option<&[Selection]> {
+        subgraphs.directives.requires.get(&self).map(|requires| &**requires)
     }
 
-    pub(crate) fn requires_scopes(self) -> impl Iterator<Item = &'a [StringId]> {
-        self.subgraphs
+    /// ```graphql,ignore
+    /// type Query {
+    ///   getRandomMammoth: Mammoth @override(from: "steppe")
+    ///                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+    /// }
+    /// ```
+    pub(crate) fn r#override(self, subgraphs: &Subgraphs) -> Option<&OverrideDirective> {
+        subgraphs.directives.r#override.get(&self)
+    }
+
+    pub(crate) fn policies<'a>(self, subgraphs: &'a Subgraphs) -> impl Iterator<Item = &'a [StringId]> {
+        subgraphs
+            .directives
+            .policies
+            .range((self, vec![])..)
+            .take_while(move |(site, _)| *site == self)
+            .map(|(_, policies)| policies.as_slice())
+    }
+
+    pub(crate) fn requires_scopes<'a>(self, subgraphs: &'a Subgraphs) -> impl Iterator<Item = &'a [StringId]> {
+        subgraphs
             .directives
             .requires_scopes
-            .range((self.id, vec![])..)
-            .take_while(move |(site, _)| *site == self.id)
+            .range((self, vec![])..)
+            .take_while(move |(site, _)| *site == self)
             .map(|(_, scopes)| scopes.as_slice())
     }
 
-    pub(crate) fn shareable(self) -> bool {
-        self.subgraphs.directives.shareable.contains(&self.id)
+    pub(crate) fn cost(self, subgraphs: &Subgraphs) -> Option<i32> {
+        subgraphs.directives.costs.get(&self).copied()
     }
 
-    pub(crate) fn cost(self) -> Option<i32> {
-        self.subgraphs.directives.costs.get(&self.id).copied()
-    }
-
-    pub(crate) fn list_size(self) -> Option<&'a ListSizeDirective> {
-        self.subgraphs.directives.list_sizes.get(&self.id)
-    }
-}
-
-impl DirectiveSiteId {
-    pub(crate) fn authenticated(self, subgraphs: &Subgraphs) -> bool {
-        subgraphs.directives.authenticated.contains(&self)
-    }
-
-    pub(crate) fn inaccessible(&self, subgraphs: &Subgraphs) -> bool {
-        subgraphs.directives.inaccessible.contains(self)
-    }
-
-    pub(crate) fn interface_object(&self, subgraphs: &Subgraphs) -> bool {
-        subgraphs.directives.interface_object.contains(self)
+    pub(crate) fn list_size(self, subgraphs: &Subgraphs) -> Option<&ListSizeDirective> {
+        subgraphs.directives.list_sizes.get(&self)
     }
 
     /// ```graphql,ignore
@@ -348,15 +327,6 @@ impl DirectiveSiteId {
 pub(crate) struct OverrideDirective {
     pub(crate) from: StringId,
     pub(crate) label: Option<StringId>,
-}
-
-/// Corresponds to an `@deprecated` directive.
-pub(crate) type DeprecatedWalker<'a> = Walker<'a, &'a Deprecated>;
-
-impl<'a> DeprecatedWalker<'a> {
-    pub(crate) fn reason(self) -> Option<StringWalker<'a>> {
-        self.id.reason.map(|reason| self.walk(reason))
-    }
 }
 
 /// Corresponds to an `@deprecated` directive.

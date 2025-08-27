@@ -188,11 +188,6 @@ impl<'a> FieldWalker<'a> {
         tuple.description.map(|id| self.walk(id))
     }
 
-    pub(crate) fn directives(self) -> DirectiveSiteWalker<'a> {
-        let (_, tuple) = self.id;
-        self.walk(tuple.directives)
-    }
-
     pub fn parent_definition(self) -> DefinitionWalker<'a> {
         let (FieldPath(parent_definition_id, _), _) = self.id;
         self.walk(parent_definition_id)
@@ -216,10 +211,6 @@ impl<'a> FieldWalker<'a> {
     pub(crate) fn r#type(self) -> FieldTypeWalker<'a> {
         let (_, tuple) = self.id;
         self.walk(tuple.r#type)
-    }
-
-    pub(crate) fn is_external(self) -> bool {
-        self.directives().external() || self.parent_definition().directives().external()
     }
 }
 
@@ -279,11 +270,6 @@ impl<'a> FieldArgumentWalker<'a> {
     pub(crate) fn r#type(&self) -> FieldTypeWalker<'a> {
         let (_, tuple) = self.id;
         self.walk(tuple.r#type)
-    }
-
-    pub(crate) fn directives(&self) -> DirectiveSiteWalker<'a> {
-        let (_, tuple) = self.id;
-        self.walk(tuple.directives)
     }
 
     pub(crate) fn default(&self) -> Option<&'a Value> {

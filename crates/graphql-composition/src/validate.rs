@@ -35,24 +35,28 @@ fn validate_fields(ctx: &mut ValidateContext<'_>) {
             subgraphs: ctx.subgraphs,
         };
         selection::validate_selections(ctx, field);
-        validate_override_labels(ctx, field);
+        validate_override_labels(ctx, field.id.1);
         composite_schemas::source_schema::lookup_returns_non_nullable_type(ctx, field);
         composite_schemas::source_schema::override_from_self(ctx, field);
     }
 }
 
-fn validate_override_labels(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldWalker<'_>) {
-    let Some(label) = field.directives().r#override().and_then(|directive| directive.label) else {
+fn validate_override_labels(ctx: &mut ValidateContext<'_>, field: subgraphs::FieldTuple) {
+    let Some(label) = field
+        .directives
+        .r#override(ctx.subgraphs)
+        .and_then(|directive| directive.label)
+    else {
         return;
     };
 
-    let Err(err) = ctx.subgraphs.walk(label).as_str().parse::<OverrideLabel>() else {
+    let Err(err) = ctx.subgraphs[label].parse::<OverrideLabel>() else {
         return;
     };
 
     ctx.diagnostics.push_fatal(format!(
         "Invalid @override label argument on {ty}.{field}: {err}",
-        ty = field.parent_definition().name().as_str(),
-        field = field.name().as_str(),
+        ty = ctx.subgraphs[ctx.subgraphs.at(field.parent_definition_id).name],
+        field = ctx.subgraphs[field.name],
     ));
 }
