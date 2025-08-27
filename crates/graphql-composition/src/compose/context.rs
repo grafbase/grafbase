@@ -44,7 +44,7 @@ impl<'a> Context<'a> {
         context.ir.linked_schema_to_extension = linked_schema_to_extension;
 
         for builtin_scalar in subgraphs.iter_builtin_scalars() {
-            context.insert_scalar(builtin_scalar.as_str(), None, Vec::new());
+            context.insert_scalar(builtin_scalar, None, Vec::new());
         }
 
         context

@@ -2,9 +2,10 @@ use crate::{
     federated_graph::{self as federated, OverrideLabel, OverrideSource},
     subgraphs::{self, FieldPath, FieldTuple, FieldType, KeyId},
 };
+pub(crate) use federated::JoinEnumValueDirective;
 
 #[derive(Clone, PartialEq)]
-pub enum Directive {
+pub(crate) enum Directive {
     Authenticated,
     OneOf,
     Deprecated {
@@ -41,6 +42,7 @@ pub enum Directive {
     JoinEntityInterfaceField,
     JoinInputField(JoinInputFieldDirective),
     JoinType(JoinTypeDirective),
+    JoinEnumValue(JoinEnumValueDirective),
     ListSize(federated::ListSizeDirective),
     JoinUnionMember(JoinUnionMemberDirective),
 }

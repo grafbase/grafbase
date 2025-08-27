@@ -13,6 +13,7 @@
 - `@extends` no longer triggers unknown directive warnings.
 - Instances of `@key(field: "...")` (instead of "fields") now triggers a warning.
 - Selection set validation errors now include the subgraph name.
+- We now emit the `@join__enumValue` directive on enum values in the federated SDL (https://github.com/grafbase/grafbase/pull/3456).
 
 ### Fixes
 

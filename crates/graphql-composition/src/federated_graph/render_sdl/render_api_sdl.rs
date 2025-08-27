@@ -244,6 +244,7 @@ fn public_directives_filter(directive: &Directive) -> bool {
         | Directive::RequiresScopes(_)
         | Directive::Authenticated
         | Directive::Cost { .. }
+        | Directive::JoinEnumValue(_)
         | Directive::JoinField(_)
         | Directive::JoinType(_)
         | Directive::JoinUnionMember(_)

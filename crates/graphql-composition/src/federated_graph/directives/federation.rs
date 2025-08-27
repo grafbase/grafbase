@@ -19,6 +19,14 @@ pub(crate) struct JoinTypeDirective {
     pub is_interface_object: bool,
 }
 
+/// ```ignore graphql
+/// directive @join__enumValue(graph: join__Graph!) repeatable on ENUM_VALUE
+/// ```
+#[derive(PartialEq, PartialOrd, Clone, Debug)]
+pub(crate) struct JoinEnumValueDirective {
+    pub(crate) graph: SubgraphId,
+}
+
 ///```ignore,graphql
 /// directive @join__field(
 ///     graph: join__Graph,

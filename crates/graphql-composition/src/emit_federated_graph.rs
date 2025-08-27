@@ -57,9 +57,10 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     emit_directive_definitions(&ir, &mut ctx);
 
     emit_union_members_after_objects(&ir.union_members, &mut ctx);
-    federation_builtins::emit_federation_builtins(&mut ctx, join_graph_enum_id);
 
     emit_directives_and_implements_interface(&mut ctx, ir);
+
+    federation_builtins::emit_federation_builtins(&mut ctx, join_graph_enum_id);
 
     ctx.out.enum_values.sort_unstable_by_key(|v| v.enum_id);
 

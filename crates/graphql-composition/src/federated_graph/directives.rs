@@ -57,6 +57,7 @@ pub(crate) enum Directive {
     JoinType(JoinTypeDirective),
     JoinUnionMember(JoinUnionMemberDirective),
     JoinImplements(JoinImplementsDirective),
+    JoinEnumValue(JoinEnumValueDirective),
     Other {
         name: StringId,
         arguments: Vec<(StringId, Value)>,

@@ -13,6 +13,8 @@ directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: j
 
 directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
 
+directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
+
 directive @join__owner(graph: join__Graph!) on OBJECT
 
 scalar join__FieldSet
@@ -37,8 +39,8 @@ type Query
 enum Plan
   @join__type(graph: SUBSCRIPTIONS)
 {
-  Hobby
-  Pro
+  Hobby @join__enumValue(graph: SUBSCRIPTIONS)
+  Pro @join__enumValue(graph: SUBSCRIPTIONS)
 }
 
 enum join__Graph

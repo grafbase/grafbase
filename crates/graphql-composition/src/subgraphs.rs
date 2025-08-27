@@ -169,24 +169,21 @@ impl Subgraphs {
 
     pub(crate) fn push_ingestion_diagnostic(&mut self, subgraph: SubgraphId, message: String) {
         self.ingestion_diagnostics
-            .push_fatal(format!("[{}]: {message}", self.walk_subgraph(subgraph).name().as_str()));
+            .push_fatal(format!("[{}]: {message}", self[self.at(subgraph).name]));
     }
 
     pub(crate) fn push_ingestion_warning(&mut self, subgraph: SubgraphId, message: String) {
         self.ingestion_diagnostics
-            .push_warning(format!("[{}]: {message}", self.walk_subgraph(subgraph).name().as_str()));
+            .push_warning(format!("[{}]: {message}", self[self.at(subgraph).name]));
     }
 
     pub(crate) fn walk<Id>(&self, id: Id) -> Walker<'_, Id> {
         Walker { id, subgraphs: self }
     }
 
-    /// Iterates all builtin scalars _that are in use in at least one subgraph_.
-    pub(crate) fn iter_builtin_scalars(&self) -> impl Iterator<Item = StringWalker<'_>> + '_ {
-        BUILTIN_SCALARS
-            .into_iter()
-            .map(|name| self.strings.lookup(name).expect("all built in scalars to be interned"))
-            .map(|string| self.walk(string))
+    /// Iterates all builtin scalars.
+    pub(crate) fn iter_builtin_scalars(&self) -> impl ExactSizeIterator<Item = &str> + '_ {
+        BUILTIN_SCALARS.into_iter()
     }
 
     pub(crate) fn emit_ingestion_diagnostics(&self, diagnostics: &mut crate::Diagnostics) {

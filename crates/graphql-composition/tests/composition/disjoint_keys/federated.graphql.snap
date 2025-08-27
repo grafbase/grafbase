@@ -13,6 +13,8 @@ directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: j
 
 directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
 
+directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
+
 directive @join__owner(graph: join__Graph!) on OBJECT
 
 scalar join__FieldSet
@@ -73,12 +75,12 @@ type Mutation
 enum Genre
   @join__type(graph: NOVELISTS)
 {
-  FICTION
-  NONFICTION
-  SCIFI
-  FANTASY
-  MYSTERY
-  BIOGRAPHY
+  FICTION @join__enumValue(graph: NOVELISTS)
+  NONFICTION @join__enumValue(graph: NOVELISTS)
+  SCIFI @join__enumValue(graph: NOVELISTS)
+  FANTASY @join__enumValue(graph: NOVELISTS)
+  MYSTERY @join__enumValue(graph: NOVELISTS)
+  BIOGRAPHY @join__enumValue(graph: NOVELISTS)
 }
 
 enum join__Graph

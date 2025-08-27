@@ -55,8 +55,10 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
             .flat_map(|interface| {
                 interface
                     .subgraph()
-                    .interface_implementers(interface_name.id)
-                    .map(|def| def.name().id)
+                    .id
+                    .0
+                    .interface_implementers(ctx.subgraphs, interface_name.id)
+                    .map(|def_id| ctx.subgraphs.at(def_id).name)
             })
             .collect();
 
@@ -64,8 +66,10 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         for interface in interface_defs() {
             let implementers: BTreeSet<_> = interface
                 .subgraph()
-                .interface_implementers(interface_name.id)
-                .map(|def| def.name().id)
+                .id
+                .0
+                .interface_implementers(ctx.subgraphs, interface_name.id)
+                .map(|def_id| ctx.subgraphs.at(def_id).name)
                 .collect();
 
             if implementers != all_implementers {
@@ -159,28 +163,34 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     // The fields of the entity interface are not only defined in the subgraph where the entity interface is an interface.
     // More fields are contributed by other subgraphs where there are objects with `@interfaceObject`. Those must be added now in all
     // the implementers of the interface as they won't have them in their definition.
-    for object in interface_def.subgraph().interface_implementers(first.name().id) {
-        match object.entity_keys().next() {
-            Some(key) if key.fields() == expected_key.fields() => (),
+    for object_id in interface_def
+        .subgraph()
+        .id
+        .0
+        .interface_implementers(ctx.subgraphs, first.name().id)
+    {
+        let object = ctx.subgraphs.at(object_id);
+        match object.id.keys(ctx.subgraphs).next() {
+            Some(key) if key.selection_set == expected_key.fields() => (),
             Some(_) => ctx.diagnostics.push_fatal(format!(
                 "[{}] The object type `{}` implements the entity interface `{}` but does not have the same key. The key must match exactly.",
-                object.subgraph().name().as_str(),
-                object.name().as_str(),
+                &ctx[ctx.subgraphs.at(object.subgraph_id).name],
+                &ctx[object.name],
                 first.name().as_str(),
             )),
             None => ctx.diagnostics.push_fatal(format!(
                 "[{}] The object type `{}` is annotated with @interfaceObject but missing a key.",
-                object.subgraph().name().as_str(),
-                object.name().as_str(),
+                &ctx[ctx.subgraphs.at(object.subgraph_id).name],
+                &ctx[object.name],
             )),
         }
 
-        let object_name = ctx.insert_string(object.name().id);
+        let object_name = ctx.insert_string(object.name);
 
         let fields_to_add = fields_to_add
             .iter()
             // Avoid adding fields that are already present on the object by virtue of the object implementing the interface.
-            .filter(|(name, _)| object.field_by_name(*name).is_none())
+            .filter(|(name, _)| object.id.field_by_name(ctx.subgraphs, *name).is_none())
             .map(|(_, field_ir)| field_ir);
 
         for field_ir in fields_to_add {
