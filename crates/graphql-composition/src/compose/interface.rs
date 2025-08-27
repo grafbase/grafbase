@@ -36,7 +36,7 @@ fn check_implementers(interface_name: StringId, field_names: &[subgraphs::String
             if !ctx
                 .subgraphs
                 .iter_definitions_with_name(implementer_name)
-                .any(|(_, def)| ctx.subgraphs.walk(def).find_field(*field_name).is_some())
+                .any(|(_, def)| ctx.subgraphs.walk(def).field_by_name(*field_name).is_some())
             {
                 ctx.diagnostics.push_fatal(format!(
                     "The `{}.{}` field is not implemented by `{}`, but it should be.",

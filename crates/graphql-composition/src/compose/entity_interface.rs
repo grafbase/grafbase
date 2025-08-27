@@ -180,7 +180,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         let fields_to_add = fields_to_add
             .iter()
             // Avoid adding fields that are already present on the object by virtue of the object implementing the interface.
-            .filter(|(name, _)| object.find_field(*name).is_none())
+            .filter(|(name, _)| object.field_by_name(*name).is_none())
             .map(|(_, field_ir)| field_ir);
 
         for field_ir in fields_to_add {

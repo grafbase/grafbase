@@ -11,7 +11,7 @@ pub(super) fn ingest_nested_key_fields(ctx: &mut Context<'_>) {
                     let Selection::Field(field) = selection else { continue };
 
                     let Some(field_type) = definition
-                        .find_field(field.field)
+                        .field_by_name(field.field)
                         .and_then(|field| field.r#type().definition(subgraph_id))
                     else {
                         continue;
@@ -40,7 +40,7 @@ fn ingest_nested_key_fields_rec(
         return;
     };
 
-    let Some(field) = parent_definition.find_field(*field) else {
+    let Some(field) = parent_definition.field_by_name(*field) else {
         return;
     };
 
