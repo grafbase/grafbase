@@ -1,0 +1,64 @@
+scalar Scalar8
+
+enum Enum553 {
+  VALUE_1
+}
+
+type Year22 @key(fields: "field2") @extends {
+  field2: Enum553! @external
+}
+
+type Year26 @key(fields: "field132") @extends {
+  field132: ID! @external
+}
+
+extend type Year1989 {
+  field30097: [ID!]
+}
+
+extend type Year2009 {
+  field30098: ID
+}
+
+extend type Year1996 {
+  field30099: ID
+}
+
+directive @directive1(arg47: String!) on OBJECT | INPUT_OBJECT | FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @directive2 on FIELD_DEFINITION
+
+scalar Scalar1
+
+scalar Scalar4
+
+type Year1990 @key(fields: "field2") @key(fields: "field2 field7") @directive1(arg47: "anonymous-string") {
+  field2: ID! @directive2
+  field7: Int
+}
+
+type Year1946 @key(fields: "field2") @directive1(arg47: "anonymous-string") {
+  field2: ID! @directive2
+}
+
+extend type Year1946 {
+  field24: [Year1990!] @directive1(arg47: "anonymous-string")
+}
+
+type Year2000 @key(fields: "field2") {
+  field2: ID!
+}
+
+type Year2009 @key(fields: "field2") @key(fields: "field2 field7") @directive1(arg47: "anonymous-string") {
+  field2: ID! @directive2
+  field7: Int
+}
+
+type Year1996 @key(fields: "field2") @key(fields: "field2 field7") @directive1(arg47: "anonymous-string") {
+  field2: ID! @directive2
+  field7: Int
+}
+
+type Query @extends {
+  field30156(arg1: [ID!]!): [Year1996]
+}

@@ -20,10 +20,12 @@
 - Fixed `Diagnostics::iter_warnings()` iterating over warnings instead of errors.
 - Interfaces both defined in federation v1 subgraphs and as entity interfaces in federation v2 subgraphs do not force the federation v1 subgraphs to define all implementers of the entity interface anymore.
 - Federation v1 subgraphs are no longer taken into account when composing entity interfaces.
+- Fixed handling of entities with type extensions, where in some cases `@key`s would be missed for scenarios where the same entity is extended, then defined in the same subgraph, with other definitions in between. (https://github.com/grafbase/grafbase/pull/3454)
 
 ## Breaking changes
 
 - Many types, fields and methods that are part of the `FederatedGraph` data structure are now private. `FederatedGraph` as a whole will become private as well, since the scope of this crate is only to render the federated SDL.
+- `compose()` now takes an `&mut Subgraphs` argument instead of `&Subgraphs`.
 
 ## 0.10.0 - 2025-07-30
 

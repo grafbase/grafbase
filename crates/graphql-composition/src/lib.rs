@@ -28,7 +28,9 @@ use self::{
 };
 
 /// Compose subgraphs into a federated graph.
-pub fn compose(subgraphs: &Subgraphs) -> CompositionResult {
+pub fn compose(subgraphs: &mut Subgraphs) -> CompositionResult {
+    subgraphs.sort_post_ingestion();
+
     let mut diagnostics = Diagnostics::default();
 
     if subgraphs.iter_subgraphs().len() == 0 {
@@ -113,7 +115,7 @@ mod tests {
         subgraphs
             .ingest_str(&schema, "grafbase-api", Some("https://api.grafbase.com"))
             .unwrap();
-        let result = compose(&subgraphs);
+        let result = compose(&mut subgraphs);
         assert!(!result.diagnostics().any_fatal());
     }
 }

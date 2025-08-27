@@ -106,7 +106,6 @@ fn compose_field_types<'a>(
 
 pub(super) fn compose_argument_types<'a>(
     parent_definition_name: StringId,
-    field_name: StringId,
     mut arguments: impl Iterator<Item = subgraphs::FieldArgumentWalker<'a>>,
     ctx: &mut Context<'a>,
 ) -> Option<subgraphs::FieldType> {
@@ -122,15 +121,20 @@ pub(super) fn compose_argument_types<'a>(
         }) {
         Ok((_, ty)) => Some(ty.id),
         Err((a_arg, b_arg)) => {
+            let subgraphs::ArgumentPath(a_definition_id, a_field_name, a_arg_name) = a_arg.id.0;
+            let subgraphs::ArgumentPath(b_definition_id, _b_field_name, _b_arg_name) = b_arg.id.0;
+            let [a_definition, b_definition] = [a_definition_id, b_definition_id].map(|id| ctx.subgraphs.at(id));
+            let [a_subgraph, b_subgraph] = [a_definition, b_definition].map(|def| ctx.subgraphs.at(def.subgraph_id));
+
             ctx.diagnostics.push_fatal(format!(
                 "The {}.{}({}:) argument has conflicting types in different subgraphs: {} in {} but {} in {}",
-                ctx.subgraphs.walk(parent_definition_name).as_str(),
-                ctx.subgraphs.walk(field_name).as_str(),
-                a_arg.name().as_str(),
+                ctx.subgraphs[parent_definition_name],
+                ctx.subgraphs[a_field_name],
+                ctx.subgraphs[a_arg_name],
                 a_arg.r#type(),
-                a_arg.field().parent_definition().subgraph().name().as_str(),
+                ctx.subgraphs[a_subgraph.name],
                 b_arg.r#type(),
-                b_arg.field().parent_definition().subgraph().name().as_str(),
+                ctx.subgraphs[b_subgraph.name],
             ));
             None
         }

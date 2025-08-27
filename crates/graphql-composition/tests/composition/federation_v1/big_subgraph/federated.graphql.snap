@@ -1,0 +1,97 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: Federated SDL
+input_file: crates/graphql-composition/tests/composition/federation_v1/big_subgraph/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar Scalar8
+
+scalar Scalar1
+
+scalar Scalar4
+
+scalar join__FieldSet
+
+type Year22
+  @join__type(graph: BIG, key: "field2")
+{
+  field2: Enum553!
+}
+
+type Year26
+  @join__type(graph: BIG, key: "field132")
+{
+  field132: ID!
+}
+
+type Year1989
+  @join__type(graph: BIG)
+{
+  field30097: [ID!]
+}
+
+type Year2009
+  @join__type(graph: BIG, key: "field2")
+  @join__type(graph: BIG, key: "field2 field7")
+{
+  field2: ID!
+  field30098: ID
+  field7: Int
+}
+
+type Year1996
+  @join__type(graph: BIG, key: "field2")
+  @join__type(graph: BIG, key: "field2 field7")
+{
+  field2: ID!
+  field30099: ID
+  field7: Int
+}
+
+type Year1990
+  @join__type(graph: BIG, key: "field2")
+  @join__type(graph: BIG, key: "field2 field7")
+{
+  field2: ID!
+  field7: Int
+}
+
+type Year1946
+  @join__type(graph: BIG, key: "field2")
+{
+  field2: ID!
+  field24: [Year1990!]
+}
+
+type Year2000
+  @join__type(graph: BIG, key: "field2")
+{
+  field2: ID!
+}
+
+type Query
+{
+  field30156(arg1: [ID!]!): [Year1996] @join__field(graph: BIG)
+}
+
+enum Enum553
+  @join__type(graph: BIG)
+{
+  VALUE_1
+}
+
+enum join__Graph
+{
+  BIG @join__graph(name: "big", url: "http://example.com/big")
+}
