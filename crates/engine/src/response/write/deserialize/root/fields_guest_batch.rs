@@ -205,11 +205,11 @@ where
 
         while let Some((parent_object, response_fields)) = parent_objects.next() {
             state.reset(parent_object.path.as_slice());
-            state.local_path_mut().push(ResponseValueId::Field {
-                object_id: parent_object.id,
+            state.local_path_mut().push(ResponseValueId::field(
+                parent_object.id,
                 key,
-                nullable: field.wrapping.is_nullable(),
-            });
+                field.wrapping.is_nullable(),
+            ));
             let value = seq.next_element_seed(FieldSeed {
                 state,
                 field,

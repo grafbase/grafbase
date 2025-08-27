@@ -78,11 +78,11 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
         let key = field.key();
 
         self.reset(parent_object.path.as_slice());
-        self.local_path_mut().push(ResponseValueId::Field {
-            object_id: parent_object.id,
+        self.local_path_mut().push(ResponseValueId::field(
+            parent_object.id,
             key,
-            nullable: field.wrapping.is_nullable(),
-        });
+            field.wrapping.is_nullable(),
+        ));
         let seed = FieldSeed {
             state: self,
             field: field.as_ref(),
@@ -196,11 +196,11 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
                 wrapping: field.wrapping.to_mutable(),
             };
             let key = field.key();
-            self.local_path_mut().push(ResponseValueId::Field {
-                object_id: parent_object.id,
+            self.local_path_mut().push(ResponseValueId::field(
+                parent_object.id,
                 key,
-                nullable: field.wrapping.is_nullable(),
-            });
+                field.wrapping.is_nullable(),
+            ));
             match result {
                 Ok(data) => {
                     let result = match &data {

@@ -52,7 +52,7 @@ struct OperationFieldsIngestor<'schema, 'op, 'builder> {
     builder: &'builder mut QuerySolutionSpaceBuilder<'schema, 'op>,
     // Needs to be a queue to have the right query_position for fields.
     queue: VecDeque<IngestSelectionSet<'op>>,
-    next_query_position: u16,
+    next_query_position: u32,
     // Temporary structures for DFS
     parent_type_conditions: Vec<CompositeTypeId>,
     parent_directive_ids: Vec<ExecutableDirectiveId>,

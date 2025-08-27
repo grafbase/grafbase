@@ -132,8 +132,8 @@ fn write_path(
     let mut values = values.into_iter();
     if let Some(first) = values.next() {
         match first {
-            ResponseValueId::Field { key, .. } => {
-                f.write_str(&keys[key])?;
+            ResponseValueId::Field { response_key, .. } => {
+                f.write_str(&keys[response_key])?;
             }
             ResponseValueId::Index { index, .. } => {
                 index.fmt(f)?;
@@ -142,8 +142,8 @@ fn write_path(
         for value in values {
             f.write_str(".")?;
             match value {
-                ResponseValueId::Field { key, .. } => {
-                    f.write_str(&keys[key])?;
+                ResponseValueId::Field { response_key, .. } => {
+                    f.write_str(&keys[response_key])?;
                 }
                 ResponseValueId::Index { index, .. } => {
                     index.fmt(f)?;

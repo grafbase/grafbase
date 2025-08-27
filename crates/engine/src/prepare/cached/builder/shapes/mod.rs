@@ -6,7 +6,7 @@ use fixedbitset::FixedBitSet;
 use id_newtypes::IdRange;
 use im::HashSet;
 use itertools::Itertools;
-use operation::ResponseKey;
+use operation::{QueryPosition, ResponseKey};
 use schema::{
     CompositeType, CompositeTypeId, ObjectDefinitionId, Schema, SubgraphId, TypeDefinition, TypeDefinitionId,
 };
@@ -16,11 +16,11 @@ use crate::{
     prepare::{
         BatchFieldShape, DataOrLookupFieldId, DefaultFieldShapeRecord, Derive, DerivedEntityShapeId,
         DerivedEntityShapeRecord, LookupFieldId, OnRootFieldsError, RootFieldsShapeId, RootFieldsShapeRecord,
-        TypenameShapeRecord,
+        TypenameFieldId, TypenameShapeRecord,
         cached::{
-            CachedOperationContext, ConcreteShapeId, ConcreteShapeRecord, DataField, DataFieldId, FieldShapeId,
-            FieldShapeRecord, FieldShapeRefId, ObjectIdentifier, PartitionSelectionSet, PolymorphicShapeId,
-            PolymorphicShapeRecord, ResponseObjectSetId, Shape, Shapes, TypenameField,
+            CachedOperationContext, ConcreteShapeId, ConcreteShapeRecord, DataFieldId, FieldShapeId, FieldShapeRecord,
+            FieldShapeRefId, ObjectIdentifier, PartitionSelectionSet, PolymorphicShapeId, PolymorphicShapeRecord,
+            ResponseObjectSetId, Shape, Shapes,
         },
     },
     utils::BufferPool,
@@ -123,8 +123,8 @@ pub(super) struct ShapesBuilder<'ctx> {
     data_field_ids_with_selection_set_requiring_typename: Vec<DataFieldId>,
     field_shapes_buffer_pool: BufferPool<FieldShapeRecord>,
     typename_shapes_buffer_pool: BufferPool<TypenameShapeRecord>,
-    data_fields_buffer_pool: BufferPool<DataField<'ctx>>,
-    typename_fields_buffer_pool: BufferPool<TypenameField<'ctx>>,
+    data_fields_buffer_pool: BufferPool<DataFieldId>,
+    typename_fields_buffer_pool: BufferPool<TypenameFieldId>,
     current_subgraph_id: SubgraphId,
 }
 
@@ -229,30 +229,29 @@ impl<'ctx> ShapesBuilder<'ctx> {
         }
 
         let keys = &self.ctx.cached.operation.response_keys;
+        let query_plan = &self.ctx.cached.query_plan;
         let data_fields_sorted_by_response_key_str_then_position_extra_last = {
             let mut fields = self.data_fields_buffer_pool.pop();
-            fields.extend(selection_set.data_fields());
+            fields.extend(selection_set.data_field_ids_ordered_by_parent_entity_then_key);
             fields.sort_unstable_by(|left, right| {
-                keys[left.response_key].cmp(&keys[right.response_key]).then(
-                    left.query_position
-                        .map(u16::from)
-                        .unwrap_or(u16::MAX)
-                        .cmp(&right.query_position.map(u16::from).unwrap_or(u16::MAX)),
-                )
+                let left = &query_plan[*left];
+                let right = &query_plan[*right];
+                keys[left.response_key]
+                    .cmp(&keys[right.response_key])
+                    .then_with(|| QueryPosition::cmp_with_none_last(left.query_position, right.query_position))
             });
             fields
         };
 
         let typename_fields_sorted_by_response_key_str_then_position_extra_last = {
             let mut fields = self.typename_fields_buffer_pool.pop();
-            fields.extend(selection_set.typename_fields());
+            fields.extend(selection_set.typename_field_ids);
             fields.sort_unstable_by(|left, right| {
-                keys[left.response_key].cmp(&keys[right.response_key]).then(
-                    left.query_position
-                        .map(u16::from)
-                        .unwrap_or(u16::MAX)
-                        .cmp(&right.query_position.map(u16::from).unwrap_or(u16::MAX)),
-                )
+                let left = &query_plan[*left];
+                let right = &query_plan[*right];
+                keys[left.response_key]
+                    .cmp(&keys[right.response_key])
+                    .then_with(|| QueryPosition::cmp_with_none_last(left.query_position, right.query_position))
             });
             fields
         };
@@ -332,16 +331,18 @@ impl<'ctx> ShapesBuilder<'ctx> {
         &mut self,
         identifier: ObjectIdentifier,
         set_id: Option<ResponseObjectSetId>,
-        typename_fields_sorted_by_response_key_str_then_position_extra_last: &[TypenameField<'ctx>],
-        data_fields_sorted_by_response_key_str_then_position_extra_last: &[DataField<'ctx>],
+        typename_fields_sorted_by_response_key_str_then_position_extra_last: &[TypenameFieldId],
+        data_fields_sorted_by_response_key_str_then_position_extra_last: &[DataFieldId],
         included_typename_then_data_fields: FixedBitSet,
     ) -> ConcreteShapeId {
         let mut field_shapes_buffer = self.field_shapes_buffer_pool.pop();
         let mut distinct_typename_shapes = self.typename_shapes_buffer_pool.pop();
         let mut included = included_typename_then_data_fields.into_ones();
+        let query_plan = &self.ctx.cached.query_plan;
 
         while let Some(i) = included.next() {
-            if let Some(field) = typename_fields_sorted_by_response_key_str_then_position_extra_last.get(i) {
+            if let Some(&field_id) = typename_fields_sorted_by_response_key_str_then_position_extra_last.get(i) {
+                let field = &query_plan[field_id];
                 if distinct_typename_shapes
                     .last()
                     // fields aren't sorted by the response key but by the string value they point
@@ -352,35 +353,38 @@ impl<'ctx> ShapesBuilder<'ctx> {
                     distinct_typename_shapes.push(TypenameShapeRecord {
                         query_position_before_modifications: field.query_position,
                         response_key: field.response_key,
-                        id: field.id,
+                        id: field_id,
                         location: field.location,
                     });
                 }
             } else {
                 // We've exhausted the typename fields, so we know we're in the data fields now.
                 let offset = typename_fields_sorted_by_response_key_str_then_position_extra_last.len();
-                let mut first = data_fields_sorted_by_response_key_str_then_position_extra_last[i - offset];
-                self.data_fields_shape_count[usize::from(first.id)] += 1;
+                let mut first_id = data_fields_sorted_by_response_key_str_then_position_extra_last[i - offset];
+                let mut first = &query_plan[first_id];
+                self.data_fields_shape_count[usize::from(first_id)] += 1;
 
                 // We'll group data fields together by their response key
                 let mut group = self.data_fields_buffer_pool.pop();
-                group.push(first);
+                group.push(first_id);
 
                 for i in included.by_ref() {
-                    let field = data_fields_sorted_by_response_key_str_then_position_extra_last[i - offset];
-                    self.data_fields_shape_count[usize::from(field.id)] += 1;
+                    let field_id = data_fields_sorted_by_response_key_str_then_position_extra_last[i - offset];
+                    self.data_fields_shape_count[usize::from(field_id)] += 1;
+                    let field = &query_plan[field_id];
                     if field.response_key == first.response_key {
-                        group.push(field);
+                        group.push(field_id);
                     } else {
-                        let field_shape = self.create_data_field_shape(&mut group, first);
+                        let field_shape = self.create_data_field_shape(&group, first_id);
                         field_shapes_buffer.push(field_shape);
                         first = field;
+                        first_id = field_id;
                         group.clear();
-                        group.push(first);
+                        group.push(first_id);
                     }
                 }
 
-                let field_shape = self.create_data_field_shape(&mut group, first);
+                let field_shape = self.create_data_field_shape(&group, first_id);
                 field_shapes_buffer.push(field_shape);
 
                 group.clear();
@@ -430,7 +434,8 @@ impl<'ctx> ShapesBuilder<'ctx> {
         self.push_concrete_shape(shape)
     }
 
-    fn create_data_field_shape(&mut self, group: &mut [DataField<'ctx>], first: DataField<'ctx>) -> FieldShapeRecord {
+    fn create_data_field_shape(&mut self, group: &[DataFieldId], first: DataFieldId) -> FieldShapeRecord {
+        let first = first.walk(self.ctx);
         let ty = first.definition().ty();
         let shape = if let Some(Derive::Root { batch_field_id }) = first.derive {
             Shape::DeriveEntity(self.create_derived_entity(batch_field_id, group, ty.definition_id.as_object()))
@@ -461,44 +466,53 @@ impl<'ctx> ShapesBuilder<'ctx> {
     fn create_derived_entity(
         &mut self,
         batch_field_id: Option<DataFieldId>,
-        parent_fields: &[DataField<'ctx>],
+        parent_field_ids: &[DataFieldId],
         object_definition_id: Option<ObjectDefinitionId>,
     ) -> DerivedEntityShapeId {
-        let set_id = parent_fields.iter().find_map(|field| field.output_id);
+        let keys = &self.ctx.cached.operation.response_keys;
+        let query_plan = &self.ctx.cached.query_plan;
         let (
+            set_id,
             data_fields_sorted_by_response_key_str_then_position_extra_last,
             typename_fields_sorted_by_response_key_str_then_position_extra_last,
         ) = {
+            let mut set_id = None;
             let mut data_fields = self.data_fields_buffer_pool.pop();
             let mut typename_fields = self.typename_fields_buffer_pool.pop();
-            for parent_field in parent_fields {
-                data_fields.extend(parent_field.selection_set().data_fields());
-                typename_fields.extend(parent_field.selection_set().typename_fields());
+            for &parent_field_id in parent_field_ids {
+                let parent_field = parent_field_id.walk(self.ctx);
+                if set_id.is_none() {
+                    set_id = parent_field.output_id;
+                }
+                data_fields.extend(
+                    parent_field
+                        .selection_set()
+                        .data_field_ids_ordered_by_parent_entity_then_key,
+                );
+                typename_fields.extend(parent_field.selection_set().typename_field_ids);
             }
-            let keys = &self.ctx.cached.operation.response_keys;
             data_fields.sort_unstable_by(|left, right| {
-                keys[left.response_key].cmp(&keys[right.response_key]).then(
-                    left.query_position
-                        .map(u16::from)
-                        .unwrap_or(u16::MAX)
-                        .cmp(&right.query_position.map(u16::from).unwrap_or(u16::MAX)),
-                )
+                let left = &query_plan[*left];
+                let right = &query_plan[*right];
+                keys[left.response_key]
+                    .cmp(&keys[right.response_key])
+                    .then_with(|| QueryPosition::cmp_with_none_last(left.query_position, right.query_position))
             });
             typename_fields.sort_unstable_by(|left, right| {
-                keys[left.response_key].cmp(&keys[right.response_key]).then(
-                    left.query_position
-                        .map(u16::from)
-                        .unwrap_or(u16::MAX)
-                        .cmp(&right.query_position.map(u16::from).unwrap_or(u16::MAX)),
-                )
+                let left = &query_plan[*left];
+                let right = &query_plan[*right];
+                keys[left.response_key]
+                    .cmp(&keys[right.response_key])
+                    .then_with(|| QueryPosition::cmp_with_none_last(left.query_position, right.query_position))
             });
-            (data_fields, typename_fields)
+            (set_id, data_fields, typename_fields)
         };
 
         let mut field_shapes_buffer = self.field_shapes_buffer_pool.pop();
         let mut distinct_typename_shapes = self.typename_shapes_buffer_pool.pop();
 
-        for field in typename_fields_sorted_by_response_key_str_then_position_extra_last {
+        for field_id in typename_fields_sorted_by_response_key_str_then_position_extra_last {
+            let field = &query_plan[field_id];
             if distinct_typename_shapes
                 .last()
                 // fields aren't sorted by the response key but by the string value they point
@@ -509,20 +523,21 @@ impl<'ctx> ShapesBuilder<'ctx> {
                 distinct_typename_shapes.push(TypenameShapeRecord {
                     query_position_before_modifications: field.query_position,
                     response_key: field.response_key,
-                    id: field.id,
+                    id: field_id,
                     location: field.location,
                 });
             }
         }
 
-        for field in data_fields_sorted_by_response_key_str_then_position_extra_last {
+        for field_id in data_fields_sorted_by_response_key_str_then_position_extra_last {
             if field_shapes_buffer
                 .last()
                 // fields aren't sorted by the response key but by the string value they point
                 // to. However, response keys are deduplicated so the equality also works here
                 // to ensure we only have distinct values.
-                .is_none_or(|shape| shape.response_key != field.response_key)
+                .is_none_or(|shape| shape.response_key != query_plan[field_id].response_key)
             {
+                let field = field_id.walk(self.ctx);
                 let ty = field.definition().ty();
                 let (expected_key, shape) = match field.derive {
                     Some(Derive::From(id)) => {
@@ -592,42 +607,53 @@ impl<'ctx> ShapesBuilder<'ctx> {
 
     fn create_field_composite_type_output_shape(
         &mut self,
-        parent_fields: &[DataField<'ctx>],
+        parent_field_ids: &[DataFieldId],
         output: CompositeType<'ctx>,
     ) -> Shape {
         //
         // Preparation
         //
-        let set_id = parent_fields.iter().find_map(|field| field.output_id);
+        let keys = &self.ctx.cached.operation.response_keys;
+        let query_plan = &self.ctx.cached.query_plan;
 
         let (
+            requires_typename,
+            set_id,
             data_fields_sorted_by_response_key_str_then_position_extra_last,
             typename_fields_sorted_by_response_key_str_then_position_extra_last,
         ) = {
+            let mut requires_typename = false;
+            let mut set_id = None;
             let mut data_fields = self.data_fields_buffer_pool.pop();
             let mut typename_fields = self.typename_fields_buffer_pool.pop();
-            for parent_field in parent_fields {
-                data_fields.extend(parent_field.selection_set().data_fields());
-                typename_fields.extend(parent_field.selection_set().typename_fields());
+            for &parent_field_id in parent_field_ids {
+                let parent_field = parent_field_id.walk(self.ctx);
+                if set_id.is_none() {
+                    set_id = parent_field.output_id;
+                }
+                requires_typename |= parent_field.selection_set_requires_typename;
+                data_fields.extend(
+                    parent_field
+                        .selection_set()
+                        .data_field_ids_ordered_by_parent_entity_then_key,
+                );
+                typename_fields.extend(parent_field.selection_set().typename_field_ids)
             }
-            let keys = &self.ctx.cached.operation.response_keys;
             data_fields.sort_unstable_by(|left, right| {
-                keys[left.response_key].cmp(&keys[right.response_key]).then(
-                    left.query_position
-                        .map(u16::from)
-                        .unwrap_or(u16::MAX)
-                        .cmp(&right.query_position.map(u16::from).unwrap_or(u16::MAX)),
-                )
+                let left = &query_plan[*left];
+                let right = &query_plan[*right];
+                keys[left.response_key]
+                    .cmp(&keys[right.response_key])
+                    .then_with(|| QueryPosition::cmp_with_none_last(left.query_position, right.query_position))
             });
             typename_fields.sort_unstable_by(|left, right| {
-                keys[left.response_key].cmp(&keys[right.response_key]).then(
-                    left.query_position
-                        .map(u16::from)
-                        .unwrap_or(u16::MAX)
-                        .cmp(&right.query_position.map(u16::from).unwrap_or(u16::MAX)),
-                )
+                let left = &query_plan[*left];
+                let right = &query_plan[*right];
+                keys[left.response_key]
+                    .cmp(&keys[right.response_key])
+                    .then_with(|| QueryPosition::cmp_with_none_last(left.query_position, right.query_position))
             });
-            (data_fields, typename_fields)
+            (requires_typename, set_id, data_fields, typename_fields)
         };
 
         //
@@ -641,8 +667,6 @@ impl<'ctx> ShapesBuilder<'ctx> {
             &typename_fields_sorted_by_response_key_str_then_position_extra_last,
             &data_fields_sorted_by_response_key_str_then_position_extra_last,
         );
-
-        let requires_typename = parent_fields.iter().any(|field| field.selection_set_requires_typename);
 
         //
         // Creating the right shape from the partitioning
@@ -669,7 +693,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
                 // to know its actual type. We ensure that __typename will be present in the
                 // selection set we send to the subgraph and know how to read it.
                 self.data_field_ids_with_selection_set_requiring_typename
-                    .extend(parent_fields.iter().map(|field| field.id));
+                    .extend(parent_field_ids.iter().copied());
                 match output {
                     CompositeType::Interface(interface) => ObjectIdentifier::InterfaceTypename(interface.id),
                     CompositeType::Union(union) => ObjectIdentifier::UnionTypename(union.id),
@@ -692,7 +716,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
             // treated the same. We may request no fields at all for some objects. So like before
             // we ensure we'll request the __typename in the subgraph query.
             self.data_field_ids_with_selection_set_requiring_typename
-                .extend(parent_fields.iter().map(|field| field.id));
+                .extend(parent_field_ids.iter().copied());
 
             let mut possibilities = Vec::with_capacity(partition_object_count);
             let mut fallback = None;
@@ -765,17 +789,20 @@ impl<'ctx> ShapesBuilder<'ctx> {
     fn compute_object_shape_partitions(
         &self,
         output: CompositeType<'ctx>,
-        typename_fields: &[TypenameField<'ctx>],
-        data_fields: &[DataField<'ctx>],
+        typename_fields: &[TypenameFieldId],
+        data_fields: &[DataFieldId],
     ) -> partition::Partitioning<ObjectDefinitionId, FixedBitSet> {
+        let query_plan = &self.ctx.cached.query_plan;
         let mut type_condition_and_field_position_in_bitset =
             Vec::with_capacity(typename_fields.len() + data_fields.len());
-        for (i, field) in typename_fields.iter().enumerate() {
+        for (i, field_id) in typename_fields.iter().enumerate() {
+            let field = &query_plan[*field_id];
             type_condition_and_field_position_in_bitset
                 .push((&self.ctx.cached.query_plan[field.type_condition_ids], i));
         }
         let offset = typename_fields.len();
-        for (i, field) in data_fields.iter().enumerate() {
+        for (i, field_id) in data_fields.iter().enumerate() {
+            let field = &query_plan[*field_id];
             type_condition_and_field_position_in_bitset
                 .push((&self.ctx.cached.query_plan[field.type_condition_ids], offset + i));
         }

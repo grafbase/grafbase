@@ -11,6 +11,7 @@ pub(crate) struct FieldShapeRecord {
     pub expected_key: ResponseKey,
     pub query_position_before_modifications: Option<QueryPosition>,
     pub response_key: ResponseKey,
+    // TODO: merge both discriminant into a u8?
     pub id: DataOrLookupFieldId,
     pub shape: Shape,
     pub wrapping: Wrapping,
