@@ -361,7 +361,7 @@ impl<'ctx> ShapesBuilder<'ctx> {
                 // We've exhausted the typename fields, so we know we're in the data fields now.
                 let offset = typename_fields_sorted_by_response_key_str_then_position_extra_last.len();
                 let mut first_id = data_fields_sorted_by_response_key_str_then_position_extra_last[i - offset];
-                let first = &query_plan[first_id];
+                let mut first = &query_plan[first_id];
                 self.data_fields_shape_count[usize::from(first_id)] += 1;
 
                 // We'll group data fields together by their response key
@@ -375,15 +375,16 @@ impl<'ctx> ShapesBuilder<'ctx> {
                     if field.response_key == first.response_key {
                         group.push(field_id);
                     } else {
-                        let field_shape = self.create_data_field_shape(&mut group, first_id);
+                        let field_shape = self.create_data_field_shape(&group, first_id);
                         field_shapes_buffer.push(field_shape);
+                        first = field;
                         first_id = field_id;
                         group.clear();
                         group.push(first_id);
                     }
                 }
 
-                let field_shape = self.create_data_field_shape(&mut group, first_id);
+                let field_shape = self.create_data_field_shape(&group, first_id);
                 field_shapes_buffer.push(field_shape);
 
                 group.clear();
