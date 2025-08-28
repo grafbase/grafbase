@@ -2,10 +2,7 @@
 
 use std::{string::FromUtf8Error, time::Duration};
 
-use crate::{
-    types::Headers,
-    wit::{HttpError, HttpMethod},
-};
+use crate::{types::Headers, wit::HttpMethod};
 pub use http::{HeaderName, HeaderValue, Method, StatusCode};
 pub use serde_json::Error as JsonDeserializeError;
 pub use url::Url;
@@ -33,7 +30,7 @@ use serde::Serialize;
 /// (`HttpResponse`) or an error that occurred during the execution of the HTTP request (`HttpError`).
 pub fn execute(request: impl Into<HttpRequest>) -> Result<HttpResponse, HttpError> {
     let request: HttpRequest = request.into();
-    HttpClient::execute(request.0).map(Into::into)
+    HttpClient::execute(request.0).map(Into::into).map_err(Into::into)
 }
 
 /// Executes multiple HTTP requests in a batch and returns their results.
@@ -55,7 +52,7 @@ pub fn execute(request: impl Into<HttpRequest>) -> Result<HttpResponse, HttpErro
 pub fn execute_many(requests: BatchHttpRequest) -> Vec<Result<HttpResponse, HttpError>> {
     HttpClient::execute_many(requests.requests)
         .into_iter()
-        .map(|r| r.map(Into::into))
+        .map(|r| r.map(Into::into).map_err(Into::into))
         .collect()
 }
 
@@ -97,6 +94,26 @@ impl From<HttpMethod> for http::Method {
             HttpMethod::Options => http::Method::OPTIONS,
             HttpMethod::Connect => http::Method::CONNECT,
             HttpMethod::Trace => http::Method::TRACE,
+        }
+    }
+}
+
+/// HTTP error
+pub enum HttpError {
+    /// The request timed out.
+    Timeout,
+    /// The request could not be built correctly.
+    Request(String),
+    /// The request failed due to an error (server connection failed).
+    Connect(String),
+}
+
+impl From<wit::HttpError> for HttpError {
+    fn from(value: wit::HttpError) -> Self {
+        match value {
+            wit::HttpError::Timeout => Self::Timeout,
+            wit::HttpError::Request(msg) => Self::Request(msg),
+            wit::HttpError::Connect(msg) => Self::Connect(msg),
         }
     }
 }
