@@ -27,12 +27,8 @@ pub(super) fn assign_root_typename_fields(schema: &Schema, operation: &Operation
                 .unwrap_or(QueryPosition::MAX)
         })
         .unwrap_or_else(|| {
-            let dedup_id = query
-                .deduplication_map
-                .get_or_insert_resolver(schema.subgraphs.introspection.resolver_definition_id);
             let ix = query.graph.add_node(Node::QueryPartition {
                 entity_definition_id: operation.root_object_id.into(),
-                dedup_id,
                 resolver_definition_id: schema.subgraphs.introspection.resolver_definition_id,
             });
             query.graph.add_edge(query.root_node_id, ix, Edge::QueryPartition);

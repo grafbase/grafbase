@@ -1,16 +1,18 @@
 use hashbrown::{HashTable, hash_table::Entry};
 use operation::OperationContext;
-use petgraph::visit::GraphBase;
 use rapidhash::fast::SeedableState;
 use schema::ResolverDefinitionId;
-use std::hash::{BuildHasher as _, Hash, Hasher};
+use std::{
+    hash::{BuildHasher as _, Hash, Hasher},
+    num::NonZero,
+};
 use walker::Walk as _;
 
 use crate::{
-    DeduplicationId, Query, QueryField, QueryFieldId, QueryOrSchemaSortedFieldArgumentIds, are_arguments_equivalent,
+    QueryField, QueryFieldId, QueryOrSchemaSortedFieldArgumentIds, are_arguments_equivalent, solve::DeduplicationId,
 };
 
-pub(crate) struct DeduplicationMap {
+pub(in crate::solve) struct DeduplicationMap {
     table: HashTable<DeduplicatedEntry>,
     hash_seed: SeedableState<'static>,
 }
@@ -26,16 +28,6 @@ struct DeduplicatedEntry {
 enum Record {
     Field(QueryFieldId),
     Resolver(schema::ResolverDefinitionId),
-}
-
-impl<G: GraphBase> Query<G, crate::steps::SolutionSpace> {
-    pub fn get_or_insert_field_deduplication_id(
-        &mut self,
-        ctx: OperationContext<'_>,
-        id: QueryFieldId,
-    ) -> DeduplicationId {
-        self.step.deduplication_map.get_or_insert_field(ctx, &self.fields, id)
-    }
 }
 
 impl DeduplicationMap {
@@ -65,7 +57,8 @@ impl DeduplicationMap {
         ) {
             Entry::Occupied(entry) => entry.get().id,
             Entry::Vacant(entry) => {
-                let dedup_id = DeduplicationId::from(u16::try_from(n).expect("Too many entrys to deduplicate."));
+                let dedup_id =
+                    DeduplicationId(NonZero::new(u16::try_from(n + 1).expect("Too many fields/resolvers")).unwrap());
                 entry.insert(DeduplicatedEntry {
                     hash,
                     id: dedup_id,
@@ -125,7 +118,8 @@ impl DeduplicationMap {
         ) {
             Entry::Occupied(entry) => entry.get().id,
             Entry::Vacant(entry) => {
-                let dedup_id = DeduplicationId::from(u16::try_from(n).expect("Too many entrys to deduplicate."));
+                let dedup_id =
+                    DeduplicationId(NonZero::new(u16::try_from(n + 1).expect("Too many fields/resolvers")).unwrap());
                 entry.insert(DeduplicatedEntry {
                     hash,
                     id: dedup_id,

@@ -8,10 +8,7 @@ use providable_fields::{CreateProvidableFieldsTask, CreateRequirementTask, Unpla
 use schema::{CompositeTypeId, Schema, TypeDefinitionId};
 use walker::Walk;
 
-use crate::{
-    DeduplicationId, FieldFlags, FieldNode, QueryFieldId, SplitId, deduplication::DeduplicationMap,
-    steps::SolutionSpace,
-};
+use crate::{FieldFlags, FieldNode, QueryFieldId, SplitId, steps::SolutionSpace};
 
 use super::*;
 
@@ -43,11 +40,7 @@ impl<'schema> QuerySolutionSpace<'schema> {
             schema,
             operation,
             query: Query {
-                step: SolutionSpace {
-                    deduplication_map: DeduplicationMap::with_capacity(
-                        operation.data_fields.len() + operation.typename_fields.len(),
-                    ),
-                },
+                step: SolutionSpace {},
                 root_node_id,
                 graph,
                 fields: Vec::with_capacity(n),
@@ -110,17 +103,7 @@ where
         }
     }
 
-    fn push_query_field_node(&mut self, id: QueryFieldId, flags: FieldFlags) -> NodeIndex {
-        let dedup_id = self.query.get_or_insert_field_deduplication_id(self.ctx(), id);
-        self.push_query_field_node_with_dedup_id(id, dedup_id, flags)
-    }
-
-    fn push_query_field_node_with_dedup_id(
-        &mut self,
-        id: QueryFieldId,
-        dedup_id: DeduplicationId,
-        mut flags: FieldFlags,
-    ) -> NodeIndex {
+    fn push_query_field_node(&mut self, id: QueryFieldId, mut flags: FieldFlags) -> NodeIndex {
         if let Some(field_definition) = self.query[id].definition_id {
             match field_definition.walk(self.schema).ty().definition_id {
                 TypeDefinitionId::Scalar(_) | TypeDefinitionId::Enum(_) => {
@@ -132,7 +115,6 @@ where
 
         let query_field = SpaceNode::Field(FieldNode {
             id,
-            dedup_id,
             split_id: self.current_split,
             flags,
         });
