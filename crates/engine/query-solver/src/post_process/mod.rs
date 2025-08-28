@@ -6,10 +6,14 @@ mod root_typename;
 use operation::{Operation, OperationContext};
 use schema::Schema;
 
-use crate::{query::SolvedQuery, solve::CrudeSolvedQuery};
+use crate::{query::QuerySolution, solve::QuerySteinerSolution, steps::Solution};
 
-pub(crate) fn post_process(schema: &Schema, operation: &mut Operation, mut query: CrudeSolvedQuery) -> SolvedQuery {
-    response_key::adjust_response_keys_to_avoid_collisions(schema, operation, &mut query);
+pub(crate) fn post_process(
+    schema: &Schema,
+    operation: &mut Operation,
+    mut query: QuerySteinerSolution,
+) -> QuerySolution {
+    let field_to_subgraph_key = response_key::adjust_response_keys_to_avoid_collisions(schema, operation, &mut query);
 
     if Some(operation.root_object_id) == schema.graph.root_operation_types_record.mutation_id {
         let root_fields = mutation_order::ensure_mutation_execution_order(&mut query);
@@ -24,8 +28,8 @@ pub(crate) fn post_process(schema: &Schema, operation: &mut Operation, mut query
 
     root_typename::assign_root_typename_fields(schema, operation, &mut query);
 
-    let query = SolvedQuery {
-        step: crate::query::steps::Solution,
+    let query = QuerySolution {
+        step: Solution { field_to_subgraph_key },
         graph: query.graph,
         root_node_id: query.root_node_id,
         fields: query.fields,

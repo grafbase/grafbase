@@ -1,3 +1,4 @@
+pub(crate) mod deduplication;
 pub(crate) mod dot_graph;
 
 use std::collections::HashMap;
@@ -15,20 +16,39 @@ use walker::Walk;
 pub enum Node {
     Root,
     QueryPartition {
+        dedup_id: DeduplicationId,
         entity_definition_id: EntityDefinitionId,
         resolver_definition_id: ResolverDefinitionId,
     },
-    Field {
-        id: QueryFieldId,
-        split_id: SplitId,
-        flags: FieldFlags,
-    },
+    Field(FieldNode),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct FieldNode {
+    pub id: QueryFieldId,
+    pub dedup_id: DeduplicationId,
+    pub split_id: SplitId,
+    pub flags: FieldFlags,
+}
+
+impl FieldNode {
+    pub fn is_indispensable(&self) -> bool {
+        self.flags.contains(FieldFlags::INDISPENSABLE)
+    }
+
+    pub fn is_extra(&self) -> bool {
+        self.flags.contains(FieldFlags::EXTRA)
+    }
+
+    pub fn is_leaf(&self) -> bool {
+        self.flags.contains(FieldFlags::LEAF_NODE)
+    }
 }
 
 impl Node {
     pub fn as_query_field(&self) -> Option<QueryFieldId> {
         match self {
-            Node::Field { id, .. } => Some(*id),
+            Node::Field(node) => Some(node.id),
             _ => None,
         }
     }
@@ -65,18 +85,28 @@ pub enum Edge {
     MutationExecutedAfter,
 }
 
-pub mod steps {
-    pub(crate) struct SteinerTreeSolution;
-    pub struct Solution;
+pub(crate) mod steps {
+    use crate::deduplication::DeduplicationMap;
+
+    pub(crate) struct SolutionSpace {
+        pub deduplication_map: DeduplicationMap,
+    }
+
+    pub(crate) struct SteinerSolution {
+        pub deduplication_map: DeduplicationMap,
+    }
+
+    pub struct Solution {
+        // If necessary we generate a new subgraph key for a field.
+        pub field_to_subgraph_key: Vec<Option<operation::ResponseKey>>,
+    }
 }
 
-pub type SolvedQuery = Query<SolutionGraph, steps::Solution>;
-
+pub type QuerySolution = Query<SolutionGraph, steps::Solution>;
 pub type SolutionGraph = Graph<Node, Edge>;
 
 #[derive(id_derives::IndexedFields)]
 pub struct Query<G: GraphBase, Step> {
-    #[allow(unused)] // Used to carry extra data, doesn't anymore.
     pub(crate) step: Step,
     pub root_node_id: G::NodeId,
     pub graph: G,
@@ -86,6 +116,19 @@ pub struct Query<G: GraphBase, Step> {
     pub shared_type_conditions: Vec<CompositeTypeId>,
     pub deduplicated_flat_sorted_executable_directives:
         HashMap<Vec<operation::ExecutableDirectiveId>, DeduplicatedFlatExecutableDirectivesId>,
+}
+
+impl<G: GraphBase, S> std::ops::Deref for Query<G, S> {
+    type Target = S;
+    fn deref(&self) -> &Self::Target {
+        &self.step
+    }
+}
+
+impl<G: GraphBase, S> std::ops::DerefMut for Query<G, S> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.step
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, id_derives::Id)]
@@ -98,10 +141,13 @@ pub struct QueryFieldId(u32);
 #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, id_derives::Id)]
 pub struct SplitId(u32);
 
-#[derive(Clone, Copy, id_derives::Id, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, id_derives::Id)]
+pub struct DeduplicationId(u16);
+
+#[derive(Clone, Copy, id_derives::Id, serde::Serialize, serde::Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TypeConditionSharedVecId(u32);
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, id_derives::Id)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, id_derives::Id)]
 pub struct DeduplicatedFlatExecutableDirectivesId(std::num::NonZero<u32>);
 
 #[derive(Clone)]
@@ -109,55 +155,44 @@ pub struct QueryField {
     pub type_conditions: IdRange<TypeConditionSharedVecId>,
     pub query_position: Option<QueryPosition>,
     pub response_key: Option<ResponseKey>,
-    pub subgraph_key: Option<ResponseKey>,
     // If absent it's a typename field.
     pub definition_id: Option<FieldDefinitionId>,
     pub matching_field_id: Option<SchemaFieldId>,
-    pub argument_ids: QueryOrSchemaFieldArgumentIds,
+    pub sorted_argument_ids: QueryOrSchemaSortedFieldArgumentIds,
     pub location: Location,
     pub flat_directive_id: Option<DeduplicatedFlatExecutableDirectivesId>,
 }
 
+/// Sorted by input value definition id
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
-pub enum QueryOrSchemaFieldArgumentIds {
+pub enum QueryOrSchemaSortedFieldArgumentIds {
     Query(IdRange<FieldArgumentId>),
     Schema(IdRange<SchemaFieldArgumentId>),
 }
 
-impl QueryOrSchemaFieldArgumentIds {
+impl QueryOrSchemaSortedFieldArgumentIds {
     pub fn is_empty(&self) -> bool {
         match self {
-            QueryOrSchemaFieldArgumentIds::Query(ids) => ids.is_empty(),
-            QueryOrSchemaFieldArgumentIds::Schema(ids) => ids.is_empty(),
+            QueryOrSchemaSortedFieldArgumentIds::Query(ids) => ids.is_empty(),
+            QueryOrSchemaSortedFieldArgumentIds::Schema(ids) => ids.is_empty(),
         }
     }
-}
 
-impl Default for QueryOrSchemaFieldArgumentIds {
-    fn default() -> Self {
-        QueryOrSchemaFieldArgumentIds::Query(IdRange::empty())
-    }
-}
-
-impl From<IdRange<FieldArgumentId>> for QueryOrSchemaFieldArgumentIds {
-    fn from(ids: IdRange<FieldArgumentId>) -> Self {
-        QueryOrSchemaFieldArgumentIds::Query(ids)
-    }
-}
-
-impl From<IdRange<SchemaFieldArgumentId>> for QueryOrSchemaFieldArgumentIds {
-    fn from(ids: IdRange<SchemaFieldArgumentId>) -> Self {
-        QueryOrSchemaFieldArgumentIds::Schema(ids)
+    pub fn len(&self) -> usize {
+        match self {
+            QueryOrSchemaSortedFieldArgumentIds::Query(ids) => ids.len(),
+            QueryOrSchemaSortedFieldArgumentIds::Schema(ids) => ids.len(),
+        }
     }
 }
 
 pub(crate) fn are_arguments_equivalent(
     ctx: OperationContext<'_>,
-    left: QueryOrSchemaFieldArgumentIds,
-    right: QueryOrSchemaFieldArgumentIds,
+    left: QueryOrSchemaSortedFieldArgumentIds,
+    right: QueryOrSchemaSortedFieldArgumentIds,
 ) -> bool {
     match (left, right) {
-        (QueryOrSchemaFieldArgumentIds::Query(left), QueryOrSchemaFieldArgumentIds::Query(right)) => {
+        (QueryOrSchemaSortedFieldArgumentIds::Query(left), QueryOrSchemaSortedFieldArgumentIds::Query(right)) => {
             if left.len() != right.len() {
                 return false;
             }
@@ -178,7 +213,7 @@ pub(crate) fn are_arguments_equivalent(
 
             true
         }
-        (QueryOrSchemaFieldArgumentIds::Schema(left), QueryOrSchemaFieldArgumentIds::Schema(right)) => {
+        (QueryOrSchemaSortedFieldArgumentIds::Schema(left), QueryOrSchemaSortedFieldArgumentIds::Schema(right)) => {
             if left.len() != right.len() {
                 return false;
             }
@@ -194,8 +229,8 @@ pub(crate) fn are_arguments_equivalent(
             }
             true
         }
-        (QueryOrSchemaFieldArgumentIds::Query(left), QueryOrSchemaFieldArgumentIds::Schema(right))
-        | (QueryOrSchemaFieldArgumentIds::Schema(right), QueryOrSchemaFieldArgumentIds::Query(left)) => {
+        (QueryOrSchemaSortedFieldArgumentIds::Query(left), QueryOrSchemaSortedFieldArgumentIds::Schema(right))
+        | (QueryOrSchemaSortedFieldArgumentIds::Schema(right), QueryOrSchemaSortedFieldArgumentIds::Query(left)) => {
             if left.len() != right.len() {
                 return false;
             }
@@ -219,7 +254,7 @@ pub(crate) fn are_arguments_equivalent(
     }
 }
 
-impl std::fmt::Debug for SolvedQuery {
+impl std::fmt::Debug for QuerySolution {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SolvedQuery").finish_non_exhaustive()
     }

@@ -24,6 +24,7 @@ itertools.workspace = true
 operation = { path = "../operation", package = "engine-operation" }
 petgraph.workspace = true
 priority-queue.workspace = true
+rapidhash.workspace = true
 schema = { path = "../schema", package = "engine-schema" }
 serde.workspace = true
 strum.workspace = true

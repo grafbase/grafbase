@@ -118,11 +118,7 @@ fn handle_derive_scalar_list(
     let mut derive_list = Vec::with_capacity(list.len());
     let scalar_field_key = scalar_field.key();
     if !list.is_empty() {
-        ctx.local_path.push(ResponseValueId::Index {
-            list_id: id,
-            index: 0,
-            nullable: element_is_nullable,
-        });
+        ctx.local_path.push(ResponseValueId::index(id, 0, element_is_nullable));
         for &error_id in ctx
             .resp
             .operation
@@ -143,11 +139,8 @@ fn handle_derive_scalar_list(
         ctx.local_path.pop();
     }
     for (index, value) in list.iter().enumerate() {
-        ctx.local_path.push(ResponseValueId::Index {
-            list_id: id,
-            index: index as u32,
-            nullable: element_is_nullable,
-        });
+        ctx.local_path
+            .push(ResponseValueId::index(id, index as u32, element_is_nullable));
         match value {
             ResponseValue::Null => {
                 derive_list.push(ResponseValue::Null);
@@ -224,11 +217,8 @@ fn handle_derive_object_list(
     let list = std::mem::take(&mut ctx.resp.data[id.list_id]);
     let mut derive_list = Vec::with_capacity(list.len());
     for (index, value) in list.iter().enumerate() {
-        ctx.local_path.push(ResponseValueId::Index {
-            list_id: id,
-            index: index as u32,
-            nullable: element_is_nullable,
-        });
+        ctx.local_path
+            .push(ResponseValueId::index(id, index as u32, element_is_nullable));
         match value {
             ResponseValue::Null => {
                 derive_list.push(ResponseValue::Null);

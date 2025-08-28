@@ -156,7 +156,7 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
             }
         };
 
-        let argument_ids = self.bind_field_arguments(definition, field.name_span(), field.arguments());
+        let sorted_argument_ids = self.bind_field_arguments_sorted(definition, field.name_span(), field.arguments());
         let directive_ids = self.bind_executable_directive(field.directives());
         let response_key = self.response_keys.get_or_intern(field.alias().unwrap_or(field.name()));
 
@@ -165,14 +165,14 @@ impl<'schema, 'p> OperationBinder<'schema, 'p> {
             directive_ids,
             response_key,
             location: self.parsed_operation.span_to_location(field.name_span()),
-            argument_ids,
+            sorted_argument_ids,
             selection_set_record,
         });
 
         Ok((self.data_fields.len() - 1).into())
     }
 
-    fn bind_field_arguments(
+    fn bind_field_arguments_sorted(
         &mut self,
         definition: FieldDefinition<'schema>,
         span: Span,

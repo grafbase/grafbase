@@ -8,7 +8,7 @@ use schema::{
 };
 use walker::Walk;
 
-use crate::{Derive, FieldFlags, QueryField, QueryOrSchemaFieldArgumentIds};
+use crate::{Derive, FieldFlags, QueryField, QueryOrSchemaSortedFieldArgumentIds};
 
 use super::{ProvidableField, QueryFieldId, QuerySolutionSpaceBuilder, Resolver, SpaceEdge, SpaceNode};
 
@@ -49,7 +49,7 @@ where
             .graph
             .neighbors_directed(parent.query_field_node_ix, Direction::Outgoing)
         {
-            if let SpaceNode::QueryField(subfield) = &self.query.graph[subfield_ix] {
+            if let SpaceNode::Field(subfield) = &self.query.graph[subfield_ix] {
                 self.create_provideable_fields_task_stack
                     .push(CreateProvidableFieldsTask {
                         parent: parent.clone(),
@@ -282,7 +282,7 @@ where
             }
         }
 
-        let SpaceNode::QueryField(field) = &mut self.query.graph[query_field_node_ix] else {
+        let SpaceNode::Field(field) = &mut self.query.graph[query_field_node_ix] else {
             unreachable!()
         };
         if !field.flags.contains(FieldFlags::PROVIDABLE) {
@@ -551,26 +551,28 @@ where
                 } else {
                     // Create the QueryField Node
                     let query_field_id = self.query.fields.len().into();
+                    let type_conditions = {
+                        let start = self.query.shared_type_conditions.len();
+                        let tyc = required_item.field().definition().parent_entity_id.as_composite_type();
+                        if tyc != parent_output_type {
+                            self.query.shared_type_conditions.push(tyc);
+                        }
+                        (start..self.query.shared_type_conditions.len()).into()
+                    };
+                    let flat_directive_id = None;
+                    let definition_id = required_item.field().definition_id;
+                    let sorted_argument_ids =
+                        QueryOrSchemaSortedFieldArgumentIds::Schema(required_item.field().sorted_argument_ids);
                     self.query.fields.push(QueryField {
-                        type_conditions: {
-                            let start = self.query.shared_type_conditions.len();
-                            let tyc = required_item.field().definition().parent_entity_id.as_composite_type();
-                            if tyc != parent_output_type {
-                                self.query.shared_type_conditions.push(tyc);
-                            }
-                            (start..self.query.shared_type_conditions.len()).into()
-                        },
+                        type_conditions,
                         query_position: None,
                         response_key: None,
-                        subgraph_key: None,
-                        definition_id: Some(required_item.field().definition_id),
+                        definition_id: Some(definition_id),
                         matching_field_id: Some(required_item.field_id),
-                        argument_ids: QueryOrSchemaFieldArgumentIds::Schema(required_item.field().sorted_argument_ids),
+                        sorted_argument_ids,
                         location: self.query[petitioner_field_id].location,
-                        flat_directive_id: Default::default(),
+                        flat_directive_id,
                     });
-                    self.providable_fields_bitset.push(false);
-                    self.deleted_fields_bitset.push(false);
 
                     let query_field_node_ix = self.push_query_field_node(
                         query_field_id,
@@ -666,8 +668,8 @@ where
             return false;
         }
 
-        match actual.argument_ids {
-            QueryOrSchemaFieldArgumentIds::Query(argument_ids) => {
+        match actual.sorted_argument_ids {
+            QueryOrSchemaSortedFieldArgumentIds::Query(argument_ids) => {
                 if argument_ids.len() != required.sorted_argument_ids.len() {
                     return false;
                 }
@@ -687,7 +689,7 @@ where
                     }
                 }
             }
-            QueryOrSchemaFieldArgumentIds::Schema(argument_ids) => {
+            QueryOrSchemaSortedFieldArgumentIds::Schema(argument_ids) => {
                 if argument_ids.len() != required.sorted_argument_ids.len() {
                     return false;
                 }

@@ -36,7 +36,7 @@ mod tests {
 
     #[test]
     fn check_field_size() {
-        assert_eq!(std::mem::size_of::<FieldShapeRecord>(), 24);
+        assert_eq!(std::mem::size_of::<FieldShapeRecord>(), 20);
         assert_eq!(std::mem::align_of::<FieldShapeRecord>(), 4);
     }
 

@@ -17,12 +17,10 @@ use petgraph::{
 
 use crate::Query;
 
-pub(crate) struct SolutionSpace {}
-
 pub(crate) type SolutionSpaceGraph<'schema> = StableGraph<SpaceNode<'schema>, SpaceEdge>;
 pub(crate) type SpaceNodeId = <SolutionSpaceGraph<'static> as GraphBase>::NodeId;
 pub(crate) type SpaceEdgeId = <SolutionSpaceGraph<'static> as GraphBase>::EdgeId;
-pub(crate) type QuerySolutionSpace<'schema> = Query<SolutionSpaceGraph<'schema>, SolutionSpace>;
+pub(crate) type QuerySolutionSpace<'schema> = Query<SolutionSpaceGraph<'schema>, crate::steps::SolutionSpace>;
 
 impl<'schema> QuerySolutionSpace<'schema> {
     #[instrument(skip_all, level = Level::DEBUG)]

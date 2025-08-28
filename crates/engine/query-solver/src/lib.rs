@@ -19,7 +19,7 @@ pub use query::*;
 use schema::Schema;
 pub(crate) use solution_space::*;
 
-pub fn solve(schema: &Schema, operation: &mut Operation) -> Result<SolvedQuery> {
+pub fn solve(schema: &Schema, operation: &mut Operation) -> Result<QuerySolution> {
     let query_solution_space = Query::generate_solution_space(schema, operation)?;
     let solution = solve::Solver::initialize(schema, operation, query_solution_space)?.solve()?;
     let crude_solved_query = solution.into_query(schema, operation)?;

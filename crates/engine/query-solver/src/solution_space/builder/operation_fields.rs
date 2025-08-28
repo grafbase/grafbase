@@ -4,18 +4,23 @@ use std::{
 };
 
 use fxhash::FxHasher32;
+use id_newtypes::IdRange;
 use operation::{ExecutableDirectiveId, OperationContext, QueryPosition};
 use petgraph::{Direction, stable_graph::NodeIndex};
 use schema::{CompositeTypeId, TypeSystemDirective};
 use walker::Walk;
 
-use crate::{DeduplicatedFlatExecutableDirectivesId, FieldFlags, QueryField, are_arguments_equivalent};
+use crate::{
+    DeduplicatedFlatExecutableDirectivesId, FieldFlags, QueryField, QueryOrSchemaSortedFieldArgumentIds,
+    are_arguments_equivalent,
+};
 
 use super::{SpaceEdge, SpaceNode, builder::QuerySolutionSpaceBuilder, providable_fields::CreateRequirementTask};
 
 struct IngestSelectionSet<'op> {
     parent_query_field_node_ix: NodeIndex,
     parent_output_type: CompositeTypeId,
+    depth: usize,
     selection_set: operation::SelectionSet<'op>,
 }
 
@@ -24,9 +29,14 @@ where
     'schema: 'op,
 {
     pub(super) fn ingest_operation_fields(&mut self) -> crate::Result<()> {
+        let ctx = OperationContext {
+            schema: self.schema,
+            operation: self.operation,
+        };
         let queue = vec![IngestSelectionSet {
             parent_query_field_node_ix: self.query.root_node_id,
             parent_output_type: CompositeTypeId::Object(self.operation.root_object_id),
+            depth: 0,
             selection_set: OperationContext {
                 schema: self.schema,
                 operation: self.operation,
@@ -35,9 +45,11 @@ where
         }]
         .into();
         OperationFieldsIngestor {
+            ctx,
             builder: self,
             queue,
             next_query_position: 0,
+            current_depth: 0,
             parent_type_conditions: Vec::new(),
             parent_directive_ids: Vec::new(),
             response_key_bloom_filter: 0,
@@ -49,10 +61,12 @@ where
 
 #[derive(id_derives::IndexedFields)]
 struct OperationFieldsIngestor<'schema, 'op, 'builder> {
+    ctx: OperationContext<'op>,
     builder: &'builder mut QuerySolutionSpaceBuilder<'schema, 'op>,
     // Needs to be a queue to have the right query_position for fields.
     queue: VecDeque<IngestSelectionSet<'op>>,
-    next_query_position: u32,
+    next_query_position: u16,
+    current_depth: usize,
     // Temporary structures for DFS
     parent_type_conditions: Vec<CompositeTypeId>,
     parent_directive_ids: Vec<ExecutableDirectiveId>,
@@ -67,12 +81,22 @@ where
     fn ingest(&mut self) -> crate::Result<()> {
         let mut selection_set_to_response_key_bloom_filter: HashMap<NodeIndex, usize, BuildHasherDefault<FxHasher32>> =
             HashMap::with_capacity_and_hasher(self.builder.operation.data_fields.len() >> 2, Default::default());
+        // We traverse in BFS to optimize our use of the QueryPosition which is a u16.
         while let Some(IngestSelectionSet {
+            depth,
             parent_query_field_node_ix,
             parent_output_type,
             selection_set,
         }) = self.queue.pop_front()
         {
+            debug_assert!(
+                self.current_depth <= depth,
+                "We should be iterating in BFS order, depth can only increase."
+            );
+            if self.current_depth < depth {
+                self.next_query_position = 0;
+                self.current_depth = depth;
+            }
             self.parent_type_conditions.clear();
             self.parent_directive_ids.clear();
             let bloom_filter = selection_set_to_response_key_bloom_filter
@@ -88,7 +112,10 @@ where
 
     fn next_query_position(&mut self) -> QueryPosition {
         let p = self.next_query_position;
-        self.next_query_position += 1;
+        // It doesn't really matter whether we wrap around. We're iterating on selection sets in
+        // BFS order and we reset whenever we go lower. So we there would need to be u16::MAX
+        // fields at a single level for us to provide inaccurate ordering.
+        self.next_query_position = self.next_query_position.wrapping_add(1);
         p.into()
     }
 
@@ -222,17 +249,13 @@ where
         let mut existing_query_field_node_ix = None;
         // Only search for a field with the same response key if we're likely to find one.
         if self.response_key_bloom_filter & bloom_bit_mask != 0 {
-            let ctx = OperationContext {
-                schema,
-                operation: self.builder.operation,
-            };
             for node_ix in self
                 .builder
                 .query
                 .graph
                 .neighbors_directed(parent_query_field_node_ix, Direction::Outgoing)
             {
-                let SpaceNode::QueryField(node) = self.builder.query.graph[node_ix] else {
+                let SpaceNode::Field(node) = self.builder.query.graph[node_ix] else {
                     continue;
                 };
                 let query_field = &self.builder.query[node.id];
@@ -241,9 +264,12 @@ where
                 }
                 if query_field.definition_id == definition_id
                     && !are_arguments_equivalent(
-                        ctx,
-                        query_field.argument_ids,
-                        field.as_data().map(|f| f.argument_ids.into()).unwrap_or_default(),
+                        self.ctx,
+                        query_field.sorted_argument_ids,
+                        field
+                            .as_data()
+                            .map(|f| QueryOrSchemaSortedFieldArgumentIds::Query(f.sorted_argument_ids))
+                            .unwrap_or_else(|| QueryOrSchemaSortedFieldArgumentIds::Query(IdRange::empty())),
                     )
                 {
                     return Err(crate::Error::InconsistentFieldArguments {
@@ -273,10 +299,9 @@ where
                             query_position: Some(self.next_query_position()),
                             type_conditions,
                             response_key: Some(field.response_key),
-                            subgraph_key: None,
                             definition_id,
                             matching_field_id: None,
-                            argument_ids: field.argument_ids.into(),
+                            sorted_argument_ids: QueryOrSchemaSortedFieldArgumentIds::Query(field.sorted_argument_ids),
                             location: field.location,
                             flat_directive_id,
                         },
@@ -287,10 +312,9 @@ where
                             query_position: Some(self.next_query_position()),
                             type_conditions,
                             response_key: Some(field.response_key),
-                            subgraph_key: None,
                             definition_id: None,
                             matching_field_id: None,
-                            argument_ids: Default::default(),
+                            sorted_argument_ids: QueryOrSchemaSortedFieldArgumentIds::Query(IdRange::empty()),
                             location: field.location,
                             flat_directive_id,
                         },
@@ -377,6 +401,7 @@ where
 
         if let Some(ty) = output_ty.and_then(|ty| ty.definition_id.as_composite_type()) {
             self.queue.push_back(IngestSelectionSet {
+                depth: self.current_depth + 1,
                 parent_query_field_node_ix: query_field_node_ix,
                 parent_output_type: ty,
                 selection_set: field.selection_set(),

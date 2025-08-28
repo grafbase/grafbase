@@ -6,10 +6,13 @@ use schema::ResolverDefinitionId;
 
 use crate::{
     query::{Edge, Node},
-    solve::CrudeSolvedQuery,
+    solve::QuerySteinerSolution,
 };
 
-pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQuery, starting_nodes: Vec<NodeIndex>) {
+pub(super) fn split_query_partition_dependency_cycles(
+    query: &mut QuerySteinerSolution,
+    starting_nodes: Vec<NodeIndex>,
+) {
     struct Field {
         position: Option<QueryPosition>,
         original_partition_node_ix: NodeIndex,
@@ -39,9 +42,9 @@ pub(super) fn split_query_partition_dependency_cycles(query: &mut CrudeSolvedQue
                             continue;
                         }
                         let second_degree_node_ix = second_degree_edge.target();
-                        if let Node::Field { id, .. } = query.graph[second_degree_node_ix] {
+                        if let Node::Field(node) = query.graph[second_degree_node_ix] {
                             nested_patitions_fields.push(Field {
-                                position: query[id].query_position,
+                                position: query[node.id].query_position,
                                 original_partition_node_ix: node_ix,
                                 resolver_definition_id,
                                 query_field_node_ix: second_degree_node_ix,

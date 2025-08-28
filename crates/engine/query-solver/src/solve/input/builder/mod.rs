@@ -121,7 +121,7 @@ pub(crate) fn build_input_and_terminals<'schema, 'op>(
         .graph
         .node_references()
         .filter_map(|(node_id, node)| match node {
-            SpaceNode::QueryField(field) if field.flags.contains(FieldFlags::INDISPENSABLE | FieldFlags::LEAF_NODE) => {
+            SpaceNode::Field(field) if field.flags.contains(FieldFlags::INDISPENSABLE | FieldFlags::LEAF_NODE) => {
                 Some(node_id)
             }
             _ => None,

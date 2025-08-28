@@ -118,8 +118,8 @@ impl std::fmt::Display for DisplayPath<'_> {
         f.write_fmt(format_args!(
             "{}",
             self.path.iter().format_with(".", |value_id, f| match value_id {
-                ResponseValueId::Field { response_key, .. } => {
-                    let field_key = &self.keys[*response_key];
+                ResponseValueId::Field { key, .. } => {
+                    let field_key = &self.keys[*key];
                     f(&format_args!("{field_key}"))
                 }
                 ResponseValueId::Index { index, .. } => f(&format_args!("{index}")),

@@ -71,22 +71,19 @@ impl ResponseObjectSetMap {
         solver: &mut Solver<'_>,
         source_ix: NodeIndex,
     ) -> ResponseObjectSetId {
-        let Node::Field {
-            id, split_id: split, ..
-        } = solver.solution.graph[source_ix]
-        else {
+        let Node::Field(node) = solver.solution.graph[source_ix] else {
             unreachable!();
         };
         *self
             .query_field_id_to_response_object_set
-            .entry((id, split))
+            .entry((node.id, node.split_id))
             .or_insert_with(|| {
                 solver
                     .output
                     .query_plan
                     .response_object_set_definitions
                     .push(super::ResponseObjectSetMetadataRecord {
-                        ty_id: solver.solution[id]
+                        ty_id: solver.solution[node.id]
                             .definition_id
                             .and_then(|def| def.walk(solver.schema).ty().definition_id.as_composite_type())
                             .expect("Could not have a child resolver if it wasn't a composite type"),
@@ -148,6 +145,7 @@ impl Context<'_, '_> {
                 && let Node::QueryPartition {
                     entity_definition_id,
                     resolver_definition_id,
+                    ..
                 } = self.solution.graph[edge.target()]
             {
                 self.query_partitions_to_create_stack.push(QueryPartitionToCreate {
@@ -277,6 +275,7 @@ impl Context<'_, '_> {
                     let Node::QueryPartition {
                         entity_definition_id,
                         resolver_definition_id,
+                        ..
                     } = self.solution.graph[target_id]
                     else {
                         continue;
@@ -296,15 +295,10 @@ impl Context<'_, '_> {
                     self.query_partitions_to_create_stack.push(new_partition);
                 }
                 Edge::Field => {
-                    let Node::Field {
-                        id: query_field_id,
-                        split_id,
-                        ..
-                    } = self.solution.graph[target_id]
-                    else {
+                    let Node::Field(node) = self.solution.graph[target_id] else {
                         continue;
                     };
-                    match self.crate_data_field_or_typename_field(query_partition_id, query_field_id) {
+                    match self.crate_data_field_or_typename_field(query_partition_id, node.id) {
                         None => continue,
                         Some(PartitionFieldRecord::Data(mut record)) => {
                             if is_root_selection_set {
@@ -344,8 +338,8 @@ impl Context<'_, '_> {
                             fields_buffer.push(NestedField::Data {
                                 record,
                                 node_id: target_id,
-                                query_field_id,
-                                split_id,
+                                query_field_id: node.id,
+                                split_id: node.split_id,
                             });
                         }
                         Some(PartitionFieldRecord::Typename(record)) => {
@@ -444,10 +438,10 @@ impl Context<'_, '_> {
                 .edges_directed(node_ix, Direction::Outgoing)
                 .filter(|edge| matches!(edge.weight(), Edge::Field))
             {
-                let Node::Field { id, .. } = self.solution.graph[nested_field_edge.target()] else {
+                let Node::Field(node) = self.solution.graph[nested_field_edge.target()] else {
                     unreachable!();
                 };
-                if self.solution[id].definition_id.is_none() {
+                if self.solution[node.id].definition_id.is_none() {
                     continue;
                 }
                 let Some(PartitionFieldId::Data(from_id)) = self
@@ -485,24 +479,21 @@ impl Context<'_, '_> {
         let response_key = field.response_key?;
         if let Some(definition_id) = field.definition_id {
             let start = output.query_plan.field_arguments.len();
-            match field.argument_ids {
-                query_solver::QueryOrSchemaFieldArgumentIds::Query(ids) => {
-                    output
-                        .query_plan
-                        .field_arguments
-                        .extend(output.operation[ids].iter().map(|arg| PartitionFieldArgumentRecord {
-                            definition_id: arg.definition_id,
-                            value_record: PlanValueRecord::Value(arg.value_id.into()),
-                        }))
-                }
-                query_solver::QueryOrSchemaFieldArgumentIds::Schema(ids) => {
-                    output.query_plan.field_arguments.extend(schema[ids].iter().map(|arg| {
-                        PartitionFieldArgumentRecord {
-                            definition_id: arg.definition_id,
-                            value_record: PlanValueRecord::Value(arg.value_id.into()),
-                        }
-                    }))
-                }
+            match field.sorted_argument_ids {
+                query_solver::QueryOrSchemaSortedFieldArgumentIds::Query(ids) => output
+                    .query_plan
+                    .field_arguments
+                    .extend(output.operation[ids].iter().map(|arg| PartitionFieldArgumentRecord {
+                        definition_id: arg.definition_id,
+                        value_record: PlanValueRecord::Value(arg.value_id.into()),
+                    })),
+                query_solver::QueryOrSchemaSortedFieldArgumentIds::Schema(ids) => output
+                    .query_plan
+                    .field_arguments
+                    .extend(schema[ids].iter().map(|arg| PartitionFieldArgumentRecord {
+                        definition_id: arg.definition_id,
+                        value_record: PlanValueRecord::Value(arg.value_id.into()),
+                    })),
             };
             let argument_ids = IdRange::from(start..output.query_plan.field_arguments.len());
             Some(PartitionFieldRecord::Data(DataFieldRecord {
@@ -511,7 +502,7 @@ impl Context<'_, '_> {
                 definition_id,
                 query_position: field.query_position,
                 response_key,
-                subgraph_key: field.subgraph_key,
+                subgraph_key: self.solution.field_to_subgraph_key[usize::from(id)],
                 location: field.location,
                 argument_ids,
                 // All set later

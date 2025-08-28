@@ -2963,6 +2963,7 @@ dependencies = [
  "petgraph",
  "pretty_assertions",
  "priority-queue",
+ "rapidhash",
  "serde",
  "serde_json",
  "similar",
