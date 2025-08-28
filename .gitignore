@@ -77,3 +77,4 @@ devenv.local.nix
 directed-steiner-tree
 
 callgrind*
+dhat*

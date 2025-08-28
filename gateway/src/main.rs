@@ -2,13 +2,17 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use args::Args;
 use clap::crate_version;
-use mimalloc::MiMalloc;
 use tokio::{runtime, sync::watch};
 
 use federated_server::ServeConfig;
 
+#[cfg(not(feature = "dhat-heap"))]
 #[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static ALLOC: dhat::Alloc = dhat::Alloc;
 
 mod args;
 mod config;
@@ -18,6 +22,9 @@ mod telemetry;
 const THREAD_NAME: &str = "grafbase-gateway";
 
 fn main() -> anyhow::Result<()> {
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = dhat::Profiler::new_heap();
+
     rustls::crypto::aws_lc_rs::default_provider()
         .install_default()
         .expect("installing default crypto provider");

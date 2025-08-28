@@ -90,6 +90,7 @@ dashmap = "6.1"
 datatest-stable = "0.3.2"
 deadpool = { version = "0.12.2", features = ["rt_tokio_1"] }
 derive_more = "2.0.1"
+dhat = "0.3"
 dirs = "6"
 dot-parser = "0.5"
 dot-parser-macros = "0.5"

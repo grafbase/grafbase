@@ -9,6 +9,7 @@ repository.workspace = true
 
 [features]
 default = []
+dhat-heap = ["dhat"]
 lambda = [
     "federated-server/lambda",
     "tracing-subscriber/json",
@@ -21,6 +22,7 @@ ascii.workspace = true
 cfg-if.workspace = true
 chrono.workspace = true
 clap = { workspace = true, features = ["cargo", "wrap_help", "derive", "env"] }
+dhat = { workspace = true, optional = true }
 federated-server.workspace = true
 gateway-config.workspace = true
 grafbase-telemetry = { workspace = true }
