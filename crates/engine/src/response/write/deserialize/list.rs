@@ -87,16 +87,17 @@ where
         } = self;
 
         let mut index: u32 = 0;
-        let list_id = state.response.borrow_mut().data.reserve_list_id();
-        let mut list = Vec::new();
+        let depth = state.depth();
+        let (list_id, mut list) = state.response.borrow_mut().data.take_list(depth);
         if let Some(size_hint) = seq.size_hint() {
             list.reserve(size_hint);
         }
+        let offset = list.len() as u32;
 
         loop {
             state
                 .local_path_mut()
-                .push(ResponseValueId::index(list_id, index, element_is_nullable));
+                .push(ResponseValueId::index(list_id, offset + index, element_is_nullable));
             let result = seq.next_element_seed(seed.clone());
             state.local_path_mut().pop();
             match result {
@@ -127,9 +128,14 @@ where
                 }
             }
         }
+        let length = index;
 
-        state.response.borrow_mut().data.put_list(list_id, list);
-        Ok(list_id.into())
+        state.response.borrow_mut().data.restore_list(list_id, list);
+        Ok(ResponseValue::List {
+            id: list_id,
+            offset,
+            length,
+        })
     }
 
     fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>

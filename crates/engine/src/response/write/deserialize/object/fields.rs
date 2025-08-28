@@ -12,7 +12,7 @@ use crate::{
     prepare::{ConcreteShape, DataOrLookupFieldId, FieldShapeId, FieldShapeRecord, ObjectIdentifier, TypenameShapeId},
     response::{
         GraphqlError, ResponseObjectId, ResponseValue, ResponseValueId,
-        value::ResponseObjectField,
+        value::ResponseField,
         write::deserialize::{SeedState, field::FieldSeed, key::Key},
     },
 };
@@ -77,7 +77,7 @@ pub(crate) enum ObjectFields {
     Null,
     Some {
         definition_id: Option<ObjectDefinitionId>,
-        fields: Vec<ResponseObjectField>,
+        fields: Vec<ResponseField>,
     },
     Error(GraphqlError),
 }
@@ -165,7 +165,7 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_, '_> {
             };
             let name_id = schema[object_id].name_id;
             for shape in self.typename_shape_ids.walk(self.state) {
-                response_fields.push(ResponseObjectField {
+                response_fields.push(ResponseField {
                     key: shape.key(),
                     value: name_id.into(),
                 });
@@ -293,7 +293,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
         &self,
         map: &mut A,
         possible_types_ordered_by_typename: &[ObjectDefinitionId],
-        response_fields: &mut Vec<ResponseObjectField>,
+        response_fields: &mut Vec<ResponseField>,
     ) -> Result<Option<ObjectDefinitionId>, A::Error> {
         let schema = self.state.schema;
         let keys = self.state.response_keys();
@@ -347,7 +347,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
     fn visit_fields<'de, A: MapAccess<'de>>(
         &self,
         map: &mut A,
-        response_fields: &mut Vec<ResponseObjectField>,
+        response_fields: &mut Vec<ResponseField>,
     ) -> Result<(), A::Error> {
         let keys = self.state.response_keys();
         let included_data_fields = &self
@@ -393,7 +393,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
         map: &mut A,
         field: &'ctx FieldShapeRecord,
         included: bool,
-        response_fields: &mut Vec<ResponseObjectField>,
+        response_fields: &mut Vec<ResponseField>,
     ) -> Result<(), A::Error> {
         let key = PositionedResponseKey {
             query_position: field.query_position_before_modifications,
@@ -415,7 +415,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
 
         let value = result?;
 
-        response_fields.push(ResponseObjectField { key, value });
+        response_fields.push(ResponseField { key, value });
 
         Ok(())
     }
@@ -425,14 +425,14 @@ impl<'ctx> ConcreteShapeFieldsContext<'ctx, '_, '_> {
     pub fn finalize_deserialized_object_fields(
         &self,
         object_id: ResponseObjectId,
-        response_fields: &mut Vec<ResponseObjectField>,
+        response_fields: &mut Vec<ResponseField>,
     ) {
         let propagated = self.handle_shape_errors(response_fields);
         self.handle_typename_fields(response_fields, propagated);
         self.handle_derive_fields(object_id, response_fields);
     }
 
-    fn handle_shape_errors(&self, response_fields: &mut Vec<ResponseObjectField>) -> bool {
+    fn handle_shape_errors(&self, response_fields: &mut Vec<ResponseField>) -> bool {
         let mut propagated = false;
         if self.has_error {
             let mut resp = self.state.response.borrow_mut();
@@ -458,7 +458,7 @@ impl<'ctx> ConcreteShapeFieldsContext<'ctx, '_, '_> {
                         let id = resp.data.push_inaccessible_value(std::mem::take(&mut field.value));
                         field.value = id.into();
                     } else {
-                        response_fields.push(ResponseObjectField {
+                        response_fields.push(ResponseField {
                             key,
                             value: ResponseValue::Null,
                         });
@@ -469,7 +469,7 @@ impl<'ctx> ConcreteShapeFieldsContext<'ctx, '_, '_> {
         propagated
     }
 
-    fn handle_typename_fields(&self, response_fields: &mut Vec<ResponseObjectField>, mut propagated: bool) {
+    fn handle_typename_fields(&self, response_fields: &mut Vec<ResponseField>, mut propagated: bool) {
         if response_fields.len() < self.non_derived_field_shape_ids.len() {
             let n = response_fields.len();
             let keys = self.state.response_keys();
@@ -510,7 +510,7 @@ impl<'ctx> ConcreteShapeFieldsContext<'ctx, '_, '_> {
                             );
                         }
                     } else {
-                        response_fields.push(ResponseObjectField {
+                        response_fields.push(ResponseField {
                             key,
                             value: ResponseValue::Null,
                         });
@@ -520,7 +520,7 @@ impl<'ctx> ConcreteShapeFieldsContext<'ctx, '_, '_> {
         }
     }
 
-    fn handle_derive_fields(&self, object_id: ResponseObjectId, response_fields: &mut Vec<ResponseObjectField>) {
+    fn handle_derive_fields(&self, object_id: ResponseObjectId, response_fields: &mut Vec<ResponseField>) {
         if !self.derived_field_shape_ids.is_empty() {
             let start = self.derived_field_shape_ids.start;
             let derived_field_shape_id_to_error_ids = self

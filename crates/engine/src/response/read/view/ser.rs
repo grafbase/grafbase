@@ -202,8 +202,11 @@ where
             ResponseValue::String { value, .. } => value.serialize(serializer),
             ResponseValue::StringId { id, .. } => self.ctx.response.schema[*id].serialize(serializer),
             ResponseValue::I64 { value, .. } => value.serialize(serializer),
-            &ResponseValue::List { id, .. } => {
-                let values = &self.ctx.response.data_parts[id];
+            &ResponseValue::List { id, offset, length } => {
+                let offset = offset as usize;
+                let length = length as usize;
+                let end = offset + length;
+                let values = &self.ctx.response.data_parts[id][offset..end];
                 serializer.collect_seq(values.iter().map(|value| ResponseValueView {
                     ctx: self.ctx,
                     value,
@@ -410,8 +413,11 @@ impl<'a> serde::Serialize for ResponseValueView<'a, ForInjection<'_>> {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
                 value.serialize(serializer)
             }
-            ResponseValue::List { id, .. } => {
-                let values = &self.ctx.response.data_parts[*id];
+            ResponseValue::List { id, offset, length } => {
+                let offset = *offset as usize;
+                let length = *length as usize;
+                let end = offset + length;
+                let values = &self.ctx.response.data_parts[*id][offset..end];
                 serializer.collect_seq(values.iter().map(|value| ResponseValueView {
                     ctx: self.ctx,
                     value,

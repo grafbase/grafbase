@@ -1,4 +1,4 @@
-use crate::response::ResponseObjectField;
+use crate::response::ResponseField;
 
 use super::{ResponseObject, ResponseValue, ResponseValueId};
 
@@ -117,6 +117,8 @@ pub(crate) struct DataPart {
     pub id: DataPartId,
     #[indexed_by(PartObjectId)]
     objects: Vec<ResponseObject>,
+    #[indexed_by(PartFieldListId)]
+    fields: Vec<Vec<ResponseField>>,
     #[indexed_by(PartListId)]
     lists: Vec<Vec<ResponseValue>>,
     #[indexed_by(PartInaccesibleValueId)]
@@ -131,6 +133,7 @@ impl DataPart {
             id,
             objects: Vec::new(),
             lists: Vec::new(),
+            fields: Vec::new(),
             inaccessible_values: Vec::new(),
             maps: Vec::new(),
         }
@@ -209,7 +212,7 @@ impl DataPart {
                     Err(index) => {
                         self[object_id].fields_sorted_by_key.insert(
                             index,
-                            ResponseObjectField {
+                            ResponseField {
                                 key,
                                 value: ResponseValue::Null,
                             },
@@ -272,13 +275,41 @@ impl DataPart {
         }
     }
 
-    pub fn reserve_list_id(&mut self) -> ResponseListId {
-        self.push_list(Vec::new())
+    pub fn take_list(&mut self, depth: usize) -> (ResponseListId, Vec<ResponseValue>) {
+        if self.lists.len() <= depth {
+            self.lists.resize_with(depth + 1, Vec::new);
+        }
+        let id = ResponseListId {
+            part_id: self.id,
+            list_id: PartListId::from(depth),
+        };
+        (id, std::mem::take(&mut self.lists[depth]))
     }
 
-    pub fn put_list(&mut self, ResponseListId { part_id, list_id }: ResponseListId, list: Vec<ResponseValue>) {
-        debug_assert!(part_id == self.id && self[list_id].is_empty());
-        self[list_id] = list;
+    pub fn restore_list(&mut self, id: ResponseListId, list: Vec<ResponseValue>) {
+        debug_assert!(id.part_id == self.id);
+        let depth = usize::from(id.list_id);
+        debug_assert!(depth < self.lists.len());
+        self.lists[depth] = list;
+    }
+
+    pub fn push_field_list(&mut self, list: Vec<ResponseField>) -> PartFieldListId {
+        let list_id = PartFieldListId::from(self.fields.len());
+        self.fields.push(list);
+        list_id
+    }
+
+    pub fn take_field_list(&mut self, depth: usize) -> (PartFieldListId, Vec<ResponseField>) {
+        if self.fields.len() <= depth {
+            self.fields.resize_with(depth + 1, Vec::new);
+        }
+        (PartFieldListId::from(depth), std::mem::take(&mut self.fields[depth]))
+    }
+
+    pub fn restore_field_list(&mut self, id: PartFieldListId, list: Vec<ResponseField>) {
+        let depth = usize::from(id);
+        debug_assert!(depth < self.fields.len());
+        self.fields[depth] = list;
     }
 
     pub fn push_map(&mut self, map: Vec<(String, ResponseValue)>) -> ResponseMapId {
@@ -311,12 +342,18 @@ pub(crate) struct ResponseObjectId {
 
 impl std::fmt::Display for ResponseObjectId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ID#{}#{}", self.part_id.0, self.object_id.0)
+        write!(f, "OBJ#{}#{}", self.part_id.0, self.object_id.0)
     }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
-pub(crate) struct PartListId(u32);
+pub(crate) struct PartFieldId(u32);
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
+pub(crate) struct PartFieldListId(u16);
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
+pub(crate) struct PartListId(u16);
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(crate) struct ResponseListId {

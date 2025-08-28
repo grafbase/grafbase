@@ -6,7 +6,7 @@ use walker::Walk as _;
 use crate::{
     prepare::{BatchFieldShape, DataOrLookupFieldId, DerivedEntityShape, FieldShape, FieldShapeRecord},
     response::{
-        ResponseListId, ResponseObject, ResponseObjectField, ResponseObjectId, ResponseObjectRef, ResponsePartBuilder,
+        ResponseField, ResponseListId, ResponseObject, ResponseObjectId, ResponseObjectRef, ResponsePartBuilder,
         ResponseValue, ResponseValueId,
     },
 };
@@ -20,7 +20,7 @@ pub(super) struct DeriveContext<'ctx, 'parent, 'seed> {
 }
 
 impl DeriveContext<'_, '_, '_> {
-    pub fn ingest(mut self, parent_object_id: ResponseObjectId, response_fields: &mut Vec<ResponseObjectField>) {
+    pub fn ingest(mut self, parent_object_id: ResponseObjectId, response_fields: &mut Vec<ResponseField>) {
         let key = self.field.key();
         self.local_path.push(ResponseValueId::field(
             parent_object_id,
@@ -43,7 +43,7 @@ impl DeriveContext<'_, '_, '_> {
             let is_nullable = self.field.wrapping.is_nullable();
             handle_object_derive(&mut self, is_nullable, response_fields)
         };
-        response_fields.push(ResponseObjectField { key, value });
+        response_fields.push(ResponseField { key, value });
         self.local_path.pop();
     }
 
@@ -89,16 +89,19 @@ fn handle_list_derive(
             }
             ResponseValue::Unexpected
         }
-        ResponseValue::List { id } => {
+        ResponseValue::List { id, offset, length } => {
             let values =
                 if let Some(scalar_field) = ctx.shape.fields().find(|field| field.shape.is_derive_from_scalar()) {
-                    handle_derive_scalar_list(ctx, *id, batch_field, scalar_field)
+                    handle_derive_scalar_list(ctx, *id, *offset, *length, batch_field, scalar_field)
                 } else {
-                    handle_derive_object_list(ctx, *id, batch_field)
+                    handle_derive_object_list(ctx, *id, *offset, *length, batch_field)
                 };
 
+            let length = values.len() as u32;
             ResponseValue::List {
                 id: ctx.resp.data.push_list(values),
+                offset: 0,
+                length,
             }
         }
         _ => unreachable!(),
@@ -108,13 +111,17 @@ fn handle_list_derive(
 fn handle_derive_scalar_list(
     ctx: &mut DeriveContext<'_, '_, '_>,
     id: ResponseListId,
+    offset: u32,
+    length: u32,
     batch_field: BatchFieldShape,
     scalar_field: FieldShape<'_>,
 ) -> Vec<ResponseValue> {
     let root_definition_id = ctx.shape.object_definition_id;
     let element_is_nullable = !batch_field.wrapping.inner_is_required();
 
-    let list = std::mem::take(&mut ctx.resp.data[id.list_id]);
+    let shared_list = std::mem::take(&mut ctx.resp.data[id.list_id]);
+    let list = &shared_list[offset as usize..(offset + length) as usize];
+
     let mut derive_list = Vec::with_capacity(list.len());
     let scalar_field_key = scalar_field.key();
     if !list.is_empty() {
@@ -165,14 +172,14 @@ fn handle_derive_scalar_list(
             }
             value => {
                 let mut fields_sorted_by_key = Vec::with_capacity(ctx.shape.typename_shape_ids.len() + 1);
-                fields_sorted_by_key.push(ResponseObjectField {
+                fields_sorted_by_key.push(ResponseField {
                     key: scalar_field_key,
                     value: value.clone(),
                 });
                 if fields_sorted_by_key.capacity() > 1 {
                     let name_id = ctx.shape.object_definition_id.unwrap().walk(ctx.resp.schema).name_id;
                     for typename in ctx.shape.typename_shapes() {
-                        fields_sorted_by_key.push(ResponseObjectField {
+                        fields_sorted_by_key.push(ResponseField {
                             key: typename.key(),
                             value: name_id.into(),
                         });
@@ -202,7 +209,7 @@ fn handle_derive_scalar_list(
         }
         ctx.local_path.pop();
     }
-    ctx.resp.data[id.list_id] = list;
+    ctx.resp.data[id.list_id] = shared_list;
 
     derive_list
 }
@@ -210,11 +217,15 @@ fn handle_derive_scalar_list(
 fn handle_derive_object_list(
     ctx: &mut DeriveContext<'_, '_, '_>,
     id: ResponseListId,
+    offset: u32,
+    length: u32,
     batch_field: BatchFieldShape,
 ) -> Vec<ResponseValue> {
     let element_is_nullable = !batch_field.wrapping.inner_is_required();
 
-    let list = std::mem::take(&mut ctx.resp.data[id.list_id]);
+    let shared_list = std::mem::take(&mut ctx.resp.data[id.list_id]);
+    let list = &shared_list[offset as usize..(offset + length) as usize];
+
     let mut derive_list = Vec::with_capacity(list.len());
     for (index, value) in list.iter().enumerate() {
         ctx.local_path
@@ -254,7 +265,7 @@ fn handle_derive_object_list(
         }
         ctx.local_path.pop();
     }
-    ctx.resp.data[id.list_id] = list;
+    ctx.resp.data[id.list_id] = shared_list;
 
     derive_list
 }
@@ -262,7 +273,7 @@ fn handle_derive_object_list(
 fn handle_object_derive(
     ctx: &mut DeriveContext<'_, '_, '_>,
     parent_is_nullable: bool,
-    source_fields: &[ResponseObjectField],
+    source_fields: &[ResponseField],
 ) -> ResponseValue {
     let mut derived_response_fields = Vec::new();
     let mut is_null_entity = true;
@@ -300,13 +311,13 @@ fn handle_object_derive(
         }
 
         // Search for the real field.
-        if let Some(ResponseObjectField { value, .. }) = source_fields
+        if let Some(ResponseField { value, .. }) = source_fields
             .iter()
             .find(|source_field| source_field.key.response_key == field.expected_key)
         {
             let key = field.key();
             match value {
-                ResponseValue::Null => derived_response_fields.push(ResponseObjectField {
+                ResponseValue::Null => derived_response_fields.push(ResponseField {
                     key,
                     value: ResponseValue::Null,
                 }),
@@ -329,14 +340,14 @@ fn handle_object_derive(
                         }
                     }
 
-                    derived_response_fields.push(ResponseObjectField {
+                    derived_response_fields.push(ResponseField {
                         key,
                         value: ResponseValue::Unexpected,
                     })
                 }
                 value => {
                     is_null_entity = false;
-                    derived_response_fields.push(ResponseObjectField {
+                    derived_response_fields.push(ResponseField {
                         key,
                         value: value.clone(),
                     })
@@ -363,7 +374,7 @@ fn handle_object_derive(
         if !ctx.shape.typename_shape_ids.is_empty() {
             let name_id = ctx.shape.object_definition_id.unwrap().walk(ctx.resp.schema).name_id;
             for typename in ctx.shape.typename_shapes() {
-                derived_response_fields.push(ResponseObjectField {
+                derived_response_fields.push(ResponseField {
                     key: typename.key(),
                     value: name_id.into(),
                 });

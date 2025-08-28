@@ -9,7 +9,7 @@ use walker::Walk;
 use crate::{
     prepare::{FieldShape, SubgraphField},
     response::{
-        ResponseObjectField, ResponseObjectRef, ResponseValue, ResponseValueId, SeedState,
+        ResponseField, ResponseObjectRef, ResponseValue, ResponseValueId, SeedState,
         write::deserialize::{error::DeserError, field::FieldSeed, object::ConcreteShapeFieldsContext},
     },
 };
@@ -92,7 +92,7 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
 fn write_field_errors<'ctx, 'parent, 'a>(
     state: &SeedState<'ctx, 'parent>,
     field: FieldShape<'ctx>,
-    mut parents: impl Iterator<Item = (&'parent ResponseObjectRef, &'a mut Vec<ResponseObjectField>)>,
+    mut parents: impl Iterator<Item = (&'parent ResponseObjectRef, &'a mut Vec<ResponseField>)>,
     errors: Vec<GraphqlError>,
 ) {
     let key = field.key();
@@ -101,7 +101,7 @@ fn write_field_errors<'ctx, 'parent, 'a>(
         let mut resp = state.response.borrow_mut();
         if field.wrapping.is_non_null() {
             if let Some((parent_object, response_fields)) = parents.next() {
-                response_fields.push(ResponseObjectField {
+                response_fields.push(ResponseField {
                     key,
                     value: ResponseValue::Unexpected,
                 });
@@ -114,7 +114,7 @@ fn write_field_errors<'ctx, 'parent, 'a>(
                 }
             }
             for (parent_object, response_fields) in parents {
-                response_fields.push(ResponseObjectField {
+                response_fields.push(ResponseField {
                     key,
                     value: ResponseValue::Unexpected,
                 });
@@ -122,7 +122,7 @@ fn write_field_errors<'ctx, 'parent, 'a>(
             }
         } else {
             if let Some((parent_object, response_fields)) = parents.next() {
-                response_fields.push(ResponseObjectField {
+                response_fields.push(ResponseField {
                     key,
                     value: ResponseValue::Null,
                 });
@@ -134,7 +134,7 @@ fn write_field_errors<'ctx, 'parent, 'a>(
                 }
             }
             for (_, response_fields) in parents {
-                response_fields.push(ResponseObjectField {
+                response_fields.push(ResponseField {
                     key,
                     value: ResponseValue::Null,
                 });
@@ -142,7 +142,7 @@ fn write_field_errors<'ctx, 'parent, 'a>(
         }
     } else {
         for (_, response_fields) in parents {
-            response_fields.push(ResponseObjectField {
+            response_fields.push(ResponseField {
                 key,
                 value: ResponseValue::Unexpected,
             });
@@ -170,7 +170,7 @@ impl<ParentObjects> BatchFieldsSeed<'_, '_, '_, ParentObjects> {
 impl<'ctx, 'parent, 'de, 'fields, ParentObjects> serde::de::DeserializeSeed<'de>
     for BatchFieldsSeed<'ctx, 'parent, '_, ParentObjects>
 where
-    ParentObjects: Iterator<Item = (&'parent ResponseObjectRef, &'fields mut Vec<ResponseObjectField>)>,
+    ParentObjects: Iterator<Item = (&'parent ResponseObjectRef, &'fields mut Vec<ResponseField>)>,
 {
     type Value = bool;
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -183,7 +183,7 @@ where
 
 impl<'ctx, 'parent, 'de, 'fields, ParentObjects> Visitor<'de> for BatchFieldsSeed<'ctx, 'parent, '_, ParentObjects>
 where
-    ParentObjects: Iterator<Item = (&'parent ResponseObjectRef, &'fields mut Vec<ResponseObjectField>)>,
+    ParentObjects: Iterator<Item = (&'parent ResponseObjectRef, &'fields mut Vec<ResponseField>)>,
 {
     type Value = bool;
 
@@ -219,7 +219,7 @@ where
             match value {
                 Some(value) => {
                     state.local_path_mut().pop();
-                    response_fields.push(ResponseObjectField { key, value });
+                    response_fields.push(ResponseField { key, value });
                 }
                 None => {
                     let mut resp = state.response.borrow_mut();
@@ -230,24 +230,24 @@ where
                     );
                     if field.wrapping.is_non_null() {
                         resp.propagate_null_parent_path(&parent_object.path);
-                        response_fields.push(ResponseObjectField {
+                        response_fields.push(ResponseField {
                             key,
                             value: ResponseValue::Unexpected,
                         });
                         for (parent_object, response_fields) in parent_objects.by_ref() {
                             resp.propagate_null_parent_path(&parent_object.path);
-                            response_fields.push(ResponseObjectField {
+                            response_fields.push(ResponseField {
                                 key,
                                 value: ResponseValue::Unexpected,
                             });
                         }
                     } else {
-                        response_fields.push(ResponseObjectField {
+                        response_fields.push(ResponseField {
                             key,
                             value: ResponseValue::Null,
                         });
                         for (_, response_fields) in parent_objects.by_ref() {
-                            response_fields.push(ResponseObjectField {
+                            response_fields.push(ResponseField {
                                 key,
                                 value: ResponseValue::Null,
                             });

@@ -5,8 +5,7 @@ use serde::de::DeserializeSeed as _;
 use crate::{
     prepare::{ConcreteShape, DataOrLookupFieldId, SubgraphField},
     response::{
-        ParentObjectId, ParentObjectSet, ResponseObjectField, ResponseObjectRef, ResponseValue, ResponseValueId,
-        SeedState,
+        ParentObjectId, ParentObjectSet, ResponseField, ResponseObjectRef, ResponseValue, ResponseValueId, SeedState,
         write::deserialize::{error::DeserError, field::FieldSeed, object::ConcreteShapeFieldsContext},
     },
 };
@@ -68,7 +67,7 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
         object_shape: ConcreteShape<'ctx>,
         partition_field_id: DataOrLookupFieldId,
         parent_object: &'parent ResponseObjectRef,
-        response_fields: &mut Vec<ResponseObjectField>,
+        response_fields: &mut Vec<ResponseField>,
         response: Response,
     ) {
         let field = object_shape
@@ -104,10 +103,10 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
 
                 match result {
                     Ok(value) => {
-                        response_fields.push(ResponseObjectField { key, value });
+                        response_fields.push(ResponseField { key, value });
                     }
                     Err(err) => {
-                        response_fields.push(ResponseObjectField {
+                        response_fields.push(ResponseField {
                             key,
                             value: ResponseValue::Unexpected,
                         });
@@ -140,7 +139,7 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
             }
             Response { data: None, errors } => {
                 if field.wrapping.is_nullable() {
-                    response_fields.push(ResponseObjectField {
+                    response_fields.push(ResponseField {
                         key,
                         value: ResponseValue::Null,
                     });
@@ -154,7 +153,7 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
                         }
                     }
                 } else {
-                    response_fields.push(ResponseObjectField {
+                    response_fields.push(ResponseField {
                         key,
                         value: ResponseValue::Unexpected,
                     });
@@ -214,10 +213,10 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
 
                     match result {
                         Ok(value) => {
-                            response_fields.push(ResponseObjectField { key, value });
+                            response_fields.push(ResponseField { key, value });
                         }
                         Err(err) => {
-                            response_fields.push(ResponseObjectField {
+                            response_fields.push(ResponseField {
                                 key,
                                 value: ResponseValue::Unexpected,
                             });
@@ -239,7 +238,7 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
                     };
                 }
                 Err(err) => {
-                    response_fields.push(ResponseObjectField {
+                    response_fields.push(ResponseField {
                         key,
                         value: ResponseValue::Unexpected,
                     });

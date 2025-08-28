@@ -336,8 +336,11 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_, '_> {
                 })? {
                     list.push(value);
                 }
+                let length = list.len() as u32;
                 Ok(ResponseValue::List {
                     id: self.state.response.borrow_mut().data.push_list(list),
+                    offset: 0,
+                    length,
                 })
             }
             _ => {

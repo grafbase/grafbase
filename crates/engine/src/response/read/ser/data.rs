@@ -2,7 +2,7 @@ use operation::ResponseKeys;
 use schema::Schema;
 use serde::ser::{SerializeMap, SerializeSeq};
 
-use crate::response::{ResponseData, ResponseObject, ResponseValue, value::ResponseObjectField};
+use crate::response::{ResponseData, ResponseObject, ResponseValue, value::ResponseField};
 
 #[derive(Clone, Copy)]
 pub(super) struct Context<'a> {
@@ -41,11 +41,11 @@ impl serde::Serialize for SerializableResponseObject<'_> {
         let mut map = serializer.serialize_map(None)?;
         // Fields are ordered by their query_position, so ones without are first.
         let mut fields = self.object.fields();
-        for ResponseObjectField { key, value, .. } in fields.by_ref() {
+        for ResponseField { key, value, .. } in fields.by_ref() {
             if key.query_position.is_some() {
                 map.serialize_key(&self.ctx.keys[key.response_key])?;
                 map.serialize_value(&SerializableResponseValue { ctx: self.ctx, value })?;
-                for ResponseObjectField { key, value, .. } in fields.by_ref() {
+                for ResponseField { key, value, .. } in fields.by_ref() {
                     map.serialize_key(&self.ctx.keys[key.response_key])?;
                     map.serialize_value(&SerializableResponseValue { ctx: self.ctx, value })?;
                 }
@@ -94,9 +94,14 @@ impl serde::Serialize for SerializableResponseValue<'_> {
             ResponseValue::String { value, .. } => value.serialize(serializer),
             ResponseValue::StringId { id, .. } => self.ctx.schema[*id].serialize(serializer),
             ResponseValue::I64 { value, .. } => value.serialize(serializer),
-            ResponseValue::List { id, .. } => SerializableResponseList {
-                ctx: self.ctx,
-                value: &self.ctx.data[*id],
+            ResponseValue::List { id, offset, length } => {
+                let offset = *offset as usize;
+                let length = *length as usize;
+                let end = offset + length;
+                SerializableResponseList {
+                    ctx: self.ctx,
+                    value: &self.ctx.data[*id][offset..end],
+                }
             }
             .serialize(serializer),
             ResponseValue::Object { id, .. } => SerializableResponseObject {

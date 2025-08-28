@@ -2,7 +2,7 @@ use std::{cmp::Ordering, collections::VecDeque};
 
 use crate::{
     prepare::DefaultFieldShape,
-    response::{ResponseListId, ResponseObjectField, ResponseObjectId, ResponseValue},
+    response::{ResponseField, ResponseListId, ResponseObjectId, ResponseValue},
 };
 
 use super::ResponseBuilder;
@@ -23,7 +23,7 @@ impl<'ctx> ResponseBuilder<'ctx> {
         let mut i = 0;
         loop {
             if i >= n {
-                existing_fields.push(ResponseObjectField {
+                existing_fields.push(ResponseField {
                     key,
                     value: default_field.value.into(),
                 });
@@ -36,7 +36,7 @@ impl<'ctx> ResponseBuilder<'ctx> {
                 }
                 Ordering::Greater => {
                     // Adding at the end and will be sorted later.
-                    existing_fields.push(ResponseObjectField {
+                    existing_fields.push(ResponseField {
                         key,
                         value: default_field.value.into(),
                     });
@@ -61,7 +61,7 @@ impl<'ctx> ResponseBuilder<'ctx> {
             }
         }
         for field in default_fields_sorted_by_key {
-            existing_fields.push(ResponseObjectField {
+            existing_fields.push(ResponseField {
                 key,
                 value: field.value.into(),
             });
@@ -74,7 +74,7 @@ impl<'ctx> ResponseBuilder<'ctx> {
     pub(super) fn recursive_merge_object(
         &mut self,
         object_id: ResponseObjectId,
-        new_fields_sorted_by_key: Vec<ResponseObjectField>,
+        new_fields_sorted_by_key: Vec<ResponseField>,
     ) {
         let mut new_fields_sorted_by_key = VecDeque::from(new_fields_sorted_by_key);
         let Some(mut new_field) = new_fields_sorted_by_key.pop_front() else {
@@ -126,8 +126,20 @@ impl<'ctx> ResponseBuilder<'ctx> {
                 let new_fields_sorted_by_key = std::mem::take(&mut self.data_parts[new_id].fields_sorted_by_key);
                 self.recursive_merge_object(existing_id, new_fields_sorted_by_key);
             }
-            (ResponseValue::List { id: existing_id, .. }, ResponseValue::List { id: new_id, .. }) => {
-                self.recursive_merge_list(existing_id, new_id)
+            (
+                ResponseValue::List {
+                    id: existing_id,
+                    offset: existing_offset,
+                    length: existing_length,
+                },
+                ResponseValue::List {
+                    id: new_id,
+                    offset: new_offset,
+                    length: new_length,
+                },
+            ) => {
+                assert!(existing_length == new_length);
+                self.recursive_merge_list(existing_id, existing_offset, new_id, new_offset, existing_length)
             }
             (ResponseValue::Inaccessible { id: existing_id }, ResponseValue::Inaccessible { id: new_id }) => {
                 self.recursive_merge_value(self.data_parts[existing_id].clone(), self.data_parts[new_id].clone());
@@ -147,11 +159,20 @@ impl<'ctx> ResponseBuilder<'ctx> {
         }
     }
 
-    fn recursive_merge_list(&mut self, existing_list_id: ResponseListId, new_list_id: ResponseListId) {
+    fn recursive_merge_list(
+        &mut self,
+        existing_list_id: ResponseListId,
+        existing_offset: u32,
+        new_list_id: ResponseListId,
+        new_offset: u32,
+        length: u32,
+    ) {
         let mut i = 0;
-        while let Some((existing, new)) = self.data_parts[existing_list_id]
-            .get(i)
-            .zip(self.data_parts[new_list_id].get(i))
+        let length = length as usize;
+        while i < length
+            && let Some((existing, new)) = self.data_parts[existing_list_id]
+                .get(existing_offset as usize + i)
+                .zip(self.data_parts[new_list_id].get(new_offset as usize + i))
         {
             self.recursive_merge_value(existing.clone(), new.clone());
             i += 1;

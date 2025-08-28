@@ -14,7 +14,7 @@ use crate::{
     Runtime,
     execution::ExecutionContext,
     prepare::{ConcreteShapeId, FieldShapeRecord, Plan, RootFieldsShape, Shapes},
-    response::{ResponseObject, ResponseObjectField, ResponseObjectRef, ResponsePartBuilder, ResponseValue},
+    response::{ResponseField, ResponseObject, ResponseObjectRef, ResponsePartBuilder, ResponseValue},
 };
 
 pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
@@ -36,7 +36,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             match self.metadata.root_field(field.definition_id) {
                 IntrospectionField::Type => {
                     let name = arguments.get_arg_value_as::<&str>("name", self.ctx.variables());
-                    fields.push(ResponseObjectField {
+                    fields.push(ResponseField {
                         key: field_shape.key(),
                         value: self
                             .schema
@@ -47,7 +47,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                     });
                 }
                 IntrospectionField::Schema => {
-                    fields.push(ResponseObjectField {
+                    fields.push(ResponseField {
                         key: field_shape.key(),
                         value: self.__schema(field_shape.shape.as_concrete().unwrap()),
                     });
@@ -60,7 +60,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 EntityDefinition::Interface(interface) => interface.name_id,
             };
             for field in shape.typename_shape_ids.walk(&self.ctx) {
-                fields.push(ResponseObjectField {
+                fields.push(ResponseField {
                     key: field.key(),
                     value: name_id.into(),
                 });
@@ -78,7 +78,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         let shape = &self.shapes[shape_id];
         let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_shape_ids.len());
         for field_shape in shape.field_shape_ids.walk(&self.ctx) {
-            fields.push(ResponseObjectField {
+            fields.push(ResponseField {
                 key: field_shape.key(),
                 value: build(
                     field_shape.as_ref(),
@@ -89,7 +89,7 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         if !shape.typename_shape_ids.is_empty() {
             let name = self.schema.walk(object.id).as_ref().name_id;
             for field in shape.typename_shape_ids.walk(&self.ctx) {
-                fields.push(ResponseObjectField {
+                fields.push(ResponseField {
                     key: field.key(),
                     value: name.into(),
                 });
@@ -116,7 +116,13 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                             .filter(|def| !def.is_inaccessible())
                             .map(|definition| self.__type_inner(definition, shape_id)),
                     );
-                    self.response.borrow_mut().data.push_list(values).into()
+                    let length = values.len() as u32;
+                    let list_id = self.response.borrow_mut().data.push_list(values);
+                    ResponseValue::List {
+                        id: list_id,
+                        offset: 0,
+                        length,
+                    }
                 }
                 __Schema::QueryType => self.__type_inner(
                     TypeDefinition::Object(self.schema.query()),
@@ -137,7 +143,16 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                     })
                     .unwrap_or_default(),
                 // TODO: Need to implemented directives...
-                __Schema::Directives => self.response.borrow_mut().data.push_list(Vec::new()).into(),
+                __Schema::Directives => {
+                    let values = Vec::new();
+                    let length = values.len() as u32;
+                    let list_id = self.response.borrow_mut().data.push_list(values);
+                    ResponseValue::List {
+                        id: list_id,
+                        offset: 0,
+                        length,
+                    }
+                }
             }
         })
     }
@@ -258,7 +273,13 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                                 })
                                 .map(|value| self.__enum_value(value, shape_id)),
                         );
-                        self.response.borrow_mut().data.push_list(values).into()
+                        let length = values.len() as u32;
+                        let list_id = self.response.borrow_mut().data.push_list(values);
+                        ResponseValue::List {
+                            id: list_id,
+                            offset: 0,
+                            length,
+                        }
                     }
                     _ => ResponseValue::Null,
                 })
@@ -277,7 +298,13 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                                 .filter(|input_field| !input_field.is_inaccessible())
                                 .map(|input_field| self.__input_value(input_field, shape_id)),
                         );
-                        self.response.borrow_mut().data.push_list(values).into()
+                        let length = values.len() as u32;
+                        let list_id = self.response.borrow_mut().data.push_list(values);
+                        ResponseValue::List {
+                            id: list_id,
+                            offset: 0,
+                            length,
+                        }
                     }
                     _ => ResponseValue::Null,
                 })
@@ -308,7 +335,13 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 })
                 .map(|field| self.__field(field, shape_id)),
         );
-        self.response.borrow_mut().data.push_list(values).into()
+        let length = values.len() as u32;
+        let list_id = self.response.borrow_mut().data.push_list(values);
+        ResponseValue::List {
+            id: list_id,
+            offset: 0,
+            length,
+        }
     }
 
     fn __type_interfaces(
@@ -323,7 +356,13 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 .filter(|inf| !inf.is_inaccessible())
                 .map(|interface| self.__type_inner(TypeDefinition::Interface(interface), shape_id)),
         );
-        self.response.borrow_mut().data.push_list(values).into()
+        let length = values.len() as u32;
+        let list_id = self.response.borrow_mut().data.push_list(values);
+        ResponseValue::List {
+            id: list_id,
+            offset: 0,
+            length,
+        }
     }
 
     fn __type_possible_types(
@@ -338,7 +377,13 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 .filter(|obj| !obj.is_inaccessible())
                 .map(|possible_type| self.__type_inner(TypeDefinition::Object(possible_type), shape_id)),
         );
-        self.response.borrow_mut().data.push_list(values).into()
+        let length = values.len() as u32;
+        let list_id = self.response.borrow_mut().data.push_list(values);
+        ResponseValue::List {
+            id: list_id,
+            offset: 0,
+            length,
+        }
     }
 
     fn __field(&self, target: FieldDefinition<'ctx>, shape_id: ConcreteShapeId) -> ResponseValue {
@@ -354,7 +399,13 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                         .filter(|argument| !argument.is_inaccessible())
                         .map(|argument| self.__input_value(argument, shape_id)),
                 );
-                self.response.borrow_mut().data.push_list(values).into()
+                let length = values.len() as u32;
+                let list_id = self.response.borrow_mut().data.push_list(values);
+                ResponseValue::List {
+                    id: list_id,
+                    offset: 0,
+                    length,
+                }
             }
             _Field::Type => self.__type(target.ty(), field.shape.as_concrete().unwrap()),
             _Field::IsDeprecated => is_deprecated(target.directives()).into(),

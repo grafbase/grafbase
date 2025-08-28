@@ -1,5 +1,8 @@
+use id_newtypes::IdRange;
 use operation::{PositionedResponseKey, ResponseKey};
 use schema::{ObjectDefinitionId, StringId};
+
+use crate::response::PartFieldId;
 
 use super::{ResponseInaccessibleValueId, ResponseListId, ResponseMapId, ResponseObjectId};
 
@@ -7,17 +10,17 @@ use super::{ResponseInaccessibleValueId, ResponseListId, ResponseMapId, Response
 pub(crate) struct ResponseObject {
     pub(super) definition_id: Option<ObjectDefinitionId>,
     /// fields are ordered by the position they appear in the query.
-    pub(super) fields_sorted_by_key: Vec<ResponseObjectField>,
+    pub(super) fields_sorted_by_key: IdRange<PartFieldId>,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct ResponseObjectField {
+pub(crate) struct ResponseField {
     pub key: PositionedResponseKey,
     pub value: ResponseValue,
 }
 
 impl ResponseObject {
-    pub fn new(definition_id: Option<ObjectDefinitionId>, mut fields: Vec<ResponseObjectField>) -> Self {
+    pub fn new(definition_id: Option<ObjectDefinitionId>, mut fields: Vec<ResponseField>) -> Self {
         fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
         Self {
             definition_id,
@@ -25,7 +28,7 @@ impl ResponseObject {
         }
     }
 
-    pub fn fields(&self) -> impl Iterator<Item = &ResponseObjectField> {
+    pub fn fields(&self) -> impl Iterator<Item = &ResponseField> {
         self.fields_sorted_by_key.iter()
     }
 
@@ -68,6 +71,8 @@ pub(crate) enum ResponseValue {
     },
     List {
         id: ResponseListId,
+        offset: u32,
+        length: u32,
     },
     Object {
         id: ResponseObjectId,
@@ -133,12 +138,6 @@ impl From<String> for ResponseValue {
     }
 }
 
-impl From<ResponseListId> for ResponseValue {
-    fn from(id: ResponseListId) -> Self {
-        Self::List { id }
-    }
-}
-
 impl From<ResponseObjectId> for ResponseValue {
     fn from(id: ResponseObjectId) -> Self {
         Self::Object { id }
@@ -161,6 +160,6 @@ fn check_response_value_size() {
 #[cfg(test)]
 #[test]
 fn check_response_object_field_size() {
-    assert_eq!(std::mem::size_of::<ResponseObjectField>(), 32);
-    assert_eq!(std::mem::align_of::<ResponseObjectField>(), 8);
+    assert_eq!(std::mem::size_of::<ResponseField>(), 32);
+    assert_eq!(std::mem::align_of::<ResponseField>(), 8);
 }
