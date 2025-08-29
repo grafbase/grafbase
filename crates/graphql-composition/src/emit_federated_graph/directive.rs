@@ -40,7 +40,7 @@ pub(super) fn transform_input_value_directives(
                     subgraph_id: Some(dir.subgraph_id),
                     requires: None,
                     provides: None,
-                    r#type: dir.r#type.map(|ty| ctx.insert_field_type(ctx.subgraphs.walk(ty))),
+                    r#type: dir.r#type.map(|ty| ctx.insert_field_type(ty)),
                     external: false,
                     r#override: None,
                     override_label: None,
@@ -123,7 +123,7 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
         }
         ir::Directive::CompositeRequire { subgraph_id, field } => {
             ctx.used_directives |= UsedDirectives::COMPOSITE_REQUIRE;
-            let field = ctx.insert_string(ctx.subgraphs.walk(*field));
+            let field = ctx.insert_string(*field);
             federated::Directive::CompositeRequire {
                 graph: *subgraph_id,
                 field,
@@ -131,7 +131,7 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
         }
         ir::Directive::CompositeIs { subgraph_id, field } => {
             ctx.used_directives |= UsedDirectives::COMPOSITE_IS;
-            let field = ctx.insert_string(ctx.subgraphs.walk(*field));
+            let field = ctx.insert_string(*field);
             federated::Directive::CompositeIs {
                 graph: *subgraph_id,
                 field,
@@ -192,12 +192,12 @@ fn transform_join_union_member_directive(
     ctx: &mut Context<'_>,
     ir::JoinUnionMemberDirective { member }: &ir::JoinUnionMemberDirective,
 ) -> Option<federated::Directive> {
-    let member = ctx.subgraphs.walk(*member);
-    let name = ctx.insert_string(member.name());
+    let member = ctx.subgraphs.at(*member);
+    let name = ctx.insert_string(member.name);
     match &ctx.definitions[&name] {
         Definition::Object(object_id) => Some(federated::Directive::JoinUnionMember(
             federated::JoinUnionMemberDirective {
-                subgraph_id: federated::SubgraphId::from(member.subgraph_id().idx()),
+                subgraph_id: federated::SubgraphId::from(member.subgraph_id.idx()),
                 object_id: *object_id,
             },
         )),
@@ -261,7 +261,7 @@ fn transform_join_type_directive(
     }: &ir::JoinTypeDirective,
 ) -> federated::Directive {
     if let Some(key) = key {
-        let key = ctx.subgraphs.walk(*key);
+        let key = ctx.subgraphs.at(*key);
         let fields = attach_selection(key.fields(), parent, ctx);
         federated::Directive::JoinType(federated::JoinTypeDirective {
             subgraph_id: *subgraph_id,
@@ -290,24 +290,19 @@ fn transform_join_field_directive(
         r#type,
     }: &ir::JoinFieldDirective,
 ) -> federated::Directive {
-    let field = ctx.subgraphs.walk(*source_field);
+    let field = ctx.subgraphs.at(*source_field);
+    let parent_definition = ctx.subgraphs.at(field.parent_definition_id);
     federated::Directive::JoinField(federated::JoinFieldDirective {
-        subgraph_id: Some(federated::SubgraphId::from(
-            field.parent_definition().subgraph_id().idx(),
-        )),
+        subgraph_id: Some(federated::SubgraphId::from(parent_definition.subgraph_id.idx())),
         requires: field
-            .id
-            .1
             .directives
             .requires(ctx.subgraphs)
             .map(|field_set| attach_selection(field_set, ctx.out[field_id].parent_entity_id.into(), ctx)),
         provides: field
-            .id
-            .1
             .directives
             .provides(ctx.subgraphs)
             .map(|field_set| attach_selection(field_set, ctx.out[field_id].r#type.definition, ctx)),
-        r#type: r#type.map(|ty| ctx.insert_field_type(ctx.subgraphs.walk(ty))),
+        r#type: r#type.map(|ty| ctx.insert_field_type(ty)),
         external: *external,
         r#override: r#override.clone(),
         override_label: override_label.clone(),

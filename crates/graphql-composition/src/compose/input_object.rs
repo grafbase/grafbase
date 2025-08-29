@@ -2,83 +2,85 @@ use super::*;
 
 pub(super) fn merge_input_object_definitions(
     ctx: &mut Context<'_>,
-    first: &DefinitionWalker<'_>,
-    definitions: &[DefinitionWalker<'_>],
+    first: &DefinitionView<'_>,
+    definitions: &[DefinitionView<'_>],
 ) {
     let mut fields_range: Option<federated::InputValueDefinitions> = None;
     let description = definitions
         .iter()
-        .find_map(|def| def.view().description)
+        .find_map(|def| def.description)
         .map(|d| ctx.subgraphs[d].as_ref());
 
-    let input_object_name = ctx.insert_string(first.name().id);
+    let input_object_name = ctx.insert_string(first.name);
 
     // We want to take the intersection of the field sets.
     let intersection: HashSet<StringId> = first
-        .fields()
-        .map(|field| field.name().id)
+        .id
+        .fields(ctx.subgraphs)
+        .map(|field| field.name)
         .filter(|field_name| {
             definitions[1..]
                 .iter()
-                .all(|def| def.field_by_name(*field_name).is_some())
+                .all(|def| def.id.field_by_name(ctx.subgraphs, *field_name).is_some())
         })
         .collect();
 
     let mut all_fields: Vec<_> = definitions
         .iter()
-        .flat_map(|def| def.fields())
-        .map(|field| (field.name().id, field))
+        .flat_map(|def| def.id.fields(ctx.subgraphs))
         .collect();
 
-    all_fields.sort_by_key(|(name, _)| *name);
+    all_fields.sort_by_key(|field| field.name);
 
     let mut start = 0;
 
     while start < all_fields.len() {
-        let field_name = all_fields[start].0;
-        let end = all_fields[start..].partition_point(|(name, _)| *name == field_name) + start;
+        let field_name = all_fields[start].name;
+        let end = all_fields[start..].partition_point(|field| field.name == field_name) + start;
         let fields = &all_fields[start..end];
 
         start = end;
 
         // Check that no required field was excluded.
         if !intersection.contains(&field_name) {
-            if let Some((_, required_field)) = fields.iter().find(|(_, field)| field.r#type().is_required()) {
+            if let Some(required_field) = fields.iter().find(|field| field.r#type.is_required()) {
                 ctx.diagnostics.push_fatal(format!(
                     "The {input_type_name}.{field_name} field is not defined in all subgraphs, but it is required in {bad_subgraph}",
-                    input_type_name = first.name().as_str(),
-                    field_name = required_field.name().as_str(),
-                    bad_subgraph = required_field.parent_definition().subgraph().name().as_str(),
+                    input_type_name = ctx.subgraphs[first.name],
+                    field_name = ctx.subgraphs[required_field.name],
+                    bad_subgraph = ctx.subgraphs[ctx.subgraphs.at(ctx.subgraphs.at(required_field.parent_definition_id).subgraph_id).name],
                 ));
             }
             continue;
         }
 
-        let directive_containers = fields.iter().map(|(_, field)| field.id.1.directives);
+        let directive_containers = fields.iter().map(|field| field.directives);
         let mut directives = collect_composed_directives(directive_containers, ctx);
 
         let description = fields
             .iter()
-            .find_map(|(_, field)| field.description())
-            .map(|description| ctx.insert_string(description.id));
+            .find_map(|field| field.description)
+            .map(|description| ctx.insert_string(description));
 
-        let Some(composed_field_type) = fields::compose_input_field_types(fields.iter().map(|(_, field)| *field), ctx)
-        else {
+        let Some(composed_field_type) = fields::compose_input_field_types(ctx, fields.iter().copied()) else {
             continue;
         };
 
-        directives.extend(fields.iter().map(|(_, field)| {
+        directives.extend(fields.iter().map(|field| {
             ir::Directive::JoinInputField(ir::JoinInputFieldDirective {
-                subgraph_id: federated::SubgraphId::from(field.parent_definition().subgraph_id().idx()),
-                r#type: if field.r#type() != field.walk(composed_field_type) {
-                    Some(field.r#type().id)
+                subgraph_id: ctx.subgraphs.at(field.parent_definition_id).subgraph_id.idx().into(),
+                r#type: if field.r#type != composed_field_type {
+                    Some(field.r#type)
                 } else {
                     None
                 },
             })
         }));
 
-        let default = fields.iter().find_map(|(_, field)| field.default_value()).cloned();
+        let default = fields
+            .iter()
+            .find_map(|field| field.input_field_default_value.as_ref())
+            .cloned();
 
         let name = ctx.insert_string(field_name);
         let id = ctx.insert_input_value_definition(ir::InputValueDefinitionIr {
@@ -96,7 +98,7 @@ pub(super) fn merge_input_object_definitions(
         }
     }
 
-    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives), ctx);
     directives.extend(create_join_type_from_definitions(definitions));
     let fields = fields_range.unwrap_or(federated::NO_INPUT_VALUE_DEFINITION);
     ctx.insert_input_object(input_object_name, description, directives, fields);

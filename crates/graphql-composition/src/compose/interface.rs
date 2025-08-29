@@ -2,27 +2,24 @@ use super::*;
 
 pub(super) fn merge_interface_definitions<'a>(
     ctx: &mut Context<'a>,
-    first: &DefinitionWalker<'a>,
-    definitions: &[DefinitionWalker<'a>],
+    first: &DefinitionView<'a>,
+    definitions: &[DefinitionView<'a>],
 ) {
-    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives), ctx);
     directives.extend(create_join_type_from_definitions(definitions));
     let interface_description = definitions
         .iter()
-        .find_map(|def| def.view().description)
+        .find_map(|def| def.description)
         .map(|d| ctx.subgraphs[d].as_ref());
-    let interface_name = ctx.insert_string(first.name().id);
+    let interface_name = ctx.insert_string(first.name);
     ctx.insert_interface(interface_name, interface_description, directives);
 
-    fields::for_each_field_group(definitions, |fields| {
-        if fields
-            .iter()
-            .any(|field| field.id.1.directives.shareable(ctx.subgraphs))
-        {
+    fields::for_each_field_group(ctx.subgraphs, definitions, |fields| {
+        if fields.iter().any(|field| field.directives.shareable(ctx.subgraphs)) {
             ctx.diagnostics.push_fatal(format!(
                 "The field {}.{} is marked as shareable but this is not allowed on interfaces.",
-                first.name().as_str(),
-                fields.first().unwrap().name().as_str()
+                ctx.subgraphs[first.name].as_ref(),
+                ctx.subgraphs[fields.first().unwrap().name].as_ref()
             ));
         }
     });
@@ -33,7 +30,7 @@ pub(super) fn merge_interface_definitions<'a>(
         ctx.insert_field(field);
     }
 
-    check_implementers(first.name().id, &field_names, ctx);
+    check_implementers(first.name, &field_names, ctx);
 }
 
 fn check_implementers(interface_name: StringId, field_names: &[subgraphs::StringId], ctx: &mut Context<'_>) {
@@ -42,13 +39,11 @@ fn check_implementers(interface_name: StringId, field_names: &[subgraphs::String
             if !ctx
                 .subgraphs
                 .iter_definitions_with_name(implementer_name)
-                .any(|(_, def)| ctx.subgraphs.walk(def).field_by_name(*field_name).is_some())
+                .any(|(_, def)| def.field_by_name(ctx.subgraphs, *field_name).is_some())
             {
                 ctx.diagnostics.push_fatal(format!(
                     "The `{}.{}` field is not implemented by `{}`, but it should be.",
-                    ctx.subgraphs.walk(interface_name).as_str(),
-                    ctx.subgraphs.walk(*field_name).as_str(),
-                    ctx.subgraphs.walk(implementer_name).as_str(),
+                    ctx.subgraphs[interface_name], ctx.subgraphs[*field_name], ctx.subgraphs[implementer_name],
                 ));
             }
         }

@@ -3,11 +3,11 @@ use crate::subgraphs::DirectiveSiteId;
 use super::*;
 
 pub(super) fn create_join_type_from_definitions(
-    definitions: &[DefinitionWalker<'_>],
+    definitions: &[DefinitionView<'_>],
 ) -> impl Iterator<Item = ir::Directive> {
     let mut subgraph_ids = definitions
         .iter()
-        .map(|def| federated::SubgraphId::from(def.subgraph_id().idx()))
+        .map(|def| federated::SubgraphId::from(def.subgraph_id.idx()))
         .collect::<Vec<_>>();
     subgraph_ids.sort_unstable();
     subgraph_ids.into_iter().dedup().map(|subgraph_id| {

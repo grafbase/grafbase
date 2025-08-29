@@ -19,7 +19,7 @@ use crate::{
     composition_ir as ir,
     diagnostics::CompositeSchemasPreMergeValidationErrorCode,
     federated_graph as federated,
-    subgraphs::{self, DefinitionKind, DefinitionWalker, FieldWalker, StringId},
+    subgraphs::{self, DefinitionKind, DefinitionView, StringId},
 };
 use directives::create_join_type_from_definitions;
 use itertools::Itertools;
@@ -39,7 +39,7 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
             return entity_interface::merge_entity_interface_definitions(ctx, *first, definitions);
         }
 
-        match first.kind() {
+        match first.kind {
             DefinitionKind::Object => merge_object_definitions(ctx, first, definitions),
             DefinitionKind::Union => merge_union_definitions(ctx, first, definitions),
             DefinitionKind::InputObject => merge_input_object_definitions(ctx, first, definitions),
@@ -53,24 +53,20 @@ pub(crate) fn compose_subgraphs(ctx: &mut Context<'_>) {
     directive_definitions::compose_directive_definitions(ctx);
 }
 
-fn merge_object_definitions<'a>(
-    ctx: &mut Context<'a>,
-    first: &DefinitionWalker<'a>,
-    definitions: &[DefinitionWalker<'a>],
-) {
+fn merge_object_definitions<'a>(ctx: &mut Context<'a>, first: &DefinitionView<'a>, definitions: &[DefinitionView<'a>]) {
     let is_shareable = definitions
         .iter()
-        .any(|definition| definition.view().directives.shareable(ctx.subgraphs));
+        .any(|definition| definition.directives.shareable(ctx.subgraphs));
 
     if let Some(incompatible) = definitions
         .iter()
-        .find(|definition| definition.kind() != DefinitionKind::Object)
+        .find(|definition| definition.kind != DefinitionKind::Object)
     {
-        let first_kind = first.kind();
-        let second_kind = incompatible.kind();
-        let name = first.name().as_str();
-        let first_subgraph = first.subgraph().name().as_str();
-        let second_subgraph = incompatible.subgraph().name().as_str();
+        let first_kind = first.kind;
+        let second_kind = incompatible.kind;
+        let name = ctx.subgraphs[first.name].as_ref();
+        let first_subgraph = ctx.subgraphs[ctx.subgraphs.at(first.subgraph_id).name].as_ref();
+        let second_subgraph = ctx.subgraphs[ctx.subgraphs.at(incompatible.subgraph_id).name].as_ref();
         ctx.diagnostics.push_composite_schemas_pre_merge_validation_error(format!(
             "Cannot merge {first_kind:?} with {second_kind:?} (`{name}` in `{first_subgraph}` and `{second_subgraph}`)",
         ), CompositeSchemasPreMergeValidationErrorCode::TypeKindMismatch);
@@ -81,22 +77,27 @@ fn merge_object_definitions<'a>(
 
     let description = definitions
         .iter()
-        .find_map(|def| def.view().description)
+        .find_map(|def| def.description)
         .map(|desc| ctx.subgraphs[desc].as_ref());
-    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives), ctx);
 
     if is_entity {
-        directives.extend(definitions.iter().flat_map(|def| def.entity_keys()).map(|key| {
-            ir::Directive::JoinType(ir::JoinTypeDirective {
-                subgraph_id: federated::SubgraphId::from(key.parent_definition().subgraph_id().idx()),
-                key: Some(key.id),
-                is_interface_object: false,
-            })
-        }));
+        directives.extend(
+            definitions
+                .iter()
+                .flat_map(|def| def.id.keys(ctx.subgraphs))
+                .map(|key| {
+                    ir::Directive::JoinType(ir::JoinTypeDirective {
+                        subgraph_id: federated::SubgraphId::from(ctx.subgraphs.at(key.definition_id).subgraph_id.idx()),
+                        key: Some(key.id),
+                        is_interface_object: false,
+                    })
+                }),
+        );
     } else {
         directives.extend(create_join_type_from_definitions(definitions));
     }
-    let object_name = ctx.insert_string(first.name().id);
+    let object_name = ctx.insert_string(first.name);
     ctx.insert_object(object_name, description, directives);
 
     if is_shareable {
@@ -109,8 +110,8 @@ fn merge_object_definitions<'a>(
     }
 }
 
-fn validate_consistent_entityness(ctx: &mut Context<'_>, definitions: &[DefinitionWalker<'_>]) -> bool {
-    let is_entity = definitions.iter().any(|def| def.is_entity());
+fn validate_consistent_entityness(ctx: &mut Context<'_>, definitions: &[DefinitionView<'_>]) -> bool {
+    let is_entity = definitions.iter().any(|def| def.id.is_entity(ctx.subgraphs));
 
     if !is_entity {
         return false;
@@ -118,7 +119,7 @@ fn validate_consistent_entityness(ctx: &mut Context<'_>, definitions: &[Definiti
 
     if definitions
         .iter()
-        .all(|def| def.is_entity() || def.subgraph().id.1.federation_spec.is_apollo_v1())
+        .all(|def| def.id.is_entity(ctx.subgraphs) || ctx.subgraphs.at(def.subgraph_id).federation_spec.is_apollo_v1())
     {
         return true;
     }
@@ -144,7 +145,7 @@ fn validate_consistent_entityness(ctx: &mut Context<'_>, definitions: &[Definiti
 
     ctx.diagnostics.push_fatal(format!(
         "The `{name}` object is an entity in subgraphs {entity_definitions} but not in subgraphs {non_entity_subgraphs}.",
-        name = definition.name().as_str(),
+        name = ctx.subgraphs[definition.name],
         entity_definitions = entity_definitions
             .into_iter()
             .join(", "),
@@ -158,16 +159,16 @@ fn validate_consistent_entityness(ctx: &mut Context<'_>, definitions: &[Definiti
 
 fn merge_union_definitions(
     ctx: &mut Context<'_>,
-    first_union: &DefinitionWalker<'_>,
-    definitions: &[DefinitionWalker<'_>],
+    first_union: &DefinitionView<'_>,
+    definitions: &[DefinitionView<'_>],
 ) {
-    let union_name = ctx.insert_string(first_union.name().id);
+    let union_name = ctx.insert_string(first_union.name);
 
     let description = definitions
         .iter()
-        .find_map(|def| def.view().description)
+        .find_map(|def| def.description)
         .map(|desc| ctx.subgraphs[desc].as_ref());
-    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
+    let mut directives = collect_composed_directives(definitions.iter().map(|def| def.directives), ctx);
 
     for member in definitions
         .iter()
@@ -175,8 +176,7 @@ fn merge_union_definitions(
     {
         directives.push(ir::Directive::JoinUnionMember(ir::JoinUnionMemberDirective { member }));
 
-        let member = first_union.walk(member);
-        let member_name = ctx.insert_string(member.name().id);
+        let member_name = ctx.insert_string(ctx.subgraphs.at(member).name);
         ctx.insert_union_member(union_name, member_name);
     }
 

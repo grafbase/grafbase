@@ -24,17 +24,17 @@ pub(super) fn is_entity_interface(
 
 pub(crate) fn merge_entity_interface_definitions<'a>(
     ctx: &mut Context<'a>,
-    first: DefinitionWalker<'a>,
-    definitions: &[DefinitionWalker<'a>],
+    first: DefinitionView<'a>,
+    definitions: &[DefinitionView<'a>],
 ) {
-    let interface_name = first.name();
+    let interface_name = first.name;
 
     let interface_defs = || {
         definitions.iter().filter(|def| {
-            def.kind() == DefinitionKind::Interface
+            def.kind == DefinitionKind::Interface
                 && ctx
                     .subgraphs
-                    .at(ctx.subgraphs[def.id].subgraph_id)
+                    .at(ctx.subgraphs.at(def.id).subgraph_id)
                     .federation_spec
                     .is_apollo_v2()
         })
@@ -44,7 +44,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     let Some(interface_def) = interfaces.next() else {
         ctx.diagnostics.push_fatal(format!(
             "The entity interface `{}` is not defined as an interface in any subgraph.",
-            first.name().as_str()
+            ctx.subgraphs[first.name]
         ));
         return;
     };
@@ -54,10 +54,8 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         let all_implementers: BTreeSet<_> = interface_defs()
             .flat_map(|interface| {
                 interface
-                    .subgraph()
-                    .id
-                    .0
-                    .interface_implementers(ctx.subgraphs, interface_name.id)
+                    .subgraph_id
+                    .interface_implementers(ctx.subgraphs, interface_name)
                     .map(|def_id| ctx.subgraphs.at(def_id).name)
             })
             .collect();
@@ -65,45 +63,44 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
         // All subsequent interfaces must have the same implementers.
         for interface in interface_defs() {
             let implementers: BTreeSet<_> = interface
-                .subgraph()
-                .id
-                .0
-                .interface_implementers(ctx.subgraphs, interface_name.id)
+                .subgraph_id
+                .interface_implementers(ctx.subgraphs, interface_name)
                 .map(|def_id| ctx.subgraphs.at(def_id).name)
                 .collect();
 
             if implementers != all_implementers {
-                let subgraph_name = interface.subgraph().name().as_str();
-                let interface_name = interface_name.as_str();
+                let subgraph = ctx.subgraphs.at(interface.subgraph_id);
+                let subgraph_name = ctx.subgraphs[subgraph.name].as_ref();
+                let interface_name = ctx.subgraphs[interface_name].as_ref();
                 let implementer_names = all_implementers
                     .difference(&implementers)
-                    .map(|id| ctx.subgraphs.walk(*id).as_str())
+                    .map(|id| ctx.subgraphs[*id].as_ref())
                     .join(", ");
                 ctx.diagnostics.push_fatal(format!(
                 r#"[{subgraph_name}]: Interface type "{interface_name}" has a resolvable key in subgraph "{subgraph_name}" but that subgraph is missing some of the supergraph implementation types of "{interface_name}". Subgraph "{subgraph_name}" should define types {implementer_names}."#
                 ));
             }
 
-            if interface.view().directives.interface_object(ctx.subgraphs) {
+            if interface.directives.interface_object(ctx.subgraphs) {
                 ctx.diagnostics.push_fatal(format!(
                     "[{}] The @interfaceObject directive is not valid on interfaces (on `{}`).",
-                    interface.subgraph().name().as_str(),
-                    interface_name.as_str(),
+                    ctx.subgraphs[ctx.subgraphs.at(interface.subgraph_id).name],
+                    ctx.subgraphs[interface_name],
                 ));
             }
         }
     }
 
-    let description = interface_def.view().description.map(|d| ctx.subgraphs[d].as_ref());
-    let interface_name = ctx.insert_string(interface_name.id);
-    let directives = collect_composed_directives(definitions.iter().map(|def| def.view().directives), ctx);
+    let description = interface_def.description.map(|d| ctx.subgraphs[d].as_ref());
+    let interface_name = ctx.insert_string(interface_name);
+    let directives = collect_composed_directives(definitions.iter().map(|def| def.directives), ctx);
     let interface_id = ctx.insert_interface(interface_name, description, directives);
 
-    let Some(expected_key) = interface_def.entity_keys().next() else {
+    let Some(expected_key) = interface_def.id.keys(ctx.subgraphs).next() else {
         ctx.diagnostics.push_fatal(format!(
             "The entity interface `{}` is missing a key in the `{}` subgraph.",
-            first.name().as_str(),
-            interface_def.subgraph().name().as_str(),
+            ctx.subgraphs[first.name],
+            ctx.subgraphs[ctx.subgraphs.at(interface_def.subgraph_id).name],
         ));
         return;
     };
@@ -111,36 +108,35 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     ctx.insert_interface_resolvable_key(interface_id, expected_key, false);
 
     // Each object in other subgraphs has to have @interfaceObject and the same key as the entity interface.
-    for definition in definitions.iter().filter(|def| def.kind() == DefinitionKind::Object) {
-        if !definition.view().directives.interface_object(ctx.subgraphs) {
+    for definition in definitions.iter().filter(|def| def.kind == DefinitionKind::Object) {
+        if !definition.directives.interface_object(ctx.subgraphs) {
+            let definition_name = ctx.subgraphs[definition.name].as_ref();
             ctx.diagnostics.push_fatal(format!(
-                "`{}` is an entity interface but the object type `{}` is missing the @interfaceObject directive in the `{}` subgraph.",
-                definition.name().as_str(),
-                definition.name().as_str(),
-                definition.subgraph().name().as_str(),
+                "`{definition_name}` is an entity interface but the object type `{definition_name}` is missing the @interfaceObject directive in the `{}` subgraph.",
+                ctx.subgraphs[ctx.subgraphs.at(definition.subgraph_id).name],
             ));
         }
 
-        match definition.entity_keys().next() {
+        match definition.id.keys(ctx.subgraphs).next() {
             None => {
                 ctx.diagnostics.push_fatal(format!(
                     "The object type `{}` is annotated with @interfaceObject but missing a key in the `{}` subgraph.",
-                    first.name().as_str(),
-                    definition.subgraph().name().as_str(),
+                    ctx.subgraphs[first.name],
+                    ctx.subgraphs[ctx.subgraphs.at(definition.subgraph_id).name]
                 ));
             }
             Some(key) if key.fields() == expected_key.fields() => (),
             Some(_) => {
                 ctx.diagnostics.push_fatal(format!(
                     "[{}] The object type `{}` is annotated with @interfaceObject but has a different key than the entity interface `{}`.",
-                    definition.subgraph().name().as_str(),
-                    definition.name().as_str(),
-                    interface_def.name().as_str(),
+                    ctx.subgraphs[ctx.subgraphs.at(definition.subgraph_id).name],
+                    ctx.subgraphs[definition.name],
+                    ctx.subgraphs[interface_def.name],
                 ));
             }
         }
 
-        for entity_key in definition.entity_keys().filter(|key| key.is_resolvable()) {
+        for entity_key in definition.id.keys(ctx.subgraphs).filter(|key| key.is_resolvable()) {
             ctx.insert_interface_resolvable_key(interface_id, entity_key, true);
         }
     }
@@ -164,10 +160,8 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
     // More fields are contributed by other subgraphs where there are objects with `@interfaceObject`. Those must be added now in all
     // the implementers of the interface as they won't have them in their definition.
     for object_id in interface_def
-        .subgraph()
-        .id
-        .0
-        .interface_implementers(ctx.subgraphs, first.name().id)
+        .subgraph_id
+        .interface_implementers(ctx.subgraphs, first.name)
     {
         let object = ctx.subgraphs.at(object_id);
         match object.id.keys(ctx.subgraphs).next() {
@@ -176,7 +170,7 @@ pub(crate) fn merge_entity_interface_definitions<'a>(
                 "[{}] The object type `{}` implements the entity interface `{}` but does not have the same key. The key must match exactly.",
                 &ctx[ctx.subgraphs.at(object.subgraph_id).name],
                 &ctx[object.name],
-                first.name().as_str(),
+                ctx.subgraphs[first.name],
             )),
             None => ctx.diagnostics.push_fatal(format!(
                 "[{}] The object type `{}` is annotated with @interfaceObject but missing a key.",

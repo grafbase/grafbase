@@ -6,11 +6,15 @@ use crate::{
 };
 
 // https://graphql.github.io/composite-schemas-spec/draft/#sec-Invalid-Field-Sharing
-pub(crate) fn invalid_field_sharing(ctx: &mut ValidateContext<'_>, fields: &[subgraphs::FieldWalker<'_>]) {
+pub(crate) fn invalid_field_sharing(ctx: &mut ValidateContext<'_>, fields: &[subgraphs::FieldView<'_>]) {
     if fields.iter().any(|field| {
-        field.is_part_of_key()
-            || field.id.1.directives.shareable(ctx.subgraphs)
-            || field.parent_definition().view().directives.shareable(ctx.subgraphs)
+        field.is_part_of_key(ctx.subgraphs)
+            || field.directives.shareable(ctx.subgraphs)
+            || ctx
+                .subgraphs
+                .at(field.parent_definition_id)
+                .directives
+                .shareable(ctx.subgraphs)
     }) {
         return;
     }
@@ -18,8 +22,8 @@ pub(crate) fn invalid_field_sharing(ctx: &mut ValidateContext<'_>, fields: &[sub
     let mut sources_of_truth = fields
         .iter()
         .filter(|field| {
-            let directives = field.id.1.directives;
-            let parent_definition = ctx.subgraphs.at(field.id.1.parent_definition_id);
+            let directives = field.directives;
+            let parent_definition = ctx.subgraphs.at(field.parent_definition_id);
             let subgraph = ctx.subgraphs.at(parent_definition.subgraph_id);
 
             directives.r#override(ctx.subgraphs).is_none()
@@ -42,12 +46,16 @@ pub(crate) fn invalid_field_sharing(ctx: &mut ValidateContext<'_>, fields: &[sub
         return;
     }
 
-    let field_name = first.name().as_str();
-    let parent_name = first.parent_definition().name().as_str();
-    let first_subgraph = first.parent_definition().subgraph().name().as_str();
+    let field_name = &ctx.subgraphs[first.name];
+    let parent = ctx.subgraphs.at(first.parent_definition_id);
+    let parent_name = &ctx.subgraphs[parent.name];
+    let first_subgraph = &ctx.subgraphs[ctx.subgraphs.at(parent.subgraph_id).name];
 
     let others = sources_of_truth
-        .map(|field| field.parent_definition().subgraph().name().as_str())
+        .map(|field| {
+            let parent_definition = ctx.subgraphs.at(field.parent_definition_id);
+            ctx.subgraphs[ctx.subgraphs[parent_definition.subgraph_id].name].as_ref()
+        })
         .join(", ");
 
     ctx.diagnostics.push_composite_schemas_post_merge_validation_error(

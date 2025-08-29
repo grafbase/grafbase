@@ -11,21 +11,9 @@ mod strings;
 mod top;
 mod unions;
 mod view;
-mod walker;
-
 pub(crate) use self::{
-    definitions::{Definition, DefinitionKind, DefinitionWalker},
-    directives::*,
-    extensions::*,
-    field_types::*,
-    fields::*,
-    ids::*,
-    keys::*,
-    linked_schemas::*,
-    strings::{StringId, StringWalker},
-    top::*,
-    view::View,
-    walker::Walker,
+    definitions::*, directives::*, extensions::*, field_types::*, fields::*, ids::*, keys::*, linked_schemas::*,
+    strings::StringId, top::*, view::View,
 };
 
 use crate::VecExt;
@@ -143,7 +131,7 @@ impl Subgraphs {
     /// Iterate over groups of definitions to compose. The definitions are grouped by name. The
     /// argument is a closure that receives each group as argument. The order of iteration is
     /// deterministic but unspecified.
-    pub(crate) fn iter_definition_groups<'a>(&'a self, mut compose_fn: impl FnMut(&[DefinitionWalker<'a>])) {
+    pub(crate) fn iter_definition_groups<'a>(&'a self, mut compose_fn: impl FnMut(&[DefinitionView<'a>])) {
         let mut key = None;
         let mut buf = Vec::new();
 
@@ -161,7 +149,7 @@ impl Subgraphs {
                 continue; // handled separately
             }
 
-            buf.push(self.walk(*definition));
+            buf.push(self.at(*definition));
         }
 
         compose_fn(&buf)
@@ -175,10 +163,6 @@ impl Subgraphs {
     pub(crate) fn push_ingestion_warning(&mut self, subgraph: SubgraphId, message: String) {
         self.ingestion_diagnostics
             .push_warning(format!("[{}]: {message}", self[self.at(subgraph).name]));
-    }
-
-    pub(crate) fn walk<Id>(&self, id: Id) -> Walker<'_, Id> {
-        Walker { id, subgraphs: self }
     }
 
     /// Iterates all builtin scalars.

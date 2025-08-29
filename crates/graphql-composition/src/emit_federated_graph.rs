@@ -144,7 +144,7 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
                  default,
                  ..
              }| {
-                let r#type = ctx.insert_field_type(ctx.subgraphs.walk(*r#type));
+                let r#type = ctx.insert_field_type(*r#type);
                 let default = default
                     .as_ref()
                     .map(|default| ctx.insert_value_with_type(default, r#type.definition.as_enum()));
@@ -163,8 +163,8 @@ fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionI
 
 fn emit_interface_after_directives(ctx: &mut Context<'_>) {
     for (implementee_name, implementer_name) in ctx.subgraphs.iter_interface_impls() {
-        let implementer = ctx.insert_string(ctx.subgraphs.walk(implementer_name));
-        let implementee = ctx.insert_string(ctx.subgraphs.walk(implementee_name));
+        let implementer = ctx.insert_string(implementer_name);
+        let implementee = ctx.insert_string(implementee_name);
 
         let federated::Definition::Interface(implementee) = ctx.definitions[&implementee] else {
             continue;
@@ -230,8 +230,8 @@ fn emit_fields(fields: &[FieldIr], ctx: &mut Context<'_>) {
             ..
         } in fields
         {
-            let r#type = ctx.insert_field_type(ctx.subgraphs.walk(field_type));
-            let name = ctx.insert_string(ctx.subgraphs.walk(field_name));
+            let r#type = ctx.insert_field_type(field_type);
+            let name = ctx.insert_string(field_name);
             let field = federated::Field {
                 name,
                 r#type,
@@ -311,7 +311,7 @@ fn attach_selection(
                             .iter()
                             .map(|(name, value)| {
                                 // Here we assume the arguments are validated previously.
-                                let arg_name = ctx.insert_string(ctx.subgraphs.walk(*name));
+                                let arg_name = ctx.insert_string(*name);
                                 let argument = ctx.out[field_arguments]
                                     .iter()
                                     .position(|arg| arg.name == arg_name)
@@ -337,7 +337,7 @@ fn attach_selection(
                     subselection,
                     has_directives: _,
                 } => {
-                    let on = ctx.insert_string(ctx.subgraphs.walk(*on));
+                    let on = ctx.insert_string(*on);
                     let on = ctx.definitions[&on];
 
                     federated::Selection::InlineFragment {
@@ -361,9 +361,9 @@ fn emit_subgraphs(ctx: &mut Context<'_>) -> federated::EnumDefinitionId {
     });
 
     for subgraph in ctx.subgraphs.iter_subgraphs() {
-        let name = ctx.insert_string(subgraph.name());
-        let url = subgraph.url().map(|url| ctx.insert_string(url));
-        let join_graph_enum_value_name = ctx.insert_str(&join_graph_enum_variant_name(subgraph.name().as_str()));
+        let name = ctx.insert_string(subgraph.name);
+        let url = subgraph.url.map(|url| ctx.insert_string(url));
+        let join_graph_enum_value_name = ctx.insert_str(&join_graph_enum_variant_name(&ctx.subgraphs[subgraph.name]));
         let join_graph_enum_value_id = ctx.out.push_enum_value(federated::EnumValueRecord {
             enum_id: join_graph_enum_id,
             value: join_graph_enum_value_name,
