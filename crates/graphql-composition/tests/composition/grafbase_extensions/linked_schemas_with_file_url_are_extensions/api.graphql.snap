@@ -1,0 +1,8 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "Very important in this test: no extensions.toml, composition should figure it out from the url."
+input_file: crates/graphql-composition/tests/composition/grafbase_extensions/linked_schemas_with_file_url_are_extensions/test.md
+---
+type Query {
+  hello: String
+}

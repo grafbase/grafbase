@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.12.0 - 2025-08-29
+
+### Improvements
+
+- Any `@link`ed schema with a `url` argument using the `file:` scheme is now automatically considered a Grafbase extension, without having to call `ingest_loaded_extensions()`,  with the `as:` argument used as the extension name. This makes defining private, local extensions smoother. (https://github.com/grafbase/grafbase/pull/3468)
+- Warnings on unknown directives are now more accurate, with more context and fewer false positives. (https://github.com/grafbase/grafbase/pull/3468)
+
 ## 0.11.0 - 2025-08-27
 
 ### Improvements

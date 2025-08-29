@@ -1,0 +1,7 @@
+schema @link(url: "file:///rest-extension/test", as: "rest") @rest__assured {
+  query: Query
+}
+
+type Query {
+  hello: String
+}
