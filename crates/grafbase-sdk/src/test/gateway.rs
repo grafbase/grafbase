@@ -233,19 +233,23 @@ impl TestGatewayBuilder {
                 .extensions
                 .iter()
                 .map(|(name, config)| match config {
-                    ExtensionConfig::Version(version) => Ok(LoadedExtension::new(
-                        format!("https://extensions.grafbase.com/{extension_name}/{version}"),
+                    ExtensionConfig::Version(version) => Ok(new_loaded_extension(
+                        format!("https://extensions.grafbase.com/{extension_name}/{version}")
+                            .parse()
+                            .unwrap(),
                         name.clone(),
                     )),
                     ExtensionConfig::Structured(StructuredExtensionConfig {
                         path: None, version, ..
-                    }) => Ok(LoadedExtension::new(
+                    }) => Ok(new_loaded_extension(
                         format!(
                             "https://extensions.grafbase.com/{extension_name}/{}",
                             version
                                 .as_ref()
                                 .ok_or_else(|| anyhow!("Missing path or version for extension '{name}'"))?
-                        ),
+                        )
+                        .parse()
+                        .unwrap(),
                         name.clone(),
                     )),
                     ExtensionConfig::Structured(StructuredExtensionConfig { path: Some(path), .. }) => {
@@ -254,10 +258,8 @@ impl TestGatewayBuilder {
                         if path.is_relative() {
                             path = extension_path.join(path);
                         }
-                        anyhow::Ok(LoadedExtension::new(
-                            Url::from_file_path(&path)
-                                .map_err(|_| anyhow!("Invalid path for extension {name}: {}", path.display()))?
-                                .to_string(),
+                        anyhow::Ok(new_loaded_extension(
+                            Url::from_file_path(&path).unwrap(),
                             name.to_owned(),
                         ))
                     }
@@ -427,7 +429,7 @@ async fn compose(
         }
     }
 
-    let federated_graph = match graphql_composition::compose(composition_subgraphs)
+    let federated_graph = match graphql_composition::compose(&mut composition_subgraphs)
         .warnings_are_fatal()
         .into_result()
     {
@@ -451,5 +453,13 @@ impl Drop for TestGateway {
         if let Err(err) = self.handle.kill() {
             eprintln!("Failed to kill grafbase-gateway: {err}")
         }
+    }
+}
+
+fn new_loaded_extension(url: Url, name: String) -> LoadedExtension {
+    LoadedExtension {
+        link_url: url.to_string(),
+        url,
+        name,
     }
 }

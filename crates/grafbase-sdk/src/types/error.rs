@@ -1,10 +1,12 @@
 use std::{borrow::Cow, collections::HashMap};
 
-use crate::{SdkError, cbor, wit};
+use crate::{SdkError, cbor, host_io::http::HttpError, wit};
 
 /// Graphql Error with a message and extensions
 #[derive(Clone)]
 pub struct Error(pub(crate) wit::Error);
+
+impl std::error::Error for Error {}
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -105,12 +107,8 @@ impl From<wit::Error> for Error {
     }
 }
 
-impl From<wit::HttpError> for Error {
-    fn from(err: wit::HttpError) -> Self {
-        match err {
-            wit::HttpError::Timeout => "HTTP request timed out".into(),
-            wit::HttpError::Request(err) => format!("Request error: {err}").into(),
-            wit::HttpError::Connect(err) => format!("Connection error: {err}").into(),
-        }
+impl From<HttpError> for Error {
+    fn from(err: HttpError) -> Self {
+        err.to_string().into()
     }
 }
