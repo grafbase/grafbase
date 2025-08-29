@@ -4,3 +4,5 @@ github.com/x448/float16 v0.8.4 h1:qLwI1I70+NjRFUR3zs1JPUCgaCXSh3SW62uAKT1mSBM=
 github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcYsOfg=
 go.bytecodealliance.org/cm v0.2.0 h1:HMkj1x1LZWU/Ghu2TtUk3VTyS7gyDHLyIfIut0Cpc5M=
 go.bytecodealliance.org/cm v0.2.0/go.mod h1:JD5vtVNZv7sBoQQkvBvAAVKJPhR/bqBH7yYXTItMfZI=
+go.bytecodealliance.org/cm v0.3.0 h1:VhV+4vjZPUGCozCg9+up+FNL3YU6XR+XKghk7kQ0vFc=
+go.bytecodealliance.org/cm v0.3.0/go.mod h1:JD5vtVNZv7sBoQQkvBvAAVKJPhR/bqBH7yYXTItMfZI=
