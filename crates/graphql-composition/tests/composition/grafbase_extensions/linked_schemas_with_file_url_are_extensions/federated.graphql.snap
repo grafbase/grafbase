@@ -1,0 +1,33 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "Very important in this test: no extensions.toml, composition should figure it out from the url."
+input_file: crates/graphql-composition/tests/composition/grafbase_extensions/linked_schemas_with_file_url_are_extensions/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Query
+{
+  hello: String @join__field(graph: MY_EXTENSION_SUBGRAPH)
+}
+
+enum join__Graph
+{
+  MY_EXTENSION_SUBGRAPH @join__graph(name: "my-extension-subgraph", url: "http://example.com/my-extension-subgraph")
+}
+
+enum extension__Link
+{
+  REST @extension__link(url: "file:///rest-extension/test", schemaDirectives: [{graph: MY_EXTENSION_SUBGRAPH, name: "assured", arguments: {}}])
+}

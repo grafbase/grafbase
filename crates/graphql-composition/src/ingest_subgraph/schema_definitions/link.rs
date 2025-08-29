@@ -16,11 +16,12 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
         }
     };
 
-    let (name, _version) = subgraphs::parse_link_url(url)
-        .map(|url| (url.name, url.version))
-        .unwrap_or_default();
+    let link_url = subgraphs::parse_link_url(url);
 
-    let name = name.map(|name| subgraphs.strings.intern(name));
+    let name = link_url
+        .as_ref()
+        .and_then(|link_url| link_url.name.as_deref())
+        .map(|name| subgraphs.strings.intern(name));
 
     let linked_schema_type = if let Some(federation_spec) = subgraphs::FederationSpec::from_url(url) {
         subgraphs::LinkedSchemaType::FederationSpec(federation_spec)
@@ -30,6 +31,19 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
 
     let url = subgraphs.strings.intern(url);
     let r#as = r#as.map(|r#as| subgraphs.strings.intern(r#as));
+
+    // Treat `@link`ed schemas with a file url as extensions.
+    if let Some(name) = r#as
+        && let Some(link_url) = &link_url
+        && link_url.url.scheme() == "file"
+        && !subgraphs.extension_is_defined(name)
+    {
+        subgraphs.push_extension(subgraphs::ExtensionRecord {
+            url,
+            link_url: url,
+            name,
+        });
+    }
 
     let linked_schema_id = subgraphs.push_linked_schema(subgraphs::LinkedSchemaRecord {
         subgraph_id,

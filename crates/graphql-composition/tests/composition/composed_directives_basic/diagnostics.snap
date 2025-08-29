@@ -5,4 +5,3 @@ input_file: crates/graphql-composition/tests/composition/composed_directives_bas
 ---
 - ⚠️ [observations]: Unknown directive `@id` at `BirdObservation`
 - ⚠️ [observations]: Unknown directive `@notComposed` at `ObserverDetails`
-- ⚠️ Directive `pelagic` is not defined in any extension or composed directive

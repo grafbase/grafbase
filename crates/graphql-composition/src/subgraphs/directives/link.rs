@@ -1,7 +1,7 @@
 pub(crate) struct LinkUrl {
-    #[expect(unused)]
     pub(crate) url: url::Url,
     pub(crate) name: Option<String>,
+    #[expect(unused)]
     pub(crate) version: Option<String>,
 }
 
