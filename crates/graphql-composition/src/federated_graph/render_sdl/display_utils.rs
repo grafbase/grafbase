@@ -132,47 +132,6 @@ impl fmt::Display for ValueDisplay<'_> {
     }
 }
 
-struct JsonValueDisplay<'a>(&'a serde_json::Value);
-
-impl fmt::Display for JsonValueDisplay<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.0 {
-            serde_json::Value::Null => f.write_str("null"),
-            serde_json::Value::String(s) => display_graphql_string_literal(s, f),
-            serde_json::Value::Number(num) => Display::fmt(num, f),
-            serde_json::Value::Bool(true) => f.write_str("true"),
-            serde_json::Value::Bool(false) => f.write_str("false"),
-            serde_json::Value::Object(key_values) => {
-                let mut key_values = key_values.iter().peekable();
-
-                f.write_char('{')?;
-                while let Some((key, value)) = key_values.next() {
-                    f.write_str(key)?;
-                    f.write_str(": ")?;
-                    JsonValueDisplay(value).fmt(f)?;
-                    if key_values.peek().is_some() {
-                        f.write_str(", ")?;
-                    }
-                }
-                f.write_char('}')
-            }
-            serde_json::Value::Array(values) => {
-                f.write_char('[')?;
-
-                let mut values = values.iter().peekable();
-                while let Some(value) = values.next() {
-                    JsonValueDisplay(value).fmt(f)?;
-                    if values.peek().is_some() {
-                        f.write_str(", ")?;
-                    }
-                }
-
-                f.write_char(']')
-            }
-        }
-    }
-}
-
 struct Arguments<'a>(pub &'a [(StringId, Value)], pub &'a FederatedGraph);
 
 impl Display for Arguments<'_> {
@@ -320,8 +279,6 @@ pub(crate) enum AnyValue<'a> {
     String(Cow<'a, str>),
     Object(Vec<(&'static str, AnyValue<'a>)>),
     List(Vec<AnyValue<'a>>),
-    /// Be careful using this - it will not encode enums correctly...
-    JsonValue(serde_json::Value),
     FieldSet(SelectionSetDisplay<'a>),
     InputValueDefinitionSet(InputValueDefinitionSetDisplay<'a>),
     DirectiveArguments(&'a [(StringId, Value)]),
@@ -342,7 +299,6 @@ impl std::fmt::Display for DisplayableAnyValue<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.value {
             AnyValue::Value(v) => ValueDisplay(v, self.graph).fmt(f),
-            AnyValue::JsonValue(v) => JsonValueDisplay(v).fmt(f),
             AnyValue::FieldSet(v) => v.fmt(f),
             AnyValue::InputValueDefinitionSet(v) => v.fmt(f),
             AnyValue::String(s) => display_graphql_string_literal(s, f),
@@ -410,11 +366,6 @@ impl<'a> From<InputValueDefinitionSetDisplay<'a>> for AnyValue<'a> {
     }
 }
 
-impl From<serde_json::Value> for AnyValue<'_> {
-    fn from(value: serde_json::Value) -> Self {
-        AnyValue::JsonValue(value)
-    }
-}
 impl From<String> for AnyValue<'_> {
     fn from(value: String) -> Self {
         AnyValue::String(value.into())
