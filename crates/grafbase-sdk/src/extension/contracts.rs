@@ -14,17 +14,18 @@ use crate::{
 /// contract_key = "<key>"
 /// ```
 ///
-/// Or dynamically provided by the `on_request` hook:
+/// Or dynamically provided by the [`on_request()`](crate::HooksExtension::on_request()) hook:
 ///
 /// ```rust
-/// # use grafbase_sdk::{host_io::http::Method, types::{ErrorResponse, GatewayHeaders, OnRequestOutput}};
-/// # struct MyContract;
-/// # impl MyContract {
-/// #[allow(refining_impl_trait)]
-/// fn on_request(&mut self, url: &str, method: Method, headers: &mut GatewayHeaders) -> Result<OnRequestOutput, ErrorResponse> {
-///     Ok(OnRequestOutput::new().contract_key("my-contract-key"))
+/// # use grafbase_sdk::{HooksExtension, host_io::http::Method, types::{ErrorResponse, Error, Configuration, GatewayHeaders, OnRequestOutput}};
+/// struct Hooks;
+/// impl HooksExtension for Hooks {
+/// # fn new(config: Configuration) -> Result<Self, Error> { Ok(Hooks) }
+///     #[allow(refining_impl_trait)]
+///     fn on_request(&mut self, url: &str, method: Method, headers: &mut GatewayHeaders) -> Result<OnRequestOutput, ErrorResponse> {
+///         Ok(OnRequestOutput::new().contract_key("my-contract-key"))
+///     }
 /// }
-/// # }
 /// ```
 ///
 /// In addition to the key, the extension will receive a list of all the directives defined by said

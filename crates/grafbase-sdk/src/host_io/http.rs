@@ -99,6 +99,7 @@ impl From<HttpMethod> for http::Method {
 }
 
 /// HTTP error
+#[derive(Clone, Debug)]
 pub enum HttpError {
     /// The request timed out.
     Timeout,
@@ -106,6 +107,18 @@ pub enum HttpError {
     Request(String),
     /// The request failed due to an error (server connection failed).
     Connect(String),
+}
+
+impl std::error::Error for HttpError {}
+
+impl std::fmt::Display for HttpError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Timeout => write!(f, "The request timed out"),
+            Self::Request(msg) => write!(f, "The request could not be built correctly: {}", msg),
+            Self::Connect(msg) => write!(f, "The request failed due to an error: {}", msg),
+        }
+    }
 }
 
 impl From<wit::HttpError> for HttpError {

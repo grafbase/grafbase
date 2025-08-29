@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-sdk"
-version = "0.22.2"
+version = "0.22.3"
 description = "An SDK to implement extensions for the Grafbase Gateway"
 edition = "2024"
 license.workspace = true
@@ -56,7 +56,7 @@ futures-util = { workspace = true, optional = true }
 fxhash = "0.2"
 grafbase-sdk-derive = { version = "0.6.0", path = "derive" }
 grafbase-sdk-mock = { version = "0.2.0", path = "mock", optional = true }
-graphql-composition = { version = "0.10.0", features = [
+graphql-composition = { version = "0.11.0", features = [
     "grafbase-extensions",
 ], optional = true }
 graphql-ws-client = { workspace = true, optional = true }
