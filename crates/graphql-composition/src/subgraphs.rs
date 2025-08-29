@@ -177,11 +177,17 @@ impl Subgraphs {
     /// After subgraphs have been ingested, we have to sort some of the vecs we expect to be sorted at the composition stage, because with type extensions, they may be out of order. For example keys may have had other definitions ingested before we are done ingesting a given type (always because of type extensions).
     pub(crate) fn sort_post_ingestion(&mut self) {
         self.keys.keys.sort_unstable_by_key(|key| key.definition_id);
+
         self.directives
             .extra_directives
             .sort_unstable_by_key(|directive| directive.directive_site_id);
+
         self.fields
             .fields
-            .sort_unstable_by_key(|field| (field.parent_definition_id, field.name))
+            .sort_unstable_by_key(|field| (field.parent_definition_id, field.name));
+
+        self.fields.arguments.sort_unstable_by_key(|argument| {
+            (argument.parent_definition_id, argument.parent_field_name, argument.name)
+        });
     }
 }

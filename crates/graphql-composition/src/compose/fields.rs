@@ -116,16 +116,16 @@ fn compose_field_types<'a>(
 
 pub(super) fn compose_argument_types<'a>(
     parent_definition_name: StringId,
-    mut arguments: impl Iterator<Item = &'a subgraphs::ArgumentRecord>,
+    mut arguments: impl Iterator<Item = subgraphs::ArgumentView<'a>>,
     ctx: &mut Context<'a>,
 ) -> Option<subgraphs::FieldType> {
     let first = arguments.next()?;
 
     match arguments
-        .map(|a| (a, &a.r#type))
+        .map(|a| (a, a.r#type))
         .try_fold((first, first.r#type), |(a_arg, a_type), (b_arg, b_type)| {
             a_type
-                .compose_for_input(b_type)
+                .compose_for_input(&b_type)
                 .map(|ty| (a_arg, ty))
                 .ok_or((a_arg, b_arg))
         }) {
@@ -138,7 +138,7 @@ pub(super) fn compose_argument_types<'a>(
             ctx.diagnostics.push_fatal(format!(
                 "The {}.{}({}:) argument has conflicting types in different subgraphs: {} in {} but {} in {}",
                 ctx.subgraphs[parent_definition_name],
-                ctx.subgraphs[a_arg.parent_field.1],
+                ctx.subgraphs[a_arg.parent_field_name],
                 ctx.subgraphs[a_arg.name],
                 a_arg.r#type.display(ctx.subgraphs),
                 ctx.subgraphs[a_subgraph.name],

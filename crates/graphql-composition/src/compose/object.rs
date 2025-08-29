@@ -110,12 +110,12 @@ pub(super) fn merge_field_arguments<'a>(
 /// specified, it has to be the same.
 fn compose_field_argument_defaults<'a>(
     ctx: &mut Context<'a>,
-    arguments: &[&'a subgraphs::ArgumentRecord],
+    arguments: &[subgraphs::ArgumentView<'a>],
 ) -> Option<&'a subgraphs::Value> {
-    let mut default: Option<(&subgraphs::Value, &'a subgraphs::ArgumentRecord)> = None;
+    let mut default: Option<(&subgraphs::Value, subgraphs::ArgumentView<'_>)> = None;
 
     for argument in arguments {
-        let Some(value) = argument.default_value.as_ref() else {
+        let Some(value) = argument.record.default_value.as_ref() else {
             continue;
         };
 
@@ -134,7 +134,7 @@ fn compose_field_argument_defaults<'a>(
                 ctx.diagnostics.push_fatal(format!(
                 r#"The argument {type_name}.{field_name}.{argument_name} has incompatible defaults in subgraphs "{first_subgraph}" and "{second_subgraph}""#,
                 type_name = ctx.subgraphs[definition.name],
-                field_name = ctx.subgraphs[argument.parent_field.1],
+                field_name = ctx.subgraphs[argument.parent_field_name],
                 argument_name = ctx.subgraphs[argument.name],
                 first_subgraph = ctx.subgraphs[first_subgraph.name],
                 second_subgraph = ctx.subgraphs[second_subgraph.name],
@@ -152,7 +152,7 @@ fn required_argument_not_in_intersection_error(
     required_arg: &subgraphs::ArgumentRecord,
 ) {
     let definition_id_where_required = required_arg.parent_definition_id;
-    let field_name = required_arg.parent_field.1;
+    let field_name = required_arg.parent_field_name;
     let argument_name = required_arg.name;
 
     let definition_where_required = ctx.subgraphs.at(definition_id_where_required);
