@@ -64,10 +64,6 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
         }
     }
 
-    pub fn depth(&self) -> usize {
-        self.local_path.borrow().len()
-    }
-
     pub fn into_response_part(self) -> ResponsePartBuilder<'ctx> {
         self.response.into_inner()
     }

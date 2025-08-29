@@ -7,7 +7,7 @@ use schema::{FieldSetRecord, Schema, ValueInjection};
 
 use crate::{
     prepare::RequiredFieldSet,
-    response::{ParentObjectId, ParentObjectSet, ResponseBuilder, ResponseObject, ResponseObjectRef, ResponseValue},
+    response::{ParentObjectId, ParentObjectSet, ResponseBuilder, ResponseObjectId, ResponseObjectRef, ResponseValue},
 };
 
 // A struct to wrap this ref is overkill, but I've changed this so many times that I'm keeping
@@ -89,7 +89,7 @@ impl<'a> ParentObjects<'a> {
                 id,
                 ResponseObjectView {
                     ctx: self.ctx,
-                    response_object: &self.ctx.response.data_parts[obj_ref.id],
+                    response_object_id: obj_ref.id,
                     view: self.requirements,
                 },
             )
@@ -99,7 +99,7 @@ impl<'a> ParentObjects<'a> {
     pub fn iter(&self) -> impl Iterator<Item = ResponseObjectView<'a, RequiredFieldSet<'a>>> + '_ {
         self.object_set.iter().map(|obj_ref| ResponseObjectView {
             ctx: self.ctx,
-            response_object: &self.ctx.response.data_parts[obj_ref.id],
+            response_object_id: obj_ref.id,
             view: self.requirements,
         })
     }
@@ -119,7 +119,7 @@ impl<'a, View: Copy> ParentObjectsView<'a, View> {
                 id,
                 ResponseObjectView {
                     ctx: self.ctx,
-                    response_object: &self.ctx.response.data_parts[obj_ref.id],
+                    response_object_id: obj_ref.id,
                     view: self.view,
                 },
             )
@@ -129,7 +129,7 @@ impl<'a, View: Copy> ParentObjectsView<'a, View> {
     pub fn iter(&self) -> impl Iterator<Item = ResponseObjectView<'a, View>> + '_ {
         self.object_set.iter().map(|obj_ref| ResponseObjectView {
             ctx: self.ctx,
-            response_object: &self.ctx.response.data_parts[obj_ref.id],
+            response_object_id: obj_ref.id,
             view: self.view,
         })
     }
@@ -143,7 +143,7 @@ impl<'a> ResponseObjectView<'a, RequiredFieldSet<'a>> {
     {
         ResponseObjectView {
             ctx: self.ctx,
-            response_object: self.response_object,
+            response_object_id: self.response_object_id,
             view: ForFieldSet {
                 requirements: self.view,
                 field_set,
@@ -154,7 +154,7 @@ impl<'a> ResponseObjectView<'a, RequiredFieldSet<'a>> {
     pub fn for_injection(self, injection: ValueInjection) -> ResponseObjectView<'a, ForInjection<'a>> {
         ResponseObjectView {
             ctx: self.ctx,
-            response_object: self.response_object,
+            response_object_id: self.response_object_id,
             view: ForInjection {
                 requirements: self.view,
                 injection,
@@ -166,7 +166,7 @@ impl<'a> ResponseObjectView<'a, RequiredFieldSet<'a>> {
 #[derive(Clone, Copy)]
 pub(crate) struct ResponseObjectView<'a, View = RequiredFieldSet<'a>> {
     ctx: ViewContext<'a>,
-    response_object: &'a ResponseObject,
+    response_object_id: ResponseObjectId,
     view: View,
 }
 

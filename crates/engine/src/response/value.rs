@@ -1,16 +1,33 @@
-use id_newtypes::IdRange;
 use operation::{PositionedResponseKey, ResponseKey};
 use schema::{ObjectDefinitionId, StringId};
 
-use crate::response::PartFieldId;
+use crate::response::{PartOwnedFieldsId, PartSharedFieldsId};
 
 use super::{ResponseInaccessibleValueId, ResponseListId, ResponseMapId, ResponseObjectId};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub(crate) struct ResponseObject {
     pub(super) definition_id: Option<ObjectDefinitionId>,
-    /// fields are ordered by the position they appear in the query.
-    pub(super) fields_sorted_by_key: IdRange<PartFieldId>,
+    pub(super) fields_sorted_by_key: ResponseFieldsSortedByKey,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum ResponseFieldsSortedByKey {
+    Slice {
+        fields_id: PartSharedFieldsId,
+        offset: u32,
+        // More than u16::MAX fields would have broken at the operation preparation already
+        limit: u16,
+    },
+    Owned {
+        fields_id: PartOwnedFieldsId,
+    },
+}
+
+impl From<PartOwnedFieldsId> for ResponseFieldsSortedByKey {
+    fn from(id: PartOwnedFieldsId) -> Self {
+        Self::Owned { fields_id: id }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -20,23 +37,25 @@ pub(crate) struct ResponseField {
 }
 
 impl ResponseObject {
-    pub fn new(definition_id: Option<ObjectDefinitionId>, mut fields: Vec<ResponseField>) -> Self {
-        fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
+    pub fn new(definition_id: Option<ObjectDefinitionId>, fields: impl Into<ResponseFieldsSortedByKey>) -> Self {
         Self {
             definition_id,
-            fields_sorted_by_key: fields,
+            fields_sorted_by_key: fields.into(),
         }
     }
+}
 
-    pub fn fields(&self) -> impl Iterator<Item = &ResponseField> {
-        self.fields_sorted_by_key.iter()
-    }
-
-    pub fn find_by_response_key(&self, key: ResponseKey) -> Option<&ResponseValue> {
-        self.fields_sorted_by_key
-            .iter()
-            .find(|field| field.key.response_key == key)
-            .map(|field| &field.value)
+impl ResponseField {
+    pub fn null() -> Self {
+        Self {
+            key: PositionedResponseKey {
+                // SAFETY: We're calling it after an operation has been properly parsed. We
+                // wouldn't be generated a response otherwise.
+                response_key: unsafe { ResponseKey::null() },
+                query_position: None,
+            },
+            value: ResponseValue::Null,
+        }
     }
 }
 
@@ -72,7 +91,7 @@ pub(crate) enum ResponseValue {
     List {
         id: ResponseListId,
         offset: u32,
-        length: u32,
+        limit: u32,
     },
     Object {
         id: ResponseObjectId,
@@ -90,6 +109,8 @@ pub(crate) enum ResponseValue {
     },
     Map {
         id: ResponseMapId,
+        offset: u32,
+        limit: u32,
     },
 }
 
@@ -151,15 +172,25 @@ impl From<ResponseInaccessibleValueId> for ResponseValue {
 }
 
 #[cfg(test)]
-#[test]
-fn check_response_value_size() {
-    assert_eq!(std::mem::size_of::<ResponseValue>(), 24);
-    assert_eq!(std::mem::align_of::<ResponseValue>(), 8);
-}
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+    use std::mem::size_of;
 
-#[cfg(test)]
-#[test]
-fn check_response_object_field_size() {
-    assert_eq!(std::mem::size_of::<ResponseField>(), 32);
-    assert_eq!(std::mem::align_of::<ResponseField>(), 8);
+    #[test]
+    fn size_of_response_value() {
+        assert_eq!(size_of::<ResponseValue>(), 24);
+    }
+    #[test]
+    fn size_of_response_fields() {
+        assert_eq!(size_of::<ResponseFieldsSortedByKey>(), 12);
+    }
+    #[test]
+    fn size_of_response_field() {
+        assert_eq!(size_of::<ResponseField>(), 32);
+    }
+    #[test]
+    fn size_of_response_object() {
+        assert_eq!(size_of::<ResponseObject>(), 16);
+    }
 }

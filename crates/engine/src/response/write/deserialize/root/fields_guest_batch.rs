@@ -82,9 +82,13 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
         }
 
         let ctx = ConcreteShapeFieldsContext::new(self, object_shape);
-        for (parent_object, mut fields) in parent_objects.into_iter().zip(batch_response_fields) {
-            ctx.finalize_deserialized_object_fields(parent_object.id, &mut fields);
-            self.response.borrow_mut().insert_fields_update(parent_object, fields)
+        for (parent_object, mut response_fields) in parent_objects.into_iter().zip(batch_response_fields) {
+            ctx.finalize_deserialized_object_fields(parent_object.id, &mut response_fields);
+            response_fields.sort_unstable_by_key(|field| field.key);
+
+            let mut resp = self.response.borrow_mut();
+            let fields_id = resp.data.push_owned_sorted_fields_by_key(response_fields);
+            resp.insert_fields_update(parent_object, fields_id);
         }
     }
 }

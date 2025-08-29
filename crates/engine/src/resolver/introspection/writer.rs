@@ -14,7 +14,9 @@ use crate::{
     Runtime,
     execution::ExecutionContext,
     prepare::{ConcreteShapeId, FieldShapeRecord, Plan, RootFieldsShape, Shapes},
-    response::{ResponseField, ResponseObject, ResponseObjectRef, ResponsePartBuilder, ResponseValue},
+    response::{
+        ResponseField, ResponseFieldsSortedByKey, ResponseObject, ResponseObjectRef, ResponsePartBuilder, ResponseValue,
+    },
 };
 
 pub(super) struct IntrospectionWriter<'ctx, R: Runtime> {
@@ -66,7 +68,12 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 });
             }
         }
-        self.response.borrow_mut().insert_fields_update(parent_object, fields);
+
+        fields.sort_unstable_by_key(|field| field.key);
+
+        let mut resp = self.response.borrow_mut();
+        let fields_id = resp.data.push_owned_sorted_fields_by_key(fields);
+        resp.insert_fields_update(parent_object, fields_id);
     }
 
     fn object<E: Copy, const N: usize>(
@@ -76,7 +83,10 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         build: impl Fn(&'ctx FieldShapeRecord, E) -> ResponseValue,
     ) -> ResponseValue {
         let shape = &self.shapes[shape_id];
-        let mut fields = Vec::with_capacity(shape.field_shape_ids.len() + shape.typename_shape_ids.len());
+        let (fields_id, mut fields) = self.response.borrow_mut().data.take_next_shared_fields();
+        let offset = fields.len();
+        fields.reserve(shape.field_shape_ids.len() + shape.typename_shape_ids.len());
+
         for field_shape in shape.field_shape_ids.walk(&self.ctx) {
             fields.push(ResponseField {
                 key: field_shape.key(),
@@ -96,10 +106,20 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             }
         }
 
-        self.response
-            .borrow_mut()
-            .data
-            .push_object(ResponseObject::new(Some(object.id), fields))
+        fields[offset..].sort_unstable_by_key(|field| field.key);
+        let limit = fields.len() - offset;
+
+        let mut resp = self.response.borrow_mut();
+        resp.data.restore_shared_fields(fields_id, fields);
+        resp.data
+            .push_object(ResponseObject::new(
+                Some(object.id),
+                ResponseFieldsSortedByKey::Slice {
+                    fields_id,
+                    offset: offset as u32,
+                    limit: limit as u16,
+                },
+            ))
             .into()
     }
 
@@ -109,19 +129,21 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 __Schema::Description => self.schema.graph.description_id.into(),
                 __Schema::Types => {
                     let shape_id = field.shape.as_concrete().unwrap();
-                    let mut values = Vec::with_capacity(self.schema.type_definitions().len());
+                    let (list_id, mut values) = self.response.borrow_mut().data.take_next_list();
+                    let offset = values.len();
+                    values.reserve(self.schema.type_definitions().len());
                     values.extend(
                         self.schema
                             .type_definitions()
                             .filter(|def| !def.is_inaccessible())
                             .map(|definition| self.__type_inner(definition, shape_id)),
                     );
-                    let length = values.len() as u32;
-                    let list_id = self.response.borrow_mut().data.push_list(values);
+                    let limit = values.len() - offset;
+                    self.response.borrow_mut().data.restore_list(list_id, values);
                     ResponseValue::List {
                         id: list_id,
-                        offset: 0,
-                        length,
+                        offset: offset as u32,
+                        limit: limit as u32,
                     }
                 }
                 __Schema::QueryType => self.__type_inner(
@@ -145,12 +167,11 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 // TODO: Need to implemented directives...
                 __Schema::Directives => {
                     let values = Vec::new();
-                    let length = values.len() as u32;
                     let list_id = self.response.borrow_mut().data.push_list(values);
                     ResponseValue::List {
                         id: list_id,
                         offset: 0,
-                        length,
+                        limit: 0,
                     }
                 }
             }
@@ -263,7 +284,9 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                             .walk(&self.ctx)
                             .arguments()
                             .get_arg_value_as::<bool>("includeDeprecated", self.ctx.variables());
-                        let mut values = Vec::with_capacity(r#enum.value_ids.len());
+                        let (list_id, mut values) = self.response.borrow_mut().data.take_next_list();
+                        let offset = values.len();
+                        values.reserve(r#enum.value_ids.len());
                         values.extend(
                             r#enum
                                 .values()
@@ -273,12 +296,12 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                                 })
                                 .map(|value| self.__enum_value(value, shape_id)),
                         );
-                        let length = values.len() as u32;
-                        let list_id = self.response.borrow_mut().data.push_list(values);
+                        let limit = values.len() - offset;
+                        self.response.borrow_mut().data.restore_list(list_id, values);
                         ResponseValue::List {
                             id: list_id,
-                            offset: 0,
-                            length,
+                            offset: offset as u32,
+                            limit: limit as u32,
                         }
                     }
                     _ => ResponseValue::Null,
@@ -291,19 +314,21 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                     __Type::Description => input_object.description_id.into(),
                     __Type::InputFields => {
                         let shape_id = field.shape.as_concrete().unwrap();
-                        let mut values = Vec::with_capacity(input_object.input_field_ids.len());
+                        let (list_id, mut values) = self.response.borrow_mut().data.take_next_list();
+                        let offset = values.len();
+                        values.reserve(input_object.input_field_ids.len());
                         values.extend(
                             input_object
                                 .input_fields()
                                 .filter(|input_field| !input_field.is_inaccessible())
                                 .map(|input_field| self.__input_value(input_field, shape_id)),
                         );
-                        let length = values.len() as u32;
-                        let list_id = self.response.borrow_mut().data.push_list(values);
+                        let limit = values.len() - offset;
+                        self.response.borrow_mut().data.restore_list(list_id, values);
                         ResponseValue::List {
                             id: list_id,
-                            offset: 0,
-                            length,
+                            offset: offset as u32,
+                            limit: limit as u32,
                         }
                     }
                     _ => ResponseValue::Null,
@@ -325,7 +350,9 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             .walk(&self.ctx)
             .arguments()
             .get_arg_value_as::<bool>("includeDeprecated", self.ctx.variables());
-        let mut values = Vec::with_capacity(field_definitions.len());
+        let (list_id, mut values) = self.response.borrow_mut().data.take_next_list();
+        let offset = values.len();
+        values.reserve(field_definitions.len());
         values.extend(
             field_definitions
                 .filter(|field| {
@@ -335,12 +362,12 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 })
                 .map(|field| self.__field(field, shape_id)),
         );
-        let length = values.len() as u32;
-        let list_id = self.response.borrow_mut().data.push_list(values);
+        let limit = values.len() - offset;
+        self.response.borrow_mut().data.restore_list(list_id, values);
         ResponseValue::List {
             id: list_id,
-            offset: 0,
-            length,
+            offset: offset as u32,
+            limit: limit as u32,
         }
     }
 
@@ -350,18 +377,20 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         interface_definitions: impl Iter<Item = InterfaceDefinition<'ctx>>,
     ) -> ResponseValue {
         let shape_id = field.shape.as_concrete().unwrap();
-        let mut values = Vec::with_capacity(interface_definitions.len());
+        let (list_id, mut values) = self.response.borrow_mut().data.take_next_list();
+        let offset = values.len();
+        values.reserve(interface_definitions.len());
         values.extend(
             interface_definitions
                 .filter(|inf| !inf.is_inaccessible())
                 .map(|interface| self.__type_inner(TypeDefinition::Interface(interface), shape_id)),
         );
-        let length = values.len() as u32;
-        let list_id = self.response.borrow_mut().data.push_list(values);
+        let limit = values.len() - offset;
+        self.response.borrow_mut().data.restore_list(list_id, values);
         ResponseValue::List {
             id: list_id,
-            offset: 0,
-            length,
+            offset: offset as u32,
+            limit: limit as u32,
         }
     }
 
@@ -371,18 +400,20 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
         possible_types: impl Iter<Item = ObjectDefinition<'ctx>>,
     ) -> ResponseValue {
         let shape_id = field.shape.as_concrete().unwrap();
-        let mut values = Vec::with_capacity(possible_types.len());
+        let (list_id, mut values) = self.response.borrow_mut().data.take_next_list();
+        let offset = values.len();
+        values.reserve(possible_types.len());
         values.extend(
             possible_types
                 .filter(|obj| !obj.is_inaccessible())
                 .map(|possible_type| self.__type_inner(TypeDefinition::Object(possible_type), shape_id)),
         );
-        let length = values.len() as u32;
-        let list_id = self.response.borrow_mut().data.push_list(values);
+        let limit = values.len() - offset;
+        self.response.borrow_mut().data.restore_list(list_id, values);
         ResponseValue::List {
             id: list_id,
-            offset: 0,
-            length,
+            offset: offset as u32,
+            limit: limit as u32,
         }
     }
 
@@ -392,19 +423,21 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             _Field::Description => target.as_ref().description_id.into(),
             _Field::Args => {
                 let shape_id = field.shape.as_concrete().unwrap();
-                let mut values = Vec::with_capacity(target.argument_ids.len());
+                let (list_id, mut values) = self.response.borrow_mut().data.take_next_list();
+                let offset = values.len();
+                values.reserve(target.argument_ids.len());
                 values.extend(
                     target
                         .arguments()
                         .filter(|argument| !argument.is_inaccessible())
                         .map(|argument| self.__input_value(argument, shape_id)),
                 );
-                let length = values.len() as u32;
-                let list_id = self.response.borrow_mut().data.push_list(values);
+                let limit = values.len() - offset;
+                self.response.borrow_mut().data.restore_list(list_id, values);
                 ResponseValue::List {
                     id: list_id,
-                    offset: 0,
-                    length,
+                    offset: offset as u32,
+                    limit: limit as u32,
                 }
             }
             _Field::Type => self.__type(target.ty(), field.shape.as_concrete().unwrap()),

@@ -5,7 +5,7 @@ use walker::Walk as _;
 use crate::{
     prepare::{DefaultFieldShapeId, OnRootFieldsError, PreparedOperation, ResponseObjectSetId, RootFieldsShapeId},
     response::{
-        DataPart, ErrorPartBuilder, GraphqlError, ResponseField, ResponseObjectId, ResponseObjectRef,
+        DataPart, ErrorPartBuilder, GraphqlError, ResponseFieldsSortedByKey, ResponseObjectId, ResponseObjectRef,
         ResponseObjectSet, ResponsePath, ResponseValueId,
     },
 };
@@ -70,8 +70,13 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
         self.propagated_null_at.push(*value_id)
     }
 
-    pub fn insert_fields_update(&mut self, parent_object: &ResponseObjectRef, fields: Vec<ResponseField>) {
-        self.object_updates.push(ObjectUpdate::Fields(parent_object.id, fields));
+    pub fn insert_fields_update(
+        &mut self,
+        parent_object: &ResponseObjectRef,
+        fields: impl Into<ResponseFieldsSortedByKey>,
+    ) {
+        self.object_updates
+            .push(ObjectUpdate::Fields(parent_object.id, fields.into()));
     }
 
     pub fn insert_empty_update(&mut self, parent_object: &ResponseObjectRef, shape_id: RootFieldsShapeId) {
@@ -252,6 +257,6 @@ impl<'ctx> ResponsePartBuilder<'ctx> {
 
 #[derive(Clone)]
 pub(crate) enum ObjectUpdate {
-    Fields(ResponseObjectId, Vec<ResponseField>),
+    Fields(ResponseObjectId, ResponseFieldsSortedByKey),
     Default(ResponseObjectId, IdRange<DefaultFieldShapeId>),
 }

@@ -19,30 +19,26 @@ use crate::{
 
 use super::derive::DeriveContext;
 
-pub(crate) struct ConcreteShapeFieldsSeed<'ctx, 'parent, 'state> {
+pub(crate) struct ConcreteShapeFieldsSeed<'ctx, 'parent, 'state, 'fields> {
     ctx: ConcreteShapeFieldsContext<'ctx, 'parent, 'state>,
     object_id: ResponseObjectId,
     object_identifier: ObjectIdentifier,
+    response_fields: &'fields mut Vec<ResponseField>,
 }
 
-impl<'ctx, 'parent, 'state> std::ops::Deref for ConcreteShapeFieldsSeed<'ctx, 'parent, 'state> {
-    type Target = ConcreteShapeFieldsContext<'ctx, 'parent, 'state>;
-    fn deref(&self) -> &Self::Target {
-        &self.ctx
-    }
-}
-
-impl<'ctx, 'parent, 'state> ConcreteShapeFieldsSeed<'ctx, 'parent, 'state> {
+impl<'ctx, 'parent, 'state, 'fields> ConcreteShapeFieldsSeed<'ctx, 'parent, 'state, 'fields> {
     pub fn new(
         state: &'state SeedState<'ctx, 'parent>,
         shape: ConcreteShape<'ctx>,
         object_id: ResponseObjectId,
         definition_id: Option<ObjectDefinitionId>,
+        response_fields: &'fields mut Vec<ResponseField>,
     ) -> Self {
         ConcreteShapeFieldsSeed {
             ctx: ConcreteShapeFieldsContext::new(state, shape),
             object_id,
             object_identifier: definition_id.map(ObjectIdentifier::Known).unwrap_or(shape.identifier),
+            response_fields,
         }
     }
 }
@@ -73,17 +69,14 @@ impl<'ctx, 'parent, 'state> ConcreteShapeFieldsContext<'ctx, 'parent, 'state> {
     }
 }
 
-pub(crate) enum ObjectFields {
+pub(crate) enum FieldsDeserializationResult {
     Null,
-    Some {
-        definition_id: Option<ObjectDefinitionId>,
-        fields: Vec<ResponseField>,
-    },
+    Some { definition_id: Option<ObjectDefinitionId> },
     Error(GraphqlError),
 }
 
-impl<'de> DeserializeSeed<'de> for ConcreteShapeFieldsSeed<'_, '_, '_> {
-    type Value = ObjectFields;
+impl<'de> DeserializeSeed<'de> for ConcreteShapeFieldsSeed<'_, '_, '_, '_> {
+    type Value = FieldsDeserializationResult;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
@@ -93,88 +86,92 @@ impl<'de> DeserializeSeed<'de> for ConcreteShapeFieldsSeed<'_, '_, '_> {
     }
 }
 
-impl ConcreteShapeFieldsSeed<'_, '_, '_> {
+impl ConcreteShapeFieldsSeed<'_, '_, '_, '_> {
     fn unexpected_type(&self, value: Unexpected<'_>) -> <Self as Visitor<'_>>::Value {
         tracing::error!(
             "invalid type: {}, expected an object at path '{}'",
             value,
-            self.state.display_path()
+            self.ctx.state.display_path()
         );
-        ObjectFields::Error(GraphqlError::invalid_subgraph_response().with_path(self.state.path()))
+        FieldsDeserializationResult::Error(GraphqlError::invalid_subgraph_response().with_path(self.ctx.state.path()))
     }
 }
 
-impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_, '_> {
-    type Value = ObjectFields;
+impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_, '_, '_> {
+    type Value = FieldsDeserializationResult;
 
     fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str("any value?")
     }
 
     // later we could also support visit_struct by using the schema as the reference structure.
-    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    fn visit_map<A>(mut self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: MapAccess<'de>,
     {
-        let schema = self.state.schema;
-        let mut response_fields =
-            Vec::with_capacity(self.non_derived_field_shape_ids.len() + self.typename_shape_ids.len());
+        let schema = self.ctx.state.schema;
+        self.response_fields
+            .reserve(self.ctx.non_derived_field_shape_ids.len() + self.ctx.typename_shape_ids.len());
         let mut maybe_object_definition_id = None;
 
         match self.object_identifier {
             ObjectIdentifier::Known(id) => {
                 maybe_object_definition_id = Some(id);
-                self.visit_fields(&mut map, &mut response_fields)?;
+                self.visit_fields(&mut map)?;
             }
             ObjectIdentifier::Anonymous => {
-                self.visit_fields(&mut map, &mut response_fields)?;
+                self.visit_fields(&mut map)?;
             }
             ObjectIdentifier::UnionTypename(id) => {
                 if let Some(definition_id) = self.visit_fields_with_typename_detection(
                     &mut map,
                     &schema[id].possible_types_ordered_by_typename_ids,
-                    &mut response_fields,
                 )? {
                     maybe_object_definition_id = Some(definition_id);
                 } else {
-                    return Ok(ObjectFields::Error(GraphqlError::invalid_subgraph_response()));
+                    return Ok(FieldsDeserializationResult::Error(
+                        GraphqlError::invalid_subgraph_response(),
+                    ));
                 }
             }
             ObjectIdentifier::InterfaceTypename(id) => {
                 if let Some(definition_id) = self.visit_fields_with_typename_detection(
                     &mut map,
                     &schema[id].possible_types_ordered_by_typename_ids,
-                    &mut response_fields,
                 )? {
                     maybe_object_definition_id = Some(definition_id);
                 } else {
-                    return Ok(ObjectFields::Error(GraphqlError::invalid_subgraph_response()));
+                    return Ok(FieldsDeserializationResult::Error(
+                        GraphqlError::invalid_subgraph_response(),
+                    ));
                 }
             }
         }
 
-        self.finalize_deserialized_object_fields(self.object_id, &mut response_fields);
+        self.ctx
+            .finalize_deserialized_object_fields(self.object_id, self.response_fields);
 
-        if !self.typename_shape_ids.is_empty() {
+        if !self.ctx.typename_shape_ids.is_empty() {
             let Some(object_id) = maybe_object_definition_id else {
                 tracing::error!(
                     "Expected to have the object definition id to generate __typename at path '{}'",
-                    self.state.display_path()
+                    self.ctx.state.display_path()
                 );
-                return Ok(ObjectFields::Error(GraphqlError::invalid_subgraph_response()));
+                return Ok(FieldsDeserializationResult::Error(
+                    GraphqlError::invalid_subgraph_response(),
+                ));
             };
             let name_id = schema[object_id].name_id;
-            for shape in self.typename_shape_ids.walk(self.state) {
-                response_fields.push(ResponseField {
+            for shape in self.ctx.typename_shape_ids.walk(self.ctx.state) {
+                self.response_fields.push(ResponseField {
                     key: shape.key(),
                     value: name_id.into(),
                 });
             }
         }
 
-        Ok(ObjectFields::Some {
+        Ok(FieldsDeserializationResult::Some {
             definition_id: maybe_object_definition_id,
-            fields: response_fields,
         })
     }
 
@@ -245,7 +242,7 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_, '_> {
     where
         E: serde::de::Error,
     {
-        Ok(ObjectFields::Null)
+        Ok(FieldsDeserializationResult::Null)
     }
 
     fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -259,7 +256,7 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_, '_> {
     where
         E: serde::de::Error,
     {
-        Ok(ObjectFields::Null)
+        Ok(FieldsDeserializationResult::Null)
     }
 
     fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -288,22 +285,22 @@ impl<'de> Visitor<'de> for ConcreteShapeFieldsSeed<'_, '_, '_> {
     }
 }
 
-impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
+impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_, '_> {
     fn visit_fields_with_typename_detection<'de, A: MapAccess<'de>>(
-        &self,
+        &mut self,
         map: &mut A,
         possible_types_ordered_by_typename: &[ObjectDefinitionId],
-        response_fields: &mut Vec<ResponseField>,
     ) -> Result<Option<ObjectDefinitionId>, A::Error> {
-        let schema = self.state.schema;
-        let keys = self.state.response_keys();
+        let schema = self.ctx.state.schema;
+        let keys = self.ctx.state.response_keys();
         let included_data_fields = &self
+            .ctx
             .state
             .operation
             .plan
             .query_modifications
             .included_response_data_fields;
-        let fields = &self.state.operation.cached.shapes[self.non_derived_field_shape_ids];
+        let fields = &self.ctx.state.operation.cached.shapes[self.ctx.non_derived_field_shape_ids];
         let mut offset = 0;
         let mut maybe_object_definition_id: Option<ObjectDefinitionId> = None;
         while let Some(key) = map.next_key::<Key<'_>>()? {
@@ -321,7 +318,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
                     DataOrLookupFieldId::Data(id) => included_data_fields[id],
                     _ => false,
                 };
-                self.visit_field(map, field, included, response_fields)?;
+                self.visit_field(map, field, included)?;
                 // Each key in the JSON is unique, it's an object. So if we found it once, we won't
                 // re-find it. This means that if the found field is the first one, we can increase
                 // the offset to ignore for the next key.
@@ -344,19 +341,16 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
         Ok(maybe_object_definition_id)
     }
 
-    fn visit_fields<'de, A: MapAccess<'de>>(
-        &self,
-        map: &mut A,
-        response_fields: &mut Vec<ResponseField>,
-    ) -> Result<(), A::Error> {
-        let keys = self.state.response_keys();
+    fn visit_fields<'de, A: MapAccess<'de>>(&mut self, map: &mut A) -> Result<(), A::Error> {
+        let keys = self.ctx.state.response_keys();
         let included_data_fields = &self
+            .ctx
             .state
             .operation
             .plan
             .query_modifications
             .included_response_data_fields;
-        let fields = &self.state.operation.cached.shapes[self.non_derived_field_shape_ids];
+        let fields = &self.ctx.state.operation.cached.shapes[self.ctx.non_derived_field_shape_ids];
         let mut offset = 0;
         while let Some(key) = map.next_key::<Key<'_>>()? {
             let key = key.as_ref();
@@ -373,7 +367,7 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
                     DataOrLookupFieldId::Data(id) => included_data_fields[id],
                     _ => false,
                 };
-                self.visit_field(map, field, included, response_fields)?;
+                self.visit_field(map, field, included)?;
                 // Each key in the JSON is unique, it's an object. So if we found it once, we won't
                 // re-find it. This means that if the found field is the first one, we can increase
                 // the offset to ignore for the next key.
@@ -389,11 +383,10 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
     }
 
     fn visit_field<'de, A: MapAccess<'de>>(
-        &self,
+        &mut self,
         map: &mut A,
         field: &'ctx FieldShapeRecord,
         included: bool,
-        response_fields: &mut Vec<ResponseField>,
     ) -> Result<(), A::Error> {
         let key = PositionedResponseKey {
             query_position: field.query_position_before_modifications,
@@ -401,21 +394,21 @@ impl<'ctx> ConcreteShapeFieldsSeed<'ctx, '_, '_> {
         }
         .with_query_position_if(included);
 
-        self.state.local_path_mut().push(ResponseValueId::field(
+        self.ctx.state.local_path_mut().push(ResponseValueId::field(
             self.object_id,
             key,
             field.wrapping.is_nullable(),
         ));
         let result = map.next_value_seed(FieldSeed {
-            state: self.state,
+            state: self.ctx.state,
             field,
             wrapping: field.wrapping.to_mutable(),
         });
-        self.state.local_path_mut().pop();
+        self.ctx.state.local_path_mut().pop();
 
         let value = result?;
 
-        response_fields.push(ResponseField { key, value });
+        self.response_fields.push(ResponseField { key, value });
 
         Ok(())
     }

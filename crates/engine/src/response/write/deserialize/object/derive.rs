@@ -6,8 +6,8 @@ use walker::Walk as _;
 use crate::{
     prepare::{BatchFieldShape, DataOrLookupFieldId, DerivedEntityShape, FieldShape, FieldShapeRecord},
     response::{
-        ResponseField, ResponseListId, ResponseObject, ResponseObjectId, ResponseObjectRef, ResponsePartBuilder,
-        ResponseValue, ResponseValueId,
+        ResponseField, ResponseFieldsSortedByKey, ResponseListId, ResponseObject, ResponseObjectId, ResponseObjectRef,
+        ResponsePartBuilder, ResponseValue, ResponseValueId,
     },
 };
 
@@ -89,19 +89,21 @@ fn handle_list_derive(
             }
             ResponseValue::Unexpected
         }
-        ResponseValue::List { id, offset, length } => {
+        ResponseValue::List { id, offset, limit } => {
             let values =
                 if let Some(scalar_field) = ctx.shape.fields().find(|field| field.shape.is_derive_from_scalar()) {
-                    handle_derive_scalar_list(ctx, *id, *offset, *length, batch_field, scalar_field)
+                    handle_derive_scalar_list(ctx, *id, *offset, *limit, batch_field, scalar_field)
                 } else {
-                    handle_derive_object_list(ctx, *id, *offset, *length, batch_field)
+                    handle_derive_object_list(ctx, *id, *offset, *limit, batch_field)
                 };
 
-            let length = values.len() as u32;
+            let limit = values.len() as u32;
             ResponseValue::List {
+                // One of the rare case where we need to be careful with shared list as we're
+                // reading from one. We would need to ensure we don't retrieve the same one.
                 id: ctx.resp.data.push_list(values),
                 offset: 0,
-                length,
+                limit,
             }
         }
         _ => unreachable!(),
@@ -112,7 +114,7 @@ fn handle_derive_scalar_list(
     ctx: &mut DeriveContext<'_, '_, '_>,
     id: ResponseListId,
     offset: u32,
-    length: u32,
+    limit: u32,
     batch_field: BatchFieldShape,
     scalar_field: FieldShape<'_>,
 ) -> Vec<ResponseValue> {
@@ -120,11 +122,11 @@ fn handle_derive_scalar_list(
     let element_is_nullable = !batch_field.wrapping.inner_is_required();
 
     let shared_list = std::mem::take(&mut ctx.resp.data[id.list_id]);
-    let list = &shared_list[offset as usize..(offset + length) as usize];
+    let slice = &shared_list[offset as usize..(offset + limit) as usize];
 
-    let mut derive_list = Vec::with_capacity(list.len());
+    let mut derive_list = Vec::with_capacity(slice.len());
     let scalar_field_key = scalar_field.key();
-    if !list.is_empty() {
+    if !slice.is_empty() {
         ctx.local_path.push(ResponseValueId::index(id, 0, element_is_nullable));
         for &error_id in ctx
             .resp
@@ -145,7 +147,7 @@ fn handle_derive_scalar_list(
         }
         ctx.local_path.pop();
     }
-    for (index, value) in list.iter().enumerate() {
+    for (index, value) in slice.iter().enumerate() {
         ctx.local_path
             .push(ResponseValueId::index(id, index as u32, element_is_nullable));
         match value {
@@ -186,10 +188,11 @@ fn handle_derive_scalar_list(
                     }
                     fields_sorted_by_key.sort_unstable_by(|a, b| a.key.cmp(&b.key));
                 }
-                let id = ctx.resp.data.push_object(ResponseObject {
-                    definition_id: root_definition_id,
-                    fields_sorted_by_key,
-                });
+                let fields_id = ctx.resp.data.push_owned_sorted_fields_by_key(fields_sorted_by_key);
+                let id = ctx
+                    .resp
+                    .data
+                    .push_object(ResponseObject::new(root_definition_id, fields_id));
                 if let Some(set_id) = ctx.shape.set_id {
                     let mut path = Vec::with_capacity(ctx.parent_path.len() + ctx.local_path.len());
                     path.extend_from_slice(ctx.parent_path);
@@ -218,16 +221,16 @@ fn handle_derive_object_list(
     ctx: &mut DeriveContext<'_, '_, '_>,
     id: ResponseListId,
     offset: u32,
-    length: u32,
+    limit: u32,
     batch_field: BatchFieldShape,
 ) -> Vec<ResponseValue> {
     let element_is_nullable = !batch_field.wrapping.inner_is_required();
 
     let shared_list = std::mem::take(&mut ctx.resp.data[id.list_id]);
-    let list = &shared_list[offset as usize..(offset + length) as usize];
+    let slice = &shared_list[offset as usize..(offset + limit) as usize];
 
-    let mut derive_list = Vec::with_capacity(list.len());
-    for (index, value) in list.iter().enumerate() {
+    let mut derive_list = Vec::with_capacity(slice.len());
+    for (index, value) in slice.iter().enumerate() {
         ctx.local_path
             .push(ResponseValueId::index(id, index as u32, element_is_nullable));
         match value {
@@ -252,15 +255,24 @@ fn handle_derive_object_list(
                 }
                 derive_list.push(ResponseValue::Unexpected);
             }
-            ResponseValue::Object { id } => {
-                let object = std::mem::take(&mut ctx.resp.data[id.object_id]);
-                derive_list.push(handle_object_derive(
-                    ctx,
-                    element_is_nullable,
-                    &object.fields_sorted_by_key,
-                ));
-                ctx.resp.data[id.object_id] = object;
-            }
+            ResponseValue::Object { id } => match ctx.resp.data[id.object_id].fields_sorted_by_key {
+                ResponseFieldsSortedByKey::Slice {
+                    fields_id,
+                    offset,
+                    limit,
+                } => {
+                    let fields = std::mem::take(&mut ctx.resp.data[fields_id]);
+                    let start = offset as usize;
+                    let end = start + limit as usize;
+                    derive_list.push(handle_object_derive(ctx, element_is_nullable, &fields[start..end]));
+                    ctx.resp.data[fields_id] = fields;
+                }
+                ResponseFieldsSortedByKey::Owned { fields_id } => {
+                    let fields = std::mem::take(&mut ctx.resp.data[fields_id]);
+                    derive_list.push(handle_object_derive(ctx, element_is_nullable, &fields));
+                    ctx.resp.data[fields_id] = fields;
+                }
+            },
             _ => unreachable!(),
         }
         ctx.local_path.pop();
@@ -380,10 +392,12 @@ fn handle_object_derive(
                 });
             }
         }
-        let id = ctx.resp.data.push_object(ResponseObject::new(
-            ctx.shape.object_definition_id,
-            derived_response_fields,
-        ));
+        derived_response_fields.sort_unstable_by_key(|field| field.key);
+        let fields_id = ctx.resp.data.push_owned_sorted_fields_by_key(derived_response_fields);
+        let id = ctx
+            .resp
+            .data
+            .push_object(ResponseObject::new(ctx.shape.object_definition_id, fields_id));
         if let Some(set_id) = ctx.shape.set_id {
             let mut path = Vec::with_capacity(ctx.parent_path.len() + ctx.local_path.len());
             path.extend_from_slice(ctx.parent_path);

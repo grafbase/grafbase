@@ -5,11 +5,12 @@ use walker::Walk;
 use crate::{
     prepare::{ConcreteShape, ConcreteShapeId, FieldShapeRecord},
     response::{
-        GraphqlError, ResponseObject, ResponseObjectId, ResponseObjectRef, ResponseValue, write::deserialize::SeedState,
+        GraphqlError, ResponseFieldsSortedByKey, ResponseObject, ResponseObjectId, ResponseObjectRef, ResponseValue,
+        write::deserialize::SeedState,
     },
 };
 
-use super::{ConcreteShapeFieldsSeed, ObjectFields};
+use super::{ConcreteShapeFieldsSeed, FieldsDeserializationResult};
 
 pub(crate) struct ConcreteShapeSeed<'ctx, 'parent, 'state> {
     state: &'state SeedState<'ctx, 'parent>,
@@ -59,15 +60,7 @@ impl<'de> DeserializeSeed<'de> for ConcreteShapeSeed<'_, '_, '_> {
     where
         D: serde::Deserializer<'de>,
     {
-        let shape = self.shape_id.walk(self.state);
-        let object_id = self.state.response.borrow_mut().data.reserve_object_id();
-
-        Ok(self.ingest_object_fields(
-            shape,
-            object_id,
-            ConcreteShapeFieldsSeed::new(self.state, shape, object_id, self.known_definition_id)
-                .deserialize(deserializer)?,
-        ))
+        self.handle(|seed| seed.deserialize(deserializer))
     }
 }
 
@@ -77,21 +70,88 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_, '_> {
     where
         A: MapAccess<'de>,
     {
+        self.handle(|seed| seed.visit_map(map))
+    }
+
+    fn handle<E>(
+        &self,
+        ingest: impl FnOnce(ConcreteShapeFieldsSeed<'_, '_, '_, '_>) -> Result<FieldsDeserializationResult, E>,
+    ) -> Result<ResponseValue, E> {
         let shape = self.shape_id.walk(self.state);
-        let object_id = self.state.response.borrow_mut().data.reserve_object_id();
-        let fields =
-            ConcreteShapeFieldsSeed::new(self.state, shape, object_id, self.known_definition_id).visit_map(map)?;
-        Ok(self.ingest_object_fields(shape, object_id, fields))
+        let object_id = self
+            .state
+            .response
+            .borrow_mut()
+            .data
+            .push_empty_object(self.known_definition_id);
+
+        // If there is no set_id it means, no further plan / response modifier has this object as
+        // an input so it won't be modified later on with the exception of shared nested roots
+        // which isn't that common.
+        if shape.set_id.is_none() {
+            let (fields_id, mut response_fields) = self.state.response.borrow_mut().data.take_next_shared_fields();
+            let offset = response_fields.len();
+            let seed = ConcreteShapeFieldsSeed::new(
+                self.state,
+                shape,
+                object_id,
+                self.known_definition_id,
+                &mut response_fields,
+            );
+
+            let serde_result = ingest(seed);
+
+            response_fields[offset..].sort_unstable_by_key(|field| field.key);
+            let limit = response_fields.len() - offset;
+
+            self.state
+                .response
+                .borrow_mut()
+                .data
+                .restore_shared_fields(fields_id, response_fields);
+
+            Ok(self.ingest_object_fields(
+                shape,
+                object_id,
+                serde_result?,
+                ResponseFieldsSortedByKey::Slice {
+                    fields_id,
+                    offset: offset as u32,
+                    limit: limit as u16,
+                },
+            ))
+        } else {
+            let mut response_fields = Vec::new();
+            let seed = ConcreteShapeFieldsSeed::new(
+                self.state,
+                shape,
+                object_id,
+                self.known_definition_id,
+                &mut response_fields,
+            );
+
+            let result = ingest(seed)?;
+
+            response_fields.sort_unstable_by_key(|field| field.key);
+            let fields_id = self
+                .state
+                .response
+                .borrow_mut()
+                .data
+                .push_owned_sorted_fields_by_key(response_fields);
+            Ok(self.ingest_object_fields(shape, object_id, result, fields_id.into()))
+        }
     }
 
     fn ingest_object_fields(
         &self,
         shape: ConcreteShape<'ctx>,
         object_id: ResponseObjectId,
-        fields: ObjectFields,
+        result: FieldsDeserializationResult,
+        fields: ResponseFieldsSortedByKey,
     ) -> ResponseValue {
-        match fields {
-            ObjectFields::Some { definition_id, fields } => {
+        match result {
+            FieldsDeserializationResult::Some { definition_id } => {
                 let mut resp = self.state.response.borrow_mut();
                 resp.data
                     .put_object(object_id, ResponseObject::new(definition_id, fields));
@@ -123,7 +183,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_, '_> {
 
                 object_id.into()
             }
-            ObjectFields::Null => {
+            FieldsDeserializationResult::Null => {
                 if self.is_required {
                     tracing::error!(
                         "invalid type: null, expected an object at path '{}'",
@@ -144,7 +204,7 @@ impl<'ctx> ConcreteShapeSeed<'ctx, '_, '_> {
                     ResponseValue::Null
                 }
             }
-            ObjectFields::Error(error) => {
+            FieldsDeserializationResult::Error(error) => {
                 if self.state.should_report_error_for(self.parent_field) {
                     let mut resp = self.state.response.borrow_mut();
                     let path = self.state.path();

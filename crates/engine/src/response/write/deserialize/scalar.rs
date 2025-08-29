@@ -9,6 +9,7 @@ use crate::{
 
 use super::SeedState;
 
+#[derive(Clone, Copy)]
 pub(crate) struct ScalarTypeSeed<'ctx, 'parent, 'state> {
     pub state: &'state SeedState<'ctx, 'parent>,
     pub field: &'ctx FieldShapeRecord,
@@ -324,23 +325,31 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_, '_> {
     {
         match self.ty {
             ScalarType::Unknown => {
-                let mut list = Vec::new();
+                let (list_id, mut list) = self.state.response.borrow_mut().data.take_next_list();
+                let offset = list.len();
                 if let Some(size_hist) = seq.size_hint() {
                     list.reserve(size_hist);
                 }
-                while let Some(value) = seq.next_element_seed(ScalarTypeSeed {
-                    state: self.state,
-                    field: self.field,
-                    is_required: false,
-                    ty: ScalarType::Unknown,
-                })? {
-                    list.push(value);
-                }
-                let length = list.len() as u32;
+                let result = ingest_seq(
+                    &mut seq,
+                    ScalarTypeSeed {
+                        state: self.state,
+                        field: self.field,
+                        is_required: false,
+                        ty: ScalarType::Unknown,
+                    },
+                    &mut list,
+                );
+
+                let limit = list.len() - offset;
+                self.state.response.borrow_mut().data.restore_list(list_id, list);
+
+                result?;
+
                 Ok(ResponseValue::List {
-                    id: self.state.response.borrow_mut().data.push_list(list),
-                    offset: 0,
-                    length,
+                    id: list_id,
+                    offset: offset as u32,
+                    limit: limit as u32,
                 })
             }
             _ => {
@@ -358,18 +367,27 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_, '_> {
     {
         match self.ty {
             ScalarType::Unknown => {
-                let mut key_values = Vec::new();
-                while let Some(key) = map.next_key::<String>()? {
-                    let value = map.next_value_seed(ScalarTypeSeed {
+                let (map_id, mut key_values) = self.state.response.borrow_mut().data.take_next_map();
+                let offset = key_values.len();
+                let result = ingest_map(
+                    &mut map,
+                    ScalarTypeSeed {
                         state: self.state,
                         field: self.field,
                         is_required: false,
                         ty: ScalarType::Unknown,
-                    })?;
-                    key_values.push((key, value));
-                }
+                    },
+                    &mut key_values,
+                );
+                let limit = key_values.len() - offset;
+                self.state.response.borrow_mut().data.restore_map(map_id, key_values);
+
+                result?;
+
                 Ok(ResponseValue::Map {
-                    id: self.state.response.borrow_mut().data.push_map(key_values),
+                    id: map_id,
+                    offset: offset as u32,
+                    limit: limit as u32,
                 })
             }
             _ => {
@@ -388,6 +406,35 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_, '_> {
         let _ = data.variant::<IgnoredAny>()?;
         Err(Error::invalid_type(Unexpected::Enum, &self))
     }
+}
+
+fn ingest_seq<'de, A>(
+    mut seq: A,
+    seed: ScalarTypeSeed<'_, '_, '_>,
+    list: &mut Vec<ResponseValue>,
+) -> Result<(), A::Error>
+where
+    A: serde::de::SeqAccess<'de>,
+{
+    while let Some(value) = seq.next_element_seed(seed)? {
+        list.push(value);
+    }
+    Ok(())
+}
+
+fn ingest_map<'de, A>(
+    mut map: A,
+    seed: ScalarTypeSeed<'_, '_, '_>,
+    key_values: &mut Vec<(String, ResponseValue)>,
+) -> Result<(), A::Error>
+where
+    A: serde::de::MapAccess<'de>,
+{
+    while let Some(key) = map.next_key::<String>()? {
+        let value = map.next_value_seed(seed)?;
+        key_values.push((key, value));
+    }
+    Ok(())
 }
 
 fn can_coerce_f32_to_int(float: f32) -> bool {

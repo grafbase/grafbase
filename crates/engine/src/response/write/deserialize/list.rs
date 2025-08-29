@@ -87,8 +87,7 @@ where
         } = self;
 
         let mut index: u32 = 0;
-        let depth = state.depth();
-        let (list_id, mut list) = state.response.borrow_mut().data.take_list(depth);
+        let (list_id, mut list) = state.response.borrow_mut().data.take_next_list();
         if let Some(size_hint) = seq.size_hint() {
             list.reserve(size_hint);
         }
@@ -109,12 +108,12 @@ where
                     break;
                 }
                 Err(err) => {
+                    let mut resp = state.response.borrow_mut();
                     if !state.bubbling_up_deser_error.replace(true) && state.should_report_error_for(field) {
                         tracing::error!(
                             "Deserialization failure of subgraph response at path '{}': {err}",
                             self.state.display_path()
                         );
-                        let mut resp = state.response.borrow_mut();
                         let path = state.path();
                         resp.propagate_null(&path);
                         resp.errors.push(
@@ -124,17 +123,18 @@ where
                         );
                     }
 
+                    resp.data.restore_list(list_id, list);
                     return Err(err);
                 }
             }
         }
-        let length = index;
+        let limit = index;
 
         state.response.borrow_mut().data.restore_list(list_id, list);
         Ok(ResponseValue::List {
             id: list_id,
             offset,
-            length,
+            limit,
         })
     }
 

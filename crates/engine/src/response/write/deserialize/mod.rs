@@ -8,7 +8,7 @@ mod root;
 mod scalar;
 mod state;
 
-use object::{ConcreteShapeFieldsSeed, ObjectFields};
+use object::{ConcreteShapeFieldsSeed, FieldsDeserializationResult};
 use runtime::extension::Data;
 use serde::de::DeserializeSeed;
 

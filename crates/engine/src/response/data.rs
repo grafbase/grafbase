@@ -1,4 +1,6 @@
-use crate::response::ResponseField;
+use schema::ObjectDefinitionId;
+
+use crate::response::{ResponseField, ResponseFieldsSortedByKey};
 
 use super::{ResponseObject, ResponseValue, ResponseValueId};
 
@@ -12,12 +14,6 @@ impl std::ops::Deref for ResponseData {
     type Target = DataParts;
     fn deref(&self) -> &Self::Target {
         &self.parts
-    }
-}
-
-impl ResponseData {
-    pub(super) fn root_object(&self) -> &ResponseObject {
-        &self.parts[self.root]
     }
 }
 
@@ -39,8 +35,29 @@ impl DataParts {
 
     pub(super) fn insert(&mut self, part: DataPart) {
         let reservation = &mut self[part.id];
-        assert!(reservation.is_empty(), "Part already has data");
+        debug_assert!(reservation.is_empty(), "Part already has data");
+        debug_assert_eq!(part.next_available_shared_fields_index, 0, "No dangling shared fields");
+        debug_assert_eq!(part.next_available_list_index, 0, "No dangling shared list");
+        debug_assert_eq!(part.next_available_map_index, 0, "No dangling shared map");
         *reservation = part;
+    }
+
+    pub fn view_object(&self, id: ResponseObjectId) -> (Option<ObjectDefinitionId>, &[ResponseField]) {
+        let part = &self[id.part_id];
+        let object = &part[id.object_id];
+        let fields = match object.fields_sorted_by_key {
+            ResponseFieldsSortedByKey::Slice {
+                fields_id,
+                offset,
+                limit,
+            } => {
+                let start = offset as usize;
+                let end = start + limit as usize;
+                &part[fields_id][start..end]
+            }
+            ResponseFieldsSortedByKey::Owned { fields_id } => &part[fields_id],
+        };
+        (object.definition_id, fields)
     }
 }
 
@@ -117,14 +134,23 @@ pub(crate) struct DataPart {
     pub id: DataPartId,
     #[indexed_by(PartObjectId)]
     objects: Vec<ResponseObject>,
-    #[indexed_by(PartFieldListId)]
-    fields: Vec<Vec<ResponseField>>,
+    #[indexed_by(PartSharedFieldsId)]
+    shared_fields: Vec<Vec<ResponseField>>,
+    next_available_shared_fields_index: usize,
+    #[indexed_by(PartOwnedFieldsId)]
+    owned_fields: Vec<Vec<ResponseField>>,
+    // Contrary to fields, we don't the shared/owned separation because we never
+    // add or remove values from lists. When we push what would be an owned list we
+    // still keep track of the offset & limit. So if we later extend we'll only read the relevant
+    // part.
     #[indexed_by(PartListId)]
     lists: Vec<Vec<ResponseValue>>,
+    next_available_list_index: usize,
     #[indexed_by(PartInaccesibleValueId)]
     inaccessible_values: Vec<ResponseValue>,
     #[indexed_by(PartMapId)]
     maps: Vec<Vec<(String, ResponseValue)>>,
+    next_available_map_index: usize,
 }
 
 impl DataPart {
@@ -133,9 +159,13 @@ impl DataPart {
             id,
             objects: Vec::new(),
             lists: Vec::new(),
-            fields: Vec::new(),
+            next_available_list_index: 0,
+            shared_fields: Vec::new(),
+            next_available_shared_fields_index: 0,
+            owned_fields: Vec::new(),
             inaccessible_values: Vec::new(),
             maps: Vec::new(),
+            next_available_map_index: 0,
         }
     }
 
@@ -190,33 +220,56 @@ impl DataPart {
                 nullable,
             } => {
                 debug_assert!(part_id == self.id && nullable, "{part_id} == {} && {nullable}", self.id);
-                match self[object_id]
-                    .fields_sorted_by_key
-                    .binary_search_by(|probe| probe.key.cmp(&key))
-                {
-                    Ok(index) => {
-                        let mut inaccessible_value = ResponseValue::Inaccessible {
-                            id: ResponseInaccessibleValueId {
-                                part_id: self.id,
-                                value_id: PartInaccesibleValueId::from(self.inaccessible_values.len()),
-                            },
-                        };
-                        std::mem::swap(
-                            &mut self[object_id].fields_sorted_by_key[index].value,
-                            &mut inaccessible_value,
-                        );
-                        self.inaccessible_values.push(inaccessible_value);
+                match self[object_id].fields_sorted_by_key {
+                    ResponseFieldsSortedByKey::Slice {
+                        fields_id,
+                        offset,
+                        limit,
+                    } => {
+                        let start = offset as usize;
+                        let end = start + limit as usize;
+                        match self[fields_id][start..end].binary_search_by(|probe| probe.key.cmp(&key)) {
+                            Ok(index) => {
+                                let mut inaccessible_value = ResponseValue::Inaccessible {
+                                    id: ResponseInaccessibleValueId {
+                                        part_id: self.id,
+                                        value_id: PartInaccesibleValueId::from(self.inaccessible_values.len()),
+                                    },
+                                };
+                                std::mem::swap(&mut self[fields_id][start + index].value, &mut inaccessible_value);
+                                self.inaccessible_values.push(inaccessible_value);
+                            }
+                            Err(_) => {
+                                unreachable!("Slice fields should always contain the inaccessible field");
+                            }
+                        }
                     }
-                    // May not be present for extension field resolver as they add fields directly,
-                    // rather than entities.
-                    Err(index) => {
-                        self[object_id].fields_sorted_by_key.insert(
-                            index,
-                            ResponseField {
-                                key,
-                                value: ResponseValue::Null,
-                            },
-                        );
+                    ResponseFieldsSortedByKey::Owned {
+                        fields_id: fields_list_id,
+                    } => {
+                        match self[fields_list_id].binary_search_by(|probe| probe.key.cmp(&key)) {
+                            Ok(index) => {
+                                let mut inaccessible_value = ResponseValue::Inaccessible {
+                                    id: ResponseInaccessibleValueId {
+                                        part_id: self.id,
+                                        value_id: PartInaccesibleValueId::from(self.inaccessible_values.len()),
+                                    },
+                                };
+                                std::mem::swap(&mut self[fields_list_id][index].value, &mut inaccessible_value);
+                                self.inaccessible_values.push(inaccessible_value);
+                            }
+                            // May not be present for extension field resolver as they add fields directly,
+                            // rather than entities.
+                            Err(index) => {
+                                self[fields_list_id].insert(
+                                    index,
+                                    ResponseField {
+                                        key,
+                                        value: ResponseValue::Null,
+                                    },
+                                );
+                            }
+                        }
                     }
                 }
             }
@@ -257,12 +310,19 @@ impl DataPart {
         }
     }
 
-    pub fn reserve_object_id(&mut self) -> ResponseObjectId {
-        self.push_object(ResponseObject::new(None, Vec::new()))
+    pub fn push_empty_object(&mut self, definition_id: Option<ObjectDefinitionId>) -> ResponseObjectId {
+        self.push_object(ResponseObject {
+            definition_id,
+            fields_sorted_by_key: ResponseFieldsSortedByKey::Slice {
+                fields_id: 0usize.into(),
+                offset: 0,
+                limit: 0,
+            },
+        })
     }
 
     pub fn put_object(&mut self, ResponseObjectId { part_id, object_id }: ResponseObjectId, object: ResponseObject) {
-        debug_assert!(part_id == self.id && self[object_id].fields_sorted_by_key.is_empty());
+        debug_assert!(part_id == self.id);
         self[object_id] = object;
     }
 
@@ -275,50 +335,75 @@ impl DataPart {
         }
     }
 
-    pub fn take_list(&mut self, depth: usize) -> (ResponseListId, Vec<ResponseValue>) {
-        if self.lists.len() <= depth {
-            self.lists.resize_with(depth + 1, Vec::new);
-        }
+    pub fn take_next_list(&mut self) -> (ResponseListId, Vec<ResponseValue>) {
+        let i = self.next_available_list_index;
+        self.next_available_list_index += 1;
+        let list = if let Some(list) = self.lists.get_mut(i) {
+            std::mem::take(list)
+        } else {
+            self.lists.push(Vec::new());
+            Vec::new()
+        };
         let id = ResponseListId {
             part_id: self.id,
-            list_id: PartListId::from(depth),
+            list_id: PartListId::from(i),
         };
-        (id, std::mem::take(&mut self.lists[depth]))
+        (id, list)
     }
 
     pub fn restore_list(&mut self, id: ResponseListId, list: Vec<ResponseValue>) {
-        debug_assert!(id.part_id == self.id);
-        let depth = usize::from(id.list_id);
-        debug_assert!(depth < self.lists.len());
-        self.lists[depth] = list;
+        let i = usize::from(id.list_id);
+        self.next_available_list_index -= 1;
+        debug_assert!(id.part_id == self.id && i == self.next_available_list_index && i < self.lists.len());
+        self.lists[i] = list;
     }
 
-    pub fn push_field_list(&mut self, list: Vec<ResponseField>) -> PartFieldListId {
-        let list_id = PartFieldListId::from(self.fields.len());
-        self.fields.push(list);
-        list_id
+    pub fn push_owned_sorted_fields_by_key(&mut self, fields: Vec<ResponseField>) -> PartOwnedFieldsId {
+        let fields_id = PartOwnedFieldsId::from(self.owned_fields.len());
+        self.owned_fields.push(fields);
+        fields_id
     }
 
-    pub fn take_field_list(&mut self, depth: usize) -> (PartFieldListId, Vec<ResponseField>) {
-        if self.fields.len() <= depth {
-            self.fields.resize_with(depth + 1, Vec::new);
-        }
-        (PartFieldListId::from(depth), std::mem::take(&mut self.fields[depth]))
+    pub fn take_next_shared_fields(&mut self) -> (PartSharedFieldsId, Vec<ResponseField>) {
+        let i = self.next_available_shared_fields_index;
+        self.next_available_shared_fields_index += 1;
+        let fields = if let Some(fields) = self.shared_fields.get_mut(i) {
+            std::mem::take(fields)
+        } else {
+            self.shared_fields.push(Vec::new());
+            Vec::new()
+        };
+        (PartSharedFieldsId::from(i), fields)
     }
 
-    pub fn restore_field_list(&mut self, id: PartFieldListId, list: Vec<ResponseField>) {
-        let depth = usize::from(id);
-        debug_assert!(depth < self.fields.len());
-        self.fields[depth] = list;
+    pub fn restore_shared_fields(&mut self, id: PartSharedFieldsId, fields: Vec<ResponseField>) {
+        let i = usize::from(id);
+        self.next_available_shared_fields_index -= 1;
+        debug_assert!(i < self.shared_fields.len() && i == self.next_available_shared_fields_index);
+        self.shared_fields[i] = fields;
     }
 
-    pub fn push_map(&mut self, map: Vec<(String, ResponseValue)>) -> ResponseMapId {
-        let map_id = PartMapId::from(self.maps.len());
-        self.maps.push(map);
-        ResponseMapId {
+    pub fn take_next_map(&mut self) -> (ResponseMapId, Vec<(String, ResponseValue)>) {
+        let i = self.next_available_map_index;
+        self.next_available_map_index += 1;
+        let map = if let Some(map) = self.maps.get_mut(i) {
+            std::mem::take(map)
+        } else {
+            self.maps.push(Vec::new());
+            Vec::new()
+        };
+        let id = ResponseMapId {
             part_id: self.id,
-            map_id,
-        }
+            map_id: PartMapId::from(i),
+        };
+        (id, map)
+    }
+
+    pub fn restore_map(&mut self, id: ResponseMapId, map: Vec<(String, ResponseValue)>) {
+        let i = usize::from(id.map_id);
+        self.next_available_map_index -= 1;
+        debug_assert!(id.part_id == self.id && i == self.next_available_map_index && i < self.maps.len());
+        self.maps[i] = map;
     }
 }
 
@@ -347,10 +432,10 @@ impl std::fmt::Display for ResponseObjectId {
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
-pub(crate) struct PartFieldId(u32);
+pub(crate) struct PartOwnedFieldsId(u32);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
-pub(crate) struct PartFieldListId(u16);
+pub(crate) struct PartSharedFieldsId(u16);
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
 pub(crate) struct PartListId(u16);

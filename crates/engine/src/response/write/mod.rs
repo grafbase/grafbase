@@ -30,9 +30,10 @@ impl<'ctx> ResponseBuilder<'ctx> {
     pub fn new(schema: &'ctx Arc<Schema>, operation: &'ctx Arc<PreparedOperation>) -> Self {
         let root_object_definition_id = operation.cached.operation.root_object_id;
         let mut data_parts = DataParts::default();
-        let mut initial_part = data_parts.new_part();
-        let root_id = initial_part.push_object(ResponseObject::new(Some(root_object_definition_id), Vec::new()));
-        data_parts.insert(initial_part);
+        let mut part = data_parts.new_part();
+        let fields_id = part.push_owned_sorted_fields_by_key(Vec::new());
+        let root_id = part.push_object(ResponseObject::new(Some(root_object_definition_id), fields_id));
+        data_parts.insert(part);
 
         Self {
             schema,
@@ -81,6 +82,7 @@ impl<'ctx> ResponseBuilder<'ctx> {
     }
 
     pub fn ingest(&mut self, part: ResponsePartBuilder<'ctx>) -> PartIngestionResult {
+        let new_part_id = part.data.id;
         self.data_parts.insert(part.data);
         self.error_parts.push(part.errors);
 
@@ -93,10 +95,9 @@ impl<'ctx> ResponseBuilder<'ctx> {
         let ctx = OperationPlanContext::from((self.schema.as_ref(), self.operation.as_ref()));
         for update in part.object_updates {
             match update {
-                ObjectUpdate::Fields(id, mut fields) => {
+                ObjectUpdate::Fields(id, fields) => {
                     has_ingested_data = true;
-                    fields.sort_unstable_by(|a, b| a.key.cmp(&b.key));
-                    self.recursive_merge_object(id, fields);
+                    self.recursive_merge_object_in_place(id, new_part_id, fields);
                 }
                 ObjectUpdate::Default(id, default_field_ids) => {
                     self.merge_with_default_object(id, default_field_ids.walk(ctx));

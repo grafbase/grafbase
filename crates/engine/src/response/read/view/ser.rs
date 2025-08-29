@@ -1,12 +1,16 @@
 use std::cmp::Ordering;
 
 use itertools::Itertools as _;
+use operation::ResponseKey;
 use schema::{EntityDefinition, KeyValueInjectionRecord, ValueInjection};
 use serde::ser::{Error, SerializeMap};
 use walker::Walk as _;
 
 use super::{ForFieldSet, ForInjection, ParentObjectsView, ResponseObjectView, ResponseValueView, WithExtraFields};
-use crate::{prepare::RequiredFieldSet, response::ResponseValue};
+use crate::{
+    prepare::RequiredFieldSet,
+    response::{ResponseField, ResponseValue},
+};
 
 impl<'a, View: Copy> serde::Serialize for ParentObjectsView<'a, View>
 where
@@ -33,25 +37,21 @@ impl serde::Serialize for ResponseObjectView<'_, WithExtraFields<'_>> {
             map.serialize_entry(name, value)?
         }
 
+        let fields = self.ctx.response.data_parts.view_object(self.response_object_id).1;
         for selection in self.view.requirements.iter() {
             let field = selection.data_field();
             let key = field.definition().name();
             let value = ResponseValueView {
                 ctx: self.ctx,
-                value: self
-                    .response_object
-                    .find_by_response_key(field.response_key)
-                    .ok_or_else(|| {
-                        S::Error::custom(format_args!(
-                            "Could not retrieve field '{key}' within object having fields {}",
-                            self.response_object
-                                .fields()
-                                .format_with(",", |field, f| f(&format_args!(
-                                    "{}",
-                                    &self.ctx.response_keys()[field.key]
-                                )))
-                        ))
-                    })?,
+                value: find_field_by_response_key(fields, field.response_key).ok_or_else(|| {
+                    S::Error::custom(format_args!(
+                        "Could not retrieve field '{key}' within object having fields {}",
+                        fields.iter().format_with(",", |field, f| f(&format_args!(
+                            "{}",
+                            &self.ctx.response_keys()[field.key]
+                        )))
+                    ))
+                })?,
                 view: ForwardView(selection.subselection()),
             };
             map.serialize_entry(key, &value)?;
@@ -67,15 +67,16 @@ impl serde::Serialize for ResponseObjectView<'_, RequiredFieldSet<'_>> {
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(Some(self.view.len()))?;
+        let (definition_id, fields) = self.ctx.response.data_parts.view_object(self.response_object_id);
         for selection in self.view.iter() {
             let field = selection.data_field();
             let key = field.definition().name();
-            let value = match self.response_object.find_by_response_key(field.response_key) {
+            let value = match find_field_by_response_key(fields, field.response_key) {
                 Some(value) => value,
                 None => {
                     // If this field doesn't match the actual response object, meaning this field
                     // was in a fragment that doesn't apply to this object, we can safely skip it.
-                    if let Some(definition_id) = self.response_object.definition_id {
+                    if let Some(definition_id) = definition_id {
                         match field.definition().parent_entity() {
                             EntityDefinition::Interface(inf) => {
                                 if inf.possible_type_ids.binary_search(&definition_id).is_err() {
@@ -115,6 +116,7 @@ impl serde::Serialize for ResponseObjectView<'_, ForFieldSet<'_>> {
     {
         let mut map = serializer.serialize_map(Some(self.view.field_set.len()))?;
         let mut r = 0;
+        let (definition_id, fields) = self.ctx.response.data_parts.view_object(self.response_object_id);
 
         'field_set: for field_set_item in self.view.field_set {
             while let Some(selection) = self.view.requirements.get(r) {
@@ -123,12 +125,12 @@ impl serde::Serialize for ResponseObjectView<'_, ForFieldSet<'_>> {
                     Ordering::Equal => {
                         let field = selection.data_field();
                         let key = field.definition().name();
-                        let value = match self.response_object.find_by_response_key(field.response_key) {
+                        let value = match find_field_by_response_key(fields, field.response_key) {
                             Some(value) => value,
                             None => {
                                 // If this field doesn't match the actual response object, meaning this field
                                 // was in a fragment that doesn't apply to this object, we can safely skip it.
-                                if let Some(definition_id) = self.response_object.definition_id {
+                                if let Some(definition_id) = definition_id {
                                     match field.definition().parent_entity() {
                                         EntityDefinition::Interface(inf) => {
                                             if inf.possible_type_ids.binary_search(&definition_id).is_err() {
@@ -202,11 +204,10 @@ where
             ResponseValue::String { value, .. } => value.serialize(serializer),
             ResponseValue::StringId { id, .. } => self.ctx.response.schema[*id].serialize(serializer),
             ResponseValue::I64 { value, .. } => value.serialize(serializer),
-            &ResponseValue::List { id, offset, length } => {
-                let offset = offset as usize;
-                let length = length as usize;
-                let end = offset + length;
-                let values = &self.ctx.response.data_parts[id][offset..end];
+            &ResponseValue::List { id, offset, limit } => {
+                let start = offset as usize;
+                let end = start + limit as usize;
+                let values = &self.ctx.response.data_parts[id][start..end];
                 serializer.collect_seq(values.iter().map(|value| ResponseValueView {
                     ctx: self.ctx,
                     value,
@@ -215,23 +216,29 @@ where
             }
             &ResponseValue::Object { id, .. } => ResponseObjectView {
                 ctx: self.ctx,
-                response_object: &self.ctx.response.data_parts[id],
+                response_object_id: id,
                 view: self.view.0,
             }
             .serialize(serializer),
             ResponseValue::Unexpected => Err(S::Error::custom("Unexpected value")),
             ResponseValue::U64 { value } => value.serialize(serializer),
-            ResponseValue::Map { id } => {
-                serializer.collect_map(self.ctx.response.data_parts[*id].iter().map(|(key, value)| {
-                    (
-                        key.as_str(),
-                        ResponseValueView {
-                            ctx: self.ctx,
-                            value,
-                            view: self.view,
-                        },
-                    )
-                }))
+            ResponseValue::Map { id, offset, limit } => {
+                let start = *offset as usize;
+                let end = start + *limit as usize;
+                serializer.collect_map(
+                    self.ctx.response.data_parts[*id][start..end]
+                        .iter()
+                        .map(|(key, value)| {
+                            (
+                                key.as_str(),
+                                ResponseValueView {
+                                    ctx: self.ctx,
+                                    value,
+                                    view: self.view,
+                                },
+                            )
+                        }),
+                )
             }
         }
     }
@@ -243,6 +250,8 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
         S: serde::Serializer,
     {
         let schema = self.ctx.schema();
+        let (definition_id, fields) = self.ctx.response.data_parts.view_object(self.response_object_id);
+
         match self.view.injection {
             ValueInjection::Select { field_id, next } => {
                 let Some(selection) = self
@@ -259,9 +268,7 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
                     )));
                 };
 
-                let field = self
-                    .response_object
-                    .find_by_response_key(selection.data_field().response_key)
+                let field = find_field_by_response_key(fields, selection.data_field().response_key)
                     .ok_or_else(|| S::Error::custom(format_args!("Could not retrieve field {field_id}")))?;
                 ResponseValueView {
                     ctx: self.ctx,
@@ -290,13 +297,12 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
                                     ),
                                     Ordering::Equal => {
                                         let field = selection.data_field();
-                                        let value = match self.response_object.find_by_response_key(field.response_key)
-                                        {
+                                        let value = match find_field_by_response_key(fields, field.response_key) {
                                             Some(value) => value,
                                             None => {
                                                 // If this field doesn't match the actual response object, meaning this field
                                                 // was in a fragment that doesn't apply to this object, we can safely skip it.
-                                                if let Some(definition_id) = self.response_object.definition_id {
+                                                if let Some(definition_id) = definition_id {
                                                     match field.definition().parent_entity() {
                                                         EntityDefinition::Interface(inf) => {
                                                             if inf
@@ -351,7 +357,7 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
                                 &schema[key_id],
                                 &Self {
                                     ctx: self.ctx,
-                                    response_object: self.response_object,
+                                    response_object_id: self.response_object_id,
                                     view: ForInjection {
                                         injection,
                                         requirements: self.view.requirements,
@@ -370,6 +376,13 @@ impl serde::Serialize for ResponseObjectView<'_, ForInjection<'_>> {
     }
 }
 
+fn find_field_by_response_key(fields: &[ResponseField], response_key: ResponseKey) -> Option<&ResponseValue> {
+    fields
+        .iter()
+        .find(|field| field.key.response_key == response_key)
+        .map(|field| &field.value)
+}
+
 impl<'a> serde::Serialize for ResponseValueView<'a, ForInjection<'_>> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -378,7 +391,7 @@ impl<'a> serde::Serialize for ResponseValueView<'a, ForInjection<'_>> {
         match self.value {
             ResponseValue::Object { id, .. } => ResponseObjectView {
                 ctx: self.ctx,
-                response_object: &self.ctx.response.data_parts[*id],
+                response_object_id: *id,
                 view: self.view,
             }
             .serialize(serializer),
@@ -413,11 +426,10 @@ impl<'a> serde::Serialize for ResponseValueView<'a, ForInjection<'_>> {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
                 value.serialize(serializer)
             }
-            ResponseValue::List { id, offset, length } => {
-                let offset = *offset as usize;
-                let length = *length as usize;
-                let end = offset + length;
-                let values = &self.ctx.response.data_parts[*id][offset..end];
+            ResponseValue::List { id, offset, limit } => {
+                let start = *offset as usize;
+                let end = start + *limit as usize;
+                let values = &self.ctx.response.data_parts[*id][start..end];
                 serializer.collect_seq(values.iter().map(|value| ResponseValueView {
                     ctx: self.ctx,
                     value,
@@ -429,18 +441,24 @@ impl<'a> serde::Serialize for ResponseValueView<'a, ForInjection<'_>> {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
                 value.serialize(serializer)
             }
-            ResponseValue::Map { id } => {
+            ResponseValue::Map { id, offset, limit } => {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
-                serializer.collect_map(self.ctx.response.data_parts[*id].iter().map(|(key, value)| {
-                    (
-                        key.as_str(),
-                        ResponseValueView {
-                            ctx: self.ctx,
-                            value,
-                            view: self.view,
-                        },
-                    )
-                }))
+                let start = *offset as usize;
+                let end = start + *limit as usize;
+                serializer.collect_map(
+                    self.ctx.response.data_parts[*id][start..end]
+                        .iter()
+                        .map(|(key, value)| {
+                            (
+                                key.as_str(),
+                                ResponseValueView {
+                                    ctx: self.ctx,
+                                    value,
+                                    view: self.view,
+                                },
+                            )
+                        }),
+                )
             }
         }
     }

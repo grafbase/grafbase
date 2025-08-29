@@ -10,7 +10,7 @@ use walker::Walk;
 use crate::{
     prepare::{FieldShapeRecord, ObjectIdentifier, PolymorphicShapeId, PolymorphicShapeRecord},
     response::{
-        GraphqlError, ResponseObject, ResponseValue,
+        GraphqlError, ResponseValue,
         write::deserialize::{SeedState, key::Key},
     },
 };
@@ -176,7 +176,7 @@ impl<'de> Visitor<'de> for PolymorphicShapeSeed<'_, '_, '_> {
                         .response
                         .borrow_mut()
                         .data
-                        .push_object(ResponseObject::new(Some(object_definition_id), Vec::new()))
+                        .push_empty_object(Some(object_definition_id))
                         .into())
                 };
             }

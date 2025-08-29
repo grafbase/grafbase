@@ -2,7 +2,7 @@ use operation::ResponseKeys;
 use schema::Schema;
 use serde::ser::{SerializeMap, SerializeSeq};
 
-use crate::response::{ResponseData, ResponseObject, ResponseValue, value::ResponseField};
+use crate::response::{ResponseData, ResponseObjectId, ResponseValue, value::ResponseField};
 
 #[derive(Clone, Copy)]
 pub(super) struct Context<'a> {
@@ -22,7 +22,7 @@ impl serde::Serialize for SerializableResponseData<'_> {
     {
         SerializableResponseObject {
             ctx: self.ctx,
-            object: self.ctx.data.root_object(),
+            response_object_id: self.ctx.data.root,
         }
         .serialize(serializer)
     }
@@ -30,7 +30,7 @@ impl serde::Serialize for SerializableResponseData<'_> {
 
 struct SerializableResponseObject<'a> {
     ctx: Context<'a>,
-    object: &'a ResponseObject,
+    response_object_id: ResponseObjectId,
 }
 
 impl serde::Serialize for SerializableResponseObject<'_> {
@@ -39,8 +39,8 @@ impl serde::Serialize for SerializableResponseObject<'_> {
         S: serde::Serializer,
     {
         let mut map = serializer.serialize_map(None)?;
+        let mut fields = self.ctx.data.parts.view_object(self.response_object_id).1.iter();
         // Fields are ordered by their query_position, so ones without are first.
-        let mut fields = self.object.fields();
         for ResponseField { key, value, .. } in fields.by_ref() {
             if key.query_position.is_some() {
                 map.serialize_key(&self.ctx.keys[key.response_key])?;
@@ -94,27 +94,30 @@ impl serde::Serialize for SerializableResponseValue<'_> {
             ResponseValue::String { value, .. } => value.serialize(serializer),
             ResponseValue::StringId { id, .. } => self.ctx.schema[*id].serialize(serializer),
             ResponseValue::I64 { value, .. } => value.serialize(serializer),
-            ResponseValue::List { id, offset, length } => {
-                let offset = *offset as usize;
-                let length = *length as usize;
-                let end = offset + length;
+            ResponseValue::List { id, offset, limit } => {
+                let start = *offset as usize;
+                let end = start + *limit as usize;
                 SerializableResponseList {
                     ctx: self.ctx,
-                    value: &self.ctx.data[*id][offset..end],
+                    value: &self.ctx.data[*id][start..end],
                 }
             }
             .serialize(serializer),
             ResponseValue::Object { id, .. } => SerializableResponseObject {
                 ctx: self.ctx,
-                object: &self.ctx.data[*id],
+                response_object_id: *id,
             }
             .serialize(serializer),
             ResponseValue::U64 { value } => value.serialize(serializer),
-            ResponseValue::Map { id } => serializer.collect_map(
-                self.ctx.data[*id]
-                    .iter()
-                    .map(|(key, value)| (key.as_str(), SerializableResponseValue { ctx: self.ctx, value })),
-            ),
+            ResponseValue::Map { id, offset, limit } => {
+                let start = *offset as usize;
+                let end = start + *limit as usize;
+                serializer.collect_map(
+                    self.ctx.data[*id][start..end]
+                        .iter()
+                        .map(|(key, value)| (key.as_str(), SerializableResponseValue { ctx: self.ctx, value })),
+                )
+            }
         }
     }
 }

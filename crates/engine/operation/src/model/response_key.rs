@@ -62,6 +62,16 @@ impl ResponseKey {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 pub struct ResponseKey(NonZero<u16>);
 
+impl ResponseKey {
+    /// # Safety
+    /// Only use this method after we parsed a valid operation. It will contain at least one
+    /// field and thus at least one response key.
+    pub unsafe fn null() -> Self {
+        // SAFETY: Obviously non zero
+        Self(unsafe { NonZero::new_unchecked(1) })
+    }
+}
+
 impl From<ResponseKey> for usize {
     fn from(key: ResponseKey) -> usize {
         (key.0.get() - 1) as usize
