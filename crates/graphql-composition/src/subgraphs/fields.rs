@@ -3,17 +3,12 @@ use super::*;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct FieldPath(pub(crate) DefinitionId, pub(crate) StringId);
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct ArgumentPath(pub(crate) DefinitionId, pub(crate) StringId, pub(crate) StringId);
-
 pub(crate) type FieldView<'a> = View<'a, FieldId, FieldTuple>;
+pub(crate) type ArgumentView<'a> = View<'a, ArgumentId, ArgumentRecord>;
 
 /// Fields of objects and interfaces.
 #[derive(Default)]
 pub(crate) struct Fields {
-    /// Output field arguments.
-    field_arguments: BTreeMap<ArgumentPath, ArgumentId>,
-
     /// Fields of objects, interfaces and input objects.
     ///
     /// FieldIds only become stable once we start composition, since we are sorting at that point. Do not create field ids during ingestion.
@@ -32,7 +27,7 @@ pub(crate) struct ArgumentRecord {
     /// }
     /// ```
     pub(crate) name: StringId,
-    pub(crate) parent_field: FieldPath,
+    pub(crate) parent_field_name: StringId,
     pub(crate) parent_definition_id: DefinitionId,
     /// ```graphql,ignore
     /// type Query {
@@ -72,56 +67,12 @@ impl Subgraphs {
         })
     }
 
-    pub(crate) fn push_field(
-        &mut self,
-        FieldIngest {
-            parent_definition_id,
-            field_name,
-            field_type,
-            directives,
-            description,
-            default,
-        }: FieldIngest<'_>,
-    ) -> FieldPath {
-        let name = self.strings.intern(field_name);
-
-        self.fields.fields.push(FieldTuple {
-            name,
-            parent_definition_id,
-            r#type: field_type,
-            directives,
-            description,
-            input_field_default_value: default,
-        });
-
-        FieldPath(parent_definition_id, name)
+    pub(crate) fn push_field(&mut self, record: FieldTuple) {
+        self.fields.fields.push(record);
     }
 
-    pub(crate) fn insert_field_argument(
-        &mut self,
-        FieldPath(definition_id, field_name): FieldPath,
-        argument_name: StringId,
-        r#type: FieldType,
-        directives: DirectiveSiteId,
-        description: Option<StringId>,
-        default: Option<Value>,
-    ) {
-        let argument_path = ArgumentPath(definition_id, field_name, argument_name);
-        let argument_id = self
-            .fields
-            .arguments
-            .push_return_idx(ArgumentRecord {
-                parent_definition_id: definition_id,
-                name: argument_name,
-                r#type,
-                directives,
-                description,
-                parent_field: FieldPath(definition_id, field_name),
-                default_value: default,
-            })
-            .into();
-
-        self.fields.field_arguments.insert(argument_path, argument_id);
+    pub(crate) fn insert_field_argument(&mut self, record: ArgumentRecord) {
+        self.fields.arguments.push(record);
     }
 
     pub(crate) fn iter_output_field_arguments(
@@ -135,15 +86,6 @@ impl Subgraphs {
     }
 }
 
-pub(crate) struct FieldIngest<'a> {
-    pub(crate) parent_definition_id: DefinitionId,
-    pub(crate) field_name: &'a str,
-    pub(crate) field_type: FieldType,
-    pub(crate) description: Option<StringId>,
-    pub(crate) directives: DirectiveSiteId,
-    pub(crate) default: Option<Value>,
-}
-
 impl FieldTuple {
     /// ```graphql,ignore
     /// type Query {
@@ -154,24 +96,35 @@ impl FieldTuple {
     pub(crate) fn arguments<'b, 'a: 'b>(
         &'b self,
         subgraphs: &'a Subgraphs,
-    ) -> impl Iterator<Item = &'a ArgumentRecord> + 'b {
-        subgraphs
-            .fields
-            .field_arguments
-            .range(
-                ArgumentPath(self.parent_definition_id, self.name, StringId::MIN)
-                    ..ArgumentPath(self.parent_definition_id, self.name, StringId::MAX),
-            )
-            .map(|(_, argument_id)| &subgraphs[*argument_id])
+    ) -> impl Iterator<Item = ArgumentView<'a>> + 'b {
+        let start = subgraphs.fields.arguments.partition_point(|arg| {
+            (arg.parent_definition_id, arg.parent_field_name) < (self.parent_definition_id, self.name)
+        });
+
+        subgraphs.fields.arguments[start..]
+            .iter()
+            .take_while(|arg| {
+                (self.parent_definition_id, self.name) == (arg.parent_definition_id, arg.parent_field_name)
+            })
+            .enumerate()
+            .map(move |(idx, record)| View {
+                id: (start + idx).into(),
+                record,
+            })
     }
 
-    pub(crate) fn argument_by_name<'a>(&self, subgraphs: &'a Subgraphs, name: StringId) -> Option<&'a ArgumentRecord> {
-        let argument_path = ArgumentPath(self.parent_definition_id, self.name, name);
+    pub(crate) fn argument_by_name<'a>(&self, subgraphs: &'a Subgraphs, name: StringId) -> Option<ArgumentView<'a>> {
         subgraphs
             .fields
-            .field_arguments
-            .get(&argument_path)
-            .map(|id| &subgraphs[*id])
+            .arguments
+            .binary_search_by_key(&(self.parent_definition_id, self.name, name), |arg| {
+                (arg.parent_definition_id, arg.parent_field_name, arg.name)
+            })
+            .map(move |idx| {
+                let id = ArgumentId::from(idx);
+                subgraphs.at(id)
+            })
+            .ok()
     }
 
     pub(crate) fn is_part_of_key(&self, subgraphs: &Subgraphs) -> bool {
