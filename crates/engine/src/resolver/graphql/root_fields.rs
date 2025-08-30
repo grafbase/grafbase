@@ -164,7 +164,7 @@ async fn fetch_response_without_cache<'ctx, R: Runtime>(
                     response_part,
                     &parent_objects,
                     shape_id,
-                    Deserializable::Json(http_response.body().as_ref()),
+                    Deserializable::Json(http_response.body()),
                 ),
                 Err(error) => {
                     response_part.insert_error_updates(&parent_objects, shape_id, [error]);
@@ -198,8 +198,12 @@ async fn fetch_response_with_cache<'ctx, R: Runtime>(
     match super::cache::fetch_response(ctx, &subgraph_headers, &body).await {
         Ok(ResponseCacheHit { data }) => {
             ctx.record_cache_hit();
-            let (_, response_part) =
-                ingest_graphql_data(response_part, &parent_objects, shape_id, Deserializable::Json(&data));
+            let (_, response_part) = ingest_graphql_data(
+                response_part,
+                &parent_objects,
+                shape_id,
+                Deserializable::Json(&Bytes::from(data)),
+            );
             response_part
         }
         Err(ResponseCacheMiss { key }) => {
@@ -254,7 +258,7 @@ where
             response_part,
             &parent_objects,
             shape_id,
-            Deserializable::Json(http_response.body().as_ref()),
+            Deserializable::Json(http_response.body()),
         );
 
         if let Some(status) = status.filter(|s| s.is_success()) {
