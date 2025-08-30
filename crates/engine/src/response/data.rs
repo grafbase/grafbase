@@ -1,3 +1,5 @@
+use bytes::Bytes;
+
 use crate::response::ResponseObjectField;
 
 use super::{ResponseObject, ResponseValue, ResponseValueId};
@@ -115,6 +117,8 @@ pub(crate) struct DataPartId(u16);
 #[derive(id_derives::IndexedFields)]
 pub(crate) struct DataPart {
     pub id: DataPartId,
+    deserialized_bytes: Option<Bytes>,
+    strings: Vec<String>,
     #[indexed_by(PartObjectId)]
     objects: Vec<ResponseObject>,
     #[indexed_by(PartListId)]
@@ -129,6 +133,8 @@ impl DataPart {
     pub(super) fn new(id: DataPartId) -> Self {
         Self {
             id,
+            deserialized_bytes: None,
+            strings: Vec::new(),
             objects: Vec::new(),
             lists: Vec::new(),
             inaccessible_values: Vec::new(),
@@ -138,6 +144,16 @@ impl DataPart {
 
     pub fn is_empty(&self) -> bool {
         self.objects.is_empty() && self.lists.is_empty()
+    }
+
+    /// # Safety
+    /// You must ensure that the provided bytes ARE the deserialized data.
+    pub unsafe fn use_borrowed_strings(&mut self, bytes: Bytes) {
+        assert!(
+            self.deserialized_bytes.is_none(),
+            "Deserialized bytes already set, it would invalidate all existing pointers."
+        );
+        self.deserialized_bytes = Some(bytes);
     }
 
     /// In a non-federated GraphQL server, values are simply set to null when propagating nulls for
@@ -289,6 +305,25 @@ impl DataPart {
             map_id,
         }
     }
+
+    pub fn push_string(&mut self, s: String) -> (PartStrPtr, u32) {
+        let length = s.len() as u32;
+        let ptr = PartStrPtr(s.as_ptr());
+        self.strings.push(s);
+        (ptr, length)
+    }
+
+    /// # Safety
+    /// Must only be used on borrowed data from the deserialized bytes.
+    pub unsafe fn push_borrowed_string(&mut self, s: &str) -> (PartStrPtr, u32) {
+        if self.deserialized_bytes.is_none() {
+            self.push_string(s.to_owned())
+        } else {
+            let length = s.len() as u32;
+            let ptr = PartStrPtr(s.as_ptr());
+            (ptr, length)
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
@@ -331,4 +366,19 @@ pub(crate) struct PartMapId(u32);
 pub(crate) struct ResponseMapId {
     pub part_id: DataPartId,
     pub map_id: PartMapId,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct PartStrPtr(*const u8);
+
+// SAFETY: PartString is a pointer to a String and is never processed in any other way.
+unsafe impl Send for PartStrPtr {}
+unsafe impl Sync for PartStrPtr {}
+
+impl PartStrPtr {
+    pub fn as_str(&self, len: u32) -> &str {
+        // SAFETY: The pointer is valid as long as the DataPart is alive and PartStrPtr can only be
+        // accessed in ResponseValues which are part of a response which keeps all DataParts alive.
+        unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(self.0, len as usize)) }
+    }
 }

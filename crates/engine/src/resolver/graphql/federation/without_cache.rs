@@ -52,7 +52,7 @@ impl ResponseIngester for EntityIngester {
             ),
         );
 
-        let status = match state.deserialize_data_with(Deserializable::Json(http_response.body().as_ref()), seed) {
+        let status = match state.deserialize_data_with(Deserializable::Json(http_response.body()), seed) {
             Ok(status) => Some(status),
             Err(err) => {
                 if let Some(error) = err {

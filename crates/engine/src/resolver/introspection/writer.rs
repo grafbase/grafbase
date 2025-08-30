@@ -373,7 +373,10 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 __InputValue::DefaultValue => target
                     .as_ref()
                     .default_value_id
-                    .map(|id| self.schema.walk(&self.schema[id]).to_string())
+                    .map(|id| {
+                        let value = self.schema.walk(&self.schema[id]).to_string();
+                        self.response.borrow_mut().data.push_string(value)
+                    })
                     .into(),
             },
         )

@@ -255,12 +255,27 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_, '_> {
         }
     }
 
+    fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+    where
+        E: Error,
+    {
+        match self.ty {
+            ScalarType::String | ScalarType::Unknown => {
+                // SAFETY: The str we provide does come from the deserialized data.
+                Ok(unsafe { self.state.response.borrow_mut().data.push_borrowed_string(v).into() })
+            }
+            _ => Ok(self.unexpected_type(Unexpected::Str(v))),
+        }
+    }
+
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: Error,
     {
         match self.ty {
-            ScalarType::String | ScalarType::Unknown => Ok(ResponseValue::String { value: v.into() }),
+            ScalarType::String | ScalarType::Unknown => {
+                Ok(self.state.response.borrow_mut().data.push_string(v.to_owned()).into())
+            }
             _ => Ok(self.unexpected_type(Unexpected::Str(v))),
         }
     }
@@ -270,7 +285,7 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_, '_> {
         E: Error,
     {
         match self.ty {
-            ScalarType::String | ScalarType::Unknown => Ok(ResponseValue::String { value: v }),
+            ScalarType::String | ScalarType::Unknown => Ok(self.state.response.borrow_mut().data.push_string(v).into()),
             _ => Ok(self.unexpected_type(Unexpected::Str(&v))),
         }
     }

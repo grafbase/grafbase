@@ -88,18 +88,18 @@ impl serde::Serialize for SerializableResponseValue<'_> {
             ResponseValue::Null | ResponseValue::Inaccessible { .. } | ResponseValue::Unexpected => {
                 serializer.serialize_none()
             }
-            ResponseValue::Boolean { value, .. } => value.serialize(serializer),
-            ResponseValue::Int { value, .. } => value.serialize(serializer),
-            ResponseValue::Float { value, .. } => value.serialize(serializer),
-            ResponseValue::String { value, .. } => value.serialize(serializer),
-            ResponseValue::StringId { id, .. } => self.ctx.schema[*id].serialize(serializer),
-            ResponseValue::I64 { value, .. } => value.serialize(serializer),
-            ResponseValue::List { id, .. } => SerializableResponseList {
+            ResponseValue::Boolean { value } => value.serialize(serializer),
+            ResponseValue::Int { value } => value.serialize(serializer),
+            ResponseValue::Float { value } => value.serialize(serializer),
+            ResponseValue::String { ptr, len } => ptr.as_str(*len).serialize(serializer),
+            ResponseValue::StringId { id } => self.ctx.schema[*id].serialize(serializer),
+            ResponseValue::I64 { value } => value.serialize(serializer),
+            ResponseValue::List { id } => SerializableResponseList {
                 ctx: self.ctx,
                 value: &self.ctx.data[*id],
             }
             .serialize(serializer),
-            ResponseValue::Object { id, .. } => SerializableResponseObject {
+            ResponseValue::Object { id } => SerializableResponseObject {
                 ctx: self.ctx,
                 object: &self.ctx.data[*id],
             }
