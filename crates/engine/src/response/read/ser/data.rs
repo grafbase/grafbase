@@ -91,12 +91,11 @@ impl serde::Serialize for SerializableResponseValue<'_> {
             ResponseValue::Boolean { value } => value.serialize(serializer),
             ResponseValue::Int { value } => value.serialize(serializer),
             ResponseValue::Float { value } => value.serialize(serializer),
-            ResponseValue::String { part_id, ptr, len } => self.ctx.data[PartString {
-                part_id: *part_id,
-                ptr: *ptr,
-                len: *len,
-            }]
-            .serialize(serializer),
+            ResponseValue::String { part_id, ptr, len } => {
+                // SAFETY: ResponseValue::String is always created from a PartString.
+                let s = unsafe { PartString::new(*part_id, *ptr, *len) };
+                self.ctx.data[s].serialize(serializer)
+            }
             ResponseValue::StringId { id } => self.ctx.schema[*id].serialize(serializer),
             ResponseValue::I64 { value } => value.serialize(serializer),
             ResponseValue::List { id } => SerializableResponseList {

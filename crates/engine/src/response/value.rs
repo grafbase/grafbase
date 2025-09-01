@@ -108,8 +108,12 @@ impl From<StringId> for ResponseValue {
 }
 
 impl From<PartString> for ResponseValue {
-    fn from(PartString { part_id, ptr, len }: PartString) -> Self {
-        Self::String { part_id, ptr, len }
+    fn from(s: PartString) -> Self {
+        Self::String {
+            part_id: s.part_id(),
+            ptr: s.ptr(),
+            len: s.len(),
+        }
     }
 }
 

@@ -31,7 +31,7 @@ pub(crate) struct DataParts(Vec<DataPart>);
 
 impl DataParts {
     pub(super) fn new_part(&mut self) -> DataPart {
-        let id = DataPartId::from(self.0.len());
+        let id = DataPartId(self.0.len() as u16);
         // reserving the spot until the actual data is written. It's safe as no one can reference
         // any data in this part before it's added. And a part can only be overwritten if it's
         // empty.
@@ -49,13 +49,13 @@ impl DataParts {
 impl std::ops::Index<DataPartId> for DataParts {
     type Output = DataPart;
     fn index(&self, index: DataPartId) -> &Self::Output {
-        &self.0[usize::from(index)]
+        &self.0[index.0 as usize]
     }
 }
 
 impl std::ops::IndexMut<DataPartId> for DataParts {
     fn index_mut(&mut self, index: DataPartId) -> &mut Self::Output {
-        &mut self.0[usize::from(index)]
+        &mut self.0[index.0 as usize]
     }
 }
 
@@ -118,8 +118,21 @@ impl std::ops::Index<PartString> for DataParts {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
+// Not an id_derives as no one beside this file should need to create this ID.
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub(crate) struct DataPartId(u16);
+
+impl std::fmt::Display for DataPartId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Part#{}", self.0)
+    }
+}
+
+impl std::fmt::Debug for DataPartId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Part#{}", self.0)
+    }
+}
 
 #[derive(id_derives::IndexedFields)]
 pub(crate) struct DataPart {
@@ -386,9 +399,25 @@ pub(crate) struct ResponseMapId {
 
 #[derive(Debug, Clone, Copy)]
 pub struct PartString {
-    pub part_id: DataPartId,
-    pub ptr: PartStrPtr,
-    pub len: u32,
+    part_id: DataPartId,
+    ptr: PartStrPtr,
+    len: u32,
+}
+
+impl PartString {
+    pub fn part_id(&self) -> DataPartId {
+        self.part_id
+    }
+    pub fn len(&self) -> u32 {
+        self.len
+    }
+    pub fn ptr(&self) -> PartStrPtr {
+        self.ptr
+    }
+
+    pub unsafe fn new(part_id: DataPartId, ptr: PartStrPtr, len: u32) -> Self {
+        Self { part_id, ptr, len }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
