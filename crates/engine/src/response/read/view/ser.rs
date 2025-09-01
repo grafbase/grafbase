@@ -6,7 +6,10 @@ use serde::ser::{Error, SerializeMap};
 use walker::Walk as _;
 
 use super::{ForFieldSet, ForInjection, ParentObjectsView, ResponseObjectView, ResponseValueView, WithExtraFields};
-use crate::{prepare::RequiredFieldSet, response::ResponseValue};
+use crate::{
+    prepare::RequiredFieldSet,
+    response::{PartString, ResponseValue},
+};
 
 impl<'a, View: Copy> serde::Serialize for ParentObjectsView<'a, View>
 where
@@ -199,7 +202,12 @@ where
             ResponseValue::Boolean { value } => value.serialize(serializer),
             ResponseValue::Int { value } => value.serialize(serializer),
             ResponseValue::Float { value } => value.serialize(serializer),
-            ResponseValue::String { ptr, len } => ptr.as_str(*len).serialize(serializer),
+            ResponseValue::String { part_id, ptr, len } => self.ctx.response.data_parts[PartString {
+                part_id: *part_id,
+                ptr: *ptr,
+                len: *len,
+            }]
+            .serialize(serializer),
             ResponseValue::StringId { id } => self.ctx.response.schema[*id].serialize(serializer),
             ResponseValue::I64 { value } => value.serialize(serializer),
             &ResponseValue::List { id } => {
@@ -398,9 +406,14 @@ impl<'a> serde::Serialize for ResponseValueView<'a, ForInjection<'_>> {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
                 value.serialize(serializer)
             }
-            ResponseValue::String { ptr, len } => {
+            ResponseValue::String { part_id, ptr, len } => {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
-                ptr.as_str(*len).serialize(serializer)
+                self.ctx.response.data_parts[PartString {
+                    part_id: *part_id,
+                    ptr: *ptr,
+                    len: *len,
+                }]
+                .serialize(serializer)
             }
             ResponseValue::StringId { id } => {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));

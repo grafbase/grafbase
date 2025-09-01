@@ -111,13 +111,20 @@ impl std::ops::IndexMut<ResponseMapId> for DataParts {
     }
 }
 
+impl std::ops::Index<PartString> for DataParts {
+    type Output = str;
+    fn index(&self, s: PartString) -> &Self::Output {
+        self[s.part_id].deref_part_string(s)
+    }
+}
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
 pub(crate) struct DataPartId(u16);
 
 #[derive(id_derives::IndexedFields)]
 pub(crate) struct DataPart {
     pub id: DataPartId,
-    deserialized_bytes: Option<Bytes>,
+    bytes: Vec<Bytes>,
     strings: Vec<String>,
     #[indexed_by(PartObjectId)]
     objects: Vec<ResponseObject>,
@@ -133,7 +140,7 @@ impl DataPart {
     pub(super) fn new(id: DataPartId) -> Self {
         Self {
             id,
-            deserialized_bytes: None,
+            bytes: Vec::new(),
             strings: Vec::new(),
             objects: Vec::new(),
             lists: Vec::new(),
@@ -146,14 +153,8 @@ impl DataPart {
         self.objects.is_empty() && self.lists.is_empty()
     }
 
-    /// # Safety
-    /// You must ensure that the provided bytes ARE the deserialized data.
-    pub unsafe fn use_borrowed_strings(&mut self, bytes: Bytes) {
-        assert!(
-            self.deserialized_bytes.is_none(),
-            "Deserialized bytes already set, it would invalidate all existing pointers."
-        );
-        self.deserialized_bytes = Some(bytes);
+    pub fn keep_bytes(&mut self, bytes: Bytes) {
+        self.bytes.push(bytes);
     }
 
     /// In a non-federated GraphQL server, values are simply set to null when propagating nulls for
@@ -306,23 +307,38 @@ impl DataPart {
         }
     }
 
-    pub fn push_string(&mut self, s: String) -> (PartStrPtr, u32) {
-        let length = s.len() as u32;
+    pub fn push_string(&mut self, s: String) -> PartString {
+        let len = s.len() as u32;
         let ptr = PartStrPtr(s.as_ptr());
         self.strings.push(s);
-        (ptr, length)
+        let out = PartString {
+            part_id: self.id,
+            ptr,
+            len,
+        };
+        debug_assert!(self.deref_part_string(out) == self.strings[self.strings.len() - 1]);
+        out
     }
 
     /// # Safety
     /// Must only be used on borrowed data from the deserialized bytes.
-    pub unsafe fn push_borrowed_string(&mut self, s: &str) -> (PartStrPtr, u32) {
-        if self.deserialized_bytes.is_none() {
-            self.push_string(s.to_owned())
-        } else {
-            let length = s.len() as u32;
-            let ptr = PartStrPtr(s.as_ptr());
-            (ptr, length)
-        }
+    pub unsafe fn push_borrowed_str(&mut self, s: &str) -> PartString {
+        let len = s.len() as u32;
+        let ptr = PartStrPtr(s.as_ptr());
+        let out = PartString {
+            part_id: self.id,
+            ptr,
+            len,
+        };
+        debug_assert!(self.deref_part_string(out) == s);
+        out
+    }
+
+    fn deref_part_string(&self, PartString { part_id, ptr, len }: PartString) -> &str {
+        assert!(self.id == part_id, "Mismatched DataPartId");
+        // SAFETY: We ensured we were the ones building this PartString.
+        //         PartStrPtr is only constructed from from a &str / String so it's valid UTF-8.
+        unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr.0, len as usize)) }
     }
 }
 
@@ -369,16 +385,15 @@ pub(crate) struct ResponseMapId {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub struct PartString {
+    pub part_id: DataPartId,
+    pub ptr: PartStrPtr,
+    pub len: u32,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct PartStrPtr(*const u8);
 
 // SAFETY: PartString is a pointer to a String and is never processed in any other way.
 unsafe impl Send for PartStrPtr {}
 unsafe impl Sync for PartStrPtr {}
-
-impl PartStrPtr {
-    pub fn as_str(&self, len: u32) -> &str {
-        // SAFETY: The pointer is valid as long as the DataPart is alive and PartStrPtr can only be
-        // accessed in ResponseValues which are part of a response which keeps all DataParts alive.
-        unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(self.0, len as usize)) }
-    }
-}

@@ -2,7 +2,7 @@ use operation::ResponseKeys;
 use schema::Schema;
 use serde::ser::{SerializeMap, SerializeSeq};
 
-use crate::response::{ResponseData, ResponseObject, ResponseValue, value::ResponseObjectField};
+use crate::response::{PartString, ResponseData, ResponseObject, ResponseValue, value::ResponseObjectField};
 
 #[derive(Clone, Copy)]
 pub(super) struct Context<'a> {
@@ -91,7 +91,12 @@ impl serde::Serialize for SerializableResponseValue<'_> {
             ResponseValue::Boolean { value } => value.serialize(serializer),
             ResponseValue::Int { value } => value.serialize(serializer),
             ResponseValue::Float { value } => value.serialize(serializer),
-            ResponseValue::String { ptr, len } => ptr.as_str(*len).serialize(serializer),
+            ResponseValue::String { part_id, ptr, len } => self.ctx.data[PartString {
+                part_id: *part_id,
+                ptr: *ptr,
+                len: *len,
+            }]
+            .serialize(serializer),
             ResponseValue::StringId { id } => self.ctx.schema[*id].serialize(serializer),
             ResponseValue::I64 { value } => value.serialize(serializer),
             ResponseValue::List { id } => SerializableResponseList {

@@ -1,7 +1,7 @@
 use operation::{PositionedResponseKey, ResponseKey};
 use schema::{ObjectDefinitionId, StringId};
 
-use crate::response::PartStrPtr;
+use crate::response::{DataPartId, PartStrPtr, PartString};
 
 use super::{ResponseInaccessibleValueId, ResponseListId, ResponseMapId, ResponseObjectId};
 
@@ -63,6 +63,7 @@ pub(crate) enum ResponseValue {
         value: f64,
     },
     String {
+        part_id: DataPartId,
         ptr: PartStrPtr,
         len: u32,
     },
@@ -106,9 +107,9 @@ impl From<StringId> for ResponseValue {
     }
 }
 
-impl From<(PartStrPtr, u32)> for ResponseValue {
-    fn from((ptr, len): (PartStrPtr, u32)) -> Self {
-        Self::String { ptr, len }
+impl From<PartString> for ResponseValue {
+    fn from(PartString { part_id, ptr, len }: PartString) -> Self {
+        Self::String { part_id, ptr, len }
     }
 }
 

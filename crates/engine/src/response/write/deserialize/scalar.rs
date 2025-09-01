@@ -261,8 +261,14 @@ impl<'de> Visitor<'de> for ScalarTypeSeed<'_, '_, '_> {
     {
         match self.ty {
             ScalarType::String | ScalarType::Unknown => {
-                // SAFETY: The str we provide does come from the deserialized data.
-                Ok(unsafe { self.state.response.borrow_mut().data.push_borrowed_string(v).into() })
+                let mut resp = self.state.response.borrow_mut();
+                Ok(if self.state.can_be_borrowed(v) {
+                    // SAFETY: We just ensured that the str can be borrowed.
+                    unsafe { resp.data.push_borrowed_str(v) }
+                } else {
+                    resp.data.push_string(v.to_owned())
+                }
+                .into())
             }
             _ => Ok(self.unexpected_type(Unexpected::Str(v))),
         }
