@@ -163,5 +163,5 @@ fn check_response_value_size() {
 #[cfg(test)]
 #[test]
 fn check_response_object_field_size() {
-    assert_eq!(std::mem::size_of::<ResponseObjectField>(), 32);
+    assert_eq!(std::mem::size_of::<ResponseObjectField>(), 24);
 }
