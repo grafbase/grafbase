@@ -51,7 +51,7 @@ impl<'parent> SeedState<'_, 'parent> {
     ) -> Result<<Seed as DeserializeSeed<'de>>::Value, Option<GraphqlError>> {
         match data.into() {
             Deserializable::Json(bytes) => {
-                self.push_borrowable_bytes(bytes.clone());
+                self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
                 seed.deserialize(&mut sonic_rs::Deserializer::from_slice(bytes))
                     .map_err(|err| {
                         if !self.bubbling_up_deser_error.get() {
@@ -63,7 +63,7 @@ impl<'parent> SeedState<'_, 'parent> {
                     })
             }
             Deserializable::JsonWithRawValues(bytes) => {
-                self.push_borrowable_bytes(bytes.clone());
+                self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
                 seed.deserialize(&mut serde_json::Deserializer::from_slice(bytes))
                     .map_err(|err| {
                         if !self.bubbling_up_deser_error.get() {
@@ -75,7 +75,7 @@ impl<'parent> SeedState<'_, 'parent> {
                     })
             }
             Deserializable::Cbor(bytes) => {
-                self.push_borrowable_bytes(bytes.clone());
+                self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
                 seed.deserialize(&mut minicbor_serde::Deserializer::new(bytes))
                     .map_err(|err| {
                         if !self.bubbling_up_deser_error.get() {

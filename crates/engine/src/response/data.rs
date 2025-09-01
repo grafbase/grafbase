@@ -166,7 +166,9 @@ impl DataPart {
         self.objects.is_empty() && self.lists.is_empty()
     }
 
-    pub fn keep_bytes(&mut self, bytes: Bytes) {
+    // Any deserialization that use those bytes will be able to keep references for strings rather
+    // than create new owned strings.
+    pub fn push_borrowable_bytes(&mut self, bytes: Bytes) {
         self.bytes.push(bytes);
     }
 
@@ -333,25 +335,41 @@ impl DataPart {
         out
     }
 
-    /// # Safety
-    /// Must only be used on borrowed data from the deserialized bytes.
-    pub unsafe fn push_borrowed_str(&mut self, s: &str) -> PartString {
-        let len = s.len() as u32;
-        let ptr = PartStrPtr(s.as_ptr());
-        let out = PartString {
-            part_id: self.id,
-            ptr,
-            len,
+    pub fn push_borrowed_str(&mut self, s: &str) -> PartString {
+        let out = if self.can_be_borrowed(s) {
+            let len = s.len() as u32;
+            let ptr = PartStrPtr(s.as_ptr());
+            PartString {
+                part_id: self.id,
+                ptr,
+                len,
+            }
+        } else {
+            self.push_string(s.to_owned())
         };
         debug_assert!(self.deref_part_string(out) == s);
         out
     }
 
+    fn can_be_borrowed(&self, s: &str) -> bool {
+        let Some(bytes) = self.bytes.last() else {
+            return false;
+        };
+        bytes.as_ptr() <= s.as_ptr() && s.len() <= bytes.len()
+    }
+
     fn deref_part_string(&self, PartString { part_id, ptr, len }: PartString) -> &str {
         assert!(self.id == part_id, "Mismatched DataPartId");
+        let ptr = ptr.0;
+        let len = len as usize;
+        debug_assert!(
+            self.bytes
+                .iter()
+                .any(|bytes| bytes.as_ptr() <= ptr && len <= bytes.len())
+        );
         // SAFETY: We ensured we were the ones building this PartString.
         //         PartStrPtr is only constructed from from a &str / String so it's valid UTF-8.
-        unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr.0, len as usize)) }
+        unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr, len)) }
     }
 }
 
@@ -397,6 +415,9 @@ pub(crate) struct ResponseMapId {
     pub map_id: PartMapId,
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
+pub struct PartBytesId(u16);
+
 #[derive(Debug, Clone, Copy)]
 pub struct PartString {
     part_id: DataPartId,
@@ -404,17 +425,17 @@ pub struct PartString {
     len: u32,
 }
 
-impl PartString {
-    pub fn part_id(&self) -> DataPartId {
-        self.part_id
+impl From<PartString> for ResponseValue {
+    fn from(s: PartString) -> Self {
+        Self::String {
+            part_id: s.part_id,
+            ptr: s.ptr,
+            len: s.len,
+        }
     }
-    pub fn len(&self) -> u32 {
-        self.len
-    }
-    pub fn ptr(&self) -> PartStrPtr {
-        self.ptr
-    }
+}
 
+impl PartString {
     pub unsafe fn new(part_id: DataPartId, ptr: PartStrPtr, len: u32) -> Self {
         Self { part_id, ptr, len }
     }

@@ -1,7 +1,7 @@
 use operation::{PositionedResponseKey, ResponseKey};
 use schema::{ObjectDefinitionId, StringId};
 
-use crate::response::{DataPartId, PartStrPtr, PartString};
+use crate::response::{DataPartId, PartStrPtr};
 
 use super::{ResponseInaccessibleValueId, ResponseListId, ResponseMapId, ResponseObjectId};
 
@@ -104,16 +104,6 @@ impl<T: Into<ResponseValue>> From<Option<T>> for ResponseValue {
 impl From<StringId> for ResponseValue {
     fn from(id: StringId) -> Self {
         Self::StringId { id }
-    }
-}
-
-impl From<PartString> for ResponseValue {
-    fn from(s: PartString) -> Self {
-        Self::String {
-            part_id: s.part_id(),
-            ptr: s.ptr(),
-            len: s.len(),
-        }
     }
 }
 

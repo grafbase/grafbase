@@ -7,7 +7,6 @@ use crate::{
     },
     response::{ResponsePartBuilder, ResponseValueId},
 };
-use bytes::Bytes;
 use operation::ResponseKeys;
 use schema::Schema;
 use walker::Walk as _;
@@ -19,22 +18,11 @@ pub(crate) struct SeedState<'ctx, 'parent> {
 
     // -- mutable parts --
     // Range isn't copy...
-    borrowable_bytes_range: Cell<AddressRange>,
     pub bubbling_up_deser_error: Cell<bool>,
     pub response: RefCell<ResponsePartBuilder<'ctx>>,
     pub(super) parent_path: Cell<&'parent [ResponseValueId]>,
     pub(super) local_path: RefCell<Vec<ResponseValueId>>,
 }
-
-#[derive(Clone, Copy)]
-struct AddressRange {
-    start: *const u8,
-    end: *const u8,
-}
-
-/// SAFETY: This type only contains raw pointers representing addresses, not used in any other
-/// fashion.
-unsafe impl Send for AddressRange {}
 
 impl<'ctx> From<&SeedState<'ctx, '_>> for CachedOperationContext<'ctx> {
     fn from(state: &SeedState<'ctx, '_>) -> Self {
@@ -70,37 +58,11 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
             schema,
             operation,
             root_shape,
-            borrowable_bytes_range: Cell::new(AddressRange {
-                start: std::ptr::null(),
-                end: std::ptr::null(),
-            }),
             response: RefCell::new(response_part),
             bubbling_up_deser_error: Default::default(),
             local_path: Default::default(),
             parent_path: Default::default(),
         }
-    }
-
-    // Any deserialization that use those bytes will be able to keep references for strings rather
-    // than create new owned strings.
-    pub fn push_borrowable_bytes(&self, source: Bytes) {
-        let start = source.as_ptr();
-        // SAFETY: Just pointer arithmetics to compute the end of the memory section the source
-        // points to.
-        let end = unsafe { start.add(source.len()) };
-        self.borrowable_bytes_range.set(AddressRange { start, end });
-        self.response.borrow_mut().data.keep_bytes(source);
-    }
-
-    pub fn can_be_borrowed(&self, s: &str) -> bool {
-        let start = s.as_ptr();
-        // SAFETY: Just pointer arithmetics to compute the end of the memory section the reference
-        // points to.
-        let end = unsafe { start.add(s.len()) };
-        let range = self.borrowable_bytes_range.get();
-        // If the reference is within the range of the borrowable bytes, we can keep it as
-        // borrowed.
-        range.start <= start && end <= range.end
     }
 
     pub fn into_response_part(self) -> ResponsePartBuilder<'ctx> {

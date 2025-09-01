@@ -30,6 +30,7 @@ itertools.workspace = true
 mimalloc.workspace = true
 opentelemetry-aws = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
+tikv-jemallocator = "0.6"
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
 toml.workspace = true
 tracing.workspace = true

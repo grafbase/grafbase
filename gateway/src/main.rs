@@ -2,13 +2,9 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use args::Args;
 use clap::crate_version;
-use mimalloc::MiMalloc;
 use tokio::{runtime, sync::watch};
 
 use federated_server::ServeConfig;
-
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
 
 mod args;
 mod config;
