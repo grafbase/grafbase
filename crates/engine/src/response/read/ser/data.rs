@@ -114,6 +114,8 @@ impl serde::Serialize for SerializableResponseValue<'_> {
                     .iter()
                     .map(|(key, value)| (key.as_str(), SerializableResponseValue { ctx: self.ctx, value })),
             ),
+            ResponseValue::IntList { id } => self.ctx.data[*id].serialize(serializer),
+            ResponseValue::FloatList { id } => self.ctx.data[*id].serialize(serializer),
         }
     }
 }

@@ -85,6 +85,20 @@ impl std::ops::IndexMut<ResponseObjectId> for DataParts {
     }
 }
 
+impl std::ops::Index<ResponseIntListId> for DataParts {
+    type Output = [i32];
+    fn index(&self, index: ResponseIntListId) -> &Self::Output {
+        &self[index.part_id][index.list_id]
+    }
+}
+
+impl std::ops::Index<ResponseFloatListId> for DataParts {
+    type Output = [f64];
+    fn index(&self, index: ResponseFloatListId) -> &Self::Output {
+        &self[index.part_id][index.list_id]
+    }
+}
+
 impl std::ops::Index<ResponseListId> for DataParts {
     type Output = [ResponseValue];
     fn index(&self, index: ResponseListId) -> &Self::Output {
@@ -141,6 +155,10 @@ pub(crate) struct DataPart {
     strings: Vec<String>,
     #[indexed_by(PartObjectId)]
     objects: Vec<ResponseObject>,
+    #[indexed_by(PartIntListId)]
+    int_lists: Vec<Vec<i32>>,
+    #[indexed_by(PartFloatListId)]
+    float_lists: Vec<Vec<f64>>,
     #[indexed_by(PartListId)]
     lists: Vec<Vec<ResponseValue>>,
     #[indexed_by(PartInaccesibleValueId)]
@@ -157,6 +175,8 @@ impl DataPart {
             strings: Vec::new(),
             objects: Vec::new(),
             lists: Vec::new(),
+            int_lists: Vec::new(),
+            float_lists: Vec::new(),
             inaccessible_values: Vec::new(),
             maps: Vec::new(),
         }
@@ -304,6 +324,24 @@ impl DataPart {
         }
     }
 
+    pub fn push_int_list(&mut self, list: Vec<i32>) -> ResponseIntListId {
+        let list_id = PartIntListId::from(self.int_lists.len());
+        self.int_lists.push(list);
+        ResponseIntListId {
+            part_id: self.id,
+            list_id,
+        }
+    }
+
+    pub fn push_float_list(&mut self, list: Vec<f64>) -> ResponseFloatListId {
+        let list_id = PartFloatListId::from(self.float_lists.len());
+        self.float_lists.push(list);
+        ResponseFloatListId {
+            part_id: self.id,
+            list_id,
+        }
+    }
+
     pub fn reserve_list_id(&mut self) -> ResponseListId {
         self.push_list(Vec::new())
     }
@@ -412,6 +450,24 @@ pub(crate) struct PartListId(u32);
 pub(crate) struct ResponseListId {
     pub part_id: DataPartId,
     pub list_id: PartListId,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
+pub(crate) struct PartFloatListId(u32);
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub(crate) struct ResponseFloatListId {
+    pub part_id: DataPartId,
+    pub list_id: PartFloatListId,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
+pub(crate) struct PartIntListId(u32);
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub(crate) struct ResponseIntListId {
+    pub part_id: DataPartId,
+    pub list_id: PartIntListId,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]

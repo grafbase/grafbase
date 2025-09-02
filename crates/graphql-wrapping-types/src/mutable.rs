@@ -14,6 +14,10 @@ impl MutableWrapping {
         self.inner.is_non_null()
     }
 
+    pub fn is_list(&self) -> bool {
+        self.inner.is_list()
+    }
+
     pub fn pop_outermost_list_wrapping(&mut self) -> Option<ListWrapping> {
         let end = self.inner.get_list_length();
         if end == 0 {

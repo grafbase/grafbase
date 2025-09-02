@@ -1,5 +1,5 @@
-use schema::{ListWrapping, MutableWrapping};
-use serde::de::DeserializeSeed;
+use schema::{ListWrapping, MutableWrapping, ScalarType};
+use serde::{Deserialize, de::DeserializeSeed};
 use walker::Walk;
 
 use super::{
@@ -25,6 +25,12 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_, '_> {
         D: serde::Deserializer<'de>,
     {
         let result = if let Some(list_wrapping) = self.wrapping.pop_outermost_list_wrapping() {
+            if !self.wrapping.is_list()
+                && let Shape::Scalar(ScalarType::Int) = self.field.shape
+            {
+                let values = Vec::<i32>::deserialize(deserializer)?;
+                return Ok(self.state.response.borrow_mut().data.push_int_list(values).into());
+            }
             ListSeed {
                 state: self.state,
                 field: self.field,
