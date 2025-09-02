@@ -11,6 +11,10 @@ mod config;
 mod server_runtime;
 mod telemetry;
 
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 const THREAD_NAME: &str = "grafbase-gateway";
 
 fn main() -> anyhow::Result<()> {

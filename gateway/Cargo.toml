@@ -27,10 +27,9 @@ grafbase-telemetry = { workspace = true }
 grafbase-workspace-hack.workspace = true
 graph-ref.workspace = true
 itertools.workspace = true
-mimalloc.workspace = true
 opentelemetry-aws = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
-tikv-jemallocator = "0.6"
+tikv-jemallocator.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
 toml.workspace = true
 tracing.workspace = true

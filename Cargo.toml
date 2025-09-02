@@ -231,6 +231,7 @@ tar = "0.4.44"
 temp-env = "0.3"
 tempfile = "3.16"
 thiserror = "2.0.12"
+tikv-jemallocator = "0.6"
 time = "0.3.41"
 tokio = "1.44.2"
 tokio-rustls = { version = "0.26.2", default-features = false }

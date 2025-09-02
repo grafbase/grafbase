@@ -572,7 +572,7 @@ mod tests {
     fn deref_part_string_handles_multiple_strings() {
         let mut part = DataPart::new(DataPartId(0));
 
-        let strings = vec!["Alpha", "Beta", "Gamma", "Delta", "Epsilon"];
+        let strings = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"];
 
         let part_strings: Vec<_> = strings.iter().map(|s| part.push_string(s.to_string())).collect();
 

@@ -35,7 +35,6 @@ indicatif.workspace = true
 indoc.workspace = true
 inquire.workspace = true
 log.workspace = true
-mimalloc.workspace = true
 notify-debouncer-full.workspace = true
 os_type.workspace = true
 regex.workspace = true
@@ -58,6 +57,7 @@ strum = { workspace = true, features = ["derive"] }
 syntect.workspace = true
 tar.workspace = true
 thiserror.workspace = true
+tikv-jemallocator.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tokio-stream.workspace = true
 tokio-util = { workspace = true, features = ["futures-io", "compat"] }
