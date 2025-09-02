@@ -476,7 +476,6 @@ mod tests {
         let part_string = part.push_string(String::new());
 
         assert_eq!(part.deref_part_string(part_string), "");
-        assert_eq!(part_string.len, 0);
     }
 
     #[test]
@@ -495,7 +494,6 @@ mod tests {
         let part_string = part.push_borrowed_str(test_str);
 
         assert_eq!(part.deref_part_string(part_string), "Test string");
-        assert_eq!(part_string.len, 11);
     }
 
     #[test]
@@ -503,16 +501,14 @@ mod tests {
         let mut part = DataPart::new(DataPartId(0));
 
         // Create bytes that contain our string
-        let json_data = r#"{"name": "John", "age": 30}"#;
-        let bytes = Bytes::from(json_data.to_string());
+        let bytes = Bytes::from(r#"{"name": "John", "age": 30}"#);
         part.push_borrowable_bytes(bytes.clone());
 
         // Extract a substring that exists within the bytes
-        let name_slice = &json_data[10..14]; // "John"
-        let part_string = part.push_borrowed_str(name_slice);
+        let part_string = part.push_borrowed_str(str::from_utf8(&bytes[10..14]).unwrap());
 
         assert_eq!(part.deref_part_string(part_string), "John");
-        assert_eq!(part_string.len, 4);
+        assert!(part.strings.is_empty());
     }
 
     #[test]
@@ -548,14 +544,15 @@ mod tests {
     fn push_borrowable_bytes_enables_borrowing_from_last_bytes() {
         let mut part = DataPart::new(DataPartId(0));
 
-        let data = "This is test data for borrowing";
-        let bytes = Bytes::from(data.to_string());
-        part.push_borrowable_bytes(bytes);
+        let bytes = Bytes::from("This is test data for borrowing");
+        part.push_borrowable_bytes(bytes.clone());
 
-        // Borrow a substring from the bytes
-        let borrowed = part.push_borrowed_str(&data[8..12]); // "test"
+        // Borrow a substring from the actual bytes
+        let bytes_str = std::str::from_utf8(&bytes).unwrap();
+        let borrowed = part.push_borrowed_str(&bytes_str[8..12]); // "test"
 
         assert_eq!(part.deref_part_string(borrowed), "test");
+        assert!(part.strings.is_empty()); // Should not create owned string
     }
 
     #[test]
@@ -588,8 +585,7 @@ mod tests {
     fn can_be_borrowed_correctly_identifies_borrowable_strings() {
         let mut part = DataPart::new(DataPartId(0));
 
-        let data = "JSON: {\"key\": \"value\"}";
-        let bytes = Bytes::from(data.to_string());
+        let bytes = Bytes::from("JSON: {\"key\": \"value\"}");
         part.push_borrowable_bytes(bytes.clone());
 
         // Get the actual slice from the bytes we stored
@@ -606,11 +602,8 @@ mod tests {
     fn multiple_bytes_chunks_allow_borrowing_from_last() {
         let mut part = DataPart::new(DataPartId(0));
 
-        let chunk1 = "First chunk of data";
-        let chunk2 = "Second chunk of data";
-
-        let bytes1 = Bytes::from(chunk1.to_string());
-        let bytes2 = Bytes::from(chunk2.to_string());
+        let bytes1 = Bytes::from("First chunk of data");
+        let bytes2 = Bytes::from("Second chunk of data");
 
         part.push_borrowable_bytes(bytes1.clone());
         part.push_borrowable_bytes(bytes2.clone());
@@ -624,5 +617,31 @@ mod tests {
 
         // Cannot borrow from the first chunk anymore (only last bytes are checked)
         assert!(!part.can_be_borrowed(&bytes1_str[0..5])); // "First"
+    }
+
+    #[test]
+    fn cannot_be_borrowed_if_outside_the_source() {
+        let mut part = DataPart::new(DataPartId(0));
+
+        let full_bytes = Bytes::from("AAAA BBBB CCCC DDDD EEEE FFFF");
+        let full_str = std::str::from_utf8(&full_bytes).unwrap();
+
+        let middle_slice = full_bytes.slice(4..24);
+        let middle_str = std::str::from_utf8(&middle_slice).unwrap();
+        assert_eq!(middle_str, " BBBB CCCC DDDD EEEE");
+        part.push_borrowable_bytes(middle_slice.clone());
+
+        // Should be able to borrow from within the slice
+        assert!(part.can_be_borrowed(&middle_str[0..4])); // "CCCC"
+        assert!(part.can_be_borrowed(&middle_str[5..9])); // "DDDD"
+
+        // Should NOT be able to borrow from outside the slice, even if the lengths would fit
+        // This tests that we're checking actual pointer ranges, not just lengths
+        assert!(!part.can_be_borrowed(&full_str[..4])); // "AAAA" - before the slice
+        assert!(part.can_be_borrowed(&full_str[4..24]));
+        assert!(!part.can_be_borrowed(&full_str[24..])); // "FFFF" - after the slice
+
+        // Edge case: string at the exact boundaries
+        assert!(part.can_be_borrowed(&middle_str[0..14])); // entire slice content
     }
 }
