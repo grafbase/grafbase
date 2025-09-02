@@ -361,14 +361,20 @@ impl DataPart {
     }
 
     fn deref_part_string(&self, PartString { part_id, ptr, len }: PartString) -> &str {
-        assert!(self.id == part_id, "Mismatched DataPartId");
+        debug_assert!(self.id == part_id, "Mismatched DataPartId");
         let ptr = ptr.0;
         let len = len as usize;
         let end = unsafe { ptr.add(len) };
-        debug_assert!(self.bytes.iter().any(|bytes| {
-            let bytes_range = bytes.as_ptr_range();
-            bytes_range.start <= ptr && end <= bytes_range.end
-        }));
+        debug_assert!(
+            self.bytes.iter().any(|bytes| {
+                let bytes_range = bytes.as_ptr_range();
+                bytes_range.start <= ptr && end <= bytes_range.end
+            }) || self.strings.iter().any(|s| {
+                let s_bytes = s.as_bytes();
+                let s_range = s_bytes.as_ptr_range();
+                s_range.start <= ptr && end <= s_range.end
+            })
+        );
         // SAFETY: We ensured we were the ones building this PartString.
         //         PartStrPtr is only constructed from from a &str / String so it's valid UTF-8.
         unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr, len)) }
@@ -449,3 +455,174 @@ pub struct PartStrPtr(*const u8);
 // SAFETY: PartString is a pointer to a String and is never processed in any other way.
 unsafe impl Send for PartStrPtr {}
 unsafe impl Sync for PartStrPtr {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn push_string_creates_valid_part_string() {
+        let mut part = DataPart::new(DataPartId(0));
+        let test_string = "Hello, World!".to_string();
+        let part_string = part.push_string(test_string.clone());
+
+        assert_eq!(part.deref_part_string(part_string), "Hello, World!");
+        assert_eq!(part_string.len, 13);
+    }
+
+    #[test]
+    fn push_string_handles_empty_string() {
+        let mut part = DataPart::new(DataPartId(0));
+        let part_string = part.push_string(String::new());
+
+        assert_eq!(part.deref_part_string(part_string), "");
+        assert_eq!(part_string.len, 0);
+    }
+
+    #[test]
+    fn push_string_handles_unicode() {
+        let mut part = DataPart::new(DataPartId(0));
+        let unicode_string = "こんにちは🦀".to_string();
+        let part_string = part.push_string(unicode_string.clone());
+
+        assert_eq!(part.deref_part_string(part_string), "こんにちは🦀");
+    }
+
+    #[test]
+    fn push_borrowed_str_without_bytes_creates_owned_string() {
+        let mut part = DataPart::new(DataPartId(0));
+        let test_str = "Test string";
+        let part_string = part.push_borrowed_str(test_str);
+
+        assert_eq!(part.deref_part_string(part_string), "Test string");
+        assert_eq!(part_string.len, 11);
+    }
+
+    #[test]
+    fn push_borrowed_str_with_bytes_creates_borrowed_reference() {
+        let mut part = DataPart::new(DataPartId(0));
+
+        // Create bytes that contain our string
+        let json_data = r#"{"name": "John", "age": 30}"#;
+        let bytes = Bytes::from(json_data.to_string());
+        part.push_borrowable_bytes(bytes.clone());
+
+        // Extract a substring that exists within the bytes
+        let name_slice = &json_data[10..14]; // "John"
+        let part_string = part.push_borrowed_str(name_slice);
+
+        assert_eq!(part.deref_part_string(part_string), "John");
+        assert_eq!(part_string.len, 4);
+    }
+
+    #[test]
+    fn push_borrowed_str_falls_back_to_owned_when_not_in_bytes() {
+        let mut part = DataPart::new(DataPartId(0));
+
+        // Add some bytes
+        part.push_borrowable_bytes(Bytes::from("some data"));
+
+        // Try to borrow a string that's not within those bytes
+        let external_str = "external string";
+        let part_string = part.push_borrowed_str(external_str);
+
+        assert_eq!(part.deref_part_string(part_string), "external string");
+    }
+
+    #[test]
+    fn push_borrowable_bytes_stores_bytes() {
+        let mut part = DataPart::new(DataPartId(0));
+
+        let bytes1 = Bytes::from("first chunk");
+        let bytes2 = Bytes::from("second chunk");
+
+        part.push_borrowable_bytes(bytes1.clone());
+        part.push_borrowable_bytes(bytes2.clone());
+
+        assert_eq!(part.bytes.len(), 2);
+        assert_eq!(part.bytes[0], bytes1);
+        assert_eq!(part.bytes[1], bytes2);
+    }
+
+    #[test]
+    fn push_borrowable_bytes_enables_borrowing_from_last_bytes() {
+        let mut part = DataPart::new(DataPartId(0));
+
+        let data = "This is test data for borrowing";
+        let bytes = Bytes::from(data.to_string());
+        part.push_borrowable_bytes(bytes);
+
+        // Borrow a substring from the bytes
+        let borrowed = part.push_borrowed_str(&data[8..12]); // "test"
+
+        assert_eq!(part.deref_part_string(borrowed), "test");
+    }
+
+    #[test]
+    fn deref_part_string_returns_correct_string() {
+        let mut part = DataPart::new(DataPartId(0));
+
+        let s1 = part.push_string("First".to_string());
+        let s2 = part.push_string("Second".to_string());
+        let s3 = part.push_string("Third".to_string());
+
+        assert_eq!(part.deref_part_string(s1), "First");
+        assert_eq!(part.deref_part_string(s2), "Second");
+        assert_eq!(part.deref_part_string(s3), "Third");
+    }
+
+    #[test]
+    fn deref_part_string_handles_multiple_strings() {
+        let mut part = DataPart::new(DataPartId(0));
+
+        let strings = vec!["Alpha", "Beta", "Gamma", "Delta", "Epsilon"];
+
+        let part_strings: Vec<_> = strings.iter().map(|s| part.push_string(s.to_string())).collect();
+
+        for (i, part_string) in part_strings.iter().enumerate() {
+            assert_eq!(part.deref_part_string(*part_string), strings[i]);
+        }
+    }
+
+    #[test]
+    fn can_be_borrowed_correctly_identifies_borrowable_strings() {
+        let mut part = DataPart::new(DataPartId(0));
+
+        let data = "JSON: {\"key\": \"value\"}";
+        let bytes = Bytes::from(data.to_string());
+        part.push_borrowable_bytes(bytes.clone());
+
+        // Get the actual slice from the bytes we stored
+        let bytes_str = std::str::from_utf8(&bytes).unwrap();
+
+        // Should be borrowable (within the bytes)
+        assert!(part.can_be_borrowed(&bytes_str[7..20])); // {"key": "val
+
+        // Should not be borrowable (external string)
+        assert!(!part.can_be_borrowed("external"));
+    }
+
+    #[test]
+    fn multiple_bytes_chunks_allow_borrowing_from_last() {
+        let mut part = DataPart::new(DataPartId(0));
+
+        let chunk1 = "First chunk of data";
+        let chunk2 = "Second chunk of data";
+
+        let bytes1 = Bytes::from(chunk1.to_string());
+        let bytes2 = Bytes::from(chunk2.to_string());
+
+        part.push_borrowable_bytes(bytes1.clone());
+        part.push_borrowable_bytes(bytes2.clone());
+
+        // Create slices from the actual bytes to test borrowing
+        let bytes2_str = std::str::from_utf8(&bytes2).unwrap();
+        let bytes1_str = std::str::from_utf8(&bytes1).unwrap();
+
+        // Can borrow from the second chunk (last bytes)
+        assert!(part.can_be_borrowed(&bytes2_str[7..12])); // "chunk"
+
+        // Cannot borrow from the first chunk anymore (only last bytes are checked)
+        assert!(!part.can_be_borrowed(&bytes1_str[0..5])); // "First"
+    }
+}
