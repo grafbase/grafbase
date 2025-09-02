@@ -307,11 +307,11 @@ impl HttpRequestBuilder {
         self
     }
 
-    /// Sets a timeout for the HTTP request in milliseconds.
+    /// Sets a timeout for the HTTP request.
     ///
     /// # Arguments
     ///
-    /// * `timeout_ms` - The duration of the timeout in milliseconds.
+    /// * `timeout` - The duration of the timeout.
     ///
     /// This method mutably modifies the builder, setting an optional timeout for the request.
     pub fn timeout(&mut self, timeout: Duration) -> &mut Self {
