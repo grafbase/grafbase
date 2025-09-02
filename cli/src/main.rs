@@ -47,7 +47,7 @@ use std::{io::IsTerminal as _, path::PathBuf, process};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use watercolor::ShouldColorize;
 
-#[cfg(not(target_env = "msvc"))]
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 

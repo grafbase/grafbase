@@ -15,6 +15,9 @@ lambda = [
     "grafbase-telemetry/lambda",
 ]
 
+[target.'cfg(all(target_os = "linux", target_arch = "x86_64"))'.dependencies]
+tikv-jemallocator.workspace = true
+
 [dependencies]
 anyhow = { workspace = true, default-features = false }
 ascii.workspace = true
@@ -29,7 +32,6 @@ graph-ref.workspace = true
 itertools.workspace = true
 opentelemetry-aws = { workspace = true }
 rustls = { workspace = true, features = ["aws-lc-rs"] }
-tikv-jemallocator.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
 toml.workspace = true
 tracing.workspace = true

@@ -11,7 +11,7 @@ mod config;
 mod server_runtime;
 mod telemetry;
 
-#[cfg(not(target_env = "msvc"))]
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
