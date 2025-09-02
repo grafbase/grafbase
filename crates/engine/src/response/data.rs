@@ -355,18 +355,20 @@ impl DataPart {
         let Some(bytes) = self.bytes.last() else {
             return false;
         };
-        bytes.as_ptr() <= s.as_ptr() && s.len() <= bytes.len()
+        let bytes_range = bytes.as_ptr_range();
+        let str_range = s.as_bytes().as_ptr_range();
+        bytes_range.start <= str_range.start && str_range.end <= bytes_range.end
     }
 
     fn deref_part_string(&self, PartString { part_id, ptr, len }: PartString) -> &str {
         assert!(self.id == part_id, "Mismatched DataPartId");
         let ptr = ptr.0;
         let len = len as usize;
-        debug_assert!(
-            self.bytes
-                .iter()
-                .any(|bytes| bytes.as_ptr() <= ptr && len <= bytes.len())
-        );
+        let end = unsafe { ptr.add(len) };
+        debug_assert!(self.bytes.iter().any(|bytes| {
+            let bytes_range = bytes.as_ptr_range();
+            bytes_range.start <= ptr && end <= bytes_range.end
+        }));
         // SAFETY: We ensured we were the ones building this PartString.
         //         PartStrPtr is only constructed from from a &str / String so it's valid UTF-8.
         unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr, len)) }
