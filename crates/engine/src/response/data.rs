@@ -423,11 +423,8 @@ pub(crate) struct ResponseMapId {
     pub map_id: PartMapId,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, id_derives::Id)]
-pub struct PartBytesId(u16);
-
 #[derive(Debug, Clone, Copy)]
-pub struct PartString {
+pub(crate) struct PartString {
     part_id: DataPartId,
     ptr: PartStrPtr,
     len: u32,
@@ -450,7 +447,7 @@ impl PartString {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct PartStrPtr(*const u8);
+pub(crate) struct PartStrPtr(*const u8);
 
 // SAFETY: PartString is a pointer to a String and is never processed in any other way.
 unsafe impl Send for PartStrPtr {}
