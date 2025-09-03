@@ -53,3 +53,9 @@ impl From<Wrapping> for MutableWrapping {
         Self { inner }
     }
 }
+
+impl PartialEq<Wrapping> for MutableWrapping {
+    fn eq(&self, other: &Wrapping) -> bool {
+        &self.inner == other
+    }
+}

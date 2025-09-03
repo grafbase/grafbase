@@ -285,6 +285,9 @@ impl DataPart {
                 std::mem::swap(&mut self[list_id][index as usize], &mut inaccessible_value);
                 self.inaccessible_values.push(inaccessible_value);
             }
+            _ => unreachable!(
+                "Neither FloatList nor IntList can contain nullable data, so they can't be made inaccessible."
+            ),
         }
     }
 

@@ -1,3 +1,9 @@
+mod float;
+mod int;
+
+pub(crate) use float::NonNullFloatSeed;
+pub(crate) use int::NonNullIntSeed;
+
 use schema::ScalarType;
 use serde::de::{DeserializeSeed, Error, IgnoredAny, Unexpected, Visitor};
 use walker::Walk;

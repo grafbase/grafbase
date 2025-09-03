@@ -1,5 +1,5 @@
-use schema::{ListWrapping, MutableWrapping, ScalarType};
-use serde::{Deserialize, de::DeserializeSeed};
+use schema::{ListWrapping, MutableWrapping, ScalarType, Wrapping};
+use serde::de::DeserializeSeed;
 use walker::Walk;
 
 use super::{
@@ -8,7 +8,13 @@ use super::{
 };
 use crate::{
     prepare::{FieldShapeRecord, Shape},
-    response::{GraphqlError, ResponseValue},
+    response::{
+        GraphqlError, ResponseValue,
+        write::deserialize::{
+            list::{NonNullScalarSeedList, ResponseValueSeedList},
+            scalar::{NonNullFloatSeed, NonNullIntSeed},
+        },
+    },
 };
 
 #[derive(Clone)]
@@ -18,6 +24,8 @@ pub(super) struct FieldSeed<'ctx, 'parent, 'state> {
     pub wrapping: MutableWrapping,
 }
 
+const REQUIRED: Wrapping = Wrapping::new().non_null();
+
 impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_, '_> {
     type Value = ResponseValue;
     fn deserialize<D>(mut self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -25,20 +33,52 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_, '_> {
         D: serde::Deserializer<'de>,
     {
         let result = if let Some(list_wrapping) = self.wrapping.pop_outermost_list_wrapping() {
-            if !self.wrapping.is_list()
-                && let Shape::Scalar(ScalarType::Int) = self.field.shape
-            {
-                let values = Vec::<i32>::deserialize(deserializer)?;
-                return Ok(self.state.response.borrow_mut().data.push_int_list(values).into());
+            // We have specialized handling of [Int!] and [Float!] as we can store them efficiently
+            // as Vec<i32> and Vec<f64> and are somewhat common enough.
+            match self.field.shape {
+                Shape::Scalar(ScalarType::Int) if self.wrapping == REQUIRED => {
+                    let part_id = self.state.response.borrow().data.id;
+                    ListSeed {
+                        state: self.state,
+                        field: self.field,
+                        seed: &NonNullIntSeed {
+                            state: self.state,
+                            field: self.field,
+                        },
+                        list_type: NonNullScalarSeedList::<i32>::new(part_id),
+                        is_required: matches!(list_wrapping, ListWrapping::ListNonNull),
+                    }
+                    .deserialize(deserializer)
+                }
+                Shape::Scalar(ScalarType::Float) if self.wrapping == REQUIRED => {
+                    let part_id = self.state.response.borrow().data.id;
+                    ListSeed {
+                        state: self.state,
+                        field: self.field,
+                        seed: &NonNullFloatSeed {
+                            state: self.state,
+                            field: self.field,
+                        },
+                        list_type: NonNullScalarSeedList::<f64>::new(part_id),
+                        is_required: matches!(list_wrapping, ListWrapping::ListNonNull),
+                    }
+                    .deserialize(deserializer)
+                }
+                _ => {
+                    let id = self.state.response.borrow_mut().data.reserve_list_id();
+                    ListSeed {
+                        state: self.state,
+                        field: self.field,
+                        seed: &self,
+                        list_type: ResponseValueSeedList {
+                            id,
+                            element_is_nullable: self.wrapping.is_nullable(),
+                        },
+                        is_required: matches!(list_wrapping, ListWrapping::ListNonNull),
+                    }
+                    .deserialize(deserializer)
+                }
             }
-            ListSeed {
-                state: self.state,
-                field: self.field,
-                seed: &self,
-                is_required: matches!(list_wrapping, ListWrapping::ListNonNull),
-                element_is_nullable: self.wrapping.is_nullable(),
-            }
-            .deserialize(deserializer)
         } else {
             match self.field.shape {
                 Shape::Scalar(ty) => ScalarTypeSeed {
