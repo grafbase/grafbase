@@ -1,0 +1,1 @@
+Test that @link directives with Grafbase extension URLs don't create duplicate extensions when the same extension is already defined in extensions.toml.

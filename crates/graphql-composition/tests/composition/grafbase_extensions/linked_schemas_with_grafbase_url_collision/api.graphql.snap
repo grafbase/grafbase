@@ -1,0 +1,9 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "Test that @link directives with Grafbase extension URLs don't create duplicate extensions when the same extension is already defined in extensions.toml."
+input_file: crates/graphql-composition/tests/composition/grafbase_extensions/linked_schemas_with_grafbase_url_collision/test.md
+---
+type Query {
+  hello: String
+  world: String
+}
