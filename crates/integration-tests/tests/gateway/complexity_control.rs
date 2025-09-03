@@ -1,5 +1,8 @@
 use graphql_mocks::{MockGraphQlServer, Subgraph, dynamic::DynamicSchema};
 use integration_tests::{gateway::Gateway, runtime};
+use serde_json::json;
+
+use crate::gateway::extensions::resolver::ResolverExt;
 
 const LIMIT_CONFIG: &str = r#"
 [complexity_control]
@@ -33,6 +36,98 @@ fn test_complex_query_while_off() {
             response.body,
             serde_json::json!({"data": {"cheapField": null, "expensiveField": null}})
         );
+    });
+}
+
+#[test]
+fn complexity_control_should_work_with_virtual_subgraphs() {
+    async fn build_with_complexity_limit(limit: usize) -> Gateway {
+        Gateway::builder()
+            .with_subgraph_sdl(
+                "x",
+                r#"
+                extend schema
+                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+
+                type Query {
+                    super: SuperObj @resolve
+                }
+
+                type SuperObj {
+                    obj: Obj
+                }
+
+                type Obj {
+                    a: A
+                }
+
+                type A {
+                    something: String @cost(weight: 5)
+                    address: Address
+                }
+
+                type Address {
+                    b: String @cost(weight: 10)
+                    c: String @cost(weight: 5)
+                }
+                "#,
+            )
+            .with_extension(ResolverExt::json(json!({
+                "obj": {
+                    "a": {
+                        "something": "hello",
+                        "address": {
+                            "b": "world",
+                            "c": "!"
+                        }
+                    }
+                }
+            })))
+            .with_toml_config(format!(
+                r#"
+                [complexity_control]
+                mode = "enforce"
+                limit = {limit}
+                "#
+            ))
+            .build()
+            .await
+    }
+    const QUERY: &str = "query { super { obj { a { something address { b c } } } } }";
+
+    runtime().block_on(async move {
+        let response = build_with_complexity_limit(23).await.post(QUERY).await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "errors": [
+            {
+              "message": "Query exceeded complexity limit",
+              "extensions": {
+                "code": "OPERATION_VALIDATION_ERROR"
+              }
+            }
+          ]
+        }
+        "#);
+
+        let response = build_with_complexity_limit(24).await.post(QUERY).await;
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "super": {
+              "obj": {
+                "a": {
+                  "something": "hello",
+                  "address": {
+                    "b": "world",
+                    "c": "!"
+                  }
+                }
+              }
+            }
+          }
+        }
+        "#);
     });
 }
 
