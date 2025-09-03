@@ -2,7 +2,7 @@ module subgraph
 
 go 1.24
 
-toolchain go1.25.0
+toolchain go1.25.1
 
 require (
 	github.com/99designs/gqlgen v0.17.78
