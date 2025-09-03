@@ -10,6 +10,9 @@ homepage.workspace = true
 keywords.workspace = true
 repository.workspace = true
 
+[target.'cfg(all(target_os = "linux", target_arch = "x86_64"))'.dependencies]
+tikv-jemallocator.workspace = true
+
 [dependencies]
 assert_matches.workspace = true
 axum = { workspace = true, features = ["http1", "tokio"] }
@@ -35,7 +38,6 @@ indicatif.workspace = true
 indoc.workspace = true
 inquire.workspace = true
 log.workspace = true
-mimalloc.workspace = true
 notify-debouncer-full.workspace = true
 os_type.workspace = true
 regex.workspace = true

@@ -8,6 +8,7 @@ mod root;
 mod scalar;
 mod state;
 
+use bytes::Bytes;
 use object::{ConcreteShapeFieldsSeed, ObjectFields};
 use runtime::extension::Data;
 use serde::de::DeserializeSeed;
@@ -22,9 +23,9 @@ pub(crate) use state::*;
 
 pub(crate) enum Deserializable<'a> {
     JsonValue(serde_json::Value),
-    Json(&'a [u8]),
-    JsonWithRawValues(&'a [u8]),
-    Cbor(&'a [u8]),
+    Json(&'a Bytes),
+    JsonWithRawValues(&'a Bytes),
+    Cbor(&'a Bytes),
 }
 
 impl<'de> From<&'de Data> for Deserializable<'de> {
@@ -49,27 +50,32 @@ impl<'parent> SeedState<'_, 'parent> {
         seed: Seed,
     ) -> Result<<Seed as DeserializeSeed<'de>>::Value, Option<GraphqlError>> {
         match data.into() {
-            Deserializable::Json(bytes) => seed
-                .deserialize(&mut sonic_rs::Deserializer::from_slice(bytes))
-                .map_err(|err| {
-                    if !self.bubbling_up_deser_error.get() {
-                        tracing::error!("Deserialization failure: {err}");
-                        Some(GraphqlError::invalid_subgraph_response())
-                    } else {
-                        None
-                    }
-                }),
-            Deserializable::JsonWithRawValues(bytes) => seed
-                .deserialize(&mut serde_json::Deserializer::from_slice(bytes))
-                .map_err(|err| {
-                    if !self.bubbling_up_deser_error.get() {
-                        tracing::error!("Deserialization failure: {err}");
-                        Some(GraphqlError::invalid_subgraph_response())
-                    } else {
-                        None
-                    }
-                }),
+            Deserializable::Json(bytes) => {
+                self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
+                seed.deserialize(&mut sonic_rs::Deserializer::from_slice(bytes))
+                    .map_err(|err| {
+                        if !self.bubbling_up_deser_error.get() {
+                            tracing::error!("Deserialization failure: {err}");
+                            Some(GraphqlError::invalid_subgraph_response())
+                        } else {
+                            None
+                        }
+                    })
+            }
+            Deserializable::JsonWithRawValues(bytes) => {
+                self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
+                seed.deserialize(&mut serde_json::Deserializer::from_slice(bytes))
+                    .map_err(|err| {
+                        if !self.bubbling_up_deser_error.get() {
+                            tracing::error!("Deserialization failure: {err}");
+                            Some(GraphqlError::invalid_subgraph_response())
+                        } else {
+                            None
+                        }
+                    })
+            }
             Deserializable::Cbor(bytes) => {
+                self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
                 seed.deserialize(&mut minicbor_serde::Deserializer::new(bytes))
                     .map_err(|err| {
                         if !self.bubbling_up_deser_error.get() {

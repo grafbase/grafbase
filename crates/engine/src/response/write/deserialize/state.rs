@@ -17,6 +17,7 @@ pub(crate) struct SeedState<'ctx, 'parent> {
     pub root_shape: RootFieldsShape<'ctx>,
 
     // -- mutable parts --
+    // Range isn't copy...
     pub bubbling_up_deser_error: Cell<bool>,
     pub response: RefCell<ResponsePartBuilder<'ctx>>,
     pub(super) parent_path: Cell<&'parent [ResponseValueId]>,

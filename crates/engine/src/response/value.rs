@@ -1,6 +1,8 @@
 use operation::{PositionedResponseKey, ResponseKey};
 use schema::{ObjectDefinitionId, StringId};
 
+use crate::response::{DataPartId, PartStrPtr};
+
 use super::{ResponseInaccessibleValueId, ResponseListId, ResponseMapId, ResponseObjectId};
 
 #[derive(Debug, Default)]
@@ -61,7 +63,9 @@ pub(crate) enum ResponseValue {
         value: f64,
     },
     String {
-        value: String,
+        part_id: DataPartId,
+        ptr: PartStrPtr,
+        len: u32,
     },
     StringId {
         id: StringId,
@@ -127,12 +131,6 @@ impl From<f64> for ResponseValue {
     }
 }
 
-impl From<String> for ResponseValue {
-    fn from(value: String) -> Self {
-        Self::String { value }
-    }
-}
-
 impl From<ResponseListId> for ResponseValue {
     fn from(id: ResponseListId) -> Self {
         Self::List { id }
@@ -154,13 +152,11 @@ impl From<ResponseInaccessibleValueId> for ResponseValue {
 #[cfg(test)]
 #[test]
 fn check_response_value_size() {
-    assert_eq!(std::mem::size_of::<ResponseValue>(), 24);
-    assert_eq!(std::mem::align_of::<ResponseValue>(), 8);
+    assert_eq!(std::mem::size_of::<ResponseValue>(), 16);
 }
 
 #[cfg(test)]
 #[test]
 fn check_response_object_field_size() {
-    assert_eq!(std::mem::size_of::<ResponseObjectField>(), 32);
-    assert_eq!(std::mem::align_of::<ResponseObjectField>(), 8);
+    assert_eq!(std::mem::size_of::<ResponseObjectField>(), 24);
 }

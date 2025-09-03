@@ -6,7 +6,10 @@ use serde::ser::{Error, SerializeMap};
 use walker::Walk as _;
 
 use super::{ForFieldSet, ForInjection, ParentObjectsView, ResponseObjectView, ResponseValueView, WithExtraFields};
-use crate::{prepare::RequiredFieldSet, response::ResponseValue};
+use crate::{
+    prepare::RequiredFieldSet,
+    response::{PartString, ResponseValue},
+};
 
 impl<'a, View: Copy> serde::Serialize for ParentObjectsView<'a, View>
 where
@@ -196,13 +199,17 @@ where
                 view: self.view,
             }
             .serialize(serializer),
-            ResponseValue::Boolean { value, .. } => value.serialize(serializer),
-            ResponseValue::Int { value, .. } => value.serialize(serializer),
-            ResponseValue::Float { value, .. } => value.serialize(serializer),
-            ResponseValue::String { value, .. } => value.serialize(serializer),
-            ResponseValue::StringId { id, .. } => self.ctx.response.schema[*id].serialize(serializer),
-            ResponseValue::I64 { value, .. } => value.serialize(serializer),
-            &ResponseValue::List { id, .. } => {
+            ResponseValue::Boolean { value } => value.serialize(serializer),
+            ResponseValue::Int { value } => value.serialize(serializer),
+            ResponseValue::Float { value } => value.serialize(serializer),
+            ResponseValue::String { part_id, ptr, len } => {
+                // SAFETY: ResponseValue::String is always created from a PartString.
+                let s = unsafe { PartString::new(*part_id, *ptr, *len) };
+                self.ctx.response.data_parts[s].serialize(serializer)
+            }
+            ResponseValue::StringId { id } => self.ctx.response.schema[*id].serialize(serializer),
+            ResponseValue::I64 { value } => value.serialize(serializer),
+            &ResponseValue::List { id } => {
                 let values = &self.ctx.response.data_parts[id];
                 serializer.collect_seq(values.iter().map(|value| ResponseValueView {
                     ctx: self.ctx,
@@ -210,7 +217,7 @@ where
                     view: self.view,
                 }))
             }
-            &ResponseValue::Object { id, .. } => ResponseObjectView {
+            &ResponseValue::Object { id } => ResponseObjectView {
                 ctx: self.ctx,
                 response_object: &self.ctx.response.data_parts[id],
                 view: self.view.0,
@@ -373,7 +380,7 @@ impl<'a> serde::Serialize for ResponseValueView<'a, ForInjection<'_>> {
         S: serde::Serializer,
     {
         match self.value {
-            ResponseValue::Object { id, .. } => ResponseObjectView {
+            ResponseValue::Object { id } => ResponseObjectView {
                 ctx: self.ctx,
                 response_object: &self.ctx.response.data_parts[*id],
                 view: self.view,
@@ -386,31 +393,33 @@ impl<'a> serde::Serialize for ResponseValueView<'a, ForInjection<'_>> {
                 view: self.view,
             }
             .serialize(serializer),
-            ResponseValue::Boolean { value, .. } => {
+            ResponseValue::Boolean { value } => {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
                 value.serialize(serializer)
             }
-            ResponseValue::Int { value, .. } => {
+            ResponseValue::Int { value } => {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
                 value.serialize(serializer)
             }
-            ResponseValue::Float { value, .. } => {
+            ResponseValue::Float { value } => {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
                 value.serialize(serializer)
             }
-            ResponseValue::String { value, .. } => {
+            ResponseValue::String { part_id, ptr, len } => {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
-                value.serialize(serializer)
+                // SAFETY: ResponseValue::String is always created from a PartString.
+                let s = unsafe { PartString::new(*part_id, *ptr, *len) };
+                self.ctx.response.data_parts[s].serialize(serializer)
             }
-            ResponseValue::StringId { id, .. } => {
+            ResponseValue::StringId { id } => {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
                 self.ctx.response.schema[*id].serialize(serializer)
             }
-            ResponseValue::I64 { value, .. } => {
+            ResponseValue::I64 { value } => {
                 debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
                 value.serialize(serializer)
             }
-            ResponseValue::List { id, .. } => {
+            ResponseValue::List { id } => {
                 let values = &self.ctx.response.data_parts[*id];
                 serializer.collect_seq(values.iter().map(|value| ResponseValueView {
                     ctx: self.ctx,

@@ -103,17 +103,16 @@ where
 
             // We use RawValue underneath, so can't use sonic_rs. RawValue doesn't do any copies
             // compared to sonic_rs::LazyValue
-            let status = match state
-                .deserialize_data_with(Deserializable::JsonWithRawValues(http_response.body().as_ref()), seed)
-            {
-                Ok(status) => Some(status),
-                Err(err) => {
-                    if let Some(error) = err {
-                        state.insert_error_updates(cache_misses.map(|miss| &parent_objects[miss.id]), [error]);
+            let status =
+                match state.deserialize_data_with(Deserializable::JsonWithRawValues(http_response.body()), seed) {
+                    Ok(status) => Some(status),
+                    Err(err) => {
+                        if let Some(error) = err {
+                            state.insert_error_updates(cache_misses.map(|miss| &parent_objects[miss.id]), [error]);
+                        }
+                        None
                     }
-                    None
-                }
-            };
+                };
 
             (status, state.into_response_part())
         };

@@ -47,10 +47,9 @@ use std::{io::IsTerminal as _, path::PathBuf, process};
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 use watercolor::ShouldColorize;
 
-use mimalloc::MiMalloc;
-
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
 #[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 fn main() {
     panic_hook!();

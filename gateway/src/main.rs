@@ -2,18 +2,18 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use args::Args;
 use clap::crate_version;
-use mimalloc::MiMalloc;
 use tokio::{runtime, sync::watch};
 
 use federated_server::ServeConfig;
-
-#[global_allocator]
-static GLOBAL: MiMalloc = MiMalloc;
 
 mod args;
 mod config;
 mod server_runtime;
 mod telemetry;
+
+#[cfg(all(target_arch = "x86_64", target_os = "linux"))]
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 
 const THREAD_NAME: &str = "grafbase-gateway";
 

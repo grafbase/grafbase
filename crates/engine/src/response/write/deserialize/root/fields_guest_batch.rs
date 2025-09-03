@@ -51,12 +51,16 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
                         field,
                     };
                     let result = match &data {
-                        Data::Json(bytes) => seed
-                            .deserialize(&mut sonic_rs::Deserializer::from_slice(bytes))
-                            .map_err(DeserError::from),
-                        Data::Cbor(bytes) => seed
-                            .deserialize(&mut minicbor_serde::Deserializer::new(bytes))
-                            .map_err(DeserError::from),
+                        Data::Json(bytes) => {
+                            self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
+                            seed.deserialize(&mut sonic_rs::Deserializer::from_slice(bytes))
+                                .map_err(DeserError::from)
+                        }
+                        Data::Cbor(bytes) => {
+                            self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
+                            seed.deserialize(&mut minicbor_serde::Deserializer::new(bytes))
+                                .map_err(DeserError::from)
+                        }
                     };
 
                     match result {
