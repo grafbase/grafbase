@@ -2,6 +2,23 @@ use super::*;
 use crate::federated_graph::{Import, LinkDirective, QualifiedImport};
 use cynic_parser_deser::ConstDeserializer;
 
+fn is_grafbase_extension_registry_url(url: &url::Url) -> bool {
+    if url.scheme() != "https" {
+        return false;
+    }
+
+    if let Some(host) = url.host_str() {
+        if host == "extensions.grafbase.com" {
+            return true;
+        }
+        if host == "grafbase.com" && url.path().starts_with("/extensions") {
+            return true;
+        }
+    }
+
+    false
+}
+
 pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: SubgraphId, subgraphs: &mut Subgraphs) {
     let LinkDirective {
         url,
@@ -32,10 +49,10 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
     let url = subgraphs.strings.intern(url);
     let r#as = r#as.map(|r#as| subgraphs.strings.intern(r#as));
 
-    // Treat `@link`ed schemas with a file url as extensions.
+    // Treat `@link`ed schemas with a file url or Grafbase extension registry URLs as extensions.
     if let Some(name) = r#as
         && let Some(link_url) = &link_url
-        && link_url.url.scheme() == "file"
+        && (link_url.url.scheme() == "file" || is_grafbase_extension_registry_url(&link_url.url))
         && !subgraphs.extension_is_defined(name)
     {
         subgraphs.push_extension(subgraphs::ExtensionRecord {

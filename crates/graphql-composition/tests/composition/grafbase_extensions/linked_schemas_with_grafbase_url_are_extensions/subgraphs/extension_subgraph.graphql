@@ -1,0 +1,13 @@
+schema 
+  @link(url: "https://extensions.grafbase.com/rest/v1", as: "rest")
+  @link(url: "https://grafbase.com/extensions/openapi/v2", as: "openapi")
+  @rest__config(baseUrl: "https://api.example.com")
+  @openapi__spec(url: "https://api.example.com/spec.json")
+{
+  query: Query
+}
+
+type Query {
+  hello: String @rest__endpoint(path: "/hello")
+  world: String @openapi__operation(id: "getWorld")
+}

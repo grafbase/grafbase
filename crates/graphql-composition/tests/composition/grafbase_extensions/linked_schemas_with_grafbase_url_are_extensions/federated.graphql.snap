@@ -1,0 +1,35 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "Test that @link directives with Grafbase extension URLs (https://extensions.grafbase.com and https://grafbase.com/extensions) are automatically treated as extensions without needing an extensions.toml file."
+input_file: crates/graphql-composition/tests/composition/grafbase_extensions/linked_schemas_with_grafbase_url_are_extensions/test.md
+---
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type Query
+{
+  hello: String @extension__directive(graph: EXTENSION_SUBGRAPH, extension: REST, name: "endpoint", arguments: {path: "/hello"}) @join__field(graph: EXTENSION_SUBGRAPH)
+  world: String @extension__directive(graph: EXTENSION_SUBGRAPH, extension: OPENAPI, name: "operation", arguments: {id: "getWorld"}) @join__field(graph: EXTENSION_SUBGRAPH)
+}
+
+enum join__Graph
+{
+  EXTENSION_SUBGRAPH @join__graph(name: "extension-subgraph", url: "http://example.com/extension-subgraph")
+}
+
+enum extension__Link
+{
+  REST @extension__link(url: "https://extensions.grafbase.com/rest/v1", schemaDirectives: [{graph: EXTENSION_SUBGRAPH, name: "config", arguments: {baseUrl: "https://api.example.com"}}])
+  OPENAPI @extension__link(url: "https://grafbase.com/extensions/openapi/v2", schemaDirectives: [{graph: EXTENSION_SUBGRAPH, name: "spec", arguments: {url: "https://api.example.com/spec.json"}}])
+}

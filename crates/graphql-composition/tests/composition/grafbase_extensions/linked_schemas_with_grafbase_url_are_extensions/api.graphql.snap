@@ -1,0 +1,9 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "Test that @link directives with Grafbase extension URLs (https://extensions.grafbase.com and https://grafbase.com/extensions) are automatically treated as extensions without needing an extensions.toml file."
+input_file: crates/graphql-composition/tests/composition/grafbase_extensions/linked_schemas_with_grafbase_url_are_extensions/test.md
+---
+type Query {
+  hello: String
+  world: String
+}

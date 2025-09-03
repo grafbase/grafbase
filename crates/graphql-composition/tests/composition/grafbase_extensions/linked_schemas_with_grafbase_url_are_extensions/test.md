@@ -1,0 +1,1 @@
+Test that @link directives with Grafbase extension URLs (https://extensions.grafbase.com and https://grafbase.com/extensions) are automatically treated as extensions without needing an extensions.toml file.
