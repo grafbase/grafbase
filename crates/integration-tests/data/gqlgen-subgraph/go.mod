@@ -2,6 +2,8 @@ module subgraph
 
 go 1.24
 
+toolchain go1.25.0
+
 require (
 	github.com/99designs/gqlgen v0.17.78
 	github.com/gorilla/websocket v1.5.3
