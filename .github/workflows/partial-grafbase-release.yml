@@ -30,7 +30,7 @@ jobs:
     name: Release grafbase
     runs-on: depot-ubuntu-24.04-small
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-musl
@@ -59,25 +59,25 @@ jobs:
           cmd: yq '.env.PROD_ASSETS' './.github/workflows/binaries.yml'
 
       - name: Download darwin-aarch64 artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ env.VERSION_BUMP }}-aarch64-apple-darwin
           path: cli/npm/aarch64-apple-darwin
 
       - name: Download Linux AMD artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ env.VERSION_BUMP }}-linux
           path: cli/npm/x86_64-unknown-linux-musl
 
       - name: Download Linux ARM artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ env.VERSION_BUMP }}-linux-arm
           path: cli/npm/aarch64-unknown-linux-musl
 
       - name: Download windows artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ env.VERSION_BUMP }}-x86_64-pc-windows-msvc
           path: cli/npm/x86_64-pc-windows-msvc
@@ -141,7 +141,7 @@ jobs:
           fi
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
 
       - name: Publish npm
         shell: bash
