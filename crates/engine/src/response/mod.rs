@@ -87,6 +87,16 @@ impl RefusedRequestResponse {
 }
 
 impl Response {
+    pub(crate) fn size_hint(&self) -> usize {
+        match self {
+            Self::RefusedRequest(resp) => resp.errors.len() * 80,
+            Self::RequestError(resp) => resp.errors.len() * 80,
+            Self::Executed(resp) => {
+                resp.errors.len() * 80 + resp.data.as_ref().map(|data| data.size_hint()).unwrap_or(10)
+            }
+        }
+    }
+
     pub(crate) fn refused_request(
         status: http::StatusCode,
         errors: impl IntoIterator<Item = impl Into<GraphqlError>>,
