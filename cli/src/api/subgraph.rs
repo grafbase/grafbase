@@ -60,15 +60,6 @@ pub async fn delete(account: &str, graph: &str, branch: &str, name: &str) -> Res
         Some(DeleteSubgraphPayload::GraphBranchDoesNotExistError(_)) => {
             Err(ApiError::SubgraphsError("Graph branch does not exist".to_string()))
         }
-        Some(DeleteSubgraphPayload::ProjectDoesNotExistError(_)) => {
-            Err(ApiError::SubgraphsError("Project does not exist".to_string()))
-        }
-        Some(DeleteSubgraphPayload::ProjectNotFederatedError(_)) => {
-            Err(ApiError::SubgraphsError("Project is not federated".to_string()))
-        }
-        Some(DeleteSubgraphPayload::ProjectBranchDoesNotExistError(_)) => {
-            Err(ApiError::SubgraphsError("Project branch does not exist".to_string()))
-        }
         Some(DeleteSubgraphPayload::FederatedGraphCompositionError(err)) => Err(ApiError::SubgraphsError(format!(
             "Federation composition error: {:?}",
             err.messages

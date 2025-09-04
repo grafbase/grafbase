@@ -27,7 +27,6 @@ input AccessTokenCreateInput {
   accountId: ID
   kind: AccessTokenKind! = USER
   graphScopes: [ID!]
-  projectScopes: [ID!]
   expiresAt: DateTime
 }
 
@@ -37,8 +36,8 @@ union AccessTokenCreatePayload =
   | TokenLimitExceededError
   | GraphScopeLimitExceededError
   | CouldNotFindGraphsError
-  | ProjectScopeLimitExceededError
-  | CouldNotFindProjectsError
+  | AccountIdMissingForAccountAccessTokenError
+  | UserAccessTokensCannotBeScopedToAGraphError
 
 type AccessTokenCreateSuccess {
   token: AccessToken!
@@ -100,6 +99,10 @@ type AccountDoesNotExistError {
   query: Query!
 }
 
+type AccountIdMissingForAccountAccessTokenError {
+  query: Query!
+}
+
 type AccountStatus {
   isEnabled: Boolean!
 }
@@ -135,6 +138,10 @@ type Branch implements Node {
   schema: String
   federatedSchema: String
   operationChecksEnabled: Boolean!
+  """
+  Whether usage data should be ignored when running operation checks.
+  """
+  operationChecksIgnoreUsageData: Boolean!
   schemaProposals(first: Int, after: String, filter: SchemaProposalFilter!): SchemaProposalConnection!
   schemaProposalsConfiguration: SchemaProposalsConfiguration!
   subgraphs: [Subgraph!]!
@@ -195,17 +202,23 @@ enum BranchEnvironment {
 
 input BranchUpdateInput {
   accountSlug: String!
-  projectSlug: String
   graphSlug: String
   branchSlug: String!
   trustedDocumentsEnforce: Boolean
   trustedDocumentsBypassHeaderName: String
   trustedDocumentsBypassHeaderValue: String
+  """
+  Toggle whether operation checks are run along with other schema checks.
+  """
   operationChecksEnabled: Boolean
+  """
+  When this is enabled, operation checks will not take usage data into account. Any change that is theoretically breaking (like making a required output field optional) will be considered breaking.
+  """
+  operationChecksIgnoreUsageData: Boolean
   schemaProposalsConfiguration: SchemaProposalsConfigurationUpdateInput
 }
 
-union BranchUpdatePayload = Query | ProjectDoesNotExistError | GraphDoesNotExistError
+union BranchUpdatePayload = Query | GraphDoesNotExistError
 
 type CannotBeRenamedError {
   query: Query!
@@ -215,7 +228,7 @@ type CannotDeleteProductionBranchError {
   query: Query!
 }
 
-type CannotUseInvitationsWithSSO {
+type CannotUseInvitationsWithSso {
   query: Query!
 }
 
@@ -227,10 +240,6 @@ type CompositionCheckError {
 
 type CouldNotFindGraphsError {
   unknownGraphIds: [ID!]!
-}
-
-type CouldNotFindProjectsError {
-  unknownProjectIds: [ID!]!
 }
 
 type CurrentPlanLimitReachedError {
@@ -269,7 +278,6 @@ type DeleteSubgraphDeploymentFailure {
 input DeleteSubgraphInput {
   accountSlug: String!
   graphSlug: String
-  projectSlug: String
   branch: String!
   subgraph: String!
   message: String
@@ -279,9 +287,6 @@ input DeleteSubgraphInput {
 union DeleteSubgraphPayload =
   | DeleteSubgraphSuccess
   | SubgraphNotFoundError
-  | ProjectDoesNotExistError
-  | ProjectNotFederatedError
-  | ProjectBranchDoesNotExistError
   | GraphDoesNotExistError
   | GraphNotFederatedError
   | GraphBranchDoesNotExistError
@@ -328,6 +333,8 @@ type Deployment implements Node {
   """
   apiSchemaDiff: [DiffSnippet!]
   changeCounts: DeploymentChangeCounts
+  schemaVersion: SchemaVersion
+  message: String
 }
 
 type DeploymentChangeCounts {
@@ -546,6 +553,10 @@ enum ExtensionKind {
   AUTHENTICATOR @deprecated(reason: "Replaced by AUTHENTICATION")
   AUTHENTICATION
   AUTHORIZATION
+  SELECTION_SET_RESOLVER
+  RESOLVER
+  HOOKS
+  CONTRACTS
 }
 
 union ExtensionPublishPayload =
@@ -825,7 +836,7 @@ input GraphDeleteInput {
   id: ID!
 }
 
-union GraphDeletePayload = GraphDeleteSuccess | GraphDoesNotExistError
+union GraphDeletePayload = GraphDeleteSuccess | NotAllowedError | GraphDoesNotExistError
 
 type GraphDeleteSuccess {
   query: Query!
@@ -962,6 +973,10 @@ type InvalidAccountError {
   query: Query!
 }
 
+type InvalidEmailAddressError {
+  query: Query!
+}
+
 type Invite implements Node {
   id: ID!
   role: MemberRole!
@@ -981,7 +996,7 @@ union InviteAcceptPayload =
   | InviteAcceptSuccess
   | InviteDoesNotExistError
   | AlreadyMemberError
-  | CannotUseInvitationsWithSSO
+  | CannotUseInvitationsWithSso
 
 type InviteAcceptSuccess {
   member: Member!
@@ -1053,7 +1068,8 @@ union InviteSendPayload =
   | InviteSendSuccess
   | OrganizationDoesNotExistError
   | NotAllowedToSendInvitesError
-  | CannotUseInvitationsWithSSO
+  | InvalidEmailAddressError
+  | CannotUseInvitationsWithSso
 
 type InviteSendSuccess {
   invite: Invite!
@@ -1159,7 +1175,6 @@ type Mutation {
   organizationUpdate(input: OrganizationUpdateInput!): OrganizationUpdatePayload!
   personalAccountUpdate(input: PersonalAccountUpdateInput!): PersonalAccountUpdatePayload!
     @deprecated(reason: "to be removed")
-  personalAccountDelete: PersonalAccountDeletePayload! @deprecated(reason: "to be removed")
   organizationDelete(input: OrganizationDeleteInput!): OrganizationDeletePayload!
   branchCreate(input: BranchCreateInput!): BranchCreatePayload!
   branchUpdate(input: BranchUpdateInput!): BranchUpdatePayload!
@@ -1172,10 +1187,6 @@ type Mutation {
     slug of the graph
     """
     graphSlug: String
-    """
-    slug of the project
-    """
-    projectSlug: String
     """
     name of the branch
     """
@@ -1244,6 +1255,10 @@ type Mutation {
   schemaProposalReject(input: SchemaProposalRejectInput!): SchemaProposalRejectPayload!
   schemaProposalDelete(id: ID!): SchemaProposalDeletePayload!
   """
+  Update schema proposal metadata (title and description).
+  """
+  schemaProposalUpdate(input: SchemaProposalUpdateInput!): SchemaProposalUpdatePayload!
+  """
   Edit the contents of a proposal.
 
   The proposed subgraphs can be just a subset of the subgraphs being edited in the proposal. The changes from the previous edit on other subgraphs be carried over.
@@ -1293,7 +1308,6 @@ type Mutation {
   trustedDocumentsSubmit(
     accountSlug: String
     graphSlug: String
-    projectSlug: String
     branchSlug: String!
     clientName: String!
     documents: [TrustedDocumentInput!]!
@@ -1303,6 +1317,8 @@ type Mutation {
   Delete the user.
   """
   userDelete: UserDeletePayload!
+  zitadelInit: ZitadelInitPayload
+  zitadelAddRedirect: ZitadelAddRedirectPayload
 }
 
 type NameSizeCheckError {
@@ -1336,6 +1352,10 @@ type NotAllowedToSlugUpdateError {
 }
 
 type NotAllowedToUpdateOrganizationError {
+  query: Query!
+}
+
+type NotEnterprisePlatformError {
   query: Query!
 }
 
@@ -1531,13 +1551,6 @@ type PageInfo {
   endCursor: String
 }
 
-union PersonalAccountDeletePayload = PersonalAccountDeleteSuccess | OrganizationOwnershipNotTransferredError
-
-type PersonalAccountDeleteSuccess {
-  deletedId: ID!
-  query: Query!
-}
-
 input PersonalAccountUpdateInput {
   name: String!
 }
@@ -1545,22 +1558,6 @@ input PersonalAccountUpdateInput {
 union PersonalAccountUpdatePayload = PersonalAccountUpdateSuccess | NameSizeCheckError
 
 type PersonalAccountUpdateSuccess {
-  query: Query!
-}
-
-type ProjectBranchDoesNotExistError {
-  query: Query!
-}
-
-type ProjectDoesNotExistError {
-  query: Query!
-}
-
-type ProjectNotFederatedError {
-  query: Query!
-}
-
-type ProjectScopeLimitExceededError {
   query: Query!
 }
 
@@ -1581,7 +1578,6 @@ type PublishForbidden {
 input PublishInput {
   accountSlug: String!
   graphSlug: String
-  projectSlug: String
   branch: String
   subgraph: String!
   url: String
@@ -1598,7 +1594,6 @@ type PublishNoChange {
 
 union PublishPayload =
   | PublishSuccess
-  | ProjectDoesNotExistError
   | GraphDoesNotExistError
   | FederatedGraphCompositionError
   | SchemaRegistryBranchDoesNotExistError
@@ -1611,6 +1606,9 @@ type PublishSuccess {
 }
 
 type Query {
+  """
+  Returns user access tokens for the user issuing the request.
+  """
   accessTokens(after: String, before: String, first: Int, last: Int): AccessTokenConnection!
   accountBySlug(
     """
@@ -1631,10 +1629,6 @@ type Query {
     slug of the graph
     """
     graphSlug: String
-    """
-    slug of the project
-    """
-    projectSlug: String
     """
     name of the branch
     """
@@ -1659,11 +1653,6 @@ type Query {
   """
   extensionVersionsByVersionRequirement(requirements: [ExtensionVersionRequirement!]!): [ExtensionVersionMatch!]
   """
-  Return the notifications inbox of the currently connected user.
-  """
-  notificationsInbox: NotificationsInbox
-  invite(id: ID!): Invite
-  """
   Get a graph by account slug and slug of the graph itself.
   """
   graphByAccountSlug(
@@ -1676,6 +1665,12 @@ type Query {
     """
     graphSlug: String!
   ): Graph
+  """
+  Return the notifications inbox of the currently connected user.
+  """
+  notificationsInbox: NotificationsInbox
+  invite(id: ID!): Invite
+  node(id: ID!): Node
   schemaCheck(id: ID!): SchemaCheck
   schemaProposal(id: ID!): SchemaProposal
   """
@@ -1686,10 +1681,6 @@ type Query {
     account slug
     """
     accountSlug: String!
-    """
-    project slug
-    """
-    projectSlug: String
     """
     graph slug
     """
@@ -1736,7 +1727,7 @@ type Query {
   Give the actual connected user.
   """
   viewer: User
-  node(id: ID!): Node
+  zitadelStatus: ZitadelStatus
   _service: _Service!
 }
 
@@ -2560,6 +2551,19 @@ enum SchemaProposalSubgraphStatus {
   UNCHANGED
 }
 
+input SchemaProposalUpdateInput {
+  schemaProposalId: ID!
+  title: String
+  description: String
+}
+
+union SchemaProposalUpdatePayload = SchemaProposalUpdateSuccess | SchemaProposalDoesNotExistError
+
+type SchemaProposalUpdateSuccess {
+  schemaProposal: SchemaProposal!
+  query: Query!
+}
+
 type SchemaProposalsConfiguration {
   enforceChecks: Boolean!
   requireApprovalFromSubgraphOwners: Boolean!
@@ -2753,7 +2757,7 @@ type SlackNotification {
   channelName: String!
 }
 
-union SlackNotificationCreatePayload = SlackNotification | ProjectDoesNotExistError
+union SlackNotificationCreatePayload = SlackNotification | GraphDoesNotExistError
 
 union SlackNotificationDeletePayload = Query
 
@@ -3085,7 +3089,6 @@ union TrustedDocumentsSubmitPayload =
   | TrustedDocumentsSubmitSuccess
   | ReusedIds
   | GraphDoesNotExistError
-  | ProjectDoesNotExistError
   | OldAccessTokenError
 
 type TrustedDocumentsSubmitSuccess {
@@ -3164,6 +3167,10 @@ type User implements Node {
   canStartNewTrial: Boolean!
 }
 
+type UserAccessTokensCannotBeScopedToAGraphError {
+  query: Query!
+}
+
 type UserConnection {
   """
   Information to aid in pagination.
@@ -3224,6 +3231,36 @@ type ValidationCheckError {
 
 scalar VersionedExtensionManifest
 
+type ZitadelAddRedirectFailure {
+  query: Query!
+  error: String
+}
+
+union ZitadelAddRedirectPayload = ZitadelAddRedirectSuccess | NotEnterprisePlatformError | ZitadelAddRedirectFailure
+
+type ZitadelAddRedirectSuccess {
+  query: Query!
+}
+
+type ZitadelInitFailure {
+  query: Query!
+  error: String
+}
+
+union ZitadelInitPayload = ZitadelInitSuccess | NotEnterprisePlatformError | ZitadelInitFailure
+
+type ZitadelInitSuccess {
+  query: Query!
+}
+
+type ZitadelStatus {
+  resources: Boolean!
+  idp: Boolean!
+  redirect: Boolean!
+  organizationId: String
+  clientId: String
+}
+
 """
 The `_Any` scalar is used to pass representations of entities from external
 services into the root `_entities` field for execution.
@@ -3234,11 +3271,23 @@ type _Service {
   sdl: String
 }
 
+"""
+Marks an element of a GraphQL schema as no longer supported.
+"""
 directive @deprecated(
   reason: String = "No longer supported"
 ) on FIELD_DEFINITION | ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION | ENUM_VALUE
+"""
+Directs the executor to include this field or fragment only when the `if` argument is true.
+"""
 directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""
+Directs the executor to skip this field or fragment when the `if` argument is true.
+"""
 directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""
+Provides a scalar specification URL for specifying the behavior of custom scalar types.
+"""
 directive @specifiedBy(url: String!) on SCALAR
 schema {
   query: Query
