@@ -4,7 +4,7 @@ use std::sync::{
 };
 
 use bytes::Bytes;
-use engine::{Body, RequestExtensions};
+use engine::{Body, CachedOperation, RequestExtensions};
 use event_queue::SubgraphResponseBuilder;
 use futures::{StreamExt, TryStreamExt};
 use runtime::fetch::{FetchRequest, FetchResult, dynamic::DynFetcher};
@@ -23,7 +23,7 @@ pub struct DeterministicEngine {
 }
 
 pub struct DeterministicEngineBuilder<'a> {
-    runtime: TestRuntime,
+    operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
     schema: &'a str,
     query: &'a str,
     subgraphs_json_responses: Vec<String>,
@@ -39,7 +39,7 @@ impl DeterministicEngineBuilder<'_> {
 
     #[must_use]
     pub fn without_operation_cache(mut self) -> Self {
-        self.runtime.operation_cache = InMemoryOperationCache::inactive();
+        self.operation_cache = InMemoryOperationCache::inactive();
         self
     }
 
@@ -54,13 +54,13 @@ impl DeterministicEngineBuilder<'_> {
         );
 
         let schema = engine::Schema::from_sdl_or_panic(self.schema).await;
-        let engine = engine::ContractAwareEngine::new(
-            Arc::new(schema),
-            TestRuntime {
-                fetcher: fetcher.into(),
-                ..self.runtime
-            },
-        );
+        let runtime = TestRuntime::new(&Default::default(), &schema).await;
+        let runtime = TestRuntime {
+            fetcher: fetcher.into(),
+            operation_cache: self.operation_cache,
+            ..runtime
+        };
+        let engine = engine::ContractAwareEngine::new(Arc::new(schema), runtime);
         let body = Bytes::from(serde_json::to_vec(&serde_json::json!({"query": self.query})).unwrap());
         DeterministicEngine {
             engine: Arc::new(engine),
@@ -85,7 +85,7 @@ impl DeterministicEngineBuilder<'_> {
 impl DeterministicEngine {
     pub fn builder<'a>(schema: &'a str, query: &'a str) -> DeterministicEngineBuilder<'a> {
         DeterministicEngineBuilder {
-            runtime: Default::default(),
+            operation_cache: Default::default(),
             schema,
             query,
             subgraphs_json_responses: Vec::new(),
@@ -159,7 +159,7 @@ impl DummyFetcher {
 impl DynFetcher for DummyFetcher {
     async fn fetch(
         &self,
-        _request: FetchRequest<'_, Bytes>,
+        _request: FetchRequest<'_>,
     ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>) {
         let result = Ok(self
             .responses

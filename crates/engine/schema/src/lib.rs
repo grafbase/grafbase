@@ -253,7 +253,7 @@ impl Schema {
         self.graph.root_operation_types_record.subscription_id.walk(self)
     }
 
-    pub fn graphql_endpoints(&self) -> impl ExactSizeIterator<Item = GraphqlSubgraph<'_>> {
+    pub fn graphql_subgraphs(&self) -> impl ExactSizeIterator<Item = GraphqlSubgraph<'_>> {
         (0..self.subgraphs.graphql_endpoints.len()).map(move |i| {
             let id = GraphqlSubgraphId::from(i);
             id.walk(self)
@@ -266,7 +266,7 @@ impl Schema {
             Subgraph::from(id.walk(self))
         });
 
-        self.graphql_endpoints()
+        self.graphql_subgraphs()
             .map(Into::into)
             .chain(virt)
             .chain(std::iter::once(Subgraph::Introspection(self)))

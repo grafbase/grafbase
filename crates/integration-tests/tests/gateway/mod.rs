@@ -20,4 +20,5 @@ mod subgraph_retries;
 mod subgraphs;
 mod subscriptions;
 mod timeouts;
+mod traffic_shaping;
 mod trusted_documents;

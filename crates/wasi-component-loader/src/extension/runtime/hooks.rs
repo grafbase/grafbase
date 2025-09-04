@@ -48,12 +48,12 @@ impl GatewayHooksExtension for GatewayWasmExtensions {
 }
 
 impl EngineHooksExtension<EngineOperationContext> for EngineWasmExtensions {
-    async fn on_graphql_subgraph_request(
+    async fn on_graphql_subgraph_request<'r>(
         &self,
         context: EngineOperationContext,
         subgraph: GraphqlSubgraph<'_>,
-        parts: ReqwestParts,
-    ) -> Result<ReqwestParts, GraphqlError> {
+        parts: ReqwestParts<'r>,
+    ) -> Result<ReqwestParts<'r>, GraphqlError> {
         let Some(pool) = self.gateway_extensions.hooks.as_ref() else {
             return Ok(parts);
         };

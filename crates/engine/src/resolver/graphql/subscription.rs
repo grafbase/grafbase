@@ -6,7 +6,7 @@ use futures_util::{StreamExt, stream::BoxStream};
 use headers::HeaderMapExt;
 use runtime::{
     extension::Data,
-    fetch::{FetchRequest, Fetcher},
+    fetch::{Fetcher, WebsocketRequest},
 };
 use schema::SubscriptionProtocol;
 use tracing::Instrument;
@@ -80,7 +80,7 @@ impl GraphqlResolver {
 
         let headers = ctx.subgraph_headers_with_rules(endpoint.header_rules());
 
-        let request = FetchRequest {
+        let request = WebsocketRequest {
             subgraph_name: endpoint.name(),
             url,
             websocket_init_payload: ctx
@@ -103,7 +103,7 @@ impl GraphqlResolver {
         };
 
         let fetcher = ctx.runtime().fetcher();
-        let http_span = ctx.create_subgraph_request_span(&request);
+        let http_span = ctx.create_subgraph_request_span(&request.url, &request.method);
         let http_span1 = http_span.clone();
 
         let stream = retrying_fetch(ctx, move || {
@@ -182,7 +182,7 @@ impl GraphqlResolver {
             headers.typed_insert(headers::ContentType::json());
             headers.typed_insert(headers::ContentLength(body.len() as u64));
 
-            FetchRequest {
+            WebsocketRequest {
                 websocket_init_payload: None,
                 subgraph_name: endpoint.name(),
                 url: Cow::Owned(endpoint.url().clone()),
@@ -193,9 +193,9 @@ impl GraphqlResolver {
             }
         };
 
-        ctx.record_request_size(&request);
+        ctx.record_request_size(request.body.len());
 
-        let http_span = ctx.create_subgraph_request_span(&request);
+        let http_span = ctx.create_subgraph_request_span(&request.url, &request.method);
         let fetcher = ctx.runtime().fetcher();
 
         let http_span1 = http_span.clone();

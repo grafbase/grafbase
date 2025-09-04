@@ -77,7 +77,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
 
     let extensions = EngineWasmExtensions::default();
     let runtime = MinimalRuntime {
-        fetcher: NativeFetcher::new(&config).unwrap(),
+        fetcher: NativeFetcher::new(&config, &schema).unwrap(),
         trusted_documents: trusted_documents_client::Client::new(()),
         metrics: EngineMetrics::build(&meter_from_global_provider(), None),
         extensions,

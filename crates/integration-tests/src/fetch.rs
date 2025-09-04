@@ -35,7 +35,7 @@ impl MockFetch {
 impl DynFetcher for MockFetch {
     async fn fetch(
         &self,
-        request: FetchRequest<'_, Bytes>,
+        request: FetchRequest<'_>,
     ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>) {
         let host = request.url.host_str().unwrap();
         self.requests.push((

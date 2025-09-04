@@ -31,12 +31,15 @@ pub(crate) trait HooksExtensionInstance {
         Box::pin(std::future::ready(Ok(Ok(parts))))
     }
 
-    fn on_graphql_subgraph_request<'a>(
+    fn on_graphql_subgraph_request<'a, 'r>(
         &'a mut self,
         ctx: EngineOperationContext,
         subgraph: GraphqlSubgraph<'a>,
-        parts: ReqwestParts,
-    ) -> BoxFuture<'a, wasmtime::Result<Result<ReqwestParts, GraphqlError>>> {
+        parts: ReqwestParts<'r>,
+    ) -> BoxFuture<'a, wasmtime::Result<Result<ReqwestParts<'r>, GraphqlError>>>
+    where
+        'r: 'a,
+    {
         Box::pin(std::future::ready(Ok(Ok(parts))))
     }
 

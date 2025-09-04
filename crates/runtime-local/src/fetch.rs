@@ -1,38 +1,58 @@
 mod signing;
+mod traffic_shaping;
 
 use std::future::Future;
+use std::ops::Deref;
+use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::bail;
 use bytes::Bytes;
+use engine::Schema;
+use engine_schema::GraphqlSubgraphId;
 use event_queue::{SubgraphResponse, SubgraphResponseBuilder};
 use futures_util::Stream;
 use futures_util::{StreamExt, TryStreamExt};
 use fxhash::FxHashMap;
 use gateway_config::Config;
+use rapidhash::fast::RapidHashMap;
 use reqwest::{Certificate, Identity, RequestBuilder};
 use reqwest_eventsource::RequestBuilderExt;
-use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher};
-use signing::SigningParameters;
+use runtime::fetch::{FetchError, FetchRequest, FetchResult, Fetcher, WebsocketRequest};
+
+use crate::fetch::traffic_shaping::TrafficShaping;
 
 const POOL_IDLE_TIMEOUT: Duration = Duration::from_secs(5);
 const ENABLE_HICKORY_DNS: bool = true;
 
-#[derive(Clone)]
-pub struct NativeFetcher {
+pub struct NativeFetcherInner {
     client: reqwest::Client,
-    dedicated_clients: FxHashMap<String, reqwest::Client>,
-    default_signing_parameters: Option<SigningParameters>,
-    subgraph_signing_parameters: FxHashMap<String, Option<SigningParameters>>,
+    signer: signing::RequestSigner,
+    dedicated_clients: FxHashMap<GraphqlSubgraphId, reqwest::Client>,
+    traffic_shaping: traffic_shaping::TrafficShaping,
+}
+
+#[derive(Clone)]
+pub struct NativeFetcher(Arc<NativeFetcherInner>);
+
+impl Deref for NativeFetcher {
+    type Target = NativeFetcherInner;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
 
 impl NativeFetcher {
-    pub fn new(config: &Config) -> anyhow::Result<Self> {
-        let default_signing_params = SigningParameters::from_config(&config.gateway.message_signatures, None)?;
-        let subgraph_signing_parameters = generate_subgraph_signing_parameters(config)?;
-        let dedicated_clients = generate_dedicated_http_clients(config)?;
+    pub fn new(config: &Config, schema: &Schema) -> anyhow::Result<Self> {
+        let name_to_id = schema
+            .graphql_subgraphs()
+            .map(|s| (s.name(), s.id))
+            .collect::<RapidHashMap<_, _>>();
+        let signer = signing::RequestSigner::new(config, &name_to_id)?;
+        let dedicated_clients = generate_dedicated_http_clients(config, &name_to_id)?;
 
-        Ok(NativeFetcher {
+        Ok(NativeFetcher(Arc::new(NativeFetcherInner {
             client: reqwest::Client::builder()
                 // Hyper connection pool only exposes two parameters max idle connections per host
                 // and idle connection timeout. There is not TTL on the connections themselves to
@@ -45,39 +65,46 @@ impl NativeFetcher {
                 .pool_idle_timeout(Some(POOL_IDLE_TIMEOUT))
                 .hickory_dns(ENABLE_HICKORY_DNS)
                 .build()?,
-            default_signing_parameters: default_signing_params,
-            subgraph_signing_parameters,
+            signer,
             dedicated_clients,
-        })
-    }
-
-    pub fn client(&self, subgraph_name: &str) -> &reqwest::Client {
-        self.dedicated_clients.get(subgraph_name).unwrap_or(&self.client)
+            traffic_shaping: TrafficShaping::new(&config.traffic_shaping),
+        })))
     }
 }
 
-impl Fetcher for NativeFetcher {
-    async fn fetch(
-        &self,
-        fetch_req: FetchRequest<'_, Bytes>,
-    ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>) {
+#[derive(Clone)]
+struct FetchResponse {
+    result: FetchResult<http::Response<Bytes>>,
+    info: Option<SubgraphResponseBuilder>,
+}
+
+impl NativeFetcherInner {
+    async fn execute(&self, fetch_req: FetchRequest<'_>) -> FetchResponse {
         let mut info = SubgraphResponse::builder();
 
-        let subgraph_name = fetch_req.subgraph_name;
+        let subgraph_id = fetch_req.subgraph_id;
         let request = into_reqwest(fetch_req);
 
-        let request = match self.sign_request(subgraph_name, request).await {
+        let request = match self.signer.sign(subgraph_id, request).await {
             Ok(request) => request,
-            Err(error) => return (Err(error), None),
+            Err(error) => {
+                return FetchResponse {
+                    result: Err(error),
+                    info: None,
+                };
+            }
         };
 
-        let result = self.client(subgraph_name).execute(request).await.map_err(Into::into);
+        let result = self.client(subgraph_id).execute(request).await.map_err(Into::into);
         info.track_connection();
 
         let mut resp = match result {
             Ok(response) => response,
             Err(e) => {
-                return (Err(e), Some(info));
+                return FetchResponse {
+                    result: Err(e),
+                    info: Some(info),
+                };
             }
         };
 
@@ -91,7 +118,12 @@ impl Fetcher for NativeFetcher {
 
         let bytes = match result {
             Ok(bytes) => bytes,
-            Err(e) => return (Err(e.into()), Some(info)),
+            Err(e) => {
+                return FetchResponse {
+                    result: Err(e.into()),
+                    info: Some(info),
+                };
+            }
         };
 
         // reqwest transforms the body into a stream with Into
@@ -101,14 +133,34 @@ impl Fetcher for NativeFetcher {
         *response.extensions_mut() = extensions;
         *response.headers_mut() = headers;
 
-        (Ok(response), Some(info))
+        FetchResponse {
+            result: Ok(response),
+            info: Some(info),
+        }
+    }
+
+    fn client(&self, subgraph_id: GraphqlSubgraphId) -> &reqwest::Client {
+        self.dedicated_clients.get(&subgraph_id).unwrap_or(&self.client)
+    }
+}
+
+impl Fetcher for NativeFetcher {
+    async fn fetch(
+        &self,
+        request: FetchRequest<'_>,
+    ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>) {
+        let FetchResponse { result, info } = self
+            .traffic_shaping
+            .deduplicate(request, |request| async move { self.execute(request).await })
+            .await;
+        (result, info)
     }
 
     async fn graphql_over_sse_stream(
         &self,
-        request: FetchRequest<'_, Bytes>,
+        request: WebsocketRequest<'_, Bytes>,
     ) -> FetchResult<impl Stream<Item = FetchResult<Bytes>> + Send + 'static> {
-        let mut request = into_reqwest(request);
+        let mut request = ws_to_reqwest(request);
         // We're doing a streaming request, for subscriptions, so we don't want to timeout
         *request.timeout_mut() = None;
 
@@ -144,7 +196,7 @@ impl Fetcher for NativeFetcher {
 
     fn graphql_over_websocket_stream<T>(
         &self,
-        request: FetchRequest<'_, T>,
+        request: WebsocketRequest<'_, T>,
     ) -> impl Future<Output = FetchResult<impl Stream<Item = FetchResult<serde_json::Value>> + Send + 'static>> + Send
     where
         T: serde::Serialize + Send,
@@ -170,7 +222,7 @@ impl Fetcher for NativeFetcher {
             Ok(graphql_ws_client::Client::build(connection)
                 .payload(request.websocket_init_payload)
                 .map_err(|err| err.to_string())?
-                .subscribe(WebsocketRequest(body?))
+                .subscribe(GraphqlWsRequest(body?))
                 .await
                 .map_err(|err| err.to_string())?
                 .map(|item| item.map_err(|err| FetchError::from(err.to_string()))))
@@ -178,7 +230,15 @@ impl Fetcher for NativeFetcher {
     }
 }
 
-fn into_reqwest(request: FetchRequest<'_, Bytes>) -> reqwest::Request {
+fn into_reqwest(request: FetchRequest<'_>) -> reqwest::Request {
+    let mut req = reqwest::Request::new(request.method, request.url.into_owned());
+    *req.headers_mut() = request.headers;
+    *req.body_mut() = Some(request.body.into());
+    *req.timeout_mut() = Some(request.timeout);
+    req
+}
+
+fn ws_to_reqwest(request: WebsocketRequest<'_, Bytes>) -> reqwest::Request {
     let mut req = reqwest::Request::new(request.method, request.url.into_owned());
     *req.headers_mut() = request.headers;
     *req.body_mut() = Some(request.body.into());
@@ -187,7 +247,10 @@ fn into_reqwest(request: FetchRequest<'_, Bytes>) -> reqwest::Request {
 }
 
 /// Creates a HashMap of dedicated HTTP clients for subgraphs that require mTLS.
-fn generate_dedicated_http_clients(config: &Config) -> anyhow::Result<FxHashMap<String, reqwest::Client>> {
+fn generate_dedicated_http_clients(
+    config: &Config,
+    subgraph_name_to_id: &RapidHashMap<&str, GraphqlSubgraphId>,
+) -> anyhow::Result<FxHashMap<GraphqlSubgraphId, reqwest::Client>> {
     let mut clients = FxHashMap::default();
 
     for (name, config) in &config.subgraphs {
@@ -198,6 +261,13 @@ fn generate_dedicated_http_clients(config: &Config) -> anyhow::Result<FxHashMap<
         if mtls_config.root.is_none() && mtls_config.identity.is_none() {
             continue;
         }
+
+        let id = match subgraph_name_to_id.get(name.as_str()) {
+            Some(id) => *id,
+            None => {
+                continue;
+            }
+        };
 
         let mut builder = reqwest::Client::builder()
             .pool_idle_timeout(Some(POOL_IDLE_TIMEOUT))
@@ -245,7 +315,7 @@ fn generate_dedicated_http_clients(config: &Config) -> anyhow::Result<FxHashMap<
         }
 
         let Some(ref identity_path) = mtls_config.identity else {
-            clients.insert(name.clone(), builder.build()?);
+            clients.insert(id, builder.build()?);
             continue;
         };
 
@@ -270,34 +340,16 @@ fn generate_dedicated_http_clients(config: &Config) -> anyhow::Result<FxHashMap<
         };
 
         builder = builder.identity(identity);
-        clients.insert(name.clone(), builder.build()?);
+        clients.insert(id, builder.build()?);
     }
 
     Ok(clients)
 }
 
-fn generate_subgraph_signing_parameters(
-    config: &Config,
-) -> Result<FxHashMap<String, Option<SigningParameters>>, anyhow::Error> {
-    let subgraph_signing_parameters = config
-        .subgraphs
-        .iter()
-        .filter_map(|(name, value)| Some((name, value.message_signatures.as_ref()?)))
-        .map(|(name, message_signatures)| {
-            Ok((
-                name.clone(),
-                SigningParameters::from_config(message_signatures, Some(&config.gateway.message_signatures))?,
-            ))
-        })
-        .collect::<anyhow::Result<_>>()?;
-
-    Ok(subgraph_signing_parameters)
-}
-
 #[derive(serde::Serialize)]
-struct WebsocketRequest<T>(T);
+struct GraphqlWsRequest<T>(T);
 
-impl<T: serde::Serialize> graphql_ws_client::graphql::GraphqlOperation for WebsocketRequest<T> {
+impl<T: serde::Serialize> graphql_ws_client::graphql::GraphqlOperation for GraphqlWsRequest<T> {
     type Response = serde_json::Value;
 
     type Error = FetchError;

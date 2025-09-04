@@ -19,6 +19,7 @@ pub mod rate_limit;
 mod size_ext;
 mod subscription_protocol;
 pub mod telemetry;
+mod traffic_shaping;
 mod trusted_documents;
 mod wasm;
 mod websockets_config;
@@ -50,6 +51,7 @@ pub use message_signatures::MessageSignaturesConfig;
 pub use rate_limit::*;
 use size::Size;
 pub use telemetry::*;
+pub use traffic_shaping::*;
 use url::Url;
 pub use wasm::*;
 
@@ -190,6 +192,7 @@ pub struct Config {
     pub cors: Option<CorsConfig>,
     /// Server TLS settings
     pub tls: Option<TlsConfig>,
+    pub traffic_shaping: TrafficShapingConfig,
     /// Graph operation limit settings
     pub operation_limits: Option<OperationLimitsConfig>,
     /// Telemetry settings
@@ -284,6 +287,7 @@ impl Default for Config {
             csrf: Default::default(),
             cors: Default::default(),
             tls: Default::default(),
+            traffic_shaping: Default::default(),
             operation_limits: Default::default(),
             telemetry: Default::default(),
             trusted_documents: Default::default(),
