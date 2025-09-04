@@ -27,9 +27,6 @@ pub struct DeleteSubgraphMutation {
 pub enum DeleteSubgraphPayload {
     DeleteSubgraphSuccess(#[allow(unused)] DeleteSubgraphSuccess),
     SubgraphNotFoundError(#[allow(unused)] SubgraphNotFoundError),
-    ProjectDoesNotExistError(#[allow(unused)] ProjectDoesNotExistError),
-    ProjectNotFederatedError(#[allow(unused)] ProjectNotFederatedError),
-    ProjectBranchDoesNotExistError(#[allow(unused)] ProjectBranchDoesNotExistError),
     GraphDoesNotExistError(#[allow(unused)] GraphDoesNotExistError),
     GraphNotFederatedError(#[allow(unused)] GraphNotFederatedError),
     GraphBranchDoesNotExistError(#[allow(unused)] GraphBranchDoesNotExistError),
@@ -46,21 +43,6 @@ pub struct DeleteSubgraphSuccess {
 
 #[derive(cynic::QueryFragment, Debug)]
 pub struct SubgraphNotFoundError {
-    pub __typename: String,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct ProjectDoesNotExistError {
-    pub __typename: String,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct ProjectNotFederatedError {
-    pub __typename: String,
-}
-
-#[derive(cynic::QueryFragment, Debug)]
-pub struct ProjectBranchDoesNotExistError {
     pub __typename: String,
 }
 
