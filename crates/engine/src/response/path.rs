@@ -3,9 +3,9 @@ use std::cell::Ref;
 use error::{ErrorPath, InsertIntoErrorPath};
 use operation::PositionedResponseKey;
 
-use crate::response::{PartListId, PartObjectId};
+use crate::response::{PartListId, PartObjectId, ResponseListId};
 
-use super::{DataPartId, ResponseListId, ResponseObjectId};
+use super::{DataPartId, ResponseObjectId};
 
 /// Unique identifier of a value within the response. Used to propagate null at the right place
 /// and to generate the appropriate error path for GraphQL errors.
@@ -23,6 +23,14 @@ pub(crate) enum ResponseValueId {
         index: u32,
         nullable: bool,
     },
+    IntListIndex {
+        part_id: DataPartId,
+        index: u32,
+    },
+    FloatListIndex {
+        part_id: DataPartId,
+        index: u32,
+    },
 }
 
 impl ResponseValueId {
@@ -38,6 +46,7 @@ impl ResponseValueId {
             nullable,
         }
     }
+
     pub fn index(ResponseListId { part_id, list_id }: ResponseListId, index: u32, nullable: bool) -> Self {
         Self::Index {
             part_id,
@@ -51,6 +60,8 @@ impl ResponseValueId {
         match self {
             ResponseValueId::Field { nullable, .. } => *nullable,
             ResponseValueId::Index { nullable, .. } => *nullable,
+            ResponseValueId::IntListIndex { .. } => false,
+            ResponseValueId::FloatListIndex { .. } => false,
         }
     }
 
@@ -58,6 +69,8 @@ impl ResponseValueId {
         match self {
             ResponseValueId::Field { part_id, .. } => *part_id,
             ResponseValueId::Index { part_id, .. } => *part_id,
+            ResponseValueId::IntListIndex { part_id, .. } => *part_id,
+            ResponseValueId::FloatListIndex { part_id, .. } => *part_id,
         }
     }
 }
@@ -66,7 +79,9 @@ impl InsertIntoErrorPath for &ResponseValueId {
     fn insert_into(self, path: &mut ErrorPath) {
         match self {
             ResponseValueId::Field { key, .. } => key.insert_into(path),
-            ResponseValueId::Index { index, .. } => index.insert_into(path),
+            ResponseValueId::Index { index, .. }
+            | ResponseValueId::IntListIndex { index, .. }
+            | ResponseValueId::FloatListIndex { index, .. } => index.insert_into(path),
         }
     }
 }

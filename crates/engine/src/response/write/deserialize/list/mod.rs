@@ -1,3 +1,5 @@
+mod type_;
+
 use std::fmt;
 
 use serde::{
@@ -9,20 +11,23 @@ use walker::Walk;
 use super::SeedState;
 use crate::{
     prepare::FieldShapeRecord,
-    response::{GraphqlError, ResponseValue, ResponseValueId},
+    response::{GraphqlError, ResponseValue},
 };
 
-pub(super) struct ListSeed<'ctx, 'parent, 'state, Seed> {
+pub(super) use type_::*;
+
+pub(super) struct ListSeed<'ctx, 'parent, 'state, Seed, LT> {
     pub field: &'ctx FieldShapeRecord,
     pub state: &'state SeedState<'ctx, 'parent>,
     pub seed: &'state Seed,
+    pub list_type: LT,
     pub is_required: bool,
-    pub element_is_nullable: bool,
 }
 
-impl<'de, Seed> DeserializeSeed<'de> for ListSeed<'_, '_, '_, Seed>
+impl<'de, Seed, LT> DeserializeSeed<'de> for ListSeed<'_, '_, '_, Seed, LT>
 where
-    Seed: Clone + DeserializeSeed<'de, Value = ResponseValue>,
+    LT: ListSeedType,
+    Seed: Clone + DeserializeSeed<'de, Value = LT::DeserializedValue>,
 {
     type Value = ResponseValue;
 
@@ -34,11 +39,8 @@ where
     }
 }
 
-impl<'de, Seed> ListSeed<'_, '_, '_, Seed>
-where
-    Seed: Clone + DeserializeSeed<'de, Value = ResponseValue>,
-{
-    fn unexpected_type(&self, value: Unexpected<'_>) -> <Self as Visitor<'de>>::Value {
+impl<'de, Seed, F> ListSeed<'_, '_, '_, Seed, F> {
+    fn unexpected_type(&self, value: Unexpected<'de>) -> ResponseValue {
         tracing::error!(
             "invalid type: {}, expected a list at path '{}'",
             value,
@@ -64,9 +66,10 @@ where
     }
 }
 
-impl<'de, Seed> Visitor<'de> for ListSeed<'_, '_, '_, Seed>
+impl<'de, Seed, LT> Visitor<'de> for ListSeed<'_, '_, '_, Seed, LT>
 where
-    Seed: Clone + DeserializeSeed<'de, Value = ResponseValue>,
+    LT: ListSeedType,
+    Seed: Clone + DeserializeSeed<'de, Value = LT::DeserializedValue>,
 {
     type Value = ResponseValue;
 
@@ -79,29 +82,26 @@ where
         A: SeqAccess<'de>,
     {
         let ListSeed {
+            list_type,
             field,
             state,
             seed,
-            element_is_nullable,
             ..
         } = self;
 
         let mut index: u32 = 0;
-        let list_id = state.response.borrow_mut().data.reserve_list_id();
-        let mut list = Vec::new();
+        let mut values = Vec::new();
         if let Some(size_hint) = seq.size_hint() {
-            list.reserve(size_hint);
+            values.reserve(size_hint);
         }
 
         loop {
-            state
-                .local_path_mut()
-                .push(ResponseValueId::index(list_id, index, element_is_nullable));
+            state.local_path_mut().push(list_type.make_response_value_id(index));
             let result = seq.next_element_seed(seed.clone());
             state.local_path_mut().pop();
             match result {
                 Ok(Some(value)) => {
-                    list.push(value);
+                    list_type.handle_deserialize_value(&mut values, value);
                     index += 1;
                 }
                 Ok(None) => {
@@ -128,8 +128,7 @@ where
             }
         }
 
-        state.response.borrow_mut().data.put_list(list_id, list);
-        Ok(list_id.into())
+        Ok(list_type.into_response_value(state, values))
     }
 
     fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>

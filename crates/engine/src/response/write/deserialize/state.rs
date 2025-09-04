@@ -136,7 +136,9 @@ fn write_path(
             ResponseValueId::Field { key, .. } => {
                 f.write_str(&keys[key])?;
             }
-            ResponseValueId::Index { index, .. } => {
+            ResponseValueId::Index { index, .. }
+            | ResponseValueId::IntListIndex { index, .. }
+            | ResponseValueId::FloatListIndex { index, .. } => {
                 index.fmt(f)?;
             }
         }
@@ -146,7 +148,9 @@ fn write_path(
                 ResponseValueId::Field { key, .. } => {
                     f.write_str(&keys[key])?;
                 }
-                ResponseValueId::Index { index, .. } => {
+                ResponseValueId::Index { index, .. }
+                | ResponseValueId::IntListIndex { index, .. }
+                | ResponseValueId::FloatListIndex { index, .. } => {
                     index.fmt(f)?;
                 }
             }

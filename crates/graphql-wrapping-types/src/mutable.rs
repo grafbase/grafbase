@@ -14,6 +14,10 @@ impl MutableWrapping {
         self.inner.is_non_null()
     }
 
+    pub fn is_list(&self) -> bool {
+        self.inner.is_list()
+    }
+
     pub fn pop_outermost_list_wrapping(&mut self) -> Option<ListWrapping> {
         let end = self.inner.get_list_length();
         if end == 0 {
@@ -47,5 +51,11 @@ impl From<MutableWrapping> for Wrapping {
 impl From<Wrapping> for MutableWrapping {
     fn from(inner: Wrapping) -> Self {
         Self { inner }
+    }
+}
+
+impl PartialEq<Wrapping> for MutableWrapping {
+    fn eq(&self, other: &Wrapping) -> bool {
+        &self.inner == other
     }
 }

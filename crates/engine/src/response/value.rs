@@ -1,7 +1,7 @@
 use operation::{PositionedResponseKey, ResponseKey};
 use schema::{ObjectDefinitionId, StringId};
 
-use crate::response::{DataPartId, PartStrPtr};
+use crate::response::{DataPartId, PartStrPtr, ResponseFloatListId, ResponseIntListId};
 
 use super::{ResponseInaccessibleValueId, ResponseListId, ResponseMapId, ResponseObjectId};
 
@@ -90,6 +90,12 @@ pub(crate) enum ResponseValue {
     Map {
         id: ResponseMapId,
     },
+    IntList {
+        id: ResponseIntListId,
+    },
+    FloatList {
+        id: ResponseFloatListId,
+    },
 }
 
 impl<T: Into<ResponseValue>> From<Option<T>> for ResponseValue {
@@ -134,6 +140,18 @@ impl From<f64> for ResponseValue {
 impl From<ResponseListId> for ResponseValue {
     fn from(id: ResponseListId) -> Self {
         Self::List { id }
+    }
+}
+
+impl From<ResponseIntListId> for ResponseValue {
+    fn from(id: ResponseIntListId) -> Self {
+        Self::IntList { id }
+    }
+}
+
+impl From<ResponseFloatListId> for ResponseValue {
+    fn from(id: ResponseFloatListId) -> Self {
+        Self::FloatList { id }
     }
 }
 

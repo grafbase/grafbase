@@ -122,7 +122,9 @@ impl std::fmt::Display for DisplayPath<'_> {
                     let field_key = &self.keys[*key];
                     f(&format_args!("{field_key}"))
                 }
-                ResponseValueId::Index { index, .. } => f(&format_args!("{index}")),
+                ResponseValueId::Index { index, .. }
+                | ResponseValueId::IntListIndex { index, .. }
+                | ResponseValueId::FloatListIndex { index, .. } => f(&format_args!("{index}")),
             }),
         ))
     }

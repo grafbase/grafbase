@@ -237,6 +237,8 @@ where
                     )
                 }))
             }
+            ResponseValue::IntList { id } => self.ctx.response.data_parts[*id].serialize(serializer),
+            ResponseValue::FloatList { id } => self.ctx.response.data_parts[*id].serialize(serializer),
         }
     }
 }
@@ -444,6 +446,14 @@ impl<'a> serde::Serialize for ResponseValueView<'a, ForInjection<'_>> {
                         },
                     )
                 }))
+            }
+            ResponseValue::IntList { id } => {
+                debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
+                self.ctx.response.data_parts[*id].serialize(serializer)
+            }
+            ResponseValue::FloatList { id } => {
+                debug_assert!(matches!(self.view.injection, ValueInjection::Identity));
+                self.ctx.response.data_parts[*id].serialize(serializer)
             }
         }
     }

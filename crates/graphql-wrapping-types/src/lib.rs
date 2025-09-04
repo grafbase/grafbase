@@ -27,6 +27,10 @@ const INNER_IS_REQUIRED_FLAG: u16 = 0b1000_0000_0000_0000;
 pub struct Wrapping(u16);
 
 impl Wrapping {
+    pub const fn new() -> Self {
+        Self(0)
+    }
+
     /// Is the innermost type required?
     ///
     /// Examples:
