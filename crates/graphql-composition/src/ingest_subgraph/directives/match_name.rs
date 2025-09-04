@@ -109,6 +109,8 @@ fn match_directive_name_inner(
         "deprecated" => return DirectiveNameMatch::Deprecated,
         "specifiedBy" => return DirectiveNameMatch::SpecifiedBy,
         "oneOf" => return DirectiveNameMatch::OneOf,
+        COST => return DirectiveNameMatch::Cost,
+        LIST_SIZE => return DirectiveNameMatch::ListSize,
         _ => (),
     }
 
@@ -144,13 +146,11 @@ fn match_federation_directive_by_original_name(original_name: &str) -> Directive
     match original_name {
         AUTHENTICATED => DirectiveNameMatch::Authenticated,
         COMPOSE_DIRECTIVE => DirectiveNameMatch::ComposeDirective,
-        COST => DirectiveNameMatch::Cost,
         EXTENDS => DirectiveNameMatch::Extends,
         EXTERNAL => DirectiveNameMatch::External,
         INACCESSIBLE => DirectiveNameMatch::Inaccessible,
         INTERFACE_OBJECT => DirectiveNameMatch::InterfaceObject,
         KEY => DirectiveNameMatch::Key,
-        LIST_SIZE => DirectiveNameMatch::ListSize,
         OVERRIDE => DirectiveNameMatch::Override,
         POLICY => DirectiveNameMatch::Policy,
         PROVIDES => DirectiveNameMatch::Provides,
