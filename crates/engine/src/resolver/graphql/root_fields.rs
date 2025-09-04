@@ -198,12 +198,8 @@ async fn fetch_response_with_cache<'ctx, R: Runtime>(
     match super::cache::fetch_response(ctx, &subgraph_headers, &body).await {
         Ok(ResponseCacheHit { data }) => {
             ctx.record_cache_hit();
-            let (_, response_part) = ingest_graphql_data(
-                response_part,
-                &parent_objects,
-                shape_id,
-                Deserializable::Json(&Bytes::from(data)),
-            );
+            let (_, response_part) =
+                ingest_graphql_data(response_part, &parent_objects, shape_id, Deserializable::Json(&data));
             response_part
         }
         Err(ResponseCacheMiss { key }) => {

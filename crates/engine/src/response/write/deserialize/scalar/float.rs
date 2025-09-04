@@ -1,3 +1,5 @@
+use std::cell::Cell;
+
 use serde::de::{DeserializeSeed, Error, Unexpected, Visitor};
 use walker::Walk;
 
@@ -6,15 +8,14 @@ use crate::{prepare::FieldShapeRecord, response::GraphqlError};
 use super::super::SeedState;
 
 #[derive(Clone, Copy)]
-pub(crate) struct NonNullFloatSeed<'ctx, 'parent, 'state> {
+pub(crate) struct NonNullFloatSeed<'ctx, 'parent, 'state, 'seed> {
     pub state: &'state SeedState<'ctx, 'parent>,
     pub field: &'ctx FieldShapeRecord,
+    pub encountered_unexpected_value: &'seed Cell<bool>,
 }
 
-impl<'de> DeserializeSeed<'de> for NonNullFloatSeed<'_, '_, '_> {
-    // We return Result<f64, ()> so that we know whether we encountered an invalid value or not,
-    // without failing de-serialization
-    type Value = Result<f64, ()>;
+impl<'de> DeserializeSeed<'de> for NonNullFloatSeed<'_, '_, '_, '_> {
+    type Value = f64;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
@@ -24,8 +25,8 @@ impl<'de> DeserializeSeed<'de> for NonNullFloatSeed<'_, '_, '_> {
     }
 }
 
-impl NonNullFloatSeed<'_, '_, '_> {
-    fn unexpected_type(&self, value: Unexpected<'_>) {
+impl NonNullFloatSeed<'_, '_, '_, '_> {
+    fn unexpected_type(&self, value: Unexpected<'_>) -> f64 {
         tracing::error!(
             "invalid type: {}, expected a Float value at '{}'",
             value,
@@ -42,11 +43,16 @@ impl NonNullFloatSeed<'_, '_, '_> {
                     .with_location(self.field.id.walk(self.state).location()),
             );
         }
+
+        self.encountered_unexpected_value.set(true);
+
+        // Value doesn't matter here.
+        0.0
     }
 }
 
-impl<'de> Visitor<'de> for NonNullFloatSeed<'_, '_, '_> {
-    type Value = Result<f64, ()>;
+impl<'de> Visitor<'de> for NonNullFloatSeed<'_, '_, '_, '_> {
+    type Value = f64;
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("a Float value")
@@ -56,132 +62,126 @@ impl<'de> Visitor<'de> for NonNullFloatSeed<'_, '_, '_> {
     where
         E: Error,
     {
-        Ok(Ok(v as f64))
+        Ok(v as f64)
     }
 
     fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(Ok(v as f64))
+        Ok(v as f64)
     }
 
     fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(Ok(v as f64))
+        Ok(v as f64)
     }
 
     fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(Ok(v as f64))
+        Ok(v as f64)
     }
 
     fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(Ok(v as f64))
+        Ok(v as f64)
     }
 
     fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(Ok(v as f64))
+        Ok(v as f64)
     }
 
     fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(Ok(v as f64))
+        Ok(v as f64)
     }
 
     fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(Ok(v as f64))
+        Ok(v as f64)
     }
 
     fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(Ok(v as f64))
+        Ok(v as f64)
     }
 
     fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(Ok(v as f64))
+        Ok(v as f64)
     }
 
     fn visit_f32<E>(self, v: f32) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(Ok(v as f64))
+        Ok(v as f64)
     }
 
     fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        Ok(Ok(v))
+        Ok(v)
     }
 
     fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        self.unexpected_type(Unexpected::Bool(v));
-        Ok(Err(()))
+        Ok(self.unexpected_type(Unexpected::Bool(v)))
     }
 
     fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        self.unexpected_type(Unexpected::Str(v));
-        Ok(Err(()))
+        Ok(self.unexpected_type(Unexpected::Str(v)))
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        self.unexpected_type(Unexpected::Str(v));
-        Ok(Err(()))
+        Ok(self.unexpected_type(Unexpected::Str(v)))
     }
 
     fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        self.unexpected_type(Unexpected::Str(&v));
-        Ok(Err(()))
+        Ok(self.unexpected_type(Unexpected::Str(&v)))
     }
 
     fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        self.unexpected_type(Unexpected::Bytes(v));
-        Ok(Err(()))
+        Ok(self.unexpected_type(Unexpected::Bytes(v)))
     }
 
     fn visit_none<E>(self) -> Result<Self::Value, E>
     where
         E: Error,
     {
-        self.unexpected_type(Unexpected::Option);
-        Ok(Err(()))
+        Ok(self.unexpected_type(Unexpected::Option))
     }
 
     fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -195,8 +195,7 @@ impl<'de> Visitor<'de> for NonNullFloatSeed<'_, '_, '_> {
     where
         E: Error,
     {
-        self.unexpected_type(Unexpected::Unit);
-        Ok(Err(()))
+        Ok(self.unexpected_type(Unexpected::Unit))
     }
 
     fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
@@ -210,23 +209,20 @@ impl<'de> Visitor<'de> for NonNullFloatSeed<'_, '_, '_> {
     where
         A: serde::de::SeqAccess<'de>,
     {
-        self.unexpected_type(Unexpected::Seq);
-        Ok(Err(()))
+        Ok(self.unexpected_type(Unexpected::Seq))
     }
 
     fn visit_map<A>(self, _map: A) -> Result<Self::Value, A::Error>
     where
         A: serde::de::MapAccess<'de>,
     {
-        self.unexpected_type(Unexpected::Map);
-        Ok(Err(()))
+        Ok(self.unexpected_type(Unexpected::Map))
     }
 
     fn visit_enum<A>(self, _data: A) -> Result<Self::Value, A::Error>
     where
         A: serde::de::EnumAccess<'de>,
     {
-        self.unexpected_type(Unexpected::Enum);
-        Ok(Err(()))
+        Ok(self.unexpected_type(Unexpected::Enum))
     }
 }

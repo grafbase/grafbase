@@ -16,18 +16,17 @@ use crate::{
 
 pub(super) use type_::*;
 
-pub(super) struct ListSeed<'ctx, 'parent, 'state, Seed, LT> {
+pub(super) struct ListSeed<'ctx, 'parent, 'state, 'lt, LT> {
     pub field: &'ctx FieldShapeRecord,
     pub state: &'state SeedState<'ctx, 'parent>,
-    pub seed: &'state Seed,
-    pub list_type: LT,
+    pub list_type: &'lt LT,
     pub is_required: bool,
 }
 
-impl<'de, Seed, LT> DeserializeSeed<'de> for ListSeed<'_, '_, '_, Seed, LT>
+impl<'de, 'lt, LT> DeserializeSeed<'de> for ListSeed<'_, '_, '_, 'lt, LT>
 where
     LT: ListSeedType,
-    Seed: Clone + DeserializeSeed<'de, Value = LT::DeserializedValue>,
+    LT::Seed<'lt>: DeserializeSeed<'de, Value = LT::Value>,
 {
     type Value = ResponseValue;
 
@@ -39,7 +38,7 @@ where
     }
 }
 
-impl<'de, Seed, F> ListSeed<'_, '_, '_, Seed, F> {
+impl<'de, LT> ListSeed<'_, '_, '_, '_, LT> {
     fn unexpected_type(&self, value: Unexpected<'de>) -> ResponseValue {
         tracing::error!(
             "invalid type: {}, expected a list at path '{}'",
@@ -66,10 +65,10 @@ impl<'de, Seed, F> ListSeed<'_, '_, '_, Seed, F> {
     }
 }
 
-impl<'de, Seed, LT> Visitor<'de> for ListSeed<'_, '_, '_, Seed, LT>
+impl<'de, 'lt, LT> Visitor<'de> for ListSeed<'_, '_, '_, 'lt, LT>
 where
     LT: ListSeedType,
-    Seed: Clone + DeserializeSeed<'de, Value = LT::DeserializedValue>,
+    LT::Seed<'lt>: DeserializeSeed<'de, Value = LT::Value>,
 {
     type Value = ResponseValue;
 
@@ -85,7 +84,6 @@ where
             list_type,
             field,
             state,
-            seed,
             ..
         } = self;
 
@@ -97,11 +95,11 @@ where
 
         loop {
             state.local_path_mut().push(list_type.make_response_value_id(index));
-            let result = seq.next_element_seed(seed.clone());
+            let result = seq.next_element_seed(list_type.seed());
             state.local_path_mut().pop();
             match result {
                 Ok(Some(value)) => {
-                    list_type.handle_deserialize_value(&mut values, value);
+                    values.push(value);
                     index += 1;
                 }
                 Ok(None) => {
@@ -128,7 +126,7 @@ where
             }
         }
 
-        Ok(list_type.into_response_value(state, values))
+        Ok(list_type.finalize(values))
     }
 
     fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>

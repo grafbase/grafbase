@@ -377,16 +377,16 @@ impl DataPart {
     }
 
     pub fn push_borrowed_str(&mut self, s: &str) -> PartString {
-        let out = if self.can_be_borrowed(s) {
-            let len = s.len() as u32;
-            let ptr = PartStrPtr(s.as_ptr());
-            PartString {
-                part_id: self.id,
-                ptr,
-                len,
-            }
-        } else {
-            self.push_string(s.to_owned())
+        debug_assert!(
+            self.can_be_borrowed(s),
+            "String must be borrowable from the last bytes chunk"
+        );
+        let len = s.len() as u32;
+        let ptr = PartStrPtr(s.as_ptr());
+        let out = PartString {
+            part_id: self.id,
+            ptr,
+            len,
         };
         debug_assert!(self.deref_part_string(out) == s);
         out
@@ -405,8 +405,8 @@ impl DataPart {
         debug_assert!(self.id == part_id, "Mismatched DataPartId");
         let ptr = ptr.0;
         let len = len as usize;
-        let end = unsafe { ptr.add(len) };
-        debug_assert!(
+        debug_assert!({
+            let end = unsafe { ptr.add(len) };
             self.bytes.iter().any(|bytes| {
                 let bytes_range = bytes.as_ptr_range();
                 bytes_range.start <= ptr && end <= bytes_range.end
@@ -415,7 +415,7 @@ impl DataPart {
                 let s_range = s_bytes.as_ptr_range();
                 s_range.start <= ptr && end <= s_range.end
             })
-        );
+        });
         // SAFETY: We ensured we were the ones building this PartString.
         //         PartStrPtr is only constructed from from a &str / String so it's valid UTF-8.
         unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr, len)) }
@@ -544,15 +544,6 @@ mod tests {
     }
 
     #[test]
-    fn push_borrowed_str_without_bytes_creates_owned_string() {
-        let mut part = DataPart::new(DataPartId(0));
-        let test_str = "Test string";
-        let part_string = part.push_borrowed_str(test_str);
-
-        assert_eq!(part.deref_part_string(part_string), "Test string");
-    }
-
-    #[test]
     fn push_borrowed_str_with_bytes_creates_borrowed_reference() {
         let mut part = DataPart::new(DataPartId(0));
 
@@ -565,20 +556,6 @@ mod tests {
 
         assert_eq!(part.deref_part_string(part_string), "John");
         assert!(part.strings.is_empty());
-    }
-
-    #[test]
-    fn push_borrowed_str_falls_back_to_owned_when_not_in_bytes() {
-        let mut part = DataPart::new(DataPartId(0));
-
-        // Add some bytes
-        part.push_borrowable_bytes(Bytes::from("some data"));
-
-        // Try to borrow a string that's not within those bytes
-        let external_str = "external string";
-        let part_string = part.push_borrowed_str(external_str);
-
-        assert_eq!(part.deref_part_string(part_string), "external string");
     }
 
     #[test]
@@ -699,5 +676,26 @@ mod tests {
 
         // Edge case: string at the exact boundaries
         assert!(part.can_be_borrowed(&middle_str[0..14])); // entire slice content
+    }
+
+    #[test]
+    #[should_panic(expected = "String must be borrowable from the last bytes chunk")]
+    fn push_borrowed_str_falls_back_to_owned_when_not_in_bytes() {
+        let mut part = DataPart::new(DataPartId(0));
+
+        // Add some bytes
+        part.push_borrowable_bytes(Bytes::from("some data"));
+
+        // Try to borrow a string that's not within those bytes
+        let external_str = "external string";
+        let _s = part.push_borrowed_str(external_str);
+    }
+
+    #[test]
+    #[should_panic(expected = "String must be borrowable from the last bytes chunk")]
+    fn push_borrowed_str_without_bytes_creates_owned_string() {
+        let mut part = DataPart::new(DataPartId(0));
+        let test_str = "Test string";
+        let _s = part.push_borrowed_str(test_str);
     }
 }

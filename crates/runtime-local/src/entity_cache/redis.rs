@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use deadpool::managed::Object;
 use futures_util::{FutureExt, future::BoxFuture};
 use redis::{AsyncCommands, SetOptions};
@@ -18,7 +19,7 @@ impl RedisEntityCache {
         }
     }
 
-    async fn get(&self, name: &str) -> anyhow::Result<Option<Vec<u8>>> {
+    async fn get(&self, name: &str) -> anyhow::Result<Option<Bytes>> {
         let mut connection = self.connection().await?;
         Ok(connection.get(self.key(name)).await?)
     }
@@ -58,7 +59,7 @@ impl RedisEntityCache {
 }
 
 impl runtime::entity_cache::EntityCache for RedisEntityCache {
-    fn get<'a>(&'a self, name: &'a str) -> BoxFuture<'a, anyhow::Result<Option<Vec<u8>>>> {
+    fn get<'a>(&'a self, name: &'a str) -> BoxFuture<'a, anyhow::Result<Option<Bytes>>> {
         let cache_span = tracing::info_span!(
             "entity cache get",
             "grafbase.entity_cache.status" = Empty,

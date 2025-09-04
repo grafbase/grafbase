@@ -1,8 +1,8 @@
 use error::GraphqlError;
-use runtime::extension::{Data, Response};
+use runtime::extension::Response;
 use serde::{
     Deserializer,
-    de::{DeserializeSeed as _, IgnoredAny, SeqAccess, Unexpected, Visitor},
+    de::{IgnoredAny, SeqAccess, Unexpected, Visitor},
 };
 use walker::Walk;
 
@@ -10,7 +10,7 @@ use crate::{
     prepare::{FieldShape, SubgraphField},
     response::{
         ResponseObjectField, ResponseObjectRef, ResponseValue, ResponseValueId, SeedState,
-        write::deserialize::{error::DeserError, field::FieldSeed, object::ConcreteShapeFieldsContext},
+        write::deserialize::{field::FieldSeed, object::ConcreteShapeFieldsContext},
     },
 };
 
@@ -50,30 +50,13 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
                         parents: &mut parents,
                         field,
                     };
-                    let result = match &data {
-                        Data::Json(bytes) => {
-                            self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
-                            seed.deserialize(&mut sonic_rs::Deserializer::from_slice(bytes))
-                                .map_err(DeserError::from)
-                        }
-                        Data::Cbor(bytes) => {
-                            self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
-                            seed.deserialize(&mut minicbor_serde::Deserializer::new(bytes))
-                                .map_err(DeserError::from)
-                        }
-                    };
-
-                    match result {
-                        Ok(true) => {}
+                    match self.deserialize_data_with(&data, seed) {
+                        Ok(true) | Err(None) => {}
                         Ok(false) => {
                             errors.push(GraphqlError::invalid_subgraph_response());
                         }
-                        Err(err) => {
-                            tracing::error!(
-                                "Deserialization failure of for the batch field '{}': {err}",
-                                field.partition_field().definition()
-                            );
-                            errors.push(err.into());
+                        Err(Some(err)) => {
+                            errors.push(err);
                         }
                     }
                     errors

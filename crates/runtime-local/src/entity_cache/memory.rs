@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+use bytes::Bytes;
 use futures_util::{FutureExt, future::BoxFuture};
 use tracing::{Instrument, field::Empty};
 
@@ -9,7 +10,7 @@ pub struct InMemoryEntityCache {
 
 #[derive(Clone)]
 struct CacheValue {
-    data: Vec<u8>,
+    data: Bytes,
     expires_at: Instant,
 }
 
@@ -20,7 +21,7 @@ impl InMemoryEntityCache {
         }
     }
 
-    async fn get(&self, name: &str) -> anyhow::Result<Option<Vec<u8>>> {
+    async fn get(&self, name: &str) -> anyhow::Result<Option<Bytes>> {
         let Some(value) = self.inner.get(&name.to_string()) else {
             return Ok(None);
         };
@@ -42,7 +43,7 @@ impl InMemoryEntityCache {
         self.inner.insert(
             name.to_string(),
             CacheValue {
-                data: bytes.into_owned(),
+                data: bytes.into_owned().into(),
                 expires_at: Instant::now() + expiration_ttl,
             },
         );
@@ -57,7 +58,7 @@ impl Default for InMemoryEntityCache {
 }
 
 impl runtime::entity_cache::EntityCache for InMemoryEntityCache {
-    fn get<'a>(&'a self, name: &'a str) -> BoxFuture<'a, anyhow::Result<Option<Vec<u8>>>> {
+    fn get<'a>(&'a self, name: &'a str) -> BoxFuture<'a, anyhow::Result<Option<Bytes>>> {
         let cache_span = tracing::info_span!(
             "entity cache get",
             "grafbase.entity_cache.status" = Empty,
