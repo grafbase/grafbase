@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## Fixes
+
+- There were inconsistencies in what types of subgraphs (no imports, federation v2 import, composite schemas import, with and without associated url) would recognize `@cost` and `@listSize` as built-in directives. This release fixes the inconsistency and treats them as built-ins everywhere. (https://github.com/grafbase/grafbase/pull/3485)
+
 ## 0.12.0 - 2025-08-29
 
 ### Improvements
