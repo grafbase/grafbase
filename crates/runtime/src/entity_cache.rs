@@ -1,10 +1,11 @@
 use std::{borrow::Cow, time::Duration};
 
+use bytes::Bytes;
 use futures_util::{future::BoxFuture, FutureExt};
 
 /// A simplified cache trait with just enough features to handle entity caching
 pub trait EntityCache: Send + Sync {
-    fn get<'a>(&'a self, name: &'a str) -> BoxFuture<'a, anyhow::Result<Option<Vec<u8>>>>;
+    fn get<'a>(&'a self, name: &'a str) -> BoxFuture<'a, anyhow::Result<Option<Bytes>>>;
 
     /// Put an entry into the store, with an optional expiry TTL.
     fn put<'a>(
@@ -16,7 +17,7 @@ pub trait EntityCache: Send + Sync {
 }
 
 impl EntityCache for () {
-    fn get<'a>(&'a self, _name: &'a str) -> BoxFuture<'a, anyhow::Result<Option<Vec<u8>>>> {
+    fn get<'a>(&'a self, _name: &'a str) -> BoxFuture<'a, anyhow::Result<Option<Bytes>>> {
         futures_util::future::ready(Ok(None)).boxed()
     }
 

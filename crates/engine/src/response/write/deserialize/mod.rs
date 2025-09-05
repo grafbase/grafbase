@@ -1,5 +1,4 @@
 mod r#enum;
-mod error;
 mod field;
 mod key;
 mod list;
@@ -21,6 +20,8 @@ use list::ListSeed;
 use scalar::*;
 pub(crate) use state::*;
 
+/// A representation of data that can be deserialized.
+/// Must be either Bytes OR anything that returns only owned values.
 pub(crate) enum Deserializable<'a> {
     JsonValue(serde_json::Value),
     Json(&'a Bytes),
@@ -86,6 +87,8 @@ impl<'parent> SeedState<'_, 'parent> {
                         }
                     })
             }
+            // We don't need borrow any bytes here as serde_json::Value will only return owned
+            // variants.
             Deserializable::JsonValue(value) => seed.deserialize(value).map_err(|err| {
                 if !self.bubbling_up_deser_error.get() {
                     tracing::error!("Deserialization failure: {err}");

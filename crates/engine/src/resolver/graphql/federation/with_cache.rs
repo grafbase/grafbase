@@ -27,12 +27,12 @@ pub(super) fn ingest_hits<'parent>(
     hits: Vec<EntityCacheHit>,
 ) {
     for hit in hits {
-        if let Err(error) = state
-            .parent_seed(&parent_objects[hit.id])
-            .deserialize(&mut sonic_rs::Deserializer::from_slice(&hit.data))
-        {
+        if let Err(Some(error)) = state.deserialize_data_with(
+            Deserializable::Json(&hit.data),
+            state.parent_seed(&parent_objects[hit.id]),
+        ) {
             tracing::error!("Deserialization failure: {error}");
-            state.insert_error_update(&parent_objects[hit.id], [GraphqlError::invalid_subgraph_response()]);
+            state.insert_error_update(&parent_objects[hit.id], [error]);
         }
     }
 }

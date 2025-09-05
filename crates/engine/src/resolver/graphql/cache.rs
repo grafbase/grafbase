@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use futures::future::join_all;
 use grafbase_telemetry::graphql::GraphqlResponseStatus;
 use headers::HeaderMapExt;
@@ -70,7 +71,7 @@ pub(super) async fn fetch_response<R: Runtime>(
 }
 
 pub(super) struct ResponseCacheHit {
-    pub data: Vec<u8>,
+    pub data: Bytes,
 }
 
 pub(super) struct ResponseCacheMiss {
@@ -126,7 +127,7 @@ pub(super) struct CacheFetchEntitiesOutcome {
 
 pub(super) struct EntityCacheHit {
     pub id: ParentObjectId,
-    pub data: Vec<u8>,
+    pub data: Bytes,
 }
 
 pub(super) struct EntityCacheMiss {

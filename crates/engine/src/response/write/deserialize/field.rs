@@ -10,10 +10,7 @@ use crate::{
     prepare::{FieldShapeRecord, Shape},
     response::{
         GraphqlError, ResponseValue,
-        write::deserialize::{
-            list::{NonNullScalarSeedList, ResponseValueSeedList},
-            scalar::{NonNullFloatSeed, NonNullIntSeed},
-        },
+        write::deserialize::list::{NonNullFloatSeedList, NonNullIntSeedList, ResponseValueSeedList},
     },
 };
 
@@ -36,41 +33,27 @@ impl<'de> DeserializeSeed<'de> for FieldSeed<'_, '_, '_> {
             // We have specialized handling of [Int!] and [Float!] as we can store them efficiently
             // as Vec<i32> and Vec<f64> and are somewhat common enough.
             match self.field.shape {
-                Shape::Scalar(ScalarType::Int) if self.wrapping == REQUIRED => {
-                    let part_id = self.state.response.borrow().data.id;
-                    ListSeed {
-                        state: self.state,
-                        field: self.field,
-                        seed: &NonNullIntSeed {
-                            state: self.state,
-                            field: self.field,
-                        },
-                        list_type: NonNullScalarSeedList::<i32>::new(part_id),
-                        is_required: matches!(list_wrapping, ListWrapping::ListNonNull),
-                    }
-                    .deserialize(deserializer)
+                Shape::Scalar(ScalarType::Int) if self.wrapping == REQUIRED => ListSeed {
+                    state: self.state,
+                    field: self.field,
+                    list_type: &NonNullIntSeedList::new(self.state, self.field),
+                    is_required: matches!(list_wrapping, ListWrapping::ListNonNull),
                 }
-                Shape::Scalar(ScalarType::Float) if self.wrapping == REQUIRED => {
-                    let part_id = self.state.response.borrow().data.id;
-                    ListSeed {
-                        state: self.state,
-                        field: self.field,
-                        seed: &NonNullFloatSeed {
-                            state: self.state,
-                            field: self.field,
-                        },
-                        list_type: NonNullScalarSeedList::<f64>::new(part_id),
-                        is_required: matches!(list_wrapping, ListWrapping::ListNonNull),
-                    }
-                    .deserialize(deserializer)
+                .deserialize(deserializer),
+                Shape::Scalar(ScalarType::Float) if self.wrapping == REQUIRED => ListSeed {
+                    state: self.state,
+                    field: self.field,
+                    list_type: &NonNullFloatSeedList::new(self.state, self.field),
+                    is_required: matches!(list_wrapping, ListWrapping::ListNonNull),
                 }
+                .deserialize(deserializer),
                 _ => {
                     let id = self.state.response.borrow_mut().data.reserve_list_id();
                     ListSeed {
                         state: self.state,
                         field: self.field,
-                        seed: &self,
-                        list_type: ResponseValueSeedList {
+                        list_type: &ResponseValueSeedList {
+                            seed: &self,
                             id,
                             element_is_nullable: self.wrapping.is_nullable(),
                         },

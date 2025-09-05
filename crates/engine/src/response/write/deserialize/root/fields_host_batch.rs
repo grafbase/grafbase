@@ -1,13 +1,12 @@
 use error::GraphqlError;
 use runtime::extension::{Data, Response};
-use serde::de::DeserializeSeed as _;
 
 use crate::{
     prepare::{ConcreteShape, DataOrLookupFieldId, SubgraphField},
     response::{
         ParentObjectId, ParentObjectSet, ResponseObjectField, ResponseObjectRef, ResponseValue, ResponseValueId,
         SeedState,
-        write::deserialize::{error::DeserError, field::FieldSeed, object::ConcreteShapeFieldsContext},
+        write::deserialize::{field::FieldSeed, object::ConcreteShapeFieldsContext},
     },
 };
 
@@ -93,20 +92,7 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
                 data: Some(data),
                 errors,
             } => {
-                let result = match &data {
-                    Data::Json(bytes) => {
-                        self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
-                        seed.deserialize(&mut sonic_rs::Deserializer::from_slice(bytes))
-                            .map_err(DeserError::from)
-                    }
-                    Data::Cbor(bytes) => {
-                        self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
-                        seed.deserialize(&mut minicbor_serde::Deserializer::new(bytes))
-                            .map_err(DeserError::from)
-                    }
-                };
-
-                match result {
+                match self.deserialize_data_with(&data, seed) {
                     Ok(value) => {
                         response_fields.push(ResponseObjectField { key, value });
                     }
@@ -115,17 +101,14 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
                             key,
                             value: ResponseValue::Unexpected,
                         });
-                        if !self.bubbling_up_deser_error.replace(true) && key.query_position.is_some() {
-                            tracing::error!(
-                                "Deserialization failure of for the field '{}': {err}",
-                                field.partition_field().definition()
-                            );
+                        if let Some(err) = err
+                            && key.query_position.is_some()
+                        {
                             let mut resp = self.response.borrow_mut();
                             let path = self.path();
                             resp.propagate_null(&path);
                             resp.errors.push(
-                                GraphqlError::invalid_subgraph_response()
-                                    .with_path(self.path())
+                                err.with_path(self.path())
                                     .with_location(field.partition_field().location()),
                             );
                         }
@@ -207,20 +190,7 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
             ));
             match result {
                 Ok(data) => {
-                    let result = match &data {
-                        Data::Json(bytes) => {
-                            self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
-                            seed.deserialize(&mut sonic_rs::Deserializer::from_slice(bytes))
-                                .map_err(DeserError::from)
-                        }
-                        Data::Cbor(bytes) => {
-                            self.response.borrow_mut().data.push_borrowable_bytes(bytes.clone());
-                            seed.deserialize(&mut minicbor_serde::Deserializer::new(bytes))
-                                .map_err(DeserError::from)
-                        }
-                    };
-
-                    match result {
+                    match self.deserialize_data_with(&data, seed) {
                         Ok(value) => {
                             response_fields.push(ResponseObjectField { key, value });
                         }
@@ -229,7 +199,9 @@ impl<'ctx, 'parent> SeedState<'ctx, 'parent> {
                                 key,
                                 value: ResponseValue::Unexpected,
                             });
-                            if !self.bubbling_up_deser_error.replace(true) && key.query_position.is_some() {
+                            if let Some(err) = err
+                                && key.query_position.is_some()
+                            {
                                 tracing::error!(
                                     "Deserialization failure of for the field '{}': {err}",
                                     field.partition_field().definition()
