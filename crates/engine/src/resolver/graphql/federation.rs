@@ -261,7 +261,7 @@ pub(super) async fn fetch_entities_without_cache<'ctx, R: Runtime>(
         fetched_entities: entities_to_fetch,
     };
 
-    execute_subgraph_request(ctx, subgraph_headers, body, response_part, ingester).await
+    execute_subgraph_request(ctx, subgraph_headers, false, body, response_part, ingester).await
 }
 
 pub(super) async fn fetch_entities_with_cache<'ctx, R: Runtime>(
@@ -328,5 +328,5 @@ pub(super) async fn fetch_entities_with_cache<'ctx, R: Runtime>(
         subgraph_default_cache_ttl: ctx.endpoint().config.cache_ttl,
     };
 
-    execute_subgraph_request(ctx, subgraph_headers, body, response_part, ingester).await
+    execute_subgraph_request(ctx, subgraph_headers, false, body, response_part, ingester).await
 }

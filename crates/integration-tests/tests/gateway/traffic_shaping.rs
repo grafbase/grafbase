@@ -111,3 +111,35 @@ fn inflight_deduplication_disabled() {
         assert_eq!(gateway.drain_graphql_requests_sent_to::<SlowSchema>().len(), 10);
     })
 }
+
+#[test]
+fn mutations_not_deduplicated_even_when_enabled() {
+    runtime().block_on(async move {
+        let gateway = Gateway::builder()
+            .with_subgraph(SlowSchema::default())
+            .with_toml_config(
+                r###"
+                [traffic_shaping]
+                inflight_deduplication = true
+                "###,
+            )
+            .build()
+            .await;
+
+        let responses = (0..10)
+            .map(|_| async { gateway.post("mutation { slow: delay(ms: 100) }").await })
+            .collect::<FuturesUnordered<_>>()
+            .collect::<Vec<_>>()
+            .await;
+
+        insta::assert_json_snapshot!(responses[0], @r#"
+        {
+          "data": {
+            "slow": 100
+          }
+        }
+        "#);
+
+        assert_eq!(gateway.drain_graphql_requests_sent_to::<SlowSchema>().len(), 10);
+    })
+}

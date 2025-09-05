@@ -56,7 +56,9 @@ jobs:
   check:
     uses: ./.github/workflows/rust-prs.yml
     with:
-      # Not really the right thing for tags, but it just breaks for now...
+      # Before we had this, but it doesn't always work. This part is called for main & tags, so comparing against the
+      # previous commit should be what we want in al
+      # base_ref: ${{ github.ref_name }}~1
       base_ref: main~1
     secrets: inherit
     permissions:

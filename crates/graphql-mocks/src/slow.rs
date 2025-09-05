@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use async_graphql::{EmptyMutation, EmptySubscription, Object, Schema};
+use async_graphql::{EmptySubscription, Object, Schema};
 
 use crate::MockGraphQlServer;
 
 pub struct SlowSchema {
-    schema: Schema<Query, EmptyMutation, EmptySubscription>,
+    schema: Schema<Query, Mutation, EmptySubscription>,
 }
 
 impl crate::Subgraph for SlowSchema {
@@ -21,7 +21,7 @@ impl crate::Subgraph for SlowSchema {
 impl Default for SlowSchema {
     fn default() -> Self {
         Self {
-            schema: Schema::build(Query, EmptyMutation, EmptySubscription)
+            schema: Schema::build(Query, Mutation, EmptySubscription)
                 .enable_federation()
                 .finish(),
         }
@@ -32,6 +32,21 @@ struct Query;
 
 #[Object]
 impl Query {
+    async fn delay(&self, ms: u32) -> u32 {
+        tokio::time::sleep(tokio::time::Duration::from_millis(ms.into())).await;
+        ms
+    }
+
+    async fn nullable_delay(&self, ms: u32) -> Option<u32> {
+        tokio::time::sleep(tokio::time::Duration::from_millis(ms.into())).await;
+        Some(ms)
+    }
+}
+
+struct Mutation;
+
+#[Object]
+impl Mutation {
     async fn delay(&self, ms: u32) -> u32 {
         tokio::time::sleep(tokio::time::Duration::from_millis(ms.into())).await;
         ms
