@@ -92,6 +92,10 @@ fn gb6873_wrong_enum_sent_to_subgraph() {
                       "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8"
                     ],
                     [
+                      "connection",
+                      "keep-alive"
+                    ],
+                    [
                       "content-length",
                       "121"
                     ],

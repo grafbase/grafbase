@@ -51,6 +51,7 @@ runtime-local = { workspace = true, features = ["wasi", "redis"] }
 semver.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+socket2.workspace = true
 sonic-rs.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["signal", "time", "net"] }

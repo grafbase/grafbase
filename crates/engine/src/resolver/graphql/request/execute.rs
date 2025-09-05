@@ -72,6 +72,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
                 "application/graphql-response+json; charset=utf-8, application/json; charset=utf-8",
             ),
         );
+        headers.insert(http::header::CONNECTION, http::HeaderValue::from_static("keep-alive"));
 
         let request = FetchRequest {
             subgraph_id: subgraph.id,

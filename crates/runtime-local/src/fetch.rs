@@ -53,23 +53,28 @@ impl NativeFetcher {
         let dedicated_clients = generate_dedicated_http_clients(config, &name_to_id)?;
 
         Ok(NativeFetcher(Arc::new(NativeFetcherInner {
-            client: reqwest::Client::builder()
-                // Hyper connection pool only exposes two parameters max idle connections per host
-                // and idle connection timeout. There is not TTL on the connections themselves to
-                // force a refresh, necessary if the DNS changes its records. Somehow, even within
-                // a benchmark ramping *up* traffic, we do pick up DNS changes by setting a pool
-                // idle timeout of 5 seconds even though in theory no connection should be idle?
-                // A bit confusing, and I suspect I don't fully understand how Hyper is managing
-                // connections underneath. But seems like best choice we have right now, Apollo'
-                // router uses this same default value.
-                .pool_idle_timeout(Some(POOL_IDLE_TIMEOUT))
-                .hickory_dns(ENABLE_HICKORY_DNS)
-                .build()?,
+            client: client_builder().build()?,
             signer,
             dedicated_clients,
             traffic_shaping: TrafficShaping::new(&config.traffic_shaping),
         })))
     }
+}
+
+fn client_builder() -> reqwest::ClientBuilder {
+    reqwest::Client::builder()
+        // Hyper connection pool only exposes two parameters max idle connections per host
+        // and idle connection timeout. There is not TTL on the connections themselves to
+        // force a refresh, necessary if the DNS changes its records. Somehow, even within
+        // a benchmark ramping *up* traffic, we do pick up DNS changes by setting a pool
+        // idle timeout of 5 seconds even though in theory no connection should be idle?
+        // A bit confusing, and I suspect I don't fully understand how Hyper is managing
+        // connections underneath. But seems like best choice we have right now, Apollo'
+        // router uses this same default value.
+        .pool_idle_timeout(Some(POOL_IDLE_TIMEOUT))
+        .hickory_dns(ENABLE_HICKORY_DNS)
+        .tcp_nodelay(true)
+        .tcp_keepalive(Some(std::time::Duration::from_secs(60)))
 }
 
 #[derive(Clone)]
@@ -269,10 +274,7 @@ fn generate_dedicated_http_clients(
             }
         };
 
-        let mut builder = reqwest::Client::builder()
-            .pool_idle_timeout(Some(POOL_IDLE_TIMEOUT))
-            .hickory_dns(ENABLE_HICKORY_DNS)
-            .danger_accept_invalid_certs(mtls_config.accept_invalid_certs);
+        let mut builder = client_builder().danger_accept_invalid_certs(mtls_config.accept_invalid_certs);
 
         if let Some(ref root) = mtls_config.root {
             let ca_cert_bytes = match std::fs::read(&root.certificate) {
