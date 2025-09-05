@@ -37,19 +37,19 @@ jobs:
       gateway-docker: ${{ steps.paths-changed.outputs.gateway-docker }}
       examples: ${{ steps.paths-changed.outputs.examples }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@v5
         with:
           # TODO: Figure out how to not make this zero
           # Seems like if it's not zero you dont get branches
           fetch-depth: 0
 
-      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+      - uses: Swatinem/rust-cache@v2.8.0
         with:
           prefix-key: cargo-v1
 
       - name: Run what-rust-changed
         id: rust
-        uses: grafbase/what-rust-changed@4bd103b30c18e07a48c08f7c891fb22e27ddcd8e # v0.2.1
+        uses: grafbase/what-rust-changed@v0.2.1
         with:
           config: .github/what-rust-changed.toml
           base: ${{ inputs.base_ref || github.event.pull_request.base.ref || 'main' }}
@@ -69,7 +69,7 @@ jobs:
     if: needs.what-changed.outputs.changed-packages != '[]'
     runs-on: depot-ubuntu-24.04-small
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-musl
@@ -91,7 +91,7 @@ jobs:
     if: needs.what-changed.outputs.changed-packages != '[]'
     runs-on: depot-ubuntu-24.04-small
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-musl
@@ -117,13 +117,13 @@ jobs:
     if: contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-sdk')
     runs-on: depot-ubuntu-24.04-small
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
       - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-musl
           components: rust-docs
-      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+      - uses: Swatinem/rust-cache@v2.8.0
         with:
           prefix-key: cargo-v1
 
@@ -149,11 +149,11 @@ jobs:
       || contains(fromJson(needs.what-changed.outputs.changed-packages), 'integration-tests')
       || contains(fromJson(needs.what-changed.outputs.changed-packages), 'wasi-component-loader')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/fetch-assets
-      - uses: cargo-bins/cargo-binstall@63aaa5c1932cebabc34eceda9d92a70215dcead6 # v1.12.3
+      - uses: cargo-bins/cargo-binstall@v1.15.3
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+      - uses: Swatinem/rust-cache@v2.8.0
         with:
           cache-workspace-crates: true
           prefix-key: cargo-v1
@@ -219,11 +219,11 @@ jobs:
     env:
       RUSTFLAGS: '-D warnings --cfg tracing_unstable'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: ./.github/actions/fetch-assets
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
-      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+      - uses: Swatinem/rust-cache@v2.8.0
         with:
           cache-workspace-crates: true
           prefix-key: cargo-v1
@@ -264,7 +264,7 @@ jobs:
 
       - name: Retrieve integration-tests extensions
         if: needs.wasm-extensions.result != 'skipped'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: integration-tests-extensions
           path: crates/integration-tests/data/extensions/crates
@@ -314,7 +314,7 @@ jobs:
         if: |
           contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
-        uses: depot/bake-action@6f9796efa5235be338972e30e7b93977a7f18855 # v1
+        uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
         with:
           project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
@@ -328,7 +328,7 @@ jobs:
         if: |
           contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
-        uses: depot/bake-action@6f9796efa5235be338972e30e7b93977a7f18855 # v1
+        uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
         with:
           project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
@@ -412,7 +412,7 @@ jobs:
       packages: write
     steps:
       - if: env.dockerhub_username != ''
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Login to GitHub Container Registry
         if: env.dockerhub_username != ''
@@ -431,7 +431,7 @@ jobs:
 
       - name: Build and push
         if: env.dockerhub_username != ''
-        uses: depot/build-push-action@636daae76684e38c301daa0c5eca1c095b24e780 # v1
+        uses: depot/build-push-action@v1.16.2
         with:
           project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
@@ -457,7 +457,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-8
     steps:
       - name: Get sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -486,7 +486,7 @@ jobs:
       - name: Build docker compose
         # Will fail if there is nothing to build.
         continue-on-error: true
-        uses: depot/bake-action@6f9796efa5235be338972e30e7b93977a7f18855 # v1
+        uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
         with:
           project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
@@ -533,7 +533,7 @@ jobs:
             && !(cancelled())
             && !(contains(needs.*.result, 'failure'))
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
       - uses: ./.github/actions/install-rust
         with:
@@ -541,13 +541,13 @@ jobs:
           components: clippy, rustfmt
 
       - name: Checkout Extensions
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: 'grafbase/extensions'
           ref: ${{ matrix.version.ref }}
           path: extensions
 
-      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+      - uses: Swatinem/rust-cache@v2.8.0
         with:
           cache-workspace-crates: true
           prefix-key: cargo-v1-${{ matrix.version.ref }}
@@ -586,7 +586,7 @@ jobs:
       - name: Build docker compose
         # Will fail if there is nothing to build.
         continue-on-error: true
-        uses: depot/bake-action@6f9796efa5235be338972e30e7b93977a7f18855 # v1
+        uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
         with:
           project: ${{ env.DEPOT_PROJECT }}
           token: ${{ secrets.DEPOT_TOKEN }}
@@ -632,7 +632,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get sources
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Template Charts
         working-directory: gateway/helm

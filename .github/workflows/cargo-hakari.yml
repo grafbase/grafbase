@@ -15,7 +15,7 @@ jobs:
       cargo: ${{ steps.paths-changed.outputs.cargo }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Path filter check
         uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
@@ -32,7 +32,7 @@ jobs:
     runs-on: depot-ubuntu-24.04-small
     if: needs.what-changed.outputs.cargo == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install cargo-hakari
         uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2

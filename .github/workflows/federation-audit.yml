@@ -21,7 +21,7 @@ jobs:
       changed-packages: ${{ steps.rust.outputs.changed-packages }}
       github-action: ${{ steps.paths-changed.outputs.github-action }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # TODO: Figure out how to not make this zero
           # Seems like if it's not zero you dont get branches
@@ -31,13 +31,13 @@ jobs:
         with:
           target: x86_64-unknown-linux-musl
 
-      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+      - uses: Swatinem/rust-cache@v2.8.0
         with:
           prefix-key: cargo-v1
 
       - name: Run what-rust-changed
         id: rust
-        uses: grafbase/what-rust-changed@v0.2.0
+        uses: grafbase/what-rust-changed@v0.2.1
         with:
           config: .github/what-rust-changed.toml
           base: ${{ github.event.pull_request.base.ref || 'main' }}
@@ -63,13 +63,13 @@ jobs:
     env:
       RUSTFLAGS: '-D warnings --cfg tracing_unstable'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
       - uses: ./.github/actions/install-rust
         with:
           target: x86_64-unknown-linux-gnu
 
-      - uses: Swatinem/rust-cache@a8b36e3f740d2ae4fa6e44a424a7b296af51cbef # v2.8.0
+      - uses: Swatinem/rust-cache@v2.8.0
         with:
           cache-workspace-crates: true
           prefix-key: cargo-v1
@@ -79,12 +79,7 @@ jobs:
         with:
           tool: nextest
 
-      # https://github.com/actions/setup-node/issues/899
-      - name: Enable Corepack before setting up Node
-        shell: bash
-        run: corepack enable
-
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -120,7 +115,7 @@ jobs:
           cargo nextest run --profile ci -p federation-audit-tests --test audit_tests
 
       - name: Publish Test Report
-        uses: mikepenz/action-junit-report@34f4f0daa6b03aee5efc77b9c2cbc51a75781341 # v5.0.0-a03
+        uses: mikepenz/action-junit-report@v5.6.2
         if: success() || failure()
         with:
           report_paths: 'target/nextest/ci/junit.xml'
