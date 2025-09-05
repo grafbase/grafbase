@@ -44,6 +44,16 @@ impl DataParts {
         assert!(reservation.is_empty(), "Part already has data");
         *reservation = part;
     }
+
+    pub(super) fn size_hint(&self) -> usize {
+        let mut size = 0;
+        for part in &self.0 {
+            for bytes in &part.bytes {
+                size += bytes.len();
+            }
+        }
+        size
+    }
 }
 
 impl std::ops::Index<DataPartId> for DataParts {

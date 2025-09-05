@@ -13,6 +13,8 @@ use super::{Body, CompleteResponseFormat, ResponseFormat, StreamingResponseForma
 
 mod stream;
 
+// Cap the size hint to 256 KiB to avoid overly large allocations
+const INITIAL_MAX_CAPACITY: usize = 1 << 18;
 const APPLICATION_JSON: http::HeaderValue = http::HeaderValue::from_static("application/json");
 const APPLICATION_GRAPHQL_RESPONSE_JSON: http::HeaderValue =
     http::HeaderValue::from_static("application/graphql-response+json");
@@ -50,8 +52,12 @@ impl Http {
     }
 
     pub(crate) fn batch(format: CompleteResponseFormat, responses: Vec<Response>) -> http::Response<Body> {
-        let bytes = match sonic_rs::to_vec(&responses) {
-            Ok(bytes) => Bytes::from(bytes),
+        let mut bytes = Vec::with_capacity(std::cmp::min(
+            responses.iter().map(|resp| resp.size_hint()).sum::<usize>(),
+            INITIAL_MAX_CAPACITY,
+        ));
+        let bytes = match sonic_rs::to_writer(&mut bytes, &responses) {
+            Ok(_) => Bytes::from(bytes),
             Err(err) => {
                 tracing::error!("Failed to serialize response: {err}");
                 return internal_server_error();
@@ -155,8 +161,10 @@ impl Http {
         response: Response,
     ) -> http::Response<Body> {
         let telemetry = TelemetryExtension::Ready(response.execution_telemetry());
-        let bytes = match sonic_rs::to_vec(&response) {
-            Ok(bytes) => Bytes::from(bytes),
+        // Cap the size hint to 512 KiB to avoid overly large allocations
+        let mut bytes = Vec::with_capacity(std::cmp::min(response.size_hint(), INITIAL_MAX_CAPACITY));
+        let bytes = match sonic_rs::to_writer(&mut bytes, &response) {
+            Ok(_) => Bytes::from(bytes),
             Err(err) => {
                 tracing::error!("Failed to serialize response: {err}");
                 return internal_server_error();
