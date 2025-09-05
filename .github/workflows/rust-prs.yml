@@ -42,6 +42,7 @@ jobs:
           # TODO: Figure out how to not make this zero
           # Seems like if it's not zero you dont get branches
           fetch-depth: 0
+          fetch-tags: true
 
       - uses: Swatinem/rust-cache@v2.8.0
         with:
