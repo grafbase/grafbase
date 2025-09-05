@@ -37,6 +37,7 @@ pub trait ResponseIngester: Send {
 pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
     ctx: &mut SubgraphContext<'ctx, R>,
     headers: http::HeaderMap,
+    is_mutation: bool,
     body: impl Into<Bytes> + Send,
     response_part: ResponsePartBuilder<'ctx>,
     ingester: impl ResponseIngester,
@@ -77,6 +78,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
         let request = FetchRequest {
             subgraph_id: subgraph.id,
             url,
+            is_mutation,
             headers,
             method,
             body,

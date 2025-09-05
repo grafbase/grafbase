@@ -1,6 +1,7 @@
 use std::{borrow::Cow, time::Duration};
 
 use bytes::Bytes;
+use grafbase_telemetry::graphql::OperationType;
 use grafbase_telemetry::{graphql::GraphqlResponseStatus, span::subgraph::SubgraphRequestSpanBuilder};
 use operation::OperationContext;
 use schema::{GraphqlRootFieldResolverDefinition, GraphqlSubgraphId};
@@ -25,6 +26,7 @@ use crate::{
 pub(crate) struct GraphqlResolver {
     pub subgraph_id: GraphqlSubgraphId,
     pub subgraph_operation: PreparedGraphqlOperation,
+    pub ty: OperationType,
 }
 
 impl GraphqlResolver {
@@ -40,9 +42,20 @@ impl GraphqlResolver {
             // FIXME: this is a workaround, we likely require a __typename which should even reach
             // this resolver.
             .unwrap_or_else(|| ctx.schema.query());
+        let parent_object_id = Some(parent_object.id);
+        let ty = if parent_object_id == Some(ctx.schema.query().id) {
+            OperationType::Query
+        } else if parent_object_id == ctx.schema.mutation().map(|m| m.id) {
+            OperationType::Mutation
+        } else if parent_object_id == ctx.schema.subscription().map(|s| s.id) {
+            OperationType::Subscription
+        } else {
+            tracing::error!("Root GraphQL query on a non-root object?");
+            return Err(PlanError::Internal);
+        };
 
         let subgraph_operation =
-            PreparedGraphqlOperation::build(ctx, definition.subgraph_id, parent_object, selection_set).map_err(
+            PreparedGraphqlOperation::build(ctx, definition.subgraph_id, ty, parent_object, selection_set).map_err(
                 |err| {
                     tracing::error!("Failed to build query: {err}");
                     PlanError::Internal
@@ -51,6 +64,7 @@ impl GraphqlResolver {
         Ok(Self {
             subgraph_id: definition.subgraph().id,
             subgraph_operation,
+            ty,
         })
     }
 
@@ -113,6 +127,7 @@ impl GraphqlResolver {
                     ctx,
                     parent_objects,
                     subgraph_headers,
+                    self.ty.is_mutation(),
                     body,
                     plan.shape().id,
                     response_part,
@@ -123,6 +138,7 @@ impl GraphqlResolver {
                     ctx,
                     parent_objects,
                     subgraph_headers,
+                    self.ty.is_mutation(),
                     body,
                     plan.shape().id,
                     response_part,
@@ -139,6 +155,7 @@ async fn fetch_response_without_cache<'ctx, R: Runtime>(
     ctx: &mut SubgraphContext<'ctx, R>,
     parent_objects: ParentObjectSet,
     subgraph_headers: http::HeaderMap,
+    is_mutation: bool,
     body: Vec<u8>,
     shape_id: RootFieldsShapeId,
     response_part: ResponsePartBuilder<'ctx>,
@@ -177,6 +194,7 @@ async fn fetch_response_without_cache<'ctx, R: Runtime>(
     execute_subgraph_request(
         ctx,
         subgraph_headers,
+        is_mutation,
         body,
         response_part,
         Ingester {
@@ -191,6 +209,7 @@ async fn fetch_response_with_cache<'ctx, R: Runtime>(
     ctx: &mut SubgraphContext<'ctx, R>,
     parent_objects: ParentObjectSet,
     subgraph_headers: http::HeaderMap,
+    is_mutation: bool,
     body: Vec<u8>,
     shape_id: RootFieldsShapeId,
     response_part: ResponsePartBuilder<'ctx>,
@@ -212,7 +231,7 @@ async fn fetch_response_with_cache<'ctx, R: Runtime>(
                 shape_id,
             };
 
-            execute_subgraph_request(ctx, subgraph_headers, body, response_part, ingester).await
+            execute_subgraph_request(ctx, subgraph_headers, is_mutation, body, response_part, ingester).await
         }
     }
 }

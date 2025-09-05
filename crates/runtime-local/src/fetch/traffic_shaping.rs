@@ -29,7 +29,7 @@ impl TrafficShaping {
     where
         F: Future<Output = FetchResponse> + Send,
     {
-        if !self.config.inflight_deduplication {
+        if !self.config.inflight_deduplication || request.is_mutation {
             return f(request).await;
         }
         let key = Key(Arc::new(RequestKey::from(&request)));
@@ -135,7 +135,8 @@ impl Hash for RequestKey {
 impl From<&FetchRequest<'_>> for RequestKey {
     fn from(req: &FetchRequest<'_>) -> Self {
         let subgraph_id = req.subgraph_id;
-        let mut parts_bytes = Vec::with_capacity(req.url.as_str().len() + req.headers.len() * 20);
+        let mut parts_bytes =
+            Vec::with_capacity(req.url.as_str().len() + req.headers.len() * 20 + req.method.as_str().len());
         let mut header_sections = Vec::with_capacity(req.headers.keys_len());
 
         for (name, value) in req.headers.iter() {
@@ -186,6 +187,7 @@ mod tests {
         (&FetchRequest {
             subgraph_id: subgraph_id.into(),
             method,
+            is_mutation: false,
             headers: {
                 let mut map = http::HeaderMap::new();
                 for (name, value) in &headers {

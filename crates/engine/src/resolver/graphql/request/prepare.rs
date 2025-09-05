@@ -21,21 +21,11 @@ impl PreparedGraphqlOperation {
     pub(crate) fn build(
         ctx: OperationContext<'_>,
         endpoint_id: GraphqlSubgraphId,
+        operation_type: OperationType,
         parent_object: ObjectDefinition<'_>,
         selection_set: SubgraphSelectionSet<'_>,
     ) -> Result<PreparedGraphqlOperation, Error> {
         let mut builder = QueryBuilderContext::new(ctx, endpoint_id.into());
-        let parent_object_id = Some(parent_object.id);
-        let operation_type = if parent_object_id == Some(ctx.schema.query().id) {
-            OperationType::Query
-        } else if parent_object_id == ctx.schema.mutation().map(|m| m.id) {
-            OperationType::Mutation
-        } else if parent_object_id == ctx.schema.subscription().map(|s| s.id) {
-            OperationType::Subscription
-        } else {
-            tracing::error!("Root GraphQL query on a non-root object?");
-            return Err(Error);
-        };
 
         // Generating the selection set first as this will define all the operation arguments
         let mut buffer = String::with_capacity(256);

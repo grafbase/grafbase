@@ -52,6 +52,7 @@ pub type FetchResult<T> = Result<T, FetchError>;
 pub struct FetchRequest<'a> {
     pub subgraph_id: GraphqlSubgraphId,
     pub url: Cow<'a, url::Url>,
+    pub is_mutation: bool,
     pub method: http::Method,
     pub headers: http::HeaderMap,
     pub body: Bytes,
