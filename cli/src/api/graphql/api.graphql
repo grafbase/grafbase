@@ -1579,10 +1579,26 @@ input PublishInput {
   accountSlug: String!
   graphSlug: String
   branch: String
+  """
+  The name of the subgraph
+  """
   subgraph: String!
+  """
+  The URL of the subgraph. Can be left blank if the subgraph already exist or when creating a virtual subgraph.
+  """
   url: String
+  """
+  The SDL of the subgraph
+  """
   schema: String!
+  """
+  Associated message (for humans)
+  """
   message: String
+  """
+  Whether this is a virtual subgraph (no URL)
+  """
+  virtual: Boolean
 }
 
 """

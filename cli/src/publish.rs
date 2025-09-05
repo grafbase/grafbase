@@ -43,6 +43,7 @@ pub(crate) async fn publish(
         source.url.as_ref().map(|url| url.as_str()),
         &schema,
         message.as_deref(),
+        if source.r#virtual { Some(true) } else { None },
     )
     .await
     .map_err(CliError::BackendApiError)?;
