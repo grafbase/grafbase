@@ -218,6 +218,8 @@ pub struct PublishInput<'a> {
     pub schema: &'a str,
     pub subgraph: &'a str,
     pub url: Option<&'a str>,
+    #[cynic(rename = "virtual")]
+    pub r#virtual: Option<bool>,
 }
 
 #[derive(cynic::QueryFragment, Debug)]

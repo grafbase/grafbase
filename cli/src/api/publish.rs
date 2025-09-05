@@ -15,7 +15,8 @@ pub enum PublishOutcome {
     GraphDoesNotExist { account_slug: String, graph_slug: String },
 }
 
-pub async fn publish(
+#[expect(clippy::too_many_arguments)]
+pub(crate) async fn publish(
     account_slug: &str,
     graph_slug: &str,
     branch: Option<&str>,
@@ -23,6 +24,7 @@ pub async fn publish(
     url: Option<&str>,
     schema: &str,
     message: Option<&str>,
+    r#virtual: Option<bool>,
 ) -> Result<PublishOutcome, ApiError> {
     let platform_data = PlatformData::get();
     let client = create_client()?;
@@ -36,6 +38,7 @@ pub async fn publish(
             url,
             schema,
             message,
+            r#virtual,
         },
     });
 
