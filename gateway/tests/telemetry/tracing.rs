@@ -39,7 +39,13 @@ fn no_traceparent_no_propagation() {
                 .send()
                 .await;
 
-            response.assert_header_names(&["accept", "accept-encoding", "content-length", "content-type"]);
+            response.assert_header_names(&[
+                "accept",
+                "accept-encoding",
+                "connection",
+                "content-length",
+                "content-type",
+            ]);
         },
     );
 }
@@ -121,6 +127,7 @@ fn tracecontext_traceparent_propagation() {
             response.assert_header_names(&[
                 "accept",
                 "accept-encoding",
+                "connection",
                 "content-length",
                 "content-type",
                 "traceparent",
@@ -193,6 +200,7 @@ fn tracecontext_traceparent_propagation_with_http_protocol() {
             response.assert_header_names(&[
                 "accept",
                 "accept-encoding",
+                "connection",
                 "content-length",
                 "content-type",
                 "traceparent",
@@ -267,6 +275,7 @@ fn tracecontext_and_baggage_propagation() {
                 "accept",
                 "accept-encoding",
                 "baggage",
+                "connection",
                 "content-length",
                 "content-type",
                 "traceparent",
@@ -364,7 +373,14 @@ fn baggage_propagation() {
                 .send()
                 .await;
 
-            response.assert_header_names(&["accept", "accept-encoding", "baggage", "content-length", "content-type"]);
+            response.assert_header_names(&[
+                "accept",
+                "accept-encoding",
+                "baggage",
+                "connection",
+                "content-length",
+                "content-type",
+            ]);
             let values = response.assert_header("baggage");
             let mut values: Vec<_> = values.split(',').collect();
             values.sort();
@@ -406,6 +422,7 @@ fn aws_xray_propagation() {
             response.assert_header_names(&[
                 "accept",
                 "accept-encoding",
+                "connection",
                 "content-length",
                 "content-type",
                 "traceparent",

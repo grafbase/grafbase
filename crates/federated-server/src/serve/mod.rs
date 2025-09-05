@@ -3,7 +3,11 @@ mod lambda;
 
 use axum::Router;
 use gateway_config::{Config, TlsConfig};
-use std::{net::SocketAddr, path::PathBuf, sync::Arc};
+use std::{
+    net::{self, SocketAddr},
+    path::PathBuf,
+    sync::Arc,
+};
 use tokio::{
     signal,
     sync::{mpsc, watch},
@@ -180,19 +184,22 @@ async fn bind(
         }
     });
 
+    // Same backlog as ntex.
+    let listener = create_tcp_listener(addr, 1024).map_err(crate::Error::Server)?;
+
     match tls {
         Some(tls) => {
             let rustls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(&tls.certificate, &tls.key)
                 .await
                 .map_err(crate::Error::CertificateError)?;
 
-            axum_server::bind_rustls(addr, rustls_config)
+            axum_server::from_tcp_rustls(listener, rustls_config)
                 .handle(handle)
                 .serve(app)
                 .await
                 .map_err(crate::Error::Server)?
         }
-        None => axum_server::bind(addr)
+        None => axum_server::from_tcp(listener)
             .handle(handle)
             .serve(app)
             .await
@@ -236,4 +243,26 @@ async fn graceful_shutdown(handle: axum_server::Handle) {
 
     tracing::info!("Shutting down gracefully...");
     handle.graceful_shutdown(Some(std::time::Duration::from_secs(3)));
+}
+
+// Taken from ntex
+fn create_tcp_listener(addr: net::SocketAddr, backlog: i32) -> std::io::Result<net::TcpListener> {
+    use socket2::{Domain, Socket, Type};
+
+    let builder = match addr {
+        net::SocketAddr::V4(_) => Socket::new(Domain::IPV4, Type::STREAM, None)?,
+        net::SocketAddr::V6(_) => Socket::new(Domain::IPV6, Type::STREAM, None)?,
+    };
+
+    // On Windows, this allows rebinding sockets which are actively in use,
+    // which allows “socket hijacking”, so we explicitly don't set it here.
+    // https://docs.microsoft.com/en-us/windows/win32/winsock/using-so-reuseaddr-and-so-exclusiveaddruse
+    #[cfg(not(windows))]
+    builder.set_reuse_address(true)?;
+
+    builder.set_tcp_nodelay(true)?;
+
+    builder.bind(&socket2::SockAddr::from(addr))?;
+    builder.listen(backlog)?;
+    Ok(net::TcpListener::from(builder))
 }

@@ -10,7 +10,7 @@ use crate::fetch::FetchResponse;
 
 pub struct TrafficShaping {
     config: TrafficShapingConfig,
-    inflight: DashMap<&'static RequestKey, InflightRequest, rapidhash::fast::RandomState>,
+    inflight: DashMap<Key, InflightRequest, rapidhash::fast::RandomState>,
 }
 
 impl TrafficShaping {
@@ -32,17 +32,11 @@ impl TrafficShaping {
         if !self.config.inflight_deduplication {
             return f(request).await;
         }
-        let request_key = Box::new(RequestKey::from(&request));
-        // SAFETY: First, we boxed the key so it won't move. Second there are two cases:
-        //         - We add the value in the map, and it's our box that gets stored within the
-        //           entry. In that case the key will only be used as long as the value is present.
-        //         - The entry exists, our reference will simply disappear.
-        let key = unsafe { std::mem::transmute::<&RequestKey, &'static RequestKey>(request_key.as_ref()) };
+        let key = Key(Arc::new(RequestKey::from(&request)));
         let cell = self
             .inflight
-            .entry(key)
+            .entry(key.clone())
             .or_insert_with(|| InflightRequest {
-                request_key,
                 cell: Arc::new(tokio::sync::OnceCell::new()),
             })
             .cell
@@ -50,7 +44,7 @@ impl TrafficShaping {
 
         cell.get_or_init(|| async {
             let result = f(request).await;
-            self.inflight.remove(key);
+            self.inflight.remove(&key);
             result
         })
         .await;
@@ -63,12 +57,13 @@ impl TrafficShaping {
 }
 
 struct InflightRequest {
-    #[allow(unused)] // Used to keep the key in the dashmap alive.
-    request_key: Box<RequestKey>,
     cell: Arc<tokio::sync::OnceCell<FetchResponse>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+struct Key(Arc<RequestKey>);
+
+#[derive(Debug, Clone)]
 struct RequestKey {
     subgraph_id: GraphqlSubgraphId,
     header_sections: Vec<(u32, u32)>,
