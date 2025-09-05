@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use engine::EngineOperationContext;
 use engine_error::{ErrorCode, ErrorResponse, GraphqlError};
@@ -100,12 +100,15 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
         })
     }
 
-    fn on_graphql_subgraph_request<'a>(
+    fn on_graphql_subgraph_request<'a, 'r>(
         &'a mut self,
         ctx: EngineOperationContext,
         subgraph: GraphqlSubgraph<'a>,
-        ReqwestParts { url, method, headers }: ReqwestParts,
-    ) -> BoxFuture<'a, wasmtime::Result<Result<ReqwestParts, GraphqlError>>> {
+        ReqwestParts { url, method, headers }: ReqwestParts<'r>,
+    ) -> BoxFuture<'a, wasmtime::Result<Result<ReqwestParts<'r>, GraphqlError>>>
+    where
+        'r: 'a,
+    {
         Box::pin(async move {
             let method: HttpMethod = (&method).try_into()?;
 
@@ -149,7 +152,7 @@ impl HooksExtensionInstance for super::ExtensionInstanceSince0_21_0 {
                     };
 
                     Ok(ReqwestParts {
-                        url,
+                        url: Cow::Owned(url),
                         method: parts.method.into(),
                         headers,
                     })

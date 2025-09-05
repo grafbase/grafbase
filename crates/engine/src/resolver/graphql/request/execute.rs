@@ -41,7 +41,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
     response_part: ResponsePartBuilder<'ctx>,
     ingester: impl ResponseIngester,
 ) -> ResponsePartBuilder<'ctx> {
-    let endpoint = ctx.endpoint();
+    let subgraph = ctx.endpoint();
 
     let result = async {
         let ReqwestParts {
@@ -52,9 +52,9 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
             .extensions()
             .on_graphql_subgraph_request(
                 EngineOperationContext::from(&ctx.ctx),
-                ctx.endpoint,
+                ctx.subgraph,
                 ReqwestParts {
-                    url: endpoint.url().clone(),
+                    url: Cow::Borrowed(subgraph.url()),
                     method: http::Method::POST,
                     headers,
                 },
@@ -74,25 +74,24 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
         );
 
         let request = FetchRequest {
-            websocket_init_payload: None,
-            subgraph_name: endpoint.name(),
-            url: Cow::Owned(url),
+            subgraph_id: subgraph.id,
+            url,
             headers,
             method,
             body,
-            timeout: endpoint.config.timeout,
+            timeout: subgraph.config.timeout,
         };
 
-        ctx.record_request_size(&request);
+        ctx.record_request_size(request.body.len());
 
         let fetcher = ctx.runtime().fetcher();
 
         let fetch_result = retrying_fetch(ctx, || {
             let mut request = request.clone();
-            let subgraph_name = endpoint.name().to_string();
+            let subgraph_name = subgraph.name().to_string();
 
             async move {
-                let http_span = SubgraphHttpRequestSpan::new(&request.url, &http::Method::POST);
+                let http_span = SubgraphHttpRequestSpan::new(request.url.as_ref(), &http::Method::POST);
 
                 grafbase_telemetry::otel::opentelemetry::global::get_text_map_propagator(|propagator| {
                     let context = http_span.context();

@@ -1,3 +1,6 @@
+use engine_schema::GraphqlSubgraphId;
+use fxhash::FxHashMap;
+use rapidhash::RapidHashMap;
 use serde::Deserialize;
 use serde_json::json; // Don't use this directly but we need to enable its JWK feature
 
@@ -6,7 +9,7 @@ use std::{collections::HashSet, time::Duration};
 use anyhow::{Context, anyhow};
 use base64::{Engine, prelude::BASE64_URL_SAFE_NO_PAD};
 use gateway_config::{
-    MessageSignaturesConfig,
+    Config, MessageSignaturesConfig,
     message_signatures::{DerivedComponent, MessageSigningAlgorithm, MessageSigningKey, SignatureParameter},
 };
 use httpsig::prelude::{
@@ -16,19 +19,58 @@ use httpsig_hyper::MessageSignatureReq;
 use runtime::fetch::FetchError;
 use tracing::Instrument;
 
-use super::NativeFetcher;
+pub(super) struct RequestSigner {
+    subgraph_signing_parameters: FxHashMap<GraphqlSubgraphId, Option<SigningParameters>>,
+    default: Option<SigningParameters>,
+}
 
-impl NativeFetcher {
-    pub async fn sign_request(
+impl RequestSigner {
+    pub fn new(
+        config: &Config,
+        subgraph_name_to_id: &RapidHashMap<&str, GraphqlSubgraphId>,
+    ) -> Result<Self, anyhow::Error> {
+        let default = SigningParameters::from_config(&config.gateway.message_signatures, None)?;
+        let subgraph_signing_parameters = generate_subgraph_signing_parameters(config, subgraph_name_to_id)?;
+        Ok(RequestSigner {
+            subgraph_signing_parameters,
+            default,
+        })
+    }
+}
+
+fn generate_subgraph_signing_parameters(
+    config: &Config,
+    subgraph_name_to_id: &RapidHashMap<&str, GraphqlSubgraphId>,
+) -> Result<FxHashMap<GraphqlSubgraphId, Option<SigningParameters>>, anyhow::Error> {
+    let subgraph_signing_parameters = config
+        .subgraphs
+        .iter()
+        .filter_map(|(name, value)| {
+            let id = *subgraph_name_to_id.get(name.as_str())?;
+            Some((id, value.message_signatures.as_ref()?))
+        })
+        .map(|(id, message_signatures)| {
+            Ok((
+                id,
+                SigningParameters::from_config(message_signatures, Some(&config.gateway.message_signatures))?,
+            ))
+        })
+        .collect::<anyhow::Result<_>>()?;
+
+    Ok(subgraph_signing_parameters)
+}
+
+impl RequestSigner {
+    pub async fn sign(
         &self,
-        subgraph_name: &str,
+        subgraph_id: GraphqlSubgraphId,
         request: reqwest::Request,
     ) -> Result<reqwest::Request, FetchError> {
         let signature_params = self
             .subgraph_signing_parameters
-            .get(subgraph_name)
+            .get(&subgraph_id)
             .map(Option::as_ref)
-            .or(Some(self.default_signing_parameters.as_ref()))
+            .or(Some(self.default.as_ref()))
             .flatten();
 
         let Some(signature_params) = signature_params else {

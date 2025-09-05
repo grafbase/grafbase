@@ -53,7 +53,7 @@ impl TestRuntimeBuilder {
 
         let runtime = TestRuntime {
             fetcher: fetcher.unwrap_or_else(|| {
-                DynamicFetcher::wrap(NativeFetcher::new(config).expect("couldnt construct NativeFetcher"))
+                DynamicFetcher::wrap(NativeFetcher::new(config, schema).expect("couldnt construct NativeFetcher"))
             }),
             trusted_documents: trusted_documents.unwrap_or_else(|| trusted_documents_client::Client::new(())),
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
@@ -67,12 +67,12 @@ impl TestRuntimeBuilder {
     }
 }
 
-impl Default for TestRuntime {
-    fn default() -> Self {
+impl TestRuntime {
+    pub async fn new(config: &Config, schema: &Schema) -> Self {
         let (_, rx) = watch::channel(Default::default());
 
         let fetcher =
-            DynamicFetcher::wrap(NativeFetcher::new(&Config::default()).expect("couldnt construct NativeFetcher"));
+            DynamicFetcher::wrap(NativeFetcher::new(config, schema).expect("couldnt construct NativeFetcher"));
 
         Self {
             fetcher,

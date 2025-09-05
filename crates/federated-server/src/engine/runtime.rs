@@ -123,7 +123,7 @@ impl EngineRuntime {
         };
 
         let runtime = EngineRuntime {
-            fetcher: NativeFetcher::new(ctx.gateway_config)
+            fetcher: NativeFetcher::new(ctx.gateway_config, schema)
                 .map_err(|e| crate::Error::FetcherConfigError(e.to_string()))?,
             trusted_documents,
             extensions,

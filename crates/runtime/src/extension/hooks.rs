@@ -1,4 +1,4 @@
-use std::{future::Future, sync::Arc};
+use std::{borrow::Cow, future::Future, sync::Arc};
 
 use engine_schema::{GraphqlSubgraph, VirtualSubgraph};
 use error::{ErrorResponse, GraphqlError};
@@ -25,19 +25,19 @@ pub trait GatewayHooksExtension: Clone + Send + Sync + 'static {
     ) -> impl Future<Output = Result<response::Parts, String>> + Send;
 }
 
-pub struct ReqwestParts {
-    pub url: Url,
+pub struct ReqwestParts<'a> {
+    pub url: Cow<'a, Url>,
     pub method: http::Method,
     pub headers: http::HeaderMap,
 }
 
 pub trait EngineHooksExtension<OperationContext>: Send + Sync + 'static {
-    fn on_graphql_subgraph_request(
+    fn on_graphql_subgraph_request<'r>(
         &self,
         context: OperationContext,
         subgraph: GraphqlSubgraph<'_>,
-        parts: ReqwestParts,
-    ) -> impl Future<Output = Result<ReqwestParts, GraphqlError>> + Send;
+        parts: ReqwestParts<'r>,
+    ) -> impl Future<Output = Result<ReqwestParts<'r>, GraphqlError>> + Send;
 
     fn on_virtual_subgraph_request(
         &self,

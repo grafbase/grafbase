@@ -204,7 +204,7 @@ impl<'a> ExecutedSubgraphRequestBuilder<'a> {
 }
 
 /// Builder for constructing [`SubgraphResponse`] instances.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SubgraphResponseBuilder {
     pub(super) start_time: Instant,
     pub(super) connection_time: Duration,

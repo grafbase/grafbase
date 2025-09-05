@@ -23,12 +23,12 @@ impl GatewayHooksExtension for GatewayTestExtensions {
 }
 
 impl EngineHooksExtension<engine::EngineOperationContext> for EngineTestExtensions {
-    async fn on_graphql_subgraph_request(
+    async fn on_graphql_subgraph_request<'r>(
         &self,
         context: engine::EngineOperationContext,
         subgraph: GraphqlSubgraph<'_>,
-        parts: ReqwestParts,
-    ) -> Result<ReqwestParts, GraphqlError> {
+        parts: ReqwestParts<'r>,
+    ) -> Result<ReqwestParts<'r>, GraphqlError> {
         self.wasm.on_graphql_subgraph_request(context, subgraph, parts).await
     }
 

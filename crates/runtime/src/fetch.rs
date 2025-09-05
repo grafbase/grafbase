@@ -1,10 +1,11 @@
 use std::{borrow::Cow, future::Future, time::Duration};
 
 use bytes::Bytes;
+use engine_schema::GraphqlSubgraphId;
 use event_queue::SubgraphResponseBuilder;
 use futures_util::{stream::BoxStream, Stream, StreamExt, TryFutureExt};
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum FetchError {
     #[error("{0}")]
     Message(String),
@@ -12,13 +13,13 @@ pub enum FetchError {
     InvalidStatusCode(http::StatusCode),
     #[error("Could not sign subgraph request: {0}")]
     MessageSigningFailed(String),
-    #[error("Request error: {0:?}")]
-    Reqwest(reqwest::Error),
+    #[error("Request error: {0}")]
+    Reqwest(String),
 }
 
 impl From<reqwest::Error> for FetchError {
     fn from(error: reqwest::Error) -> Self {
-        FetchError::Reqwest(error.without_url())
+        FetchError::Reqwest(format!("{:?}", error.without_url()))
     }
 }
 
@@ -48,7 +49,17 @@ pub type FetchResult<T> = Result<T, FetchError>;
 /// reqwest uses Url instead of Uri, so as long as it's the actual implementation underneath it's a
 /// bit of a waste to use http::Request
 #[derive(Clone)]
-pub struct FetchRequest<'a, Body> {
+pub struct FetchRequest<'a> {
+    pub subgraph_id: GraphqlSubgraphId,
+    pub url: Cow<'a, url::Url>,
+    pub method: http::Method,
+    pub headers: http::HeaderMap,
+    pub body: Bytes,
+    pub timeout: Duration,
+}
+
+#[derive(Clone)]
+pub struct WebsocketRequest<'a, Body> {
     pub subgraph_name: &'a str,
     pub url: Cow<'a, url::Url>,
     pub method: http::Method,
@@ -61,18 +72,18 @@ pub struct FetchRequest<'a, Body> {
 pub trait Fetcher: Send + Sync + 'static {
     fn fetch(
         &self,
-        request: FetchRequest<'_, Bytes>,
+        request: FetchRequest<'_>,
     ) -> impl Future<Output = (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>)> + Send;
 
     fn graphql_over_sse_stream(
         &self,
-        request: FetchRequest<'_, Bytes>,
+        request: WebsocketRequest<'_, Bytes>,
     ) -> impl Future<Output = FetchResult<impl Stream<Item = FetchResult<Bytes>> + Send + 'static>> + Send;
 
     // graphql_ws_client requires a serde::Serialize
     fn graphql_over_websocket_stream<T>(
         &self,
-        request: FetchRequest<'_, T>,
+        request: WebsocketRequest<'_, T>,
     ) -> impl Future<Output = FetchResult<impl Stream<Item = FetchResult<serde_json::Value>> + Send + 'static>> + Send
     where
         T: serde::Serialize + Send;
@@ -88,19 +99,19 @@ pub mod dynamic {
     pub trait DynFetcher: Send + Sync + 'static {
         async fn fetch(
             &self,
-            request: FetchRequest<'_, Bytes>,
+            request: FetchRequest<'_>,
         ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>);
 
         async fn graphql_over_sse_stream(
             &self,
-            request: FetchRequest<'_, Bytes>,
+            request: WebsocketRequest<'_, Bytes>,
         ) -> FetchResult<BoxStream<'static, FetchResult<Bytes>>> {
             unreachable!()
         }
 
         async fn graphql_over_websocket_stream(
             &self,
-            request: FetchRequest<'_, serde_json::Value>,
+            request: WebsocketRequest<'_, serde_json::Value>,
         ) -> FetchResult<BoxStream<'static, FetchResult<serde_json::Value>>> {
             unreachable!()
         }
@@ -128,27 +139,27 @@ pub mod dynamic {
     impl Fetcher for DynamicFetcher {
         async fn fetch(
             &self,
-            request: FetchRequest<'_, Bytes>,
+            request: FetchRequest<'_>,
         ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>) {
             self.0.fetch(request).await
         }
 
         async fn graphql_over_sse_stream(
             &self,
-            request: FetchRequest<'_, Bytes>,
+            request: WebsocketRequest<'_, Bytes>,
         ) -> FetchResult<impl Stream<Item = FetchResult<Bytes>> + Send + 'static> {
             self.0.graphql_over_sse_stream(request).await
         }
 
         async fn graphql_over_websocket_stream<T>(
             &self,
-            request: FetchRequest<'_, T>,
+            request: WebsocketRequest<'_, T>,
         ) -> FetchResult<impl Stream<Item = FetchResult<serde_json::Value>> + Send + 'static>
         where
             T: serde::Serialize + Send,
         {
             self.0
-                .graphql_over_websocket_stream(FetchRequest {
+                .graphql_over_websocket_stream(WebsocketRequest {
                     websocket_init_payload: request.websocket_init_payload,
                     subgraph_name: request.subgraph_name,
                     method: request.method,
@@ -167,14 +178,14 @@ pub mod dynamic {
     impl<T: Fetcher> DynFetcher for DynWrapper<T> {
         async fn fetch(
             &self,
-            request: FetchRequest<'_, Bytes>,
+            request: FetchRequest<'_>,
         ) -> (FetchResult<http::Response<Bytes>>, Option<SubgraphResponseBuilder>) {
             self.0.fetch(request).await
         }
 
         async fn graphql_over_sse_stream(
             &self,
-            request: FetchRequest<'_, Bytes>,
+            request: WebsocketRequest<'_, Bytes>,
         ) -> FetchResult<BoxStream<'static, FetchResult<Bytes>>> {
             self.0
                 .graphql_over_sse_stream(request)
@@ -184,7 +195,7 @@ pub mod dynamic {
 
         async fn graphql_over_websocket_stream(
             &self,
-            request: FetchRequest<'_, serde_json::Value>,
+            request: WebsocketRequest<'_, serde_json::Value>,
         ) -> FetchResult<BoxStream<'static, FetchResult<serde_json::Value>>> {
             self.0
                 .graphql_over_websocket_stream(request)
