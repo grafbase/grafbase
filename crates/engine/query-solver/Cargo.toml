@@ -31,6 +31,7 @@ strum.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 walker = { path = "../walker", package = "engine-walker" }
+zerocopy.workspace = true
 
 [dev-dependencies]
 ctor.workspace = true

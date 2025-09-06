@@ -4,7 +4,7 @@ use operation::{OperationContext, ResponseKey};
 use petgraph::dot::{Config, Dot};
 use walker::Walk;
 
-use crate::{FieldFlags, QueryFieldId, dot_graph::Attrs};
+use crate::{FieldFlags, QueryFieldId, SolutionSpace, dot_graph::Attrs};
 
 use super::{Edge, Node, Query, QueryField, SolutionGraph};
 
@@ -95,7 +95,7 @@ trait GetSubgraphKey {
     }
 }
 
-impl GetSubgraphKey for crate::steps::SolutionSpace {}
+impl<'schema> GetSubgraphKey for SolutionSpace<'schema> {}
 impl GetSubgraphKey for crate::steps::SteinerSolution {}
 impl GetSubgraphKey for crate::steps::Solution {
     fn get_subgraph_key(&self, id: QueryFieldId) -> Option<ResponseKey> {

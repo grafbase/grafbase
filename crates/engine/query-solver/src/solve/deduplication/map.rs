@@ -1,16 +1,14 @@
 use hashbrown::{HashTable, hash_table::Entry};
 use operation::OperationContext;
+use petgraph::visit::GraphBase;
 use rapidhash::fast::SeedableState;
 use schema::ResolverDefinitionId;
 use std::{
     hash::{BuildHasher as _, Hash, Hasher},
     num::NonZero,
 };
-use walker::Walk as _;
 
-use crate::{
-    QueryField, QueryFieldId, QueryOrSchemaSortedFieldArgumentIds, are_arguments_equivalent, solve::DeduplicationId,
-};
+use crate::{Query, QueryFieldId, solve::DeduplicationId};
 
 pub(in crate::solve) struct DeduplicationMap {
     table: HashTable<DeduplicatedEntry>,
@@ -69,34 +67,18 @@ impl DeduplicationMap {
         }
     }
 
-    pub fn get_or_insert_field<'op>(
+    pub fn get_or_insert_field<'op, G: GraphBase, S>(
         &mut self,
         ctx: OperationContext<'op>,
-        fields: &[QueryField],
+        query: &Query<G, S>,
         id: QueryFieldId,
     ) -> DeduplicationId {
         // Maybe we should avoid keeping this data in the table and have an id instead?
-        let field = &fields[usize::from(id)];
+        let field = &query[id];
         let hash = {
             let mut hasher = self.hash_seed.build_hasher();
             RecordDiscriminants::Field.hash(&mut hasher);
-            field.type_conditions.hash(&mut hasher);
-            field.flat_directive_id.hash(&mut hasher);
-            field.response_key.hash(&mut hasher);
-            field.definition_id.hash(&mut hasher);
-            field.sorted_argument_ids.len().hash(&mut hasher);
-            match field.sorted_argument_ids {
-                QueryOrSchemaSortedFieldArgumentIds::Query(ids) => {
-                    for arg in ids.walk(ctx) {
-                        arg.definition_id.hash(&mut hasher);
-                    }
-                }
-                QueryOrSchemaSortedFieldArgumentIds::Schema(ids) => {
-                    for arg in ids.walk(ctx) {
-                        arg.definition_id.hash(&mut hasher);
-                    }
-                }
-            }
+            field.equivalence_hash(query, ctx, &mut hasher);
             hasher.finish()
         };
 
@@ -104,14 +86,7 @@ impl DeduplicationMap {
         match self.table.entry(
             hash,
             |entry| match entry.record {
-                Record::Field(id) => {
-                    let existing = &fields[usize::from(id)];
-                    ((existing.type_conditions == field.type_conditions)
-                        & (existing.response_key == field.response_key)
-                        & (existing.definition_id == field.definition_id)
-                        & (existing.flat_directive_id == field.flat_directive_id))
-                        && are_arguments_equivalent(ctx, existing.sorted_argument_ids, field.sorted_argument_ids)
-                }
+                Record::Field(id) => query[id].is_equivalent(query, ctx, field),
                 _ => false,
             },
             |entry| entry.hash,

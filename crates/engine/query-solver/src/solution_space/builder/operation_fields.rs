@@ -18,7 +18,7 @@ use crate::{
 use super::{SpaceEdge, SpaceNode, builder::QuerySolutionSpaceBuilder, providable_fields::CreateRequirementTask};
 
 struct IngestSelectionSet<'op> {
-    parent_query_field_node_ix: NodeIndex,
+    parent_query_field_node_id: NodeIndex,
     parent_output_type: CompositeTypeId,
     depth: usize,
     selection_set: operation::SelectionSet<'op>,
@@ -34,7 +34,7 @@ where
             operation: self.operation,
         };
         let queue = vec![IngestSelectionSet {
-            parent_query_field_node_ix: self.query.root_node_id,
+            parent_query_field_node_id: self.query.root_node_id,
             parent_output_type: CompositeTypeId::Object(self.operation.root_object_id),
             depth: 0,
             selection_set: OperationContext {
@@ -84,7 +84,7 @@ where
         // We traverse in BFS to optimize our use of the QueryPosition which is a u16.
         while let Some(IngestSelectionSet {
             depth,
-            parent_query_field_node_ix,
+            parent_query_field_node_id: parent_query_field_node_ix,
             parent_output_type,
             selection_set,
         }) = self.queue.pop_front()
@@ -228,7 +228,7 @@ where
 
     fn add_operation_field(
         &mut self,
-        parent_query_field_node_ix: NodeIndex,
+        parent_query_field_node_id: NodeIndex,
         parent_output_type: CompositeTypeId,
         field: operation::Field<'op>,
     ) -> crate::Result<()> {
@@ -245,6 +245,35 @@ where
         let response_key = field.response_key();
         let (definition_id, output_ty) = field.definition().map(|def| (def.id, def.ty())).unzip();
 
+        let (query_field, edge_weight) = match field {
+            operation::Field::Data(field) => (
+                QueryField {
+                    query_position: Some(self.next_query_position()),
+                    type_conditions,
+                    response_key: Some(field.response_key),
+                    definition_id,
+                    matching_field_id: None,
+                    sorted_argument_ids: QueryOrSchemaSortedFieldArgumentIds::Query(field.sorted_argument_ids),
+                    location: field.location,
+                    flat_directive_id,
+                },
+                SpaceEdge::Field,
+            ),
+            operation::Field::Typename(field) => (
+                QueryField {
+                    query_position: Some(self.next_query_position()),
+                    type_conditions,
+                    response_key: Some(field.response_key),
+                    definition_id: None,
+                    matching_field_id: None,
+                    sorted_argument_ids: QueryOrSchemaSortedFieldArgumentIds::Query(IdRange::empty()),
+                    location: field.location,
+                    flat_directive_id,
+                },
+                SpaceEdge::TypenameField,
+            ),
+        };
+
         let bloom_bit_mask = 1 << (usize::from(response_key) % (usize::BITS - 1) as usize);
         let mut existing_query_field_node_ix = None;
         // Only search for a field with the same response key if we're likely to find one.
@@ -253,19 +282,21 @@ where
                 .builder
                 .query
                 .graph
-                .neighbors_directed(parent_query_field_node_ix, Direction::Outgoing)
+                .neighbors_directed(parent_query_field_node_id, Direction::Outgoing)
             {
                 let SpaceNode::Field(node) = self.builder.query.graph[node_ix] else {
                     continue;
                 };
-                let query_field = &self.builder.query[node.id];
-                if query_field.response_key != Some(response_key) {
-                    continue;
+                let existing = &self.builder.query[node.id];
+                if existing.is_equivalent(&self.builder.query, self.ctx, &query_field) {
+                    existing_query_field_node_ix = Some(node_ix);
+                    break;
                 }
-                if query_field.definition_id == definition_id
+
+                if ((existing.response_key == Some(response_key)) & (existing.definition_id == definition_id))
                     && !are_arguments_equivalent(
                         self.ctx,
-                        query_field.sorted_argument_ids,
+                        existing.sorted_argument_ids,
                         field
                             .as_data()
                             .map(|f| QueryOrSchemaSortedFieldArgumentIds::Query(f.sorted_argument_ids))
@@ -274,63 +305,26 @@ where
                 {
                     return Err(crate::Error::InconsistentFieldArguments {
                         name: field.response_key_str().to_string(),
-                        location1: query_field.location,
+                        location1: existing.location,
                         location2: field.location(),
                     });
-                }
-
-                // Merging fields if they have similar type conditions and @skip/@include. We could
-                // merge the later, the former is hard.
-                if self.builder.query[query_field.type_conditions] == self.builder.query[type_conditions]
-                    && query_field.flat_directive_id == flat_directive_id
-                {
-                    existing_query_field_node_ix = Some(node_ix);
-                    break;
                 }
             }
         }
         self.response_key_bloom_filter |= bloom_bit_mask;
 
-        let query_field_node_ix = existing_query_field_node_ix.unwrap_or_else(|| {
+        let query_field_node_id = existing_query_field_node_ix.unwrap_or_else(|| {
             let (query_field_id, edge_weight) = {
-                let (query_field, edge_weight) = match field {
-                    operation::Field::Data(field) => (
-                        QueryField {
-                            query_position: Some(self.next_query_position()),
-                            type_conditions,
-                            response_key: Some(field.response_key),
-                            definition_id,
-                            matching_field_id: None,
-                            sorted_argument_ids: QueryOrSchemaSortedFieldArgumentIds::Query(field.sorted_argument_ids),
-                            location: field.location,
-                            flat_directive_id,
-                        },
-                        SpaceEdge::Field,
-                    ),
-                    operation::Field::Typename(field) => (
-                        QueryField {
-                            query_position: Some(self.next_query_position()),
-                            type_conditions,
-                            response_key: Some(field.response_key),
-                            definition_id: None,
-                            matching_field_id: None,
-                            sorted_argument_ids: QueryOrSchemaSortedFieldArgumentIds::Query(IdRange::empty()),
-                            location: field.location,
-                            flat_directive_id,
-                        },
-                        SpaceEdge::TypenameField,
-                    ),
-                };
                 self.builder.query.fields.push(query_field);
                 ((self.builder.query.fields.len() - 1).into(), edge_weight)
             };
-            let query_field_node_ix = self
+            let query_field_node_id = self
                 .builder
                 .push_query_field_node(query_field_id, FieldFlags::INDISPENSABLE);
             self.builder
                 .query
                 .graph
-                .add_edge(parent_query_field_node_ix, query_field_node_ix, edge_weight);
+                .add_edge(parent_query_field_node_id, query_field_node_id, edge_weight);
 
             let query = &mut self.builder.query;
             if let Some(field_definition) = query[query_field_id].definition_id.walk(schema) {
@@ -341,13 +335,13 @@ where
                     if !directive.requirements_record.is_empty() {
                         self.builder.create_requirement_task_stack.push(CreateRequirementTask {
                             petitioner_field_id: query_field_id,
-                            dependent_ix: query_field_node_ix,
-                            indispensable: query.graph[query_field_node_ix]
+                            dependent_id: query_field_node_id,
+                            indispensable: query.graph[query_field_node_id]
                                 .as_query_field()
                                 .unwrap()
                                 .is_indispensable(),
                             required_field_set: directive.requirements(),
-                            parent_query_field_node_ix,
+                            parent_query_field_node_id,
                             parent_output_type,
                         })
                     }
@@ -361,13 +355,13 @@ where
                     if !directive.requirements_record.is_empty() {
                         self.builder.create_requirement_task_stack.push(CreateRequirementTask {
                             petitioner_field_id: query_field_id,
-                            dependent_ix: query_field_node_ix,
-                            indispensable: query.graph[query_field_node_ix]
+                            dependent_id: query_field_node_id,
+                            indispensable: query.graph[query_field_node_id]
                                 .as_query_field()
                                 .unwrap()
                                 .is_indispensable(),
                             required_field_set: directive.requirements(),
-                            parent_query_field_node_ix: query_field_node_ix,
+                            parent_query_field_node_id: query_field_node_id,
                             parent_output_type: CompositeTypeId::maybe_from(output_definition.id())
                                 .expect("Could not have a FieldSet requirements otherwise."),
                         })
@@ -382,13 +376,13 @@ where
                         if !directive.requirements_record.is_empty() {
                             self.builder.create_requirement_task_stack.push(CreateRequirementTask {
                                 petitioner_field_id: query_field_id,
-                                dependent_ix: query_field_node_ix,
-                                indispensable: query.graph[query_field_node_ix]
+                                dependent_id: query_field_node_id,
+                                indispensable: query.graph[query_field_node_id]
                                     .as_query_field()
                                     .unwrap()
                                     .is_indispensable(),
                                 required_field_set: directive.requirements(),
-                                parent_query_field_node_ix,
+                                parent_query_field_node_id,
                                 parent_output_type,
                             })
                         }
@@ -396,13 +390,13 @@ where
                 }
             }
 
-            query_field_node_ix
+            query_field_node_id
         });
 
         if let Some(ty) = output_ty.and_then(|ty| ty.definition_id.as_composite_type()) {
             self.queue.push_back(IngestSelectionSet {
                 depth: self.current_depth + 1,
-                parent_query_field_node_ix: query_field_node_ix,
+                parent_query_field_node_id: query_field_node_id,
                 parent_output_type: ty,
                 selection_set: field.selection_set(),
             })

@@ -1,5 +1,6 @@
 use fixedbitset::FixedBitSet;
 use id_newtypes::{IdRange, IdToMany};
+use itertools::Itertools;
 use operation::{Operation, OperationContext};
 use petgraph::{
     Direction, Graph,
@@ -10,12 +11,12 @@ use schema::{FieldDefinitionId, Schema};
 use walker::Walk;
 
 use crate::{
-    Derive, FieldNode, QueryField, QueryFieldId, QueryOrSchemaSortedFieldArgumentIds, QuerySolutionSpace,
-    SolutionGraph, SpaceNodeId, TypeConditionSharedVecId,
+    Derive, DeriveId, FieldNode, ProvidableField, QueryField, QueryFieldId, QueryOrSchemaSortedFieldArgumentIds,
+    QuerySolutionSpace, Resolver, SolutionGraph, SpaceNodeId, TypeConditionSharedVecId,
     query::{Edge, Node},
     solution_space::{SpaceEdge, SpaceNode},
     solve::{
-        DeduplicationId,
+        DeduplicationId, SerializedSolutionGraph,
         deduplication::DeduplicationMap,
         input::{SteinerInput, SteinerInputMap, SteinerNodeId},
         steiner_tree::SteinerTree,
@@ -47,6 +48,7 @@ struct Builder<'schema, 'op> {
     included_space_edges: FixedBitSet,
     steiner_tree: SteinerTree,
     steiner_input_map: SteinerInputMap,
+    serialized_graph: SerializedSolutionGraph,
 }
 
 impl<'schema, 'op> Builder<'schema, 'op> {
@@ -65,38 +67,39 @@ impl<'schema, 'op> Builder<'schema, 'op> {
         let mut deduplication_map = DeduplicationMap::with_capacity(space.fields.len());
         let ctx = OperationContext { schema, operation };
         let field_to_dedup_id = (0..space.fields.len())
-            .map(|ix| deduplication_map.get_or_insert_field(ctx, &space.fields, QueryFieldId::from(ix)))
+            .map(|ix| deduplication_map.get_or_insert_field(ctx, &space, QueryFieldId::from(ix)))
             .collect::<Vec<_>>();
 
-        let included_space_edges = {
-            let mut stack = space_node_is_terminal
-                .into_ones()
-                .map(SpaceNodeId::new)
-                .collect::<Vec<_>>();
-            let mut included = FixedBitSet::with_capacity(space.graph.edge_bound());
-            while let Some(space_node_id) = stack.pop() {
-                for space_edge in space.graph.edges_directed(space_node_id, Direction::Incoming) {
-                    if matches!(
-                        space_edge.weight(),
-                        SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide | SpaceEdge::Provides
-                    ) && steiner_input_map
-                        .space_edge_id_to_edge_id
-                        .get(&space_edge.id())
-                        .map(|id| steiner_tree.edges[id.index()])
-                        .unwrap_or(true)
-                    {
-                        included.insert(space_edge.id().index());
-                        stack.push(space_edge.source());
-                    }
+        let mut n_edges = 0;
+        let mut n_nodes = 0;
+        let mut stack = space_node_is_terminal
+            .into_ones()
+            .map(SpaceNodeId::new)
+            .collect::<Vec<_>>();
+        let mut included_space_edges = FixedBitSet::with_capacity(space.graph.edge_bound());
+        while let Some(space_node_id) = stack.pop() {
+            n_nodes += 1;
+            for space_edge in space.graph.edges_directed(space_node_id, Direction::Incoming) {
+                if matches!(
+                    space_edge.weight(),
+                    SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide | SpaceEdge::Provides
+                ) && steiner_input_map
+                    .space_edge_id_to_edge_id
+                    .get(&space_edge.id())
+                    .map(|id| steiner_tree.edges[id.index()])
+                    .unwrap_or(true)
+                {
+                    n_edges += 1;
+                    included_space_edges.insert(space_edge.id().index());
+                    stack.push(space_edge.source());
                 }
             }
+        }
 
-            included
-        };
-
-        let n = operation.data_fields.len() + operation.typename_fields.len();
-        let mut graph = Graph::with_capacity(n, n);
+        let mut graph = Graph::with_capacity(n_nodes, n_edges);
         let root_node_id = graph.add_node(Node::Root);
+
+        let serialized_graph = SerializedSolutionGraph::with_capacity(n_nodes * 2);
 
         Self {
             schema,
@@ -109,6 +112,7 @@ impl<'schema, 'op> Builder<'schema, 'op> {
             included_space_edges,
             steiner_tree,
             steiner_input_map,
+            serialized_graph,
         }
     }
 
@@ -134,27 +138,45 @@ impl<'schema, 'op> Builder<'schema, 'op> {
 
         Ok(query)
     }
+}
 
+struct NodeToIngest {
+    dedup_id: Option<DeduplicationId>,
+    kind: NodeKind,
+}
+
+enum NodeKind {
+    Resolver {
+        parent_node_id: NodeIndex,
+        space_node_id: SpaceNodeId,
+        node: Resolver,
+    },
+    Field {
+        parent_node_id: NodeIndex,
+        parent_space_node_id: SpaceNodeId,
+        space_node_id: SpaceNodeId,
+        providable_field: ProvidableField,
+        field_space_node_id: SpaceNodeId,
+        node: FieldNode,
+    },
+    TypenameField {
+        parent_node_id: NodeIndex,
+        node: FieldNode,
+    },
+    LastChildMarker,
+}
+
+struct DerivedField {
+    parent_space_node_id: SpaceNodeId,
+    parent_node_id: NodeIndex,
+    node_id: NodeIndex,
+    derive_id: DeriveId,
+}
+
+impl<'schema, 'op> Builder<'schema, 'op> {
     fn ingest_nodes(&mut self) -> crate::Result<()> {
         let mut stack = Vec::new();
-        for edge in self.space.graph.edges(self.space.root_node_id) {
-            match edge.weight() {
-                SpaceEdge::CreateChildResolver if self.included_space_edges[edge.id().index()] => {
-                    stack.push((self.root_node_id, edge.source(), edge.target()));
-                }
-                // For now assign __typename fields to the root node, they will be later be added
-                // to an appropriate query partition.
-                SpaceEdge::TypenameField => {
-                    if let SpaceNode::Field(node) = self.space.graph[edge.target()]
-                        && self.space[node.id].definition_id.is_none()
-                    {
-                        let typename_field_id = self.graph.add_node(Node::Field(node));
-                        self.graph.add_edge(self.root_node_id, typename_field_id, Edge::Field);
-                    }
-                }
-                _ => (),
-            }
-        }
+        self.insert_children(self.space.root_node_id, self.root_node_id, &mut stack);
 
         struct RequiredEdge {
             source_node_id: SteinerNodeId,
@@ -162,53 +184,68 @@ impl<'schema, 'op> Builder<'schema, 'op> {
             target_space_node_id: SpaceNodeId,
         }
 
+        // Processing derived fields after de-duplication.
+        let mut derived_fields = Vec::<DerivedField>::new();
+        // Node must be created before we can crate required edges.
         let mut required_edges = Vec::<RequiredEdge>::new();
         let mut space_edges_to_remove = Vec::new();
         let mut query_field_to_node = Vec::with_capacity(self.space.fields.len());
-        while let Some((parent_node_id, space_parent_node_id, space_node_id)) = stack.pop() {
-            debug_assert!(
-                self.steiner_tree.nodes[self.steiner_input_map.space_node_id_to_node_id[space_node_id.index()].index()]
-            );
-            let new_node_id = match &self.space.graph[space_node_id] {
-                SpaceNode::Resolver(resolver) => {
-                    let _dedup_id = self.deduplication_map.get_or_insert_resolver(resolver.definition_id);
-                    let id = self.graph.add_node(Node::QueryPartition {
-                        entity_definition_id: resolver.entity_definition_id,
-                        resolver_definition_id: resolver.definition_id,
-                    });
-                    self.graph.add_edge(parent_node_id, id, Edge::QueryPartition);
-                    id
+        while let Some(NodeToIngest { dedup_id, kind }) = stack.pop() {
+            self.serialized_graph.push(dedup_id);
+            let (space_node_id, node_id) = match kind {
+                NodeKind::LastChildMarker => {
+                    continue;
                 }
-                SpaceNode::ProvidableField(providable_field) => {
-                    let (field_space_node_id, &node) = self
-                        .space
-                        .graph
-                        .edges_directed(space_node_id, Direction::Outgoing)
-                        .find_map(|edge| {
-                            if matches!(edge.weight(), SpaceEdge::Provides) {
-                                if let SpaceNode::Field(field) = &self.space.graph[edge.target()] {
-                                    Some((edge.target(), field))
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            }
-                        })
-                        .expect("Providable field should have at least one outgoing provides edge");
+                NodeKind::TypenameField { parent_node_id, node } => {
+                    let typename_field_id = self.graph.add_node(Node::Field(node));
+                    self.graph.add_edge(parent_node_id, typename_field_id, Edge::Field);
+                    continue;
+                }
+                NodeKind::Resolver {
+                    parent_node_id,
+                    space_node_id,
+                    node,
+                } => {
+                    debug_assert!(
+                        self.steiner_tree.nodes
+                            [self.steiner_input_map.space_node_id_to_node_id[space_node_id.index()].index()]
+                    );
+                    let node_id = self.graph.add_node(Node::QueryPartition {
+                        entity_definition_id: node.entity_definition_id,
+                        resolver_definition_id: node.definition_id,
+                    });
+                    self.graph.add_edge(parent_node_id, node_id, Edge::QueryPartition);
+                    (space_node_id, node_id)
+                }
+                NodeKind::Field {
+                    parent_node_id,
+                    parent_space_node_id,
+                    space_node_id,
+                    providable_field,
+                    field_space_node_id,
+                    node,
+                } => {
+                    debug_assert!(
+                        self.steiner_tree.nodes
+                            [self.steiner_input_map.space_node_id_to_node_id[space_node_id.index()].index()]
+                    );
+                    let node_id = self.graph.add_node(Node::Field(node));
+                    self.graph.add_edge(parent_node_id, node_id, Edge::Field);
+                    query_field_to_node.push(((node.id, node.split_id), node_id));
 
-                    let field_node_id = self.graph.add_node(Node::Field(node));
-                    self.graph.add_edge(parent_node_id, field_node_id, Edge::Field);
-                    query_field_to_node.push(((node.id, node.split_id), field_node_id));
-
-                    if let Some(derive) = providable_field.derive {
-                        self.insert_derived_field(space_parent_node_id, parent_node_id, field_node_id, node, derive);
+                    if let Some(derive_id) = providable_field.derive_id {
+                        derived_fields.push(DerivedField {
+                            parent_space_node_id,
+                            parent_node_id,
+                            node_id,
+                            derive_id,
+                        });
                     }
 
                     for space_edge in self.space.graph.edges(field_space_node_id) {
                         match space_edge.weight() {
                             SpaceEdge::Requires => required_edges.push(RequiredEdge {
-                                source_node_id: field_node_id,
+                                source_node_id: node_id,
                                 weight: Edge::RequiredBySupergraph,
                                 target_space_node_id: space_edge.target(),
                             }),
@@ -220,7 +257,7 @@ impl<'schema, 'op> Builder<'schema, 'op> {
                                     && self.space[node.id].definition_id.is_none()
                                 {
                                     let typename_field_ix = self.graph.add_node(Node::Field(node));
-                                    self.graph.add_edge(field_node_id, typename_field_ix, Edge::Field);
+                                    self.graph.add_edge(node_id, typename_field_ix, Edge::Field);
                                 }
                             }
                             _ => (),
@@ -231,14 +268,8 @@ impl<'schema, 'op> Builder<'schema, 'op> {
                         self.space.graph.remove_edge(edge);
                     }
 
-                    field_node_id
+                    (space_node_id, node_id)
                 }
-                SpaceNode::Field(node) if self.space[node.id].definition_id.is_none() => {
-                    let typename_field_ix = self.graph.add_node(Node::Field(*node));
-                    self.graph.add_edge(parent_node_id, typename_field_ix, Edge::Field);
-                    typename_field_ix
-                }
-                _ => continue,
             };
 
             for space_edge in self.space.graph.edges(space_node_id) {
@@ -246,25 +277,17 @@ impl<'schema, 'op> Builder<'schema, 'op> {
                     continue;
                 }
                 required_edges.push(RequiredEdge {
-                    source_node_id: new_node_id,
+                    source_node_id: node_id,
                     weight: Edge::RequiredBySubgraph,
                     target_space_node_id: space_edge.target(),
                 });
             }
 
-            stack.extend(
-                self.space
-                    .graph
-                    .edges(space_node_id)
-                    .filter(|edge| {
-                        (matches!(
-                            edge.weight(),
-                            SpaceEdge::CreateChildResolver | SpaceEdge::CanProvide | SpaceEdge::Provides
-                        ) && self.included_space_edges[edge.id().index()])
-                            || matches!(edge.weight(), SpaceEdge::TypenameField)
-                    })
-                    .map(|edge| (new_node_id, edge.source(), edge.target())),
-            );
+            self.insert_children(space_node_id, node_id, &mut stack);
+        }
+
+        for field in derived_fields {
+            self.insert_derived_field(field);
         }
 
         let field_to_node = IdToMany::from(query_field_to_node);
@@ -286,21 +309,134 @@ impl<'schema, 'op> Builder<'schema, 'op> {
         Ok(())
     }
 
+    fn insert_children(
+        &mut self,
+        parent_space_node_id: SpaceNodeId,
+        parent_node_id: NodeIndex,
+        stack: &mut Vec<NodeToIngest>,
+    ) {
+        let n = stack.len();
+        stack.extend(
+            self.space
+                .graph
+                .edges(parent_space_node_id)
+                .filter_map(|edge| match edge.weight() {
+                    SpaceEdge::CreateChildResolver => {
+                        if self.included_space_edges[edge.id().index()] {
+                            let SpaceNode::Resolver(node) = self.space.graph[edge.target()] else {
+                                unreachable!(
+                                    "CreateChildResolver edges should only point to Resolver nodes {:?}",
+                                    self.space.graph[edge.target()]
+                                )
+                            };
+                            let dedup_id = self.deduplication_map.get_or_insert_resolver(node.definition_id);
+                            Some(NodeToIngest {
+                                dedup_id: Some(dedup_id),
+                                kind: NodeKind::Resolver {
+                                    parent_node_id,
+                                    space_node_id: edge.target(),
+                                    node,
+                                },
+                            })
+                        } else {
+                            None
+                        }
+                    }
+                    SpaceEdge::TypenameField => {
+                        let SpaceNode::Field(node) = self.space.graph[edge.target()] else {
+                            unreachable!(
+                                "TypenameField edges should only point to Field nodes {:?}",
+                                self.space.graph[edge.target()]
+                            )
+                        };
+
+                        let dedup_id = self.field_to_dedup_id[usize::from(node.id)];
+
+                        Some(NodeToIngest {
+                            dedup_id: Some(dedup_id),
+                            kind: NodeKind::TypenameField { parent_node_id, node },
+                        })
+                    }
+                    SpaceEdge::CanProvide => {
+                        if self.included_space_edges[edge.id().index()] {
+                            let SpaceNode::ProvidableField(providable_field) = self.space.graph[edge.target()] else {
+                                unreachable!(
+                                    "CanProvide and Provides edges should only point to ProvidableField nodes: {:?}",
+                                    self.space.graph[edge.target()]
+                                )
+                            };
+                            let (field_space_node_id, &node) = self
+                                .space
+                                .graph
+                                .edges_directed(edge.target(), Direction::Outgoing)
+                                .find_map(|edge| {
+                                    if matches!(edge.weight(), SpaceEdge::Provides) {
+                                        if let SpaceNode::Field(field) = &self.space.graph[edge.target()] {
+                                            Some((edge.target(), field))
+                                        } else {
+                                            None
+                                        }
+                                    } else {
+                                        None
+                                    }
+                                })
+                                .expect("Providable field should have at least one outgoing provides edge");
+                            let dedup_id = self.field_to_dedup_id[usize::from(node.id)];
+
+                            Some(NodeToIngest {
+                                dedup_id: Some(dedup_id),
+                                kind: NodeKind::Field {
+                                    parent_node_id,
+                                    space_node_id: edge.target(),
+                                    parent_space_node_id,
+                                    providable_field,
+                                    field_space_node_id,
+                                    node,
+                                },
+                            })
+                        } else {
+                            None
+                        }
+                    }
+                    _ => None,
+                }),
+        );
+
+        // Ensures consistent ordering of the children across the whole graph.
+        stack[n..].sort_by_key(|item| item.dedup_id);
+        // We shouldn't have nay duplicates within a selection set.
+        debug_assert_eq!(
+            stack[n..].iter().map(|item| item.dedup_id).dedup().count(),
+            stack[n..].len(),
+            "Invalid deduplication"
+        );
+        stack.push(NodeToIngest {
+            dedup_id: None,
+            kind: NodeKind::LastChildMarker,
+        });
+    }
+
     // TODO: Maybe move this logic to the post processing?
     fn insert_derived_field(
         &mut self,
-        space_parent_node_id: SpaceNodeId,
-        parent_node_id: NodeIndex,
-        field_node_id: NodeIndex,
-        node: FieldNode,
-        derive: Derive,
+        DerivedField {
+            parent_space_node_id,
+            parent_node_id,
+            node_id,
+            derive_id,
+        }: DerivedField,
     ) {
+        let node = match &self.graph[node_id] {
+            Node::Field(node) => *node,
+            _ => unreachable!(),
+        };
+        let derive = self.space.step[derive_id];
         let derive_root = match derive {
             Derive::Root { id } => id,
-            _ => self.space.graph[space_parent_node_id]
+            _ => self.space.graph[parent_space_node_id]
                 .as_providable_field()
-                .and_then(|field| field.derive)
-                .and_then(Derive::into_root)
+                .and_then(|field| field.derive_id)
+                .and_then(|id| self.space.step[id].into_root())
                 .unwrap(),
         }
         .walk(self.schema);
@@ -313,7 +449,7 @@ impl<'schema, 'op> Builder<'schema, 'op> {
                     self.space[node.id].type_conditions,
                     node,
                 );
-                self.graph.add_edge(source_node_id, field_node_id, Edge::Derive);
+                self.graph.add_edge(source_node_id, node_id, Edge::Derive);
                 source_node_id
             } else {
                 let grandparent_node_id = self
@@ -342,10 +478,10 @@ impl<'schema, 'op> Builder<'schema, 'op> {
         match derive {
             Derive::Field { from_id } => {
                 let derived_from_node_id = self.find_or_create_field(source_node_id, from_id, type_conditions, node);
-                self.graph.add_edge(derived_from_node_id, field_node_id, Edge::Derive);
+                self.graph.add_edge(derived_from_node_id, node_id, Edge::Derive);
             }
             Derive::ScalarAsField => {
-                self.graph.add_edge(source_node_id, field_node_id, Edge::Derive);
+                self.graph.add_edge(source_node_id, node_id, Edge::Derive);
             }
             Derive::Root { .. } => {}
         }
@@ -375,18 +511,7 @@ impl<'schema, 'op> Builder<'schema, 'op> {
             };
             self.space.fields.push(field);
             let id = QueryFieldId::from(self.space.fields.len() - 1);
-            let _dedup_id = self.deduplication_map.get_or_insert_field(
-                OperationContext {
-                    schema: self.schema,
-                    operation: self.operation,
-                },
-                &self.space.fields,
-                id,
-            );
-            let field_node_id = self.graph.add_node(Node::Field(FieldNode {
-                id: (self.space.fields.len() - 1).into(),
-                ..node
-            }));
+            let field_node_id = self.graph.add_node(Node::Field(FieldNode { id, ..node }));
             self.graph.add_edge(parent_node_id, field_node_id, Edge::Field);
             field_node_id
         })

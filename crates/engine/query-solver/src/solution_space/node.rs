@@ -1,15 +1,15 @@
 use std::borrow::Cow;
 
 use operation::OperationContext;
-use schema::{DeriveDefinitionId, EntityDefinitionId, FieldDefinitionId, FieldSetRecord, ResolverDefinitionId};
+use schema::{DeriveDefinitionId, EntityDefinitionId, FieldDefinitionId, ResolverDefinitionId};
 use walker::Walk as _;
 
-use crate::{FieldNode, QueryFieldId, dot_graph::Attrs};
+use crate::{DeriveId, FieldNode, QueryFieldId, SpaceFieldSetId, dot_graph::Attrs};
 
 use super::QuerySolutionSpace;
 
-#[derive(Debug, Clone)]
-pub(crate) enum SpaceNode<'ctx> {
+#[derive(Debug, Clone, Copy)]
+pub(crate) enum SpaceNode {
     /// Root node, unique
     Root,
     /// Field in the operation, or an extra one to satisfy requirements
@@ -21,10 +21,10 @@ pub(crate) enum SpaceNode<'ctx> {
     /// simply by its existence. And while adding requirements it's used to know whether a resolver
     /// could provide it either because it's simply part of the subgraph or part of a field's
     /// @provides.
-    ProvidableField(ProvidableField<'ctx>),
+    ProvidableField(ProvidableField),
 }
 
-impl SpaceNode<'_> {
+impl SpaceNode {
     /// Meant to be as readable as possible for large graphs with colors.
     pub(crate) fn label<'a>(&self, space: &QuerySolutionSpace<'_>, ctx: OperationContext<'a>) -> Cow<'a, str> {
         match self {
@@ -39,13 +39,13 @@ impl SpaceNode<'_> {
                 resolver_definition_id,
                 query_field_id,
                 only_providable,
-                derive: dervied_from_id,
+                derive_id,
                 ..
             }) => {
                 let subgraph = resolver_definition_id.walk(ctx).subgraph().name();
                 let label = crate::query::dot_graph::short_field_label(ctx, &space[*query_field_id]);
 
-                match (only_providable, dervied_from_id) {
+                match (only_providable, derive_id) {
                     (true, None) => format!("{label}#{subgraph}@provides"),
                     (true, Some(_)) => format!("{label}#{subgraph}@provides@derive"),
                     (false, None) => format!("{label}#{subgraph}"),
@@ -68,19 +68,21 @@ impl SpaceNode<'_> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct Resolver {
     pub entity_definition_id: EntityDefinitionId,
     pub definition_id: ResolverDefinitionId,
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct ProvidableField<'ctx> {
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ProvidableField {
     pub resolver_definition_id: ResolverDefinitionId,
     pub query_field_id: QueryFieldId,
-    pub provides: Cow<'ctx, FieldSetRecord>,
+    pub provides: Option<SpaceFieldSetId>,
     pub only_providable: bool,
-    pub derive: Option<Derive>,
+    // Derive needs is quite rare so it's not worth the extra 4 bytes we would need to replace this
+    // indirection.
+    pub derive_id: Option<DeriveId>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -99,7 +101,7 @@ impl Derive {
     }
 }
 
-impl<'ctx> SpaceNode<'ctx> {
+impl SpaceNode {
     pub fn as_resolver(&self) -> Option<&Resolver> {
         match self {
             SpaceNode::Resolver(r) => Some(r),
@@ -107,7 +109,7 @@ impl<'ctx> SpaceNode<'ctx> {
         }
     }
 
-    pub fn as_providable_field(&self) -> Option<&ProvidableField<'ctx>> {
+    pub fn as_providable_field(&self) -> Option<&ProvidableField> {
         match self {
             SpaceNode::ProvidableField(r) => Some(r),
             _ => None,
@@ -139,11 +141,10 @@ mod tests {
 
     #[test]
     fn check_node_size() {
-        // FIXME: wayyy too big
-        assert_eq!(std::mem::size_of::<SpaceNode<'static>>(), 48);
-        assert_eq!(std::mem::align_of::<SpaceNode<'static>>(), 8);
+        assert_eq!(std::mem::size_of::<SpaceNode>(), 20);
+        assert_eq!(std::mem::align_of::<SpaceNode>(), 4);
         assert_eq!(std::mem::size_of::<FieldNode>(), 12);
         assert_eq!(std::mem::size_of::<Resolver>(), 12);
-        assert_eq!(std::mem::size_of::<ProvidableField<'static>>(), 48);
+        assert_eq!(std::mem::size_of::<ProvidableField>(), 20);
     }
 }

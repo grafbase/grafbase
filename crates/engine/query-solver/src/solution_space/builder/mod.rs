@@ -8,7 +8,7 @@ use providable_fields::{CreateProvidableFieldsTask, CreateRequirementTask, Unpla
 use schema::{CompositeTypeId, Schema, TypeDefinitionId};
 use walker::Walk;
 
-use crate::{FieldFlags, FieldNode, QueryFieldId, SplitId, steps::SolutionSpace};
+use crate::{FieldFlags, FieldNode, QueryFieldId, SplitId};
 
 use super::*;
 
@@ -40,7 +40,7 @@ impl<'schema> QuerySolutionSpace<'schema> {
             schema,
             operation,
             query: Query {
-                step: SolutionSpace {},
+                step: Default::default(),
                 root_node_id,
                 graph,
                 fields: Vec::with_capacity(n),
@@ -64,8 +64,8 @@ where
         self.ingest_operation_fields()?;
 
         self.create_providable_fields_tasks_for_subselection(providable_fields::Parent {
-            query_field_node_ix: self.query.root_node_id,
-            providable_field_or_root_ix: self.query.root_node_id,
+            query_field_node_id: self.query.root_node_id,
+            providable_field_or_root_id: self.query.root_node_id,
             output_type: CompositeTypeId::Object(self.operation.root_object_id),
         });
 

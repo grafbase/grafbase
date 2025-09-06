@@ -1,6 +1,6 @@
 pub(crate) mod dot_graph;
 
-use std::{collections::HashMap, num::NonZero};
+use std::{collections::HashMap, hash::Hash as _, num::NonZero};
 
 use bitflags::bitflags;
 use id_newtypes::IdRange;
@@ -84,8 +84,6 @@ pub enum Edge {
 
 pub(crate) mod steps {
 
-    pub(crate) struct SolutionSpace {}
-
     pub(crate) struct SteinerSolution {}
 
     pub struct Solution {
@@ -142,14 +140,56 @@ pub struct DeduplicatedFlatExecutableDirectivesId(NonZero<u32>);
 #[derive(Clone)]
 pub struct QueryField {
     pub type_conditions: IdRange<TypeConditionSharedVecId>,
-    pub query_position: Option<QueryPosition>,
+    pub flat_directive_id: Option<DeduplicatedFlatExecutableDirectivesId>,
     pub response_key: Option<ResponseKey>,
     // If absent it's a typename field.
     pub definition_id: Option<FieldDefinitionId>,
-    pub matching_field_id: Option<SchemaFieldId>,
     pub sorted_argument_ids: QueryOrSchemaSortedFieldArgumentIds,
+
+    // Not relevant for de-duplication.
+    pub matching_field_id: Option<SchemaFieldId>,
     pub location: Location,
-    pub flat_directive_id: Option<DeduplicatedFlatExecutableDirectivesId>,
+    pub query_position: Option<QueryPosition>,
+}
+
+impl QueryField {
+    pub fn equivalence_hash<G: GraphBase, S>(
+        &self,
+        query: &Query<G, S>,
+        ctx: OperationContext<'_>,
+        hasher: &mut impl std::hash::Hasher,
+    ) {
+        query[self.type_conditions].hash(hasher);
+        self.flat_directive_id.hash(hasher);
+        self.response_key.hash(hasher);
+        self.definition_id.hash(hasher);
+        self.sorted_argument_ids.len().hash(hasher);
+        match self.sorted_argument_ids {
+            QueryOrSchemaSortedFieldArgumentIds::Query(ids) => {
+                for arg in ids.walk(ctx) {
+                    arg.definition_id.hash(hasher);
+                }
+            }
+            QueryOrSchemaSortedFieldArgumentIds::Schema(ids) => {
+                for arg in ids.walk(ctx) {
+                    arg.definition_id.hash(hasher);
+                }
+            }
+        }
+    }
+
+    pub fn is_equivalent<G: GraphBase, S>(
+        &self,
+        query: &Query<G, S>,
+        ctx: OperationContext<'_>,
+        other: &QueryField,
+    ) -> bool {
+        ((query[self.type_conditions] == query[other.type_conditions])
+            & (self.response_key == other.response_key)
+            & (self.definition_id == other.definition_id)
+            & (self.flat_directive_id == other.flat_directive_id))
+            && are_arguments_equivalent(ctx, self.sorted_argument_ids, other.sorted_argument_ids)
+    }
 }
 
 /// Sorted by input value definition id

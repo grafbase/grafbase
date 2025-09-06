@@ -13,8 +13,8 @@ where
     pub(super) fn handle_unplannable_field(
         &mut self,
         UnplannableField {
-            parent_query_field_node_ix,
-            query_field_node_ix,
+            parent_query_field_node_id: parent_query_field_node_ix,
+            query_field_node_id: query_field_node_ix,
         }: UnplannableField,
     ) -> crate::Result<()> {
         let SpaceNode::Field(FieldNode {
@@ -302,7 +302,7 @@ where
                     self.query.graph[existing_edge_ix],
                     SpaceEdge::Field | SpaceEdge::TypenameField
                 ));
-                let mut new_weight = self.query.graph[existing_target].clone();
+                let mut new_weight = self.query.graph[existing_target];
                 if let SpaceNode::Field(node) = &mut new_weight {
                     node.split_id = self.current_split;
                 }

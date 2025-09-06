@@ -2,11 +2,9 @@ mod builder;
 mod edge;
 mod node;
 
-pub(crate) use edge::*;
-pub(crate) use node::*;
-
 use operation::{Operation, OperationContext};
-use schema::Schema;
+use schema::{FieldSetRecord, Schema};
+use std::{borrow::Cow, num::NonZero};
 use tracing::{Level, instrument};
 
 use petgraph::{
@@ -16,11 +14,42 @@ use petgraph::{
 };
 
 use crate::Query;
+pub(crate) use edge::*;
+pub(crate) use node::*;
 
-pub(crate) type SolutionSpaceGraph<'schema> = StableGraph<SpaceNode<'schema>, SpaceEdge>;
+pub(crate) type SolutionSpaceGraph<'schema> = StableGraph<SpaceNode, SpaceEdge>;
 pub(crate) type SpaceNodeId = <SolutionSpaceGraph<'static> as GraphBase>::NodeId;
 pub(crate) type SpaceEdgeId = <SolutionSpaceGraph<'static> as GraphBase>::EdgeId;
-pub(crate) type QuerySolutionSpace<'schema> = Query<SolutionSpaceGraph<'schema>, crate::steps::SolutionSpace>;
+pub(crate) type QuerySolutionSpace<'schema> = Query<SolutionSpaceGraph<'schema>, SolutionSpace<'schema>>;
+
+#[derive(Default, id_derives::IndexedFields)]
+pub(crate) struct SolutionSpace<'schema> {
+    #[indexed_by(SpaceFieldSetId)]
+    pub field_sets: Vec<Cow<'schema, FieldSetRecord>>,
+    #[indexed_by(DeriveId)]
+    pub derive: Vec<Derive>,
+}
+
+#[derive(id_derives::Id, Clone, Copy)]
+pub struct SpaceFieldSetId(NonZero<u32>);
+
+#[derive(id_derives::Id, Clone, Copy)]
+pub struct DeriveId(NonZero<u32>);
+
+impl<'schema> SolutionSpace<'schema> {
+    pub fn push_field_set_ref(&mut self, field_set: &'schema FieldSetRecord) -> SpaceFieldSetId {
+        self.field_sets.push(Cow::Borrowed(field_set));
+        SpaceFieldSetId::from(self.field_sets.len() - 1)
+    }
+    pub fn push_field_set(&mut self, field_set: Cow<'schema, FieldSetRecord>) -> SpaceFieldSetId {
+        self.field_sets.push(field_set);
+        SpaceFieldSetId::from(self.field_sets.len() - 1)
+    }
+    pub fn push_derive(&mut self, derive: Derive) -> DeriveId {
+        self.derive.push(derive);
+        DeriveId::from(self.derive.len() - 1)
+    }
+}
 
 impl<'schema> QuerySolutionSpace<'schema> {
     #[instrument(skip_all, level = Level::DEBUG)]
