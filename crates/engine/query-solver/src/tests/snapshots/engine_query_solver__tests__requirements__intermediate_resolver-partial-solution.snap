@@ -1,18 +1,18 @@
 ---
 source: crates/engine/query-solver/src/tests/requirements.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#gql\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.id\" ]\n    4 [ label = \"Lookup/echo/echo-1.0.0#ext\", color=royalblue,shape=parallelogram ]\n    5 [ label = \"Product.args\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [  ]\n    2 -> 3 [  ]\n    2 -> 4 [ color=royalblue,fontcolor=royalblue ]\n    4 -> 5 [  ]\n    4 -> 3 [ color=orangered,arrowhead=inv ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#gql\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Lookup/echo/echo-1.0.0#ext\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"Product.args\" ]\n    5 [ label = \"Product.id\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [  ]\n    2 -> 3 [ color=royalblue,fontcolor=royalblue ]\n    3 -> 4 [  ]\n    2 -> 5 [  ]\n    3 -> 5 [ color=orangered,arrowhead=inv ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
     1 [ label = "Root#gql" ]
     2 [ label = "Query.products" ]
-    3 [ label = "Product.id" ]
-    4 [ label = "Lookup/echo/echo-1.0.0#ext" ]
-    5 [ label = "Product.args" ]
+    3 [ label = "Lookup/echo/echo-1.0.0#ext" ]
+    4 [ label = "Product.args" ]
+    5 [ label = "Product.id" ]
     0 -> 1 [ label = "QueryPartition" ]
     1 -> 2 [ label = "Field" ]
-    2 -> 3 [ label = "Field" ]
-    2 -> 4 [ label = "QueryPartition" ]
-    4 -> 5 [ label = "Field" ]
-    4 -> 3 [ label = "RequiredBySubgraph" ]
+    2 -> 3 [ label = "QueryPartition" ]
+    3 -> 4 [ label = "Field" ]
+    2 -> 5 [ label = "Field" ]
+    3 -> 5 [ label = "RequiredBySubgraph" ]
 }

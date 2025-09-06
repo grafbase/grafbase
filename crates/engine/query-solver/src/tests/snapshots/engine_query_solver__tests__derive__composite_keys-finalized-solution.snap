@@ -1,23 +1,23 @@
 ---
 source: crates/engine/query-solver/src/tests/derive.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#ext\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.inventory\" ]\n    4 [ label = \"Inventory.countryId\" ]\n    5 [ label = \"Product.inventoryCountryId\" ]\n    6 [ label = \"Inventory.warehouseId\" ]\n    7 [ label = \"Product.inventoryWarehouseId\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    7 -> 6 [ color=darkorchid,arrowhead=halfopen,style=dashed ]\n    2 -> 3 [  ]\n    3 -> 4 [  ]\n    2 -> 5 [  ]\n    5 -> 4 [ color=darkorchid,arrowhead=halfopen,style=dashed ]\n    3 -> 6 [  ]\n    2 -> 7 [  ]\n    1 -> 2 [  ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#ext\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.inventory\" ]\n    4 [ label = \"Inventory.warehouseId\" ]\n    5 [ label = \"Inventory.countryId\" ]\n    6 [ label = \"Product.inventoryWarehouseId\" ]\n    7 [ label = \"Product.inventoryCountryId\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    7 -> 5 [ color=darkorchid,arrowhead=halfopen,style=dashed ]\n    2 -> 3 [  ]\n    3 -> 4 [  ]\n    3 -> 5 [  ]\n    2 -> 6 [  ]\n    6 -> 4 [ color=darkorchid,arrowhead=halfopen,style=dashed ]\n    2 -> 7 [  ]\n    1 -> 2 [  ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
     1 [ label = "Root#ext" ]
     2 [ label = "Query.products" ]
     3 [ label = "Product.inventory" ]
-    4 [ label = "Inventory.countryId" ]
-    5 [ label = "Product.inventoryCountryId" ]
-    6 [ label = "Inventory.warehouseId" ]
-    7 [ label = "Product.inventoryWarehouseId" ]
+    4 [ label = "Inventory.warehouseId" ]
+    5 [ label = "Inventory.countryId" ]
+    6 [ label = "Product.inventoryWarehouseId" ]
+    7 [ label = "Product.inventoryCountryId" ]
     0 -> 1 [ label = "QueryPartition" ]
-    7 -> 6 [ label = "Derive" ]
+    7 -> 5 [ label = "Derive" ]
     2 -> 3 [ label = "Field" ]
     3 -> 4 [ label = "Field" ]
-    2 -> 5 [ label = "Field" ]
-    5 -> 4 [ label = "Derive" ]
-    3 -> 6 [ label = "Field" ]
+    3 -> 5 [ label = "Field" ]
+    2 -> 6 [ label = "Field" ]
+    6 -> 4 [ label = "Derive" ]
     2 -> 7 [ label = "Field" ]
     1 -> 2 [ label = "Field" ]
 }

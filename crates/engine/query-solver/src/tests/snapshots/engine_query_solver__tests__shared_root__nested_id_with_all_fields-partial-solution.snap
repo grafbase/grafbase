@@ -1,6 +1,6 @@
 ---
 source: crates/engine/query-solver/src/tests/shared_root.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#category\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.category\" ]\n    4 [ label = \"Root#name\", color=royalblue,shape=parallelogram ]\n    5 [ label = \"Query.products\" ]\n    6 [ label = \"Product.name\" ]\n    7 [ label = \"Product.nested\" ]\n    8 [ label = \"Nested.id\" ]\n    9 [ label = \"Root#price\", color=royalblue,shape=parallelogram ]\n    10 [ label = \"Query.products\" ]\n    11 [ label = \"Product.price\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [  ]\n    2 -> 3 [  ]\n    0 -> 4 [ color=royalblue,fontcolor=royalblue ]\n    4 -> 5 [  ]\n    5 -> 6 [  ]\n    5 -> 7 [  ]\n    7 -> 8 [  ]\n    0 -> 9 [ color=royalblue,fontcolor=royalblue ]\n    9 -> 10 [  ]\n    10 -> 11 [  ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#category\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.products\" ]\n    3 [ label = \"Product.category\" ]\n    4 [ label = \"Root#name\", color=royalblue,shape=parallelogram ]\n    5 [ label = \"Query.products\" ]\n    6 [ label = \"Product.nested\" ]\n    7 [ label = \"Nested.id\" ]\n    8 [ label = \"Product.name\" ]\n    9 [ label = \"Root#price\", color=royalblue,shape=parallelogram ]\n    10 [ label = \"Query.products\" ]\n    11 [ label = \"Product.price\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [  ]\n    2 -> 3 [  ]\n    0 -> 4 [ color=royalblue,fontcolor=royalblue ]\n    4 -> 5 [  ]\n    5 -> 6 [  ]\n    6 -> 7 [  ]\n    5 -> 8 [  ]\n    0 -> 9 [ color=royalblue,fontcolor=royalblue ]\n    9 -> 10 [  ]\n    10 -> 11 [  ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
@@ -9,9 +9,9 @@ digraph {
     3 [ label = "Product.category" ]
     4 [ label = "Root#name" ]
     5 [ label = "Query.products" ]
-    6 [ label = "Product.name" ]
-    7 [ label = "Product.nested" ]
-    8 [ label = "Nested.id" ]
+    6 [ label = "Product.nested" ]
+    7 [ label = "Nested.id" ]
+    8 [ label = "Product.name" ]
     9 [ label = "Root#price" ]
     10 [ label = "Query.products" ]
     11 [ label = "Product.price" ]
@@ -21,8 +21,8 @@ digraph {
     0 -> 4 [ label = "QueryPartition" ]
     4 -> 5 [ label = "Field" ]
     5 -> 6 [ label = "Field" ]
-    5 -> 7 [ label = "Field" ]
-    7 -> 8 [ label = "Field" ]
+    6 -> 7 [ label = "Field" ]
+    5 -> 8 [ label = "Field" ]
     0 -> 9 [ label = "QueryPartition" ]
     9 -> 10 [ label = "Field" ]
     10 -> 11 [ label = "Field" ]

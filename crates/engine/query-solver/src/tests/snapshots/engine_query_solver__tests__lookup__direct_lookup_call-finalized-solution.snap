@@ -1,13 +1,13 @@
 ---
 source: crates/engine/query-solver/src/tests/lookup.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"SelectionSetResolver#0#pg\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.userLookup\" ]\n    3 [ label = \"User.id\" ]\n    4 [ label = \"User.name\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    2 -> 4 [  ]\n    2 -> 3 [  ]\n    1 -> 2 [  ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"SelectionSetResolver#0#pg\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.userLookup\" ]\n    3 [ label = \"User.name\" ]\n    4 [ label = \"User.id\" ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    2 -> 4 [  ]\n    2 -> 3 [  ]\n    1 -> 2 [  ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
     1 [ label = "SelectionSetResolver#0#pg" ]
     2 [ label = "Query.userLookup" ]
-    3 [ label = "User.id" ]
-    4 [ label = "User.name" ]
+    3 [ label = "User.name" ]
+    4 [ label = "User.id" ]
     0 -> 1 [ label = "QueryPartition" ]
     2 -> 4 [ label = "Field" ]
     2 -> 3 [ label = "Field" ]

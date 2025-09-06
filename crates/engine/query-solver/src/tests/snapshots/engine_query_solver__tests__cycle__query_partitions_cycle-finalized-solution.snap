@@ -1,30 +1,30 @@
 ---
 source: crates/engine/query-solver/src/tests/cycle.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#C\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.partitionsCycle\" ]\n    3 [ label = \"FedEntity#A\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"PartitionsCycle.third\" ]\n    5 [ label = \"PartitionsCycle.first\" ]\n    6 [ label = \"FedEntity#B\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"PartitionsCycle.second\" ]\n    8 [ label = \"*PartitionsCycle.id\" ]\n    9 [ label = \"FedEntity#A\", color=royalblue,shape=parallelogram ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    7 -> 5 [ color=orangered,arrowhead=inv ]\n    2 -> 3 [ color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [  ]\n    6 -> 8 [ color=orangered,arrowhead=inv ]\n    2 -> 6 [ color=royalblue,fontcolor=royalblue ]\n    4 -> 7 [ color=orangered,arrowhead=inv ]\n    2 -> 8 [  ]\n    3 -> 8 [ color=orangered,arrowhead=inv ]\n    3 -> 4 [  ]\n    2 -> 9 [ color=royalblue,fontcolor=royalblue ]\n    9 -> 8 [ color=orangered,arrowhead=inv ]\n    9 -> 5 [  ]\n    6 -> 7 [  ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#C\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"Query.partitionsCycle\" ]\n    3 [ label = \"FedEntity#A\", color=royalblue,shape=parallelogram ]\n    4 [ label = \"PartitionsCycle.first\" ]\n    5 [ label = \"PartitionsCycle.third\" ]\n    6 [ label = \"FedEntity#B\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"PartitionsCycle.second\" ]\n    8 [ label = \"*PartitionsCycle.id\" ]\n    9 [ label = \"FedEntity#A\", color=royalblue,shape=parallelogram ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    7 -> 4 [ color=orangered,arrowhead=inv ]\n    2 -> 3 [ color=royalblue,fontcolor=royalblue ]\n    6 -> 8 [ color=orangered,arrowhead=inv ]\n    1 -> 2 [  ]\n    2 -> 6 [ color=royalblue,fontcolor=royalblue ]\n    5 -> 7 [ color=orangered,arrowhead=inv ]\n    2 -> 8 [  ]\n    3 -> 8 [ color=orangered,arrowhead=inv ]\n    3 -> 5 [  ]\n    2 -> 9 [ color=royalblue,fontcolor=royalblue ]\n    9 -> 8 [ color=orangered,arrowhead=inv ]\n    9 -> 4 [  ]\n    6 -> 7 [  ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
     1 [ label = "Root#C" ]
     2 [ label = "Query.partitionsCycle" ]
     3 [ label = "FedEntity#A" ]
-    4 [ label = "PartitionsCycle.third" ]
-    5 [ label = "PartitionsCycle.first" ]
+    4 [ label = "PartitionsCycle.first" ]
+    5 [ label = "PartitionsCycle.third" ]
     6 [ label = "FedEntity#B" ]
     7 [ label = "PartitionsCycle.second" ]
     8 [ label = "*PartitionsCycle.id" ]
     9 [ label = "FedEntity#A" ]
     0 -> 1 [ label = "QueryPartition" ]
-    7 -> 5 [ label = "RequiredBySubgraph" ]
+    7 -> 4 [ label = "RequiredBySubgraph" ]
     2 -> 3 [ label = "QueryPartition" ]
-    1 -> 2 [ label = "Field" ]
     6 -> 8 [ label = "RequiredBySubgraph" ]
+    1 -> 2 [ label = "Field" ]
     2 -> 6 [ label = "QueryPartition" ]
-    4 -> 7 [ label = "RequiredBySubgraph" ]
+    5 -> 7 [ label = "RequiredBySubgraph" ]
     2 -> 8 [ label = "Field" ]
     3 -> 8 [ label = "RequiredBySubgraph" ]
-    3 -> 4 [ label = "Field" ]
+    3 -> 5 [ label = "Field" ]
     2 -> 9 [ label = "QueryPartition" ]
     9 -> 8 [ label = "RequiredBySubgraph" ]
-    9 -> 5 [ label = "Field" ]
+    9 -> 4 [ label = "Field" ]
     6 -> 7 [ label = "Field" ]
 }

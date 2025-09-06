@@ -1,25 +1,25 @@
 ---
 source: crates/engine/query-solver/src/tests/mutation.rs
-expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"five: Mutation.add\" ]\n    3 [ label = \"twelve: Mutation.add\" ]\n    4 [ label = \"Root#a\", color=royalblue,shape=parallelogram ]\n    5 [ label = \"ten: Mutation.multiply\" ]\n    6 [ label = \"Root#b\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"final: Mutation.delete\" ]\n    8 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    1 -> 2 [  ]\n    0 -> 8 [ color=royalblue,fontcolor=royalblue ]\n    0 -> 4 [ color=royalblue,fontcolor=royalblue ]\n    4 -> 5 [  ]\n    0 -> 6 [ color=royalblue,fontcolor=royalblue ]\n    6 -> 7 [  ]\n    8 -> 3 [  ]\n    4 -> 1 [ color=red,arrowhead=inv,style=dashed ]\n    8 -> 4 [ color=red,arrowhead=inv,style=dashed ]\n    6 -> 8 [ color=red,arrowhead=inv,style=dashed ]\n}\n"
+expression: "digraph {\n    0 [ label = \"root\" ]\n    1 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    2 [ label = \"twelve: Mutation.add\" ]\n    3 [ label = \"five: Mutation.add\" ]\n    4 [ label = \"Root#a\", color=royalblue,shape=parallelogram ]\n    5 [ label = \"ten: Mutation.multiply\" ]\n    6 [ label = \"Root#b\", color=royalblue,shape=parallelogram ]\n    7 [ label = \"final: Mutation.delete\" ]\n    8 [ label = \"Root#c\", color=royalblue,shape=parallelogram ]\n    0 -> 1 [ color=royalblue,fontcolor=royalblue ]\n    0 -> 8 [ color=royalblue,fontcolor=royalblue ]\n    1 -> 3 [  ]\n    0 -> 4 [ color=royalblue,fontcolor=royalblue ]\n    4 -> 5 [  ]\n    0 -> 6 [ color=royalblue,fontcolor=royalblue ]\n    6 -> 7 [  ]\n    8 -> 2 [  ]\n    4 -> 1 [ color=red,arrowhead=inv,style=dashed ]\n    8 -> 4 [ color=red,arrowhead=inv,style=dashed ]\n    6 -> 8 [ color=red,arrowhead=inv,style=dashed ]\n}\n"
 ---
 digraph {
     0 [ label = "root" ]
     1 [ label = "Root#c" ]
-    2 [ label = "five: Mutation.add" ]
-    3 [ label = "twelve: Mutation.add" ]
+    2 [ label = "twelve: Mutation.add" ]
+    3 [ label = "five: Mutation.add" ]
     4 [ label = "Root#a" ]
     5 [ label = "ten: Mutation.multiply" ]
     6 [ label = "Root#b" ]
     7 [ label = "final: Mutation.delete" ]
     8 [ label = "Root#c" ]
     0 -> 1 [ label = "QueryPartition" ]
-    1 -> 2 [ label = "Field" ]
     0 -> 8 [ label = "QueryPartition" ]
+    1 -> 3 [ label = "Field" ]
     0 -> 4 [ label = "QueryPartition" ]
     4 -> 5 [ label = "Field" ]
     0 -> 6 [ label = "QueryPartition" ]
     6 -> 7 [ label = "Field" ]
-    8 -> 3 [ label = "Field" ]
+    8 -> 2 [ label = "Field" ]
     4 -> 1 [ label = "MutationExecutedAfter" ]
     8 -> 4 [ label = "MutationExecutedAfter" ]
     6 -> 8 [ label = "MutationExecutedAfter" ]

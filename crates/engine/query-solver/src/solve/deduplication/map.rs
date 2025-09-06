@@ -1,7 +1,6 @@
 use hashbrown::{HashTable, hash_table::Entry};
 use operation::OperationContext;
 use petgraph::visit::GraphBase;
-use rapidhash::fast::SeedableState;
 use schema::ResolverDefinitionId;
 use std::{
     hash::{BuildHasher as _, Hash, Hasher},
@@ -12,7 +11,7 @@ use crate::{Query, QueryFieldId, solve::DeduplicationId};
 
 pub(in crate::solve) struct DeduplicationMap {
     table: HashTable<DeduplicatedEntry>,
-    hash_seed: SeedableState<'static>,
+    hash_seed: rapidhash::fast::RandomState,
 }
 
 struct DeduplicatedEntry {
