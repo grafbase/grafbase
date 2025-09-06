@@ -9,6 +9,6 @@
   "dependencies": {
     "graphql": "^16.8.1",
     "graphql-yoga": "^5.0.0",
-    "@graphql-tools/federation": "^1.1.0"
+    "@graphql-tools/federation": "^4.0.0"
   }
 }
