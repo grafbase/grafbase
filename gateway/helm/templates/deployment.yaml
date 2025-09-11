@@ -95,20 +95,20 @@ spec:
           lifecycle:
             {{- toYaml .Values.lifecycle | nindent 12 }}
           {{- end }}
-          {{- if and .Values.configmap.enabled .Values.secrets.enabled }}
+          {{- if or .Values.configmap.enabled .Values.secrets.enabled .Values.doppler.enabled }}
           envFrom:
+          {{- if .Values.configmap.enabled }}
           - configMapRef:
               name: {{ include "app.fullname" . }}-env
+          {{- end }}
+          {{- if .Values.secrets.enabled }}
           - secretRef:
               name: {{ include "app.fullname" . }}
-          {{- else if .Values.configmap.enabled }}
-          envFrom:
-          - configMapRef:
-              name: {{ include "app.fullname" . }}-env
-          {{- else if .Values.secrets.enabled }}
-          envFrom:
+          {{- end }}
+          {{- if .Values.doppler.enabled }}
           - secretRef:
-              name: {{ include "app.fullname" . }}
+              name: {{ .Values.doppler.secretName | default (include "app.fullname" .) }}
+          {{- end }}
           {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

@@ -193,6 +193,30 @@ readinessProbe:
   initialDelaySeconds: 5
   timeoutSeconds: 30
 
+# Doppler Kubernetes Operator integration for secret management
+# https://docs.doppler.com/docs/kubernetes-operator
+doppler:
+  # Enable Doppler secret synchronization
+  enabled: false
+  
+  # Name of the secret to create/manage (defaults to release name)
+  secretName: ""
+  
+  # Doppler project name
+  project: ""
+  
+  # Doppler config environment (e.g., dev, staging, prd)
+  config: ""
+  
+  # How often to sync secrets from Doppler (in seconds)
+  resyncSeconds: 60
+  
+  # Namespace for DopplerSecret resource (defaults to doppler-operator-system)
+  namespace: "doppler-operator-system"
+  
+  # Name of the token secret containing DOPPLER_TOKEN
+  tokenSecretName: "doppler-token-secret"
+
 # Secrets to be mounted as env vars
 # https://kubernetes.io/docs/concepts/configuration/secret/
 secrets:

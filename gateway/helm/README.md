@@ -14,6 +14,70 @@ image:
   tag: <VERSION>
 ```
 
+## Secret Management
+
+### Doppler Integration
+
+This chart supports integration with [Doppler](https://www.doppler.com/) via the [Doppler Kubernetes Operator](https://docs.doppler.com/docs/kubernetes-operator) for secure secret management.
+
+#### Prerequisites
+
+1. Install the Doppler Kubernetes Operator:
+   ```bash
+   kubectl apply -f https://github.com/DopplerHQ/kubernetes-operator/releases/latest/download/recommended.yaml
+   ```
+
+2. Create a Doppler service token and store it in a Kubernetes secret:
+   ```bash
+   kubectl create secret generic doppler-token-secret \
+     --from-literal=serviceToken=dp.st.your-token-here \
+     -n doppler-operator-system
+   ```
+
+#### Configuration
+
+Enable Doppler integration in your `values.yaml`:
+
+```yaml
+doppler:
+  enabled: true
+  project: "your-project"
+  config: "prd"
+  secretName: "grafbase-secrets"  # optional, defaults to release name
+  resyncSeconds: 60               # optional, how often to sync secrets
+```
+
+#### Example
+
+```yaml
+# values-production.yaml
+replicaCount: 3
+
+doppler:
+  enabled: true
+  project: "grafbase-app"
+  config: "production"
+  secretName: "grafbase-production-secrets"
+
+gateway:
+  externalSchema: true
+  args:
+    - --graph-ref
+    - your-graph@main
+```
+
+The chart will automatically:
+- Create a `DopplerSecret` resource to sync secrets from Doppler
+- Mount the synced secrets as environment variables in the gateway container
+- Handle secret updates and rotation automatically
+
+#### Available Secrets
+
+Your Doppler project should contain secrets like:
+- `GRAFBASE_ACCESS_TOKEN` - Access token for Grafbase Cloud
+- `DATABASE_URL` - Database connection string
+- `CUSTOM_SECRET` - Any custom environment variables
+
 ## Releasing
 
 The repository is configured with a GitHub Actions workflow triggered when a new tag is pushed, that automatically packages and pushes the Helm chart to the GitHub Container Registry.
