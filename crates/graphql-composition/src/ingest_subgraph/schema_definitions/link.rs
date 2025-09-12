@@ -52,9 +52,29 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
     // Treat `@link`ed schemas with a file url or Grafbase extension registry URLs as extensions.
     if let Some(name) = r#as
         && let Some(link_url) = &link_url
-        && (link_url.url.scheme() == "file" || is_grafbase_extension_registry_url(&link_url.url))
+        && (link_url.url.scheme() == "file")
         && !subgraphs.extension_is_defined(name)
     {
+        subgraphs.push_extension(subgraphs::ExtensionRecord {
+            url,
+            link_url: url,
+            name,
+        });
+    }
+
+    if let Some(link_url) = &link_url
+        && is_grafbase_extension_registry_url(&link_url.url)
+    {
+        let Some(name) = r#as.or_else(|| {
+            let mut segments = link_url.url.path_segments()?;
+
+            segments.next_back()?;
+
+            segments.next_back().map(|s| subgraphs.strings.intern(s))
+        }) else {
+            return;
+        };
+
         subgraphs.push_extension(subgraphs::ExtensionRecord {
             url,
             link_url: url,

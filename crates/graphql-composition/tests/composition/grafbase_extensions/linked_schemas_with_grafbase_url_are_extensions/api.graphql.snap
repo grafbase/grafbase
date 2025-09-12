@@ -7,3 +7,12 @@ type Query {
   hello: String
   world: String
 }
+
+type Mutation {
+  sellBook(input: SellBookInput!): Boolean!
+}
+
+input SellBookInput {
+  isbn: ID!
+  price: Int!
+}

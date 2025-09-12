@@ -1,13 +1,23 @@
-schema 
+schema
   @link(url: "https://extensions.grafbase.com/rest/v1", as: "rest")
   @link(url: "https://grafbase.com/extensions/openapi/v2", as: "openapi")
+  # Without `(as:)`
+  @link(url: "https://extensions.grafbase.com/extensions/nats/0.3.3", import: ["@natsPublish", "@natsSubscription"])
   @rest__config(baseUrl: "https://api.example.com")
-  @openapi__spec(url: "https://api.example.com/spec.json")
-{
+  @openapi__spec(url: "https://api.example.com/spec.json") {
   query: Query
 }
 
 type Query {
   hello: String @rest__endpoint(path: "/hello")
   world: String @openapi__operation(id: "getWorld")
+}
+
+input SellBookInput {
+  isbn: ID!
+  price: Int!
+}
+
+type Mutation {
+  sellBook(input: SellBookInput!): Boolean! @natsPublish(subject: "bookSales", body: { selection: "*" })
 }
