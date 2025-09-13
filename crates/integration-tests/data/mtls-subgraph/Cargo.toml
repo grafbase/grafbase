@@ -4,15 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-graphql = "7.0.16"
-async-graphql-axum = "7.0.16"
+async-graphql = "7.0.17"
+async-graphql-axum = "7.0.17"
 axum = "0.8.4"
 axum-server = { version = "0.7.2", features = ["tls-rustls"] }
-rustls = "0.23.27"
+rustls = "0.23.31"
 rustls-pemfile = "2.2.0"
-tokio = { version = "1.45.0", features = ["signal", "macros", "rt-multi-thread"] }
+tokio = { version = "1.47.1", features = ["signal", "macros", "rt-multi-thread"] }
 tokio-rustls = "0.26.2"
 
 [dev-dependencies]
-reqwest = { version = "0.12.15", features = ["json", "rustls-tls"] }
-serde_json = "1.0.140"
+reqwest = { version = "0.12.23", features = ["json", "rustls-tls"] }
+serde_json = "1.0.143"
