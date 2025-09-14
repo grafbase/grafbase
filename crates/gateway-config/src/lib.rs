@@ -2370,10 +2370,10 @@ mod tests {
 
         insta::assert_debug_snapshot!(&config.mcp, @r#"
         Some(
-            ModelControlProtocolConfig {
+            MCPConfig {
                 enabled: false,
                 path: "/mcp",
-                execute_mutations: false,
+                can_mutate: false,
                 transport: StreamingHttp,
             },
         )
@@ -2391,10 +2391,10 @@ mod tests {
 
         insta::assert_debug_snapshot!(&config.mcp, @r#"
         Some(
-            ModelControlProtocolConfig {
+            MCPConfig {
                 enabled: false,
                 path: "/mcp",
-                execute_mutations: false,
+                can_mutate: false,
                 transport: Sse,
             },
         )
