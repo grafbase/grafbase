@@ -1,4 +1,4 @@
-FROM oven/bun:1.2.21-alpine
+FROM oven/bun:1.2.22-alpine
 
 RUN adduser -g wheel -D grafbase -h "/grafbase" && mkdir -p /grafbase && chown grafbase: /grafbase
 USER grafbase
