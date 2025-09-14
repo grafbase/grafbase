@@ -48,15 +48,15 @@ anyhow = { version = "1", default-features = false }
 ascii = "1"
 askama = "0.14"
 assert_matches = "1"
-async-graphql = "7.0.16"
-async-graphql-axum = "7.0.16"
-async-graphql-parser = "7.0.16"
-async-graphql-value = "7.0.16"
+async-graphql = "7.0.17"
+async-graphql-axum = "7.0.17"
+async-graphql-parser = "7.0.17"
+async-graphql-value = "7.0.17"
 async-nats = "0.42.0"
 async-sse = "5"
-async-trait = "0.1.88"
+async-trait = "0.1.89"
 async-tungstenite = "0.28.0"
-axum = { version = "0.8.3", default-features = false }
+axum = { version = "0.8.4", default-features = false }
 axum-extra = "0.10"
 axum-server = { version = "0.7", default-features = false }
 backtrace = "0.3"
@@ -67,7 +67,7 @@ blake3 = "1.8.2"
 bytes = "1.10.1"
 case = "1"
 cfg-if = "1"
-chrono = { version = "0.4.40", default-features = false }
+chrono = { version = "0.4.42", default-features = false }
 clap = "4"
 clap_complete = "4.5"
 cli-table = { version = "0.5", default-features = false }
@@ -76,23 +76,23 @@ color-print = "0.3"
 colored = "3"
 const_format = "0.2"
 convert_case = "0.8"
-criterion = "0.5" # Until pprof updates its dependencies... 2025-07-22
+criterion = "0.7" # Until pprof updates its dependencies... 2025-07-22
 crossbeam = "0.8"
 crossbeam-queue = "0.3"
 crossterm = "0.29"
-ctor = "0.4.2"
+ctor = "0.5.0"
 cynic = "3.11"
 cynic-codegen = "3.11"
 cynic-introspection = "3.11"
-cynic-parser = "0.9.1"
-cynic-parser-deser = "0.9.1"
+cynic-parser = "0.10.0"
+cynic-parser-deser = "0.10.0"
 dashmap = "6.1"
 datatest-stable = "0.3.2"
-deadpool = { version = "0.12.2", features = ["rt_tokio_1"] }
+deadpool = { version = "0.12.3", features = ["rt_tokio_1"] }
 derive_more = "2.0.1"
 dirs = "6"
-dot-parser = "0.5"
-dot-parser-macros = "0.5"
+dot-parser = "0.6"
+dot-parser-macros = "0.6"
 duct = "1"
 duration-str = "0.17"
 ed25519-compact = "2"
@@ -115,7 +115,7 @@ governor = "0.10"
 graphql-parser = { git = "https://github.com/graphql-rust/graphql-parser", version = "0.4.0" }
 graphql-ws-client = { version = "0.11.1", features = ["tungstenite"] }
 handlebars = "6.3.2"
-hashbrown = "0.15"
+hashbrown = "0.16"
 headers = "0.4"
 heck = "0.5"
 hex = "0.4.3"
@@ -123,36 +123,36 @@ http = "1.3.1"
 http-body = "1"
 http-body-util = "0.1"
 httpsig = "0.0.18"
-httpsig-hyper = "0.0.18"
-hyper = { version = "1.6.0", features = ["http2"] }
-hyper-util = "0.1.11"
+httpsig-hyper = "0.0.19"
+hyper = { version = "1.7.0", features = ["http2"] }
+hyper-util = "0.1.16"
 ignore = "0.4"
 im = "15"
-indexmap = "2.9.0"
+indexmap = "2.11.1"
 indicatif = "0.18"
 indoc = "2"
-inquire = "0.7"
-insta = { version = "1.42.2", features = ["json", "redactions", "glob"] }
+inquire = "0.8"
+insta = { version = "1.43.2", features = ["json", "redactions", "glob"] }
 internment = { version = "0.8", features = ["serde", "arc"] }
 itertools = "0.14.0"
 jsonwebtoken = "9.3.1"
 jwt-compact = "0.8"
-lambda_http = "0.14.0"
+lambda_http = "0.17.0"
 lasso2 = "0.8"
 libtest-mimic = "0.8"
-log = "0.4.27"
+log = "0.4.28"
 mediatype = "0.20"
 miette = "7.4"
 mimalloc = "0.1"
 mime = "0.3"
 mini-moka = "0.10"
 minicbor = "2"
-minicbor-serde = "0.5.0"
+minicbor-serde = "0.6.0"
 multipart-stream = "0.1.2"
 notify = "8"
-notify-debouncer-full = "0.5"
+notify-debouncer-full = "0.6"
 num-traits = "0.2.19"
-openidconnect = "4.0.0"
+openidconnect = "4.0.1"
 opentelemetry = "0.30"
 opentelemetry-appender-tracing = "0.30"
 opentelemetry-aws = "0.18"
@@ -171,8 +171,8 @@ pprof = "0.15"
 pretty_assertions = "1"
 priority-queue = "2"
 proc-macro2 = "1"
-prost = { version = "0.13.5", default-features = false }
-prost-types = { version = "0.13.5", default-features = false }
+prost = { version = "0.14.1", default-features = false }
+prost-types = { version = "0.14.1", default-features = false }
 quick_cache = "0.6"
 quote = "1"
 ramhorns = { git = "https://github.com/grafbase/ramhorns", branch = "grafbase", default-features = false, features = [
@@ -181,14 +181,14 @@ ramhorns = { git = "https://github.com/grafbase/ramhorns", branch = "grafbase", 
 ] }
 rand = "0.9"
 rapidhash = "4"
-redis = { version = "0.30.0", features = [
+redis = { version = "0.32.5", features = [
     "tokio-rustls-comp",
     "connection-manager",
 ] }
-regex = "1.11.1"
-reqwest = { version = "0.12.15", default-features = false, features = ["http2", "rustls-tls"] }
+regex = "1.11.2"
+reqwest = { version = "0.12.23", default-features = false, features = ["http2", "rustls-tls"] }
 reqwest-eventsource = "0.6"
-rmcp = { version = "0.5.0", features = [
+rmcp = { version = "0.6.4", features = [
     "transport-sse-server",
     "transport-streamable-http-server",
     "client",
@@ -197,47 +197,47 @@ rmcp = { version = "0.5.0", features = [
 ] }
 rmp-serde = "1.3.0"
 rskafka = "0.6.0"
-rstest = "0.25"
-rust_decimal = "1.37.1"
-rustls = { version = "0.23.26", default-features = false }
+rstest = "0.26"
+rust_decimal = "1.38.0"
+rustls = { version = "0.23.31", default-features = false }
 rustls-pemfile = { version = "2.2.0", default-features = false }
-rustls-webpki = { version = "0.103.1", default-features = false }
+rustls-webpki = { version = "0.103.5", default-features = false }
 schemars = "1"
 semver = "1"
-serde = { version = "1.0.219", features = ["derive"] }
+serde = { version = "1.0.223", features = ["derive"] }
 serde-toml-merge = "0.3"
 serde-value = "0.7"
 serde_derive = "1"
-serde_json = { version = "1.0.140", features = ["preserve_order"] }
+serde_json = { version = "1.0.145", features = ["preserve_order"] }
 serde_path_to_error = "0.1"
 serde_regex = "1"
 serde_urlencoded = "0.7"
 serde_valid = "1"
-serde_with = "3.12.0"
-sha2 = "0.10.8"
+serde_with = "3.14.0"
+sha2 = "0.10.9"
 similar = "2.5"
 similar-asserts = "1.5"
 size = "0.5.0"
 slugify = "0.1"
 socket2 = "0.6"
-sonic-rs = "0.5.0"
-sqlx = { version = "0.8.5", default-features = false }
+sonic-rs = "0.5.4"
+sqlx = { version = "0.8.6", default-features = false }
 sse-stream = "0.2"
-strum = "0.27.1"
-strum_macros = "0.27.1"
+strum = "0.27.2"
+strum_macros = "0.27.2"
 syn = "2"
 syntect = "5"
-tantivy = "0.24"
+tantivy = "0.25"
 tar = "0.4.44"
 temp-env = "0.3"
 tempfile = "3.16"
-thiserror = "2.0.12"
+thiserror = "2.0.16"
 tikv-jemallocator = "0.6"
-time = "0.3.41"
-tokio = "1.44.2"
+time = "0.3.43"
+tokio = "1.47.1"
 tokio-rustls = { version = "0.26.2", default-features = false }
 tokio-stream = "0.1"
-tokio-tungstenite = { version = "0.26.2", default-features = false }
+tokio-tungstenite = { version = "0.27.0", default-features = false }
 tokio-util = "0.7"
 toml = "0.9"
 tonic = { version = "0.13.0", default-features = false, features = [
@@ -246,32 +246,32 @@ tonic = { version = "0.13.0", default-features = false, features = [
     "tls-aws-lc",
 ] }
 tower = "0.5.2"
-tower-http = "0.6.2"
+tower-http = "0.6.6"
 tower-service = "0.3.3"
 tracing = { version = "0.1.41", features = ["valuable"] }
 tracing-futures = "0.2.5"
 tracing-mock = "0.1"
 tracing-opentelemetry = "0.31"
 tracing-subscriber = { version = "0.3.20", default-features = false, features = ["valuable"] }
-tungstenite = { version = "0.26.2", default-features = false }
+tungstenite = { version = "0.27.0", default-features = false }
 ulid = "1.2.1"
 unicode-normalization = "0.1.24"
-url = "2.5.4"
+url = "2.5.7"
 urlencoding = "2.1"
-uuid = "1.16.0"
+uuid = "1.18.1"
 valuable = "0.1"
-wasmparser = "0.235.0"
+wasmparser = "0.239.0"
 wasmtime = "35"
 wasmtime-wasi = "35"
 wasmtime-wasi-http = "35"
 webbrowser = "1"
-webpki-roots = "1.0.0"
+webpki-roots = "1.0.2"
 which = "8"
 winnow = "0.7"
-wiremock = "0.6.3"
-wit-bindgen = "0.43.0"
+wiremock = "0.6.5"
+wit-bindgen = "0.46.0"
 xshell = "0.2"
-zerocopy = "0.8.24"
+zerocopy = "0.8.27"
 zstd = "0.13"
 
 # Workspace
