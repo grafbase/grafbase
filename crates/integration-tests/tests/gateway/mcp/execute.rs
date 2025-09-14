@@ -96,24 +96,10 @@ fn execute_mutation_is_rejected() {
             )
             .await;
 
-        insta::assert_json_snapshot!(&response, @r#"
-        {
-          "result": {
-            "content": [
-              {
-                "errors": [
-                  {
-                    "message": "Mutation is not allowed with a safe method like GET",
-                    "extensions": {
-                      "code": "BAD_REQUEST"
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        }
-        "#);
+        insta::assert_snapshot!(&response, @r"
+        Errors:
+        Mutations are not allowed.
+        ");
     });
 }
 

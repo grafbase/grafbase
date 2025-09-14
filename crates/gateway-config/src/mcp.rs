@@ -1,12 +1,13 @@
 #[derive(Clone, Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields, default)]
-pub struct ModelControlProtocolConfig {
+pub struct MCPConfig {
     /// Whether the MCP service is enabled.
     pub enabled: bool,
     /// The service path in the gateway.
     pub path: String,
     /// Whether mutations are enabled for the MCP service.
-    pub execute_mutations: bool,
+    #[serde(rename = "execute_mutations")]
+    pub can_mutate: bool,
     /// The transport to use (defaults to streaming-http).
     pub transport: McpTransport,
 }
@@ -19,12 +20,12 @@ pub enum McpTransport {
     Sse,
 }
 
-impl Default for ModelControlProtocolConfig {
+impl Default for MCPConfig {
     fn default() -> Self {
         Self {
             enabled: false,
             path: "/mcp".to_string(),
-            execute_mutations: false,
+            can_mutate: false,
             transport: McpTransport::StreamingHttp,
         }
     }

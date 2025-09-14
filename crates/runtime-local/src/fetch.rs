@@ -61,7 +61,7 @@ impl NativeFetcher {
     }
 }
 
-fn client_builder() -> reqwest::ClientBuilder {
+pub fn client_builder() -> reqwest::ClientBuilder {
     reqwest::Client::builder()
         // Hyper connection pool only exposes two parameters max idle connections per host
         // and idle connection timeout. There is not TTL on the connections themselves to

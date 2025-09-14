@@ -3,8 +3,7 @@ mod buffer;
 use core::f32;
 
 use buffer::*;
-use engine::Schema;
-use engine_schema::{DirectiveSiteId, FieldDefinition, FieldDefinitionId, TypeDefinition, TypeDefinitionId};
+use engine_schema::{DirectiveSiteId, FieldDefinition, FieldDefinitionId, Schema, TypeDefinition, TypeDefinitionId};
 
 use fxhash::{FxBuildHasher, FxHashMap, FxHashSet};
 use itertools::Itertools;

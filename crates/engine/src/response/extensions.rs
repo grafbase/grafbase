@@ -4,7 +4,6 @@ use serde::Serialize;
 use walker::Walk;
 
 use crate::{
-    mcp::McpResponseExtension,
     prepare::{Executable, OperationPlanContext, PlanId, PreparedOperation},
     resolver::{
         ExtensionResolver, FederationEntityResolver, FieldResolverExtension, GraphqlResolver, LookupProxiedResolver,
@@ -17,8 +16,6 @@ use crate::{
 pub(crate) struct ResponseExtensions {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub grafbase: Option<GrafbaseResponseExtension>,
-    #[serde(skip)]
-    pub mcp: Option<McpResponseExtension>,
 }
 
 impl ResponseExtensions {
@@ -32,10 +29,7 @@ impl ResponseExtensions {
             (Some(a), Some(b)) => Some(a.merge(b)),
             (Some(ext), None) | (None, Some(ext)) => Some(ext),
         };
-        Self {
-            grafbase,
-            mcp: self.mcp.or(other.mcp),
-        }
+        Self { grafbase }
     }
 }
 

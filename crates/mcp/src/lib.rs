@@ -1,7 +1,12 @@
 #![deny(unused_crate_dependencies)]
+use engine_schema::Schema;
 use grafbase_workspace_hack as _;
+use http::request::Parts;
+use quick_cache as _;
+use tokio as _;
+use tokio_stream as _;
 
-mod server;
+pub mod server;
 mod tools;
 
 use std::{
@@ -10,28 +15,27 @@ use std::{
     time::Duration,
 };
 
-use axum::Router;
-use engine::{ContractAwareEngine, Runtime};
-use gateway_config::ModelControlProtocolConfig;
+use axum::{Router, body::Bytes};
+use gateway_config::MCPConfig;
 use rmcp::transport::{
     sse_server::{SseServer, SseServerConfig},
     streamable_http_server::{StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager},
 };
-use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
-type EngineWatcher<R> = watch::Receiver<Arc<ContractAwareEngine<R>>>;
+pub trait GraphQLServer: Send + Sync + 'static + Clone {
+    fn default_schema(&self) -> impl Future<Output = anyhow::Result<Arc<Schema>>> + Send;
+    fn get_schema_for_request(&self, parts: &Parts) -> impl Future<Output = anyhow::Result<Arc<Schema>>> + Send;
+    fn execute(&self, parts: Parts, body: Bytes) -> impl Future<Output = anyhow::Result<Bytes>> + Send;
+}
 
-pub fn router<R: Runtime>(
-    engine: &EngineWatcher<R>,
-    config: &ModelControlProtocolConfig,
-) -> (Router, Option<CancellationToken>) {
+pub async fn router(
+    gql: impl GraphQLServer,
+    config: &MCPConfig,
+) -> anyhow::Result<(Router, Option<CancellationToken>)> {
+    let mcp_server = server::McpServer::new(gql, config.can_mutate).await?;
     match config.transport {
         gateway_config::McpTransport::StreamingHttp => {
-            let execute_mutations = config.execute_mutations;
-
-            let mcp_server = server::McpServer::new(engine.clone(), execute_mutations).unwrap();
-
             let service = StreamableHttpService::new(
                 move || Ok(mcp_server.clone()),
                 Arc::new(NeverSessionManager::default()),
@@ -41,7 +45,7 @@ pub fn router<R: Runtime>(
                 },
             );
 
-            (Router::new().route_service(&config.path, service), None)
+            Ok((Router::new().route_service(&config.path, service), None))
         }
         gateway_config::McpTransport::Sse => {
             let (sse_server, router) = SseServer::new(SseServerConfig {
@@ -53,12 +57,9 @@ pub fn router<R: Runtime>(
                 sse_keep_alive: Some(Duration::from_secs(5)),
             });
 
-            let execute_mutations = config.execute_mutations;
-
-            let mcp_server = server::McpServer::new(engine.clone(), execute_mutations).unwrap();
             let ct = sse_server.with_service(move || mcp_server.clone());
 
-            (router, Some(ct))
+            Ok((router, Some(ct)))
         }
     }
 }

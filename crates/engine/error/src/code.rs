@@ -51,6 +51,15 @@ impl From<ErrorCode> for http::StatusCode {
     }
 }
 
+impl From<operation::ErrorKind> for ErrorCode {
+    fn from(kind: operation::ErrorKind) -> Self {
+        match kind {
+            operation::ErrorKind::Parsing => ErrorCode::OperationParsingError,
+            operation::ErrorKind::Validation => ErrorCode::OperationValidationError,
+        }
+    }
+}
+
 impl ErrorCode {
     pub fn into_http_status_code_with_priority(self) -> (http::StatusCode, usize) {
         match self {

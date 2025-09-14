@@ -33,6 +33,7 @@ fslock.workspace = true
 futures.workspace = true
 futures-util.workspace = true
 grafbase-mcp = { path = "../crates/mcp" }
+http.workspace = true
 ignore.workspace = true
 indicatif.workspace = true
 indoc.workspace = true

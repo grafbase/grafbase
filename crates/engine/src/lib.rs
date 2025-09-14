@@ -12,7 +12,7 @@ mod response;
 mod utils;
 pub mod websocket;
 
-pub use engine::{ContractAwareEngine, Engine, RequestExtensions, Runtime, WebsocketSession, mcp};
+pub use engine::{ContractAwareEngine, Engine, RequestExtensions, Runtime, WebsocketSession};
 pub use error::{ErrorCode, ErrorResponse, GraphqlError};
 pub use extension::*;
 pub use graphql_over_http::{Body, ResponseFormat, TelemetryExtension};

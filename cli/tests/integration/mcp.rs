@@ -173,7 +173,7 @@ async fn test_mcp() {
       "content": [
         {
           "type": "text",
-          "text": "# Incomplete fields\ntype Query {\n  headers: [Header!]!\n  responseHeader(name: String!, value: String!): Boolean\n  header(name: String!): String\n}\n\ntype Header {\n  name: String!\n  value: String!\n}\n\n"
+          "text": "# Incomplete fields\ntype Query {\n  header(name: String!): String\n  responseHeader(name: String!, value: String!): Boolean\n  headers: [Header!]!\n}\n\ntype Header {\n  name: String!\n  value: String!\n}\n\n"
         }
       ]
     }

@@ -40,15 +40,8 @@ impl Http {
         }
     }
 
-    pub(crate) fn single(format: CompleteResponseFormat, mut response: Response) -> http::Response<Body> {
-        let mcp_ext = response.extensions_mut().mcp.take();
-        let mut http_response = Self::from_complete_response_with_telemetry(format, response);
-
-        if let Some(mcp_ext) = mcp_ext {
-            http_response.extensions_mut().insert(mcp_ext);
-        }
-
-        http_response
+    pub(crate) fn single(format: CompleteResponseFormat, response: Response) -> http::Response<Body> {
+        Self::from_complete_response_with_telemetry(format, response)
     }
 
     pub(crate) fn batch(format: CompleteResponseFormat, responses: Vec<Response>) -> http::Response<Body> {
@@ -115,12 +108,10 @@ impl Http {
     pub(crate) async fn stream(format: StreamingResponseFormat, stream: StreamResponse) -> http::Response<Body> {
         let StreamResponse { mut stream, telemetry } = stream;
 
-        let Some(mut first_response) = stream.next().await else {
+        let Some(first_response) = stream.next().await else {
             tracing::error!("Empty stream");
             return internal_server_error();
         };
-
-        let mcp_ext = first_response.extensions_mut().mcp.take();
 
         let mut http_response =
             Self::stream_from_first_response_and_rest_without_extensions(format, first_response, stream);
@@ -128,10 +119,6 @@ impl Http {
         http_response
             .extensions_mut()
             .insert(TelemetryExtension::Future(telemetry));
-
-        if let Some(mcp_ext) = mcp_ext {
-            http_response.extensions_mut().insert(mcp_ext);
-        }
 
         http_response
     }

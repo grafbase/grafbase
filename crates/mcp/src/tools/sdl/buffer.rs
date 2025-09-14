@@ -1,8 +1,7 @@
 use super::WriteOptions;
-use engine::Schema;
 use engine_schema::{
     EnumDefinition, FieldDefinition, InputObjectDefinition, InputValueDefinition, InterfaceDefinition,
-    ObjectDefinition, ScalarDefinition, TypeDefinition, UnionDefinition,
+    ObjectDefinition, ScalarDefinition, Schema, TypeDefinition, UnionDefinition,
 };
 use itertools::Itertools;
 use std::fmt::Write;

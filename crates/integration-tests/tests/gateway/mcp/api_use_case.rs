@@ -618,25 +618,11 @@ fn verify_analytics() {
                 )
             )
             .await;
-        insta::assert_snapshot!(response, @r#"
-        {
-          "errors": [
-            {
-              "message": "RequestMetricsV2 does not have a field named 'requestCount'.",
-              "locations": [
-                {
-                  "line": 9,
-                  "column": 11
-                }
-              ],
-              "extensions": {
-                "code": "OPERATION_VALIDATION_ERROR"
-              }
-            }
-          ]
-        }
-        ================================================================================
+        insta::assert_snapshot!(response, @r"
+        Errors:
+        At 9:11 RequestMetricsV2 does not have a field named 'requestCount'.
 
+        == GraphQL SDL ==
         type RequestMetricsV2 {
           cacheHitCount: Int!
           cacheMissCount: Int!
@@ -647,6 +633,6 @@ fn verify_analytics() {
           errorGraphqlCount: Int!
           latencyMsPercentiles: [Int!]!
         }
-        "#);
+        ");
     });
 }

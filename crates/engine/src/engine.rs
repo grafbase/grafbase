@@ -1,5 +1,4 @@
 pub(crate) mod cache;
-pub mod mcp;
 mod retry_budget;
 mod runtime;
 
@@ -93,7 +92,6 @@ impl<R: Runtime> ContractAwareEngine<R> {
             can_mutate: true,
             response_format: ResponseFormat::Streaming(StreamingResponseFormat::GraphQLOverWebSocket),
             include_grafbase_response_extension: false,
-            include_mcp_response_extension: false,
             content_type: ContentType::Json,
         };
         let parts = Parts {
@@ -129,7 +127,7 @@ impl<R: Runtime> ContractAwareEngine<R> {
         }
     }
 
-    async fn get_engine_for_contract(&self, key: &str) -> Result<Arc<Engine<R>>, ErrorResponse> {
+    pub async fn get_engine_for_contract(&self, key: &str) -> Result<Arc<Engine<R>>, ErrorResponse> {
         match self.by_contract_key.get_value_or_guard_async(key).await {
             Ok(engine) => Ok(engine),
             Err(guard) => {

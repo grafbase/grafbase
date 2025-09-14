@@ -1,5 +1,5 @@
 mod entity_cache;
-mod fetch;
+pub mod fetch;
 pub mod operation_cache;
 pub mod rate_limiting;
 #[cfg(feature = "redis")]
