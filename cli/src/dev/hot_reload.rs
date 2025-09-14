@@ -47,7 +47,7 @@ fn watch_configuration_files(gateway_config_path: &Path) -> Result<mpsc::Receive
 }
 
 pub(crate) async fn hot_reload(
-    config_sender: watch::Sender<Config>,
+    config_sender: watch::Sender<Arc<Config>>,
     sdl_sender: mpsc::Sender<String>,
     mut ready_receiver: Receiver<String>,
     subgraph_cache: Arc<SubgraphCache>,
@@ -114,12 +114,12 @@ pub(crate) async fn hot_reload(
             }
         };
 
+        let config = Arc::new(config);
+
         if let Err(err) = config_sender.send(config.clone()) {
             tracing::error!("Could not update config: {err}");
             continue;
         };
-
-        let config = Arc::new(config);
 
         if let Err(error) = reload_subgraphs(sdl_sender.clone(), subgraph_cache.clone(), config.clone(), None).await {
             tracing::error!("{}", error.to_string().trim());

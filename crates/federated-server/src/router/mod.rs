@@ -31,7 +31,7 @@ where
     SR: ServerRuntime,
     E: GatewayExtensions,
 {
-    pub config: Config,
+    pub config: Arc<Config>,
     pub extension_catalog: Arc<ExtensionCatalog>,
     pub engine: EngineWatcher<R>,
     pub server_runtime: SR,
@@ -176,7 +176,7 @@ where
     //
     if config.health.enabled {
         if let Some(listen) = config.health.listen {
-            tokio::spawn(health::bind_health_endpoint(listen, config.tls.clone(), config.health));
+            tokio::spawn(health::bind_health_endpoint(listen, config.tls.clone(), config.health.clone()));
         } else {
             router = router.route(&config.health.path, get(health::health));
         }

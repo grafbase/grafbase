@@ -51,7 +51,7 @@ fn main() -> anyhow::Result<()> {
             tracing::warn!("To send telemetry to the Grafbase Platform, provide a valid graph-ref and access token");
         }
 
-        let config_receiver = config_receiver(config);
+        let config_receiver = static_receiver(config);
 
         const DEFAULT_LISTEN_ADDRESS: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
         let listen_address = args
@@ -83,8 +83,8 @@ fn main() -> anyhow::Result<()> {
     })
 }
 
-fn config_receiver(config: gateway_config::Config) -> watch::Receiver<gateway_config::Config> {
-    let (sender, receiver) = watch::channel(config);
+fn static_receiver<T>(value: T) -> watch::Receiver<T> {
+    let (sender, receiver) = watch::channel(value);
 
     // Leak the sender so the channel never closes
     //

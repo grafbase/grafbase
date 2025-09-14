@@ -45,7 +45,7 @@ pub(super) async fn generate(
 
     let schema = Arc::new(
         engine::Schema::builder(graph.sdl())
-            .config(context.gateway_config)
+            .config(Arc::new(context.gateway_config.clone()))
             .extensions(&extension_catalog)
             .build()
             .await

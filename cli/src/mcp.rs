@@ -53,6 +53,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
     }
 
     let extensions_catalog = Default::default();
+    let config = std::sync::Arc::new(config);
     let schema = {
         let mut subgraphs = graphql_composition::Subgraphs::default();
         subgraphs
@@ -68,7 +69,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
             })?;
         let sdl = graphql_composition::render_federated_sdl(&federated_graph).expect("render_federated_sdl()");
         engine::Schema::builder(&sdl)
-            .config(&config)
+            .config(config.clone())
             .extensions(&extensions_catalog)
             .build()
             .await

@@ -1,5 +1,4 @@
 use crate::Schema;
-use postcard::ser_flavors::Flavor;
 
 const SCHEMA: &str = r#"
 schema
@@ -224,45 +223,6 @@ input BookInput2 {
 }
 "#;
 
-#[rstest::rstest]
-#[case(SCHEMA)]
-#[case(SCHEMA_WITH_INACCESSIBLES)]
-#[tokio::test]
-async fn serde_roundtrip(#[case] sdl: &str) {
-    let config: gateway_config::Config = toml::from_str(
-        r#"
-        [[headers]]
-        rule = "insert"
-        name = "x-foo"
-        value = "BAR"
-
-        [[headers]]
-        rule = "forward"
-        name = "x-source"
-        rename = "x-forwarded"
-        "#,
-    )
-    .unwrap();
-
-    let schema = Schema::builder(sdl).config(&config).build().await.unwrap();
-
-    let mut serializer = postcard::Serializer {
-        output: postcard::ser_flavors::AllocVec::new(),
-    };
-    let result = serde_path_to_error::serialize(&schema, &mut serializer);
-    if let Err(err) = result {
-        let path = err.path().to_string();
-        panic!("Failed serialization at {path}: {}", err.into_inner());
-    }
-
-    let bytes = serializer.output.finalize().unwrap();
-    let result: Result<Schema, _> = serde_path_to_error::deserialize(&mut postcard::Deserializer::from_bytes(&bytes));
-    if let Err(err) = result {
-        let path = err.path().to_string();
-        panic!("Failed deserialization at {path}: {}", err.into_inner());
-    }
-}
-
 #[tokio::test]
 async fn consistent_hash() {
     let config: gateway_config::Config = toml::from_str(
@@ -280,10 +240,11 @@ async fn consistent_hash() {
     )
     .unwrap();
 
-    let schema1 = Schema::builder(SCHEMA).config(&config).build().await.unwrap();
-    let schema1bis = Schema::builder(SCHEMA).config(&config).build().await.unwrap();
+    let config = std::sync::Arc::new(config);
+    let schema1 = Schema::builder(SCHEMA).config(config.clone()).build().await.unwrap();
+    let schema1bis = Schema::builder(SCHEMA).config(config.clone()).build().await.unwrap();
     let schema2 = Schema::builder(SCHEMA_WITH_INACCESSIBLES)
-        .config(&config)
+        .config(config)
         .build()
         .await
         .unwrap();

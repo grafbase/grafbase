@@ -20,7 +20,7 @@ pub(crate) struct EngineReloaderConfig {
     pub update_receiver: mpsc::Receiver<UpdateEvent>,
 
     /// The initial gateway configuration
-    pub initial_config: gateway_config::Config,
+    pub initial_config: Arc<gateway_config::Config>,
 
     /// The extension catalog for the engine
     pub extension_catalog: Arc<ExtensionCatalog>,
@@ -69,7 +69,7 @@ impl EngineReloader {
                 Some(UpdateEvent::Graph(graph)) => break graph,
                 Some(UpdateEvent::Config(new_config)) => {
                     // Update config if we receive it before the initial graph
-                    current_config = *new_config;
+                    current_config = new_config;
                     continue;
                 }
                 None => {
@@ -106,7 +106,7 @@ impl EngineReloader {
 
                 match update {
                     UpdateEvent::Graph(new_graph) => graph = new_graph,
-                    UpdateEvent::Config(new_config) => current_config = *new_config,
+                    UpdateEvent::Config(new_config) => current_config = new_config,
                 }
 
                 in_progress_reload = Some(tokio::spawn({

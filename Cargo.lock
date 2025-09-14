@@ -2999,16 +2999,12 @@ dependencies = [
  "indexmap 2.10.0",
  "insta",
  "itertools 0.14.0",
- "postcard",
  "ramhorns",
  "rand 0.9.2",
  "rapidhash",
  "regex",
- "rstest",
  "serde",
  "serde_json",
- "serde_path_to_error",
- "serde_regex",
  "serde_with",
  "strum 0.27.2",
  "strum_macros 0.27.2",
@@ -8853,16 +8849,6 @@ dependencies = [
  "percent-encoding",
  "serde",
  "thiserror 1.0.69",
-]
-
-[[package]]
-name = "serde_regex"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8136f1a4ea815d7eac4101cfd0b16dc0cb5e1fe1b8609dfd728058656b7badf"
-dependencies = [
- "regex",
- "serde",
 ]
 
 [[package]]

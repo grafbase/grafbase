@@ -14,7 +14,7 @@ use super::{extension::ExtensionsContext, sdl::Sdl};
 pub(crate) struct BuildContext<'a> {
     pub sdl: &'a Sdl<'a>,
     pub extensions: &'a ExtensionsContext<'a>,
-    pub config: &'a Config,
+    pub config: std::sync::Arc<Config>,
     pub interners: Interners,
     pub subgraphs: SubgraphsBuilder<'a>,
 }
@@ -36,9 +36,9 @@ id_newtypes::forward! {
 }
 
 impl<'a> BuildContext<'a> {
-    pub fn new(sdl: &'a Sdl<'a>, extensions: &'a ExtensionsContext<'a>, config: &'a Config) -> Self {
+    pub fn new(sdl: &'a Sdl<'a>, extensions: &'a ExtensionsContext<'a>, config: std::sync::Arc<Config>) -> Self {
         let mut interners = Interners::default();
-        let subgraphs = SubgraphsBuilder::new(sdl, config, &mut interners);
+        let subgraphs = SubgraphsBuilder::new(sdl, &config, &mut interners);
         Self {
             sdl,
             extensions,

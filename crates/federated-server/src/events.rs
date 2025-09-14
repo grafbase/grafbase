@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use gateway_config::Config;
 
 use crate::graph::Graph;
@@ -10,7 +12,7 @@ pub(crate) enum UpdateEvent {
     /// A graph definition update event
     Graph(Graph),
     /// A configuration update event
-    Config(Box<Config>),
+    Config(Arc<Config>),
 }
 
 impl std::fmt::Display for UpdateEvent {

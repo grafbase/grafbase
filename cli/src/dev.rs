@@ -116,9 +116,8 @@ async fn start(args: DevCommand, logging_filter: String) -> anyhow::Result<()> {
         .await
         .expect("this really has to succeed");
 
-    let (config_sender, config_receiver) = watch::channel(config.clone());
-
     let config = Arc::new(config);
+    let (config_sender, config_receiver) = watch::channel(config.clone());
     tokio::spawn(hot_reload(
         config_sender,
         sdl_sender,

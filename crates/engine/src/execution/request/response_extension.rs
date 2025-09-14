@@ -1,5 +1,5 @@
 use grafbase_telemetry::otel::{opentelemetry::trace::TraceContextExt, tracing_opentelemetry::OpenTelemetrySpanExt};
-use schema::{AccessControl, HeaderAccessControl, PartialConfig, Schema};
+use schema::{AccessControl, HeaderAccessControl, Schema, SchemaConfig};
 
 use crate::{
     prepare::PreparedOperation,
@@ -8,7 +8,7 @@ use crate::{
 
 use super::RequestContext;
 
-pub(crate) fn should_include_grafbase_response_extension(config: &PartialConfig, headers: &http::HeaderMap) -> bool {
+pub(crate) fn should_include_grafbase_response_extension(config: &SchemaConfig, headers: &http::HeaderMap) -> bool {
     config
         .response_extension
         .access_control

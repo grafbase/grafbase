@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use crate::args::Args;
 use anyhow::Context;
@@ -8,16 +8,17 @@ use gateway_config::{BatchExportConfig, Config, OtlpExporterProtocol, telemetry:
 const AUTHORIZATION_HEADER: &[u8] = b"authorization";
 const GRAFBASE_GRAPH_REF_HEADER: &[u8] = b"grafbase-graph-ref";
 
-pub fn load(args: &impl Args) -> anyhow::Result<Config> {
-    let mut config = Config::loader()
+pub fn load(args: &impl Args) -> anyhow::Result<Arc<Config>> {
+    let config = Config::loader()
         .load(args.config_path())
         .map_err(|err| anyhow::anyhow!(err))?
         .unwrap_or_default();
 
     // Merge Grafbase telemetry configuration with user configuration
+    let mut config = config;
     merge_grafbase_telemetry_config(&mut config, args)?;
 
-    Ok(config)
+    Ok(Arc::new(config))
 }
 
 fn merge_grafbase_telemetry_config(config: &mut Config, args: &impl Args) -> anyhow::Result<()> {

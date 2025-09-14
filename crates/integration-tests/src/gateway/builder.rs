@@ -193,7 +193,7 @@ impl GatewayBuilder {
             sdl
         };
 
-        let mut config = {
+        let config = {
             if config.add_websocket_url {
                 for subgraph in subgraphs.iter() {
                     let name = subgraph.name();
@@ -218,19 +218,23 @@ impl GatewayBuilder {
                     cache_path: Some(cache_path),
                 });
             }
-            config
+            
+            // Update config with extension settings before creating the schema
+            runtime.extensions.update_config(&mut config)?;
+            
+            Arc::new(config)
         };
 
         let schema = Arc::new(
             ::engine::Schema::builder(&federated_sdl)
-                .config(&config)
+                .config(config.clone())
                 .extensions(runtime.extensions.catalog())
                 .build()
                 .await
                 .map_err(|err| anyhow::anyhow!(err))?,
         );
 
-        let (runtime, extension_catalog) = runtime.finalize_runtime_and_config(&mut config, &schema).await?;
+        let (runtime, extension_catalog) = runtime.finalize_runtime(&config, &schema).await?;
 
         let engine = Arc::new(::engine::ContractAwareEngine::new(schema, runtime));
 

@@ -35,9 +35,9 @@ pub(super) struct TestRuntimeBuilder {
 }
 
 impl TestRuntimeBuilder {
-    pub async fn finalize_runtime_and_config(
+    pub async fn finalize_runtime(
         self,
-        config: &mut Config,
+        config: &Arc<Config>,
         schema: &Arc<Schema>,
     ) -> anyhow::Result<(TestRuntime, Arc<ExtensionCatalog>)> {
         let TestRuntimeBuilder {
@@ -47,7 +47,7 @@ impl TestRuntimeBuilder {
         } = self;
 
         let (gateway_extensions, engine_extensions, extension_catalog) =
-            extensions.build_and_ingest_catalog_into_config(config, schema).await?;
+            extensions.build_extensions(config, schema).await?;
 
         let (_, rx) = watch::channel(Default::default());
 

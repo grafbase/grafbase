@@ -134,12 +134,8 @@ impl ExtensionsBuilder {
             .map(move |(id, ext)| (&ext.manifest, self.url(id)))
     }
 
-    pub async fn build_and_ingest_catalog_into_config(
-        self,
-        config: &mut gateway_config::Config,
-        schema: &Arc<engine::Schema>,
-    ) -> anyhow::Result<(GatewayTestExtensions, EngineTestExtensions, Arc<ExtensionCatalog>)> {
-        let (engine_extensions, gateway_extensions, catalog) = if self.has_wasm_extension {
+    pub fn update_config(&self, config: &mut gateway_config::Config) -> anyhow::Result<()> {
+        if self.has_wasm_extension {
             for ext in self.catalog.iter() {
                 let version = ext.manifest.id.version.to_string().parse().unwrap();
                 let path = Some(ext.wasm_path.parent().unwrap().to_path_buf());
@@ -169,6 +165,16 @@ impl ExtensionsBuilder {
                     }
                 }
             }
+        }
+        Ok(())
+    }
+
+    pub async fn build_extensions(
+        self,
+        config: &Arc<gateway_config::Config>,
+        schema: &Arc<engine::Schema>,
+    ) -> anyhow::Result<(GatewayTestExtensions, EngineTestExtensions, Arc<ExtensionCatalog>)> {
+        let (engine_extensions, gateway_extensions, catalog) = if self.has_wasm_extension {
             let catalog = Arc::new(self.catalog);
             let gateway_extensions = GatewayWasmExtensions::new(&catalog, config, self.logging_filter.clone()).await?;
             let engine_extensions = EngineWasmExtensions::new(

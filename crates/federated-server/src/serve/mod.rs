@@ -26,7 +26,7 @@ use crate::{
 pub struct ServeConfig {
     pub listen_address: SocketAddr,
     /// The gateway configuration.
-    pub config_receiver: watch::Receiver<Config>,
+    pub config_receiver: watch::Receiver<Arc<Config>>,
     /// The config file path for hot reload.
     pub config_path: Option<PathBuf>,
     /// If true, watches changes to the config
@@ -138,13 +138,13 @@ pub async fn serve(
     result
 }
 
-fn spawn_config_reloader(mut config_receiver: watch::Receiver<Config>, update_sender: mpsc::Sender<UpdateEvent>) {
+fn spawn_config_reloader(mut config_receiver: watch::Receiver<Arc<Config>>, update_sender: mpsc::Sender<UpdateEvent>) {
     tokio::spawn(async move {
         // drop the initial value
         config_receiver.changed().await.ok();
 
         while let Ok(()) = config_receiver.changed().await {
-            let new_config = Box::new(config_receiver.borrow().clone());
+            let new_config = config_receiver.borrow().clone();
 
             if update_sender.send(UpdateEvent::Config(new_config)).await.is_err() {
                 break; // channel closed

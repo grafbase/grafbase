@@ -58,7 +58,7 @@ pub type Walker<'a, T> = walker::Walker<'a, T, &'a Schema>;
 /// /!\ This is *NOT* backwards-compatible. /!\
 /// Only a schema serialized with the exact same version is expected to work. For backwards
 /// compatibility use engine-config instead.
-#[derive(Clone, serde::Serialize, serde::Deserialize, id_derives::IndexedFields)]
+#[derive(Clone, id_derives::IndexedFields)]
 pub struct Schema {
     pub subgraphs: SubGraphs,
     pub graph: Graph,
@@ -74,13 +74,12 @@ pub struct Schema {
     /// All strings deduplicated.
     #[indexed_by(StringId)]
     strings: Vec<String>,
-    #[serde(with = "serde_regex")]
     #[indexed_by(RegexId)]
     regexps: Vec<Regex>,
     #[indexed_by(UrlId)]
     pub(crate) urls: Vec<url::Url>,
 
-    pub config: PartialConfig,
+    pub config: SchemaConfig,
 }
 
 impl Schema {
@@ -88,7 +87,11 @@ impl Schema {
         let mut config: gateway_config::Config = Default::default();
         config.graph.introspection = Some(true);
 
-        Self::builder(sdl).config(&config).build().await.unwrap()
+        Self::builder(sdl)
+            .config(std::sync::Arc::new(config))
+            .build()
+            .await
+            .unwrap()
     }
 
     pub async fn empty() -> Self {
