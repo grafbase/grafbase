@@ -4,25 +4,23 @@ use error::GraphqlError;
 use walker::Walk as _;
 
 use crate::{
-    prepare::{BatchFieldShape, DataOrLookupFieldId, DerivedEntityShape, FieldShape, FieldShapeRecord},
+    prepare::{BatchFieldShape, DerivedEntityShape, FieldShape, FieldShapeRecord},
     response::{
-        ResponseListId, ResponseObject, ResponseObjectField, ResponseObjectId, ResponseObjectRef, ResponsePartBuilder,
-        ResponseValue, ResponseValueId,
+        ResponseListId, ResponseObject, ResponseObjectField, ResponseObjectId, ResponseObjectRef, ResponseValue,
+        ResponseValueId, write::deserialize::SeedState,
     },
 };
 
 pub(super) struct DeriveContext<'ctx, 'parent, 'seed> {
-    pub resp: &'seed mut ResponsePartBuilder<'ctx>,
-    pub parent_path: &'parent [ResponseValueId],
-    pub local_path: &'seed mut Vec<ResponseValueId>,
+    pub state: &'seed SeedState<'ctx, 'parent>,
     pub field: FieldShape<'ctx>,
     pub shape: DerivedEntityShape<'ctx>,
 }
 
 impl DeriveContext<'_, '_, '_> {
-    pub fn ingest(mut self, parent_object_id: ResponseObjectId, response_fields: &mut Vec<ResponseObjectField>) {
+    pub fn ingest(self, parent_object_id: ResponseObjectId, response_fields: &mut Vec<ResponseObjectField>) {
         let key = self.field.key();
-        self.local_path.push(ResponseValueId::field(
+        self.state.local_path_mut().push(ResponseValueId::field(
             parent_object_id,
             key,
             self.field.wrapping.is_nullable(),
@@ -38,32 +36,22 @@ impl DeriveContext<'_, '_, '_> {
                     }
                 })
                 .unwrap_or(&ResponseValue::Null);
-            handle_list_derive(&mut self, batch_field, value)
+            handle_list_derive(&self, batch_field, value)
         } else {
             let is_nullable = self.field.wrapping.is_nullable();
-            handle_object_derive(&mut self, is_nullable, response_fields)
+            handle_object_derive(&self, is_nullable, response_fields)
         };
         response_fields.push(ResponseObjectField { key, value });
-        self.local_path.pop();
+        self.state.local_path_mut().pop();
     }
 
     pub(super) fn should_report_error_for(&self, field: &FieldShapeRecord) -> bool {
-        field.query_position_before_modifications.is_some()
-            && match field.id {
-                DataOrLookupFieldId::Data(id) => {
-                    self.resp
-                        .operation
-                        .plan
-                        .query_modifications
-                        .included_response_data_fields[id]
-                }
-                DataOrLookupFieldId::Lookup(_) => false,
-            }
+        self.state.should_report_error_for(field)
     }
 }
 
 fn handle_list_derive(
-    ctx: &mut DeriveContext<'_, '_, '_>,
+    ctx: &DeriveContext<'_, '_, '_>,
     batch_field: BatchFieldShape,
     batch_field_value: &ResponseValue,
 ) -> ResponseValue {
@@ -73,18 +61,19 @@ fn handle_list_derive(
         // because it's an extra field, but this one isn't.
         ResponseValue::Unexpected => {
             if ctx.should_report_error_for(&ctx.field) {
-                let path = (ctx.parent_path, ctx.local_path.as_slice());
+                let mut resp = ctx.state.response.borrow_mut();
+                let path = ctx.state.path();
                 // If a failure happened during de-serialization and we didn't report it yet
                 // because it's an extra field, but this one isn't.
                 if batch_field.key.query_position.is_none() {
-                    ctx.resp.errors.push(
+                    resp.errors.push(
                         GraphqlError::invalid_subgraph_response()
-                            .with_path(path)
+                            .with_path(&path)
                             .with_location(ctx.field.partition_field().location()),
                     );
                 }
                 if ctx.field.wrapping.is_non_null() {
-                    ctx.resp.propagate_null(&path)
+                    resp.propagate_null(&path)
                 }
             }
             ResponseValue::Unexpected
@@ -98,7 +87,7 @@ fn handle_list_derive(
                 };
 
             ResponseValue::List {
-                id: ctx.resp.data.push_list(values),
+                id: ctx.state.response.borrow_mut().data.push_list(values),
             }
         }
         _ => unreachable!(),
@@ -106,7 +95,7 @@ fn handle_list_derive(
 }
 
 fn handle_derive_scalar_list(
-    ctx: &mut DeriveContext<'_, '_, '_>,
+    ctx: &DeriveContext<'_, '_, '_>,
     id: ResponseListId,
     batch_field: BatchFieldShape,
     scalar_field: FieldShape<'_>,
@@ -114,13 +103,15 @@ fn handle_derive_scalar_list(
     let root_definition_id = ctx.shape.object_definition_id;
     let element_is_nullable = !batch_field.wrapping.inner_is_required();
 
-    let list = std::mem::take(&mut ctx.resp.data[id.list_id]);
+    let list = std::mem::take(&mut ctx.state.response.borrow_mut().data[id.list_id]);
     let mut derive_list = Vec::with_capacity(list.len());
     let scalar_field_key = scalar_field.key();
     if !list.is_empty() {
-        ctx.local_path.push(ResponseValueId::index(id, 0, element_is_nullable));
+        ctx.state
+            .local_path_mut()
+            .push(ResponseValueId::index(id, 0, element_is_nullable));
         for &error_id in ctx
-            .resp
+            .state
             .operation
             .plan
             .query_modifications
@@ -128,18 +119,19 @@ fn handle_derive_scalar_list(
             .find_all(scalar_field.id)
         {
             let location = scalar_field.partition_field().location();
-            let path = (ctx.parent_path, ctx.local_path.as_slice());
-            ctx.resp
-                .errors
+            let path = ctx.state.path();
+            let mut resp = ctx.state.response.borrow_mut();
+            resp.errors
                 .push_query_error(error_id, location, (&path, scalar_field.response_key));
             if scalar_field.wrapping.is_non_null() {
-                ctx.resp.propagate_null(&path);
+                resp.propagate_null(&path);
             }
         }
-        ctx.local_path.pop();
+        ctx.state.local_path_mut().pop();
     }
     for (index, value) in list.iter().enumerate() {
-        ctx.local_path
+        ctx.state
+            .local_path_mut()
             .push(ResponseValueId::index(id, index as u32, element_is_nullable));
         match value {
             ResponseValue::Null => {
@@ -147,18 +139,19 @@ fn handle_derive_scalar_list(
             }
             ResponseValue::Unexpected => {
                 if ctx.should_report_error_for(&ctx.field) {
-                    let path = (ctx.parent_path, ctx.local_path.as_slice());
+                    let path = ctx.state.path();
+                    let mut resp = ctx.state.response.borrow_mut();
                     // If a failure happened during de-serialization and we didn't report it yet
                     // because it's an extra field, but this one isn't.
                     if batch_field.key.query_position.is_none() {
-                        ctx.resp.errors.push(
+                        resp.errors.push(
                             GraphqlError::invalid_subgraph_response()
-                                .with_path(path)
+                                .with_path(&path)
                                 .with_location(ctx.field.partition_field().location()),
                         );
                     }
                     if !element_is_nullable {
-                        ctx.resp.propagate_null(&path)
+                        resp.propagate_null(&path)
                     }
                 }
                 derive_list.push(ResponseValue::Unexpected);
@@ -170,7 +163,7 @@ fn handle_derive_scalar_list(
                     value: value.clone(),
                 });
                 if fields_sorted_by_key.capacity() > 1 {
-                    let name_id = ctx.shape.object_definition_id.unwrap().walk(ctx.resp.schema).name_id;
+                    let name_id = ctx.shape.object_definition_id.unwrap().walk(ctx.state.schema).name_id;
                     for typename in ctx.shape.typename_shapes() {
                         fields_sorted_by_key.push(ResponseObjectField {
                             key: typename.key(),
@@ -179,15 +172,17 @@ fn handle_derive_scalar_list(
                     }
                     fields_sorted_by_key.sort_unstable_by(|a, b| a.key.cmp(&b.key));
                 }
-                let id = ctx.resp.data.push_object(ResponseObject {
+                let mut resp = ctx.state.response.borrow_mut();
+                let id = resp.data.push_object(ResponseObject {
                     definition_id: root_definition_id,
                     fields_sorted_by_key,
                 });
                 if let Some(set_id) = ctx.shape.set_id {
-                    let mut path = Vec::with_capacity(ctx.parent_path.len() + ctx.local_path.len());
-                    path.extend_from_slice(ctx.parent_path);
-                    path.extend_from_slice(ctx.local_path.as_ref());
-                    ctx.resp.push_object_ref(
+                    let (parent_path, local_path) = ctx.state.path();
+                    let mut path = Vec::with_capacity(parent_path.len() + local_path.len());
+                    path.extend_from_slice(parent_path);
+                    path.extend_from_slice(&local_path);
+                    resp.push_object_ref(
                         set_id,
                         ResponseObjectRef {
                             id,
@@ -200,24 +195,25 @@ fn handle_derive_scalar_list(
                 derive_list.push(id.into());
             }
         }
-        ctx.local_path.pop();
+        ctx.state.local_path_mut().pop();
     }
-    ctx.resp.data[id.list_id] = list;
+    ctx.state.response.borrow_mut().data[id.list_id] = list;
 
     derive_list
 }
 
 fn handle_derive_object_list(
-    ctx: &mut DeriveContext<'_, '_, '_>,
+    ctx: &DeriveContext<'_, '_, '_>,
     id: ResponseListId,
     batch_field: BatchFieldShape,
 ) -> Vec<ResponseValue> {
     let element_is_nullable = !batch_field.wrapping.inner_is_required();
 
-    let list = std::mem::take(&mut ctx.resp.data[id.list_id]);
+    let list = std::mem::take(&mut ctx.state.response.borrow_mut().data[id.list_id]);
     let mut derive_list = Vec::with_capacity(list.len());
     for (index, value) in list.iter().enumerate() {
-        ctx.local_path
+        ctx.state
+            .local_path_mut()
             .push(ResponseValueId::index(id, index as u32, element_is_nullable));
         match value {
             ResponseValue::Null => {
@@ -225,42 +221,44 @@ fn handle_derive_object_list(
             }
             ResponseValue::Unexpected => {
                 if ctx.should_report_error_for(&ctx.field) {
-                    let path = (ctx.parent_path, ctx.local_path.as_slice());
+                    let path = ctx.state.path();
+                    let mut resp = ctx.state.response.borrow_mut();
                     // If a failure happened during de-serialization and we didn't report it yet
                     // because it's an extra field, but this one isn't.
                     if batch_field.key.query_position.is_none() {
-                        ctx.resp.errors.push(
+                        resp.errors.push(
                             GraphqlError::invalid_subgraph_response()
-                                .with_path(path)
+                                .with_path(&path)
                                 .with_location(ctx.field.partition_field().location()),
                         );
                     }
                     if !element_is_nullable {
-                        ctx.resp.propagate_null(&path)
+                        resp.propagate_null(&path)
                     }
                 }
                 derive_list.push(ResponseValue::Unexpected);
             }
             ResponseValue::Object { id } => {
-                let object = std::mem::take(&mut ctx.resp.data[id.object_id]);
+                let mut resp = ctx.state.response.borrow_mut();
+                let object = std::mem::take(&mut resp.data[id.object_id]);
                 derive_list.push(handle_object_derive(
                     ctx,
                     element_is_nullable,
                     &object.fields_sorted_by_key,
                 ));
-                ctx.resp.data[id.object_id] = object;
+                resp.data[id.object_id] = object;
             }
             _ => unreachable!(),
         }
-        ctx.local_path.pop();
+        ctx.state.local_path_mut().pop();
     }
-    ctx.resp.data[id.list_id] = list;
+    ctx.state.response.borrow_mut().data[id.list_id] = list;
 
     derive_list
 }
 
 fn handle_object_derive(
-    ctx: &mut DeriveContext<'_, '_, '_>,
+    ctx: &DeriveContext<'_, '_, '_>,
     parent_is_nullable: bool,
     source_fields: &[ResponseObjectField],
 ) -> ResponseValue {
@@ -268,7 +266,7 @@ fn handle_object_derive(
     let mut is_null_entity = true;
     let first_id = ctx.shape.field_shape_ids.start;
     let derived_field_shape_id_to_error_ids = ctx
-        .resp
+        .state
         .operation
         .plan
         .query_modifications
@@ -285,12 +283,12 @@ fn handle_object_derive(
                 Ordering::Equal => {
                     error_ix += 1;
                     let location = field.partition_field().location();
-                    let path = (ctx.parent_path, ctx.local_path.as_slice());
-                    ctx.resp
-                        .errors
+                    let path = ctx.state.path();
+                    let mut resp = ctx.state.response.borrow_mut();
+                    resp.errors
                         .push_query_error(error_id, location, (&path, field.response_key));
                     if field.wrapping.is_non_null() {
-                        ctx.resp.propagate_null(&path);
+                        resp.propagate_null(&path);
                     }
                 }
                 Ordering::Greater => {
@@ -314,18 +312,19 @@ fn handle_object_derive(
                 // because it's an extra field, but this one isn't.
                 ResponseValue::Unexpected => {
                     if ctx.should_report_error_for(&field) {
-                        let path = (ctx.parent_path, ctx.local_path.as_slice());
+                        let path = ctx.state.path();
+                        let mut resp = ctx.state.response.borrow_mut();
                         if field.shape.as_derive_from_query_position().is_none() {
-                            ctx.resp.errors.push(
+                            resp.errors.push(
                                 GraphqlError::invalid_subgraph_response()
-                                    .with_path((path, key))
+                                    .with_path((&path, key))
                                     .with_location(field.partition_field().location()),
                             );
                         }
                         // If not required, we don't need to propagate as Unexpected is equivalent to
                         // null for users.
                         if field.wrapping.is_non_null() {
-                            ctx.resp.propagate_null(&path);
+                            resp.propagate_null(&path);
                         }
                     }
 
@@ -347,9 +346,10 @@ fn handle_object_derive(
             // was required and an extra field. So we're not an extra field we raise an
             // error immediately. If a key field is required, the derived root field will
             // always be required.
-            let path = (ctx.parent_path, ctx.local_path.as_slice());
-            ctx.resp.propagate_null(&path);
-            ctx.resp.errors.push(
+            let path = ctx.state.path();
+            let mut resp = ctx.state.response.borrow_mut();
+            resp.propagate_null(&path);
+            resp.errors.push(
                 GraphqlError::invalid_subgraph_response()
                     .with_path((path, field.response_key))
                     .with_location(field.partition_field().location()),
@@ -361,7 +361,7 @@ fn handle_object_derive(
         ResponseValue::Null
     } else {
         if !ctx.shape.typename_shape_ids.is_empty() {
-            let name_id = ctx.shape.object_definition_id.unwrap().walk(ctx.resp.schema).name_id;
+            let name_id = ctx.shape.object_definition_id.unwrap().walk(ctx.state.schema).name_id;
             for typename in ctx.shape.typename_shapes() {
                 derived_response_fields.push(ResponseObjectField {
                     key: typename.key(),
@@ -369,15 +369,17 @@ fn handle_object_derive(
                 });
             }
         }
-        let id = ctx.resp.data.push_object(ResponseObject::new(
+        let mut resp = ctx.state.response.borrow_mut();
+        let id = resp.data.push_object(ResponseObject::new(
             ctx.shape.object_definition_id,
             derived_response_fields,
         ));
         if let Some(set_id) = ctx.shape.set_id {
-            let mut path = Vec::with_capacity(ctx.parent_path.len() + ctx.local_path.len());
-            path.extend_from_slice(ctx.parent_path);
-            path.extend_from_slice(ctx.local_path.as_ref());
-            ctx.resp.push_object_ref(
+            let (parent_path, local_path) = ctx.state.path();
+            let mut path = Vec::with_capacity(parent_path.len() + local_path.len());
+            path.extend_from_slice(parent_path);
+            path.extend_from_slice(&local_path);
+            resp.push_object_ref(
                 set_id,
                 ResponseObjectRef {
                     id,
