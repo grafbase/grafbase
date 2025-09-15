@@ -191,7 +191,7 @@ impl StreamableHttpClient for RouterClient {
         let mut router = self.0.clone();
         let Ok(response) = router.as_service().call(request).await;
         if response.status() == reqwest::StatusCode::METHOD_NOT_ALLOWED {
-            return Err(StreamableHttpError::SeverDoesNotSupportSse);
+            return Err(StreamableHttpError::ServerDoesNotSupportSse);
         }
 
         if !response.status().is_success() {
@@ -224,6 +224,7 @@ impl McpHttpClient {
                 retry_config: Arc::new(ExponentialBackoff::default()),
                 channel_buffer_capacity: 4096 * 10,
                 allow_stateless: true,
+                auth_header: None,
             },
         );
         let client_info = rmcp::model::ClientInfo {
@@ -232,6 +233,9 @@ impl McpHttpClient {
             client_info: rmcp::model::Implementation {
                 name: "grafbase-test-client".to_owned(),
                 version: "1.0.0".to_owned(),
+                title: None,
+                icons: None,
+                website_url: None,
             },
         };
 
@@ -274,13 +278,15 @@ impl McpHttpClient {
             result: ToolResponse {
                 content: result
                     .content
-                    .unwrap_or_default()
                     .into_iter()
                     .map(|annotated| match annotated.raw {
                         rmcp::model::RawContent::Text(raw_text_content) => serde_json::from_str(&raw_text_content.text)
                             .map(Content::Json)
                             .unwrap_or(Content::Text(raw_text_content.text)),
-                        _ => unreachable!("Non-text tool response"),
+                        rmcp::model::RawContent::Image(_)
+                        | rmcp::model::RawContent::Resource(_)
+                        | rmcp::model::RawContent::ResourceLink(_)
+                        | rmcp::model::RawContent::Audio(_) => unreachable!("Non-text tool response"),
                     })
                     .collect(),
                 is_error: result.is_error,
@@ -485,7 +491,7 @@ impl McpStream {
 
     async fn initialize(&mut self) -> McpResponse<InitializeResponse> {
         let init = Initialize {
-            protocol_version: "2024-11-05",
+            protocol_version: "2025-03-26",
             capabilities: Capabilities {
                 sampling: HashMap::new(),
                 roots: Roots { list_changed: true },

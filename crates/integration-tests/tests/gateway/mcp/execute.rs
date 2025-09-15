@@ -48,7 +48,8 @@ fn execute_valid_graphql_query() {
                   }
                 }
               }
-            ]
+            ],
+            "is_error": false
           }
         }
         "#);
@@ -110,7 +111,8 @@ fn execute_mutation_is_rejected() {
                   }
                 ]
               }
-            ]
+            ],
+            "is_error": false
           }
         }
         "#);
@@ -171,7 +173,8 @@ fn execute_mutation_is_accepted_if_configured() {
                   }
                 }
               }
-            ]
+            ],
+            "is_error": false
           }
         }
         "#);
@@ -226,7 +229,8 @@ async fn execute_with_header() {
               "xTest": "test"
             }
           }
-        ]
+        ],
+        "is_error": false
       }
     }
     "#);

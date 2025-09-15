@@ -89,10 +89,17 @@ impl From<SdlAndErrors> for CallToolResult {
         if !errors.is_empty() {
             content.push(Content::json(ErrorList { errors }).unwrap());
         }
+
+        // Ensure content is never empty as required by rmcp 0.6.4
+        if content.is_empty() {
+            content.push(Content::text(""));
+        }
+
         CallToolResult {
-            content: Some(content),
+            content,
             structured_content: None,
-            is_error: None,
+            is_error: Some(false),
+            meta: None,
         }
     }
 }

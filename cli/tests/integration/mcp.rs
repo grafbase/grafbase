@@ -57,6 +57,9 @@ async fn test_mcp() {
         client_info: Implementation {
             name: "test sse client".to_string(),
             version: "0.0.1".to_string(),
+            title: None,
+            icons: None,
+            website_url: None,
         },
     };
 
@@ -72,7 +75,7 @@ async fn test_mcp() {
       },
       "serverInfo": {
         "name": "rmcp",
-        "version": "0.5.0"
+        "version": "0.6.4"
       }
     }
     "#);
@@ -175,7 +178,8 @@ async fn test_mcp() {
           "type": "text",
           "text": "# Incomplete fields\ntype Query {\n  headers: [Header!]!\n  responseHeader(name: String!, value: String!): Boolean\n  header(name: String!): String\n}\n\ntype Header {\n  name: String!\n  value: String!\n}\n\n"
         }
-      ]
+      ],
+      "isError": false
     }
     "##);
 
@@ -198,7 +202,8 @@ async fn test_mcp() {
           "type": "text",
           "text": "{\"data\":{\"__typename\":\"Query\"}}"
         }
-      ]
+      ],
+      "isError": false
     }
     "#);
 

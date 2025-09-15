@@ -63,29 +63,37 @@ impl Runner {
 }
 
 fn dot_graph(dot: &'static str) -> (Graph<String, SteinerWeight>, HashMap<String, NodeIndex>) {
-    let dot_graph: dot_parser::canonical::Graph<(&'static str, &'static str)> =
-        dot_parser::ast::Graph::try_from(dot).unwrap().into();
+    let parsed = dot_parser::ast::Graph::try_from(dot).unwrap();
+    let dot_graph: dot_parser::canonical::Graph<_> = parsed.into();
     let node_number = dot_graph.nodes.set.len();
     let edge_number = dot_graph.edges.set.len();
     let mut graph = Graph::with_capacity(node_number, edge_number);
     let mut nodes = HashMap::new();
     for (node, attrs) in dot_graph.nodes.set {
-        let id = graph.add_node(attrs.id);
-        nodes.insert(node, id);
+        // Only convert to String once for the graph node and HashMap key
+        let id = graph.add_node(attrs.id.into());
+        nodes.insert(node.into(), id);
     }
     for edge in dot_graph.edges.set {
-        let from_ni = nodes.get(&edge.from).unwrap();
-        let to_ni = nodes.get(&edge.to).unwrap();
+        // Convert edge endpoints to String to look up in HashMap
+        let from_str: String = edge.from.into();
+        let to_str: String = edge.to.into();
+        let from_ni = nodes.get(&from_str).unwrap();
+        let to_ni = nodes.get(&to_str).unwrap();
         let weight = edge
             .attr
             .elems
             .iter()
             .find_map(|(name, value)| {
-                if *name == "label" {
-                    value.parse::<SteinerWeight>().ok()
-                } else {
-                    None
-                }
+                // Only allocate if we find the "label" attribute
+                // Unfortunately ID doesn't expose the inner &str, so we must convert
+                let name_str: String = name.clone().into();
+                (name_str == "label")
+                    .then(|| {
+                        let value_str: String = value.clone().into();
+                        value_str.parse::<SteinerWeight>().ok()
+                    })
+                    .flatten()
             })
             .unwrap_or_default();
         graph.add_edge(*from_ni, *to_ni, weight);
