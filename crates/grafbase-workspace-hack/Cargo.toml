@@ -36,7 +36,7 @@ clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
 combine = { version = "4", features = ["tokio"] }
 cranelift-bitset = { version = "0.122", default-features = false, features = ["enable-serde"] }
-criterion = { version = "0.7", features = ["async_tokio", "html_reports"] }
+criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest", "http-surf"] }
@@ -55,6 +55,7 @@ fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
 fixedbitset = { version = "0.5", features = ["serde"] }
 form_urlencoded = { version = "1" }
+futures = { version = "0.3" }
 futures-channel = { version = "0.3", features = ["sink"] }
 futures-core = { version = "0.3" }
 futures-executor = { version = "0.3" }
@@ -159,7 +160,7 @@ clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
 combine = { version = "4", features = ["tokio"] }
 cranelift-bitset = { version = "0.122", default-features = false, features = ["enable-serde"] }
-criterion = { version = "0.7", features = ["async_tokio", "html_reports"] }
+criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest", "http-surf"] }
@@ -178,6 +179,7 @@ fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
 fixedbitset = { version = "0.5", features = ["serde"] }
 form_urlencoded = { version = "1" }
+futures = { version = "0.3" }
 futures-channel = { version = "0.3", features = ["sink"] }
 futures-core = { version = "0.3" }
 futures-executor = { version = "0.3" }

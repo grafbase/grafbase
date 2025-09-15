@@ -1956,7 +1956,7 @@ dependencies = [
  "cast",
  "ciborium",
  "clap",
- "criterion-plot 0.5.0",
+ "criterion-plot",
  "futures",
  "is-terminal",
  "itertools 0.10.5",
@@ -1975,30 +1975,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "criterion"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1c047a62b0cc3e145fa84415a3191f628e980b194c2755aa12300a4e6cbd928"
-dependencies = [
- "anes",
- "cast",
- "ciborium",
- "clap",
- "criterion-plot 0.6.0",
- "itertools 0.13.0",
- "num-traits",
- "oorandom",
- "plotters",
- "rayon",
- "regex",
- "serde",
- "serde_json",
- "tinytemplate",
- "tokio",
- "walkdir",
-]
-
-[[package]]
 name = "criterion-plot"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2006,16 +1982,6 @@ checksum = "6b50826342786a51a89e2da3a28f1c32b06e387201bc2d19791f622c673706b1"
 dependencies = [
  "cast",
  "itertools 0.10.5",
-]
-
-[[package]]
-name = "criterion-plot"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b1bcc0dc7dfae599d84ad0b1a55f80cde8af3725da8313b528da95ef783e338"
-dependencies = [
- "cast",
- "itertools 0.13.0",
 ]
 
 [[package]]
@@ -2274,7 +2240,6 @@ dependencies = [
  "indexmap 2.11.1",
  "lalrpop-util",
  "logos",
- "pretty",
 ]
 
 [[package]]
@@ -2498,16 +2463,6 @@ dependencies = [
  "const-oid",
  "pem-rfc7468",
  "zeroize",
-]
-
-[[package]]
-name = "deranged"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c9e6a11ca8224451684bc0d7d5a7adbf8f2fd6887261a1cfc3c0432f9d4068e"
-dependencies = [
- "powerfmt",
- "serde",
 ]
 
 [[package]]
@@ -2890,7 +2845,7 @@ dependencies = [
  "itertools 0.14.0",
  "mediatype",
  "mime",
- "minicbor-serde 0.6.0",
+ "minicbor-serde",
  "multipart-stream",
  "percent-encoding",
  "pretty_assertions",
@@ -3393,7 +3348,7 @@ dependencies = [
  "insta",
  "lambda_http",
  "mini-moka",
- "minicbor-serde 0.6.0",
+ "minicbor-serde",
  "notify",
  "rand 0.9.2",
  "reqwest 0.12.23",
@@ -4141,7 +4096,7 @@ dependencies = [
  "grafbase-workspace-hack",
  "http 1.3.1",
  "itertools 0.14.0",
- "minicbor-serde 0.6.0",
+ "minicbor-serde",
  "ordered-float 5.0.0",
  "priority-queue",
  "quick_cache",
@@ -4185,7 +4140,7 @@ dependencies = [
  "jaq-json",
  "jaq-std",
  "log",
- "minicbor-serde 0.6.0",
+ "minicbor-serde",
  "postcard",
  "regex",
  "reqwest 0.12.23",
@@ -4292,13 +4247,14 @@ dependencies = [
  "clap_builder",
  "combine",
  "cranelift-bitset",
- "criterion 0.5.1",
+ "criterion",
+ "crossbeam-epoch",
  "crossbeam-utils",
  "curve25519-dalek",
  "cynic",
- "cynic-parser 0.9.1",
+ "cynic-parser 0.10.0",
  "der",
- "deranged 0.4.0",
+ "deranged",
  "digest 0.10.7",
  "ecdsa",
  "ed25519",
@@ -4331,20 +4287,18 @@ dependencies = [
  "hyper-rustls",
  "hyper-util",
  "iana-time-zone",
- "idna",
  "indexmap 2.11.1",
  "insta",
  "lazy_static",
  "libc",
- "linux-raw-sys 0.4.15",
  "linux-raw-sys 0.9.4",
  "log",
  "lz4_flex",
  "memchr",
  "miette",
  "mime_guess",
- "minicbor 1.1.0",
- "minicbor-serde 0.5.0",
+ "minicbor",
+ "minicbor-serde",
  "miniz_oxide",
  "mio",
  "num-traits",
@@ -4373,6 +4327,7 @@ dependencies = [
  "sec1",
  "semver 1.0.26",
  "serde",
+ "serde_core",
  "serde_json",
  "serde_with",
  "sha2 0.10.9",
@@ -4381,6 +4336,7 @@ dependencies = [
  "similar",
  "similar-asserts",
  "smallvec",
+ "socket2 0.5.10",
  "spin 0.9.8",
  "spki",
  "stable_deref_trait",
@@ -4403,9 +4359,7 @@ dependencies = [
  "tracing-core",
  "tracing-log",
  "tracing-subscriber",
- "tungstenite 0.26.2",
  "ulid",
- "url",
  "uuid",
  "wasmparser 0.235.0",
  "winapi",
@@ -4472,7 +4426,7 @@ dependencies = [
 name = "graphql-lint"
 version = "0.1.3"
 dependencies = [
- "criterion 0.7.0",
+ "criterion",
  "cynic-parser 0.10.0",
  "grafbase-workspace-hack",
  "heck 0.5.0",
@@ -4496,7 +4450,7 @@ dependencies = [
  "grafbase-workspace-hack",
  "headers",
  "http 1.3.1",
- "httpsig 0.0.18",
+ "httpsig",
  "httpsig-hyper",
  "serde",
  "serde_json",
@@ -5011,32 +4965,6 @@ checksum = "df3b46402a9d5adb4c86a0cf463f42e19994e3ee891101b1841f30a545cb49a9"
 
 [[package]]
 name = "httpsig"
-version = "0.0.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e755de5a054b33cf9ef7471af75e0635e44b8dd339a2b7a0914fccf2f9f2a320"
-dependencies = [
- "base64 0.22.1",
- "bytes",
- "ecdsa",
- "ed25519-compact",
- "fxhash",
- "hmac 0.12.1",
- "indexmap 2.11.1",
- "p256",
- "p384",
- "pkcs8",
- "rand 0.9.2",
- "rustc-hash 2.1.1",
- "sec1",
- "sfv",
- "sha2 0.10.9",
- "spki",
- "thiserror 2.0.16",
- "tracing",
-]
-
-[[package]]
-name = "httpsig"
 version = "0.0.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b31f5c3df90a095e200fc891d09e6a1cb49da21d7e63f41536928beb3c93298"
@@ -5073,7 +5001,7 @@ dependencies = [
  "http 1.3.1",
  "http-body 1.0.1",
  "http-body-util",
- "httpsig 0.0.19",
+ "httpsig",
  "indexmap 2.11.1",
  "sfv",
  "sha2 0.10.9",
@@ -5514,7 +5442,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "cfg-if",
- "criterion 0.7.0",
+ "criterion",
  "crossbeam",
  "crossbeam-queue",
  "ctor",
@@ -5540,12 +5468,12 @@ dependencies = [
  "hex",
  "http 1.3.1",
  "http-body-util",
- "httpsig 0.0.18",
+ "httpsig",
  "indoc",
  "insta",
  "itertools 0.14.0",
  "mimalloc",
- "minicbor-serde 0.6.0",
+ "minicbor-serde",
  "multipart-stream",
  "openidconnect",
  "ory-client",
@@ -6295,31 +6223,11 @@ dependencies = [
 
 [[package]]
 name = "minicbor"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "734daad4ff3b880f23dc2a675dd74553fa8e583367aa7523f96a16e96a516b62"
-dependencies = [
- "minicbor-derive 0.17.0",
-]
-
-[[package]]
-name = "minicbor"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e1d2aa21725f9442def0570f427df351961a79439f63fff51b7d022a5ca31304"
 dependencies = [
- "minicbor-derive 0.18.0",
-]
-
-[[package]]
-name = "minicbor-derive"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "512ce2c37128698ea15c99b3518936c78a8b112b92468e7b95b9fa045666ebd8"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.104",
+ "minicbor-derive",
 ]
 
 [[package]]
@@ -6335,21 +6243,11 @@ dependencies = [
 
 [[package]]
 name = "minicbor-serde"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a05d783cc8c3cdbde9f7ee9eeeef417810278e81fb6289634fdbc952d462fc23"
-dependencies = [
- "minicbor 1.1.0",
- "serde",
-]
-
-[[package]]
-name = "minicbor-serde"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bbf243b8cc68a7a76473b14328d3546fb002ae3d069227794520e9181003de9"
 dependencies = [
- "minicbor 2.0.0",
+ "minicbor",
  "serde",
 ]
 
@@ -6661,7 +6559,7 @@ version = "5.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "51e219e79014df21a225b1860a479e2dcd7cbd9130f4defd4bd0e191ea31d67d"
 dependencies = [
- "base64 0.21.7",
+ "base64 0.22.1",
  "chrono",
  "getrandom 0.2.16",
  "http 1.3.1",
@@ -7356,7 +7254,7 @@ dependencies = [
  "aligned-vec",
  "backtrace",
  "cfg-if",
- "criterion 0.5.1",
+ "criterion",
  "findshlibs",
  "inferno",
  "libc",
@@ -8426,7 +8324,7 @@ dependencies = [
  "grafbase-telemetry",
  "grafbase-workspace-hack",
  "http 1.3.1",
- "minicbor-serde 0.6.0",
+ "minicbor-serde",
  "reqwest 0.12.23",
  "semver 1.0.26",
  "serde",
@@ -8462,10 +8360,10 @@ dependencies = [
  "grafbase-workspace-hack",
  "graphql-ws-client",
  "http 1.3.1",
- "httpsig 0.0.18",
+ "httpsig",
  "httpsig-hyper",
  "mini-moka",
- "minicbor-serde 0.6.0",
+ "minicbor-serde",
  "p256",
  "p384",
  "postcard",
@@ -10398,7 +10296,7 @@ version = "0.3.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "83bde6f1ec10e72d583d91623c939f623002284ef622b87de38cfd546cbf2031"
 dependencies = [
- "deranged 0.5.3",
+ "deranged",
  "num-conv",
  "powerfmt",
  "serde",
@@ -10923,7 +10821,6 @@ dependencies = [
  "rand 0.9.2",
  "sha1 0.10.6",
  "thiserror 2.0.16",
- "url",
  "utf-8",
 ]
 
@@ -11268,7 +11165,7 @@ dependencies = [
  "insta",
  "itertools 0.14.0",
  "mini-moka",
- "minicbor-serde 0.6.0",
+ "minicbor-serde",
  "rapidhash",
  "reqwest 0.12.23",
  "rolling-logger",

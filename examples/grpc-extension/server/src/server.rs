@@ -142,8 +142,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-impl Eq for Point {}
-
 fn in_range(point: &Point, rect: &Rectangle) -> bool {
     use std::cmp;
 
