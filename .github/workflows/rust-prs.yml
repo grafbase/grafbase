@@ -224,12 +224,17 @@ jobs:
       - uses: ./.github/actions/fetch-assets
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
 
-      - uses: Swatinem/rust-cache@v2.8.0
+      - name: Cache cargo registry
+        uses: actions/cache@v4
         with:
-          cache-workspace-crates: true
-          prefix-key: cargo-v1
-          cache-directories: |
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
             .grafbase/wasm-cache
+          key: ${{ runner.os }}-${{ matrix.platform.target }}-cargo-registry-v1-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.platform.target }}-cargo-registry-v1-
 
       - uses: ./.github/actions/install-rust
         with:
@@ -398,6 +403,10 @@ jobs:
           RUSTC_WRAPPER: 'sccache'
         run: |
           cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
+
+      - name: Clean up cargo cache
+        uses: ./.github/actions/cleanup-cargo-cache
+        if: success()
 
   docker-gateway:
     needs: [what-changed]
