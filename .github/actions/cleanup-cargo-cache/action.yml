@@ -1,0 +1,77 @@
+name: 'Cleanup Cargo Cache'
+description: 'Removes old and unnecessary files from cargo cache to reduce size'
+inputs:
+  days-to-keep:
+    description: 'Number of days to keep cached crates and git checkouts'
+    required: false
+    default: '7'
+  remove-src:
+    description: 'Whether to remove registry source archives'
+    required: false
+    default: 'true'
+  remove-old-crates:
+    description: 'Whether to remove old .crate files'
+    required: false
+    default: 'true'
+  remove-old-git:
+    description: 'Whether to remove old git checkouts'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Cleanup Cargo Cache
+      shell: bash
+      run: |
+        echo "Starting cargo cache cleanup..."
+
+        # Get initial size for comparison
+        if [ -d ~/.cargo ]; then
+          INITIAL_SIZE=$(du -sh ~/.cargo 2>/dev/null | cut -f1)
+          echo "Initial .cargo size: $INITIAL_SIZE"
+        fi
+
+        # Remove source archives of dependencies (these can be re-downloaded)
+        if [ "${{ inputs.remove-src }}" == "true" ]; then
+          echo "Removing registry source archives..."
+          rm -rf ~/.cargo/registry/src/ 2>/dev/null || true
+        fi
+
+        # Remove old crate versions from cache
+        if [ "${{ inputs.remove-old-crates }}" == "true" ]; then
+          echo "Removing .crate files older than ${{ inputs.days-to-keep }} days..."
+          find ~/.cargo/registry/cache -name "*.crate" -type f -mtime +${{ inputs.days-to-keep }} -delete 2>/dev/null || true
+        fi
+
+        # Clean git checkouts older than specified days
+        if [ "${{ inputs.remove-old-git }}" == "true" ]; then
+          echo "Removing git checkouts older than ${{ inputs.days-to-keep }} days..."
+          find ~/.cargo/git/checkouts -type d -mtime +${{ inputs.days-to-keep }} -exec rm -rf {} + 2>/dev/null || true
+        fi
+
+        # Also clean up git db entries that no longer have checkouts
+        if [ "${{ inputs.remove-old-git }}" == "true" ] && [ -d ~/.cargo/git/db ]; then
+          echo "Cleaning orphaned git db entries..."
+          for db_dir in ~/.cargo/git/db/*/; do
+            repo_name=$(basename "$db_dir")
+            # Check if there's a corresponding checkout
+            if [ ! -d ~/.cargo/git/checkouts/"$repo_name"* ]; then
+              echo "  Removing orphaned git db: $repo_name"
+              rm -rf "$db_dir" 2>/dev/null || true
+            fi
+          done
+        fi
+
+        # Remove empty directories
+        echo "Removing empty directories..."
+        find ~/.cargo -type d -empty -delete 2>/dev/null || true
+
+        # Get final size
+        if [ -d ~/.cargo ]; then
+          FINAL_SIZE=$(du -sh ~/.cargo 2>/dev/null | cut -f1)
+          echo "Final .cargo size: $FINAL_SIZE"
+          echo "✅ Cargo cache cleanup complete!"
+        else
+          echo "✅ Cargo cache directory not found or fully cleaned"
+        fi
