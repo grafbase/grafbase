@@ -1,4 +1,4 @@
-# **![Grafbase][https://github.com/grafbase/grafbase/assets/14347895/9580d0f7-d50f-4d30-8dd0-dcea1a83409e]** **Grafbase**
+# **![Grafbase](https://github.com/grafbase/grafbase/assets/14347895/9580d0f7-d50f-4d30-8dd0-dcea1a83409e)** **Grafbase**
 
 **The High-Performance GraphQL Federation Platform for Mission-Critical APIs**
 
