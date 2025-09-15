@@ -429,10 +429,10 @@ fn invalid_single() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productBatch, for directive @lookup for associated @is directive: Product! is not a list but treated as such
-        32 | {
-        33 |   productBatch(id: Lookup! @composite__is(graph: EXT, field: "{ id: [id] }")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        40 | {
+        41 |   productBatch(id: Lookup! @composite__is(graph: EXT, field: "{ id: [id] }")): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        34 |   products: [Product!]! @join__field(graph: GQL)
+        42 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -528,10 +528,10 @@ fn extra_required_argument() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected by any @is directive.
-        32 | {
-        33 |   productBatch(lookup: Lookup! @composite__is(graph: EXT, field: "{ id }"), required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        40 | {
+        41 |   productBatch(lookup: Lookup! @composite__is(graph: EXT, field: "{ id }"), required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        34 |   products: [Product!]! @join__field(graph: GQL)
+        42 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }

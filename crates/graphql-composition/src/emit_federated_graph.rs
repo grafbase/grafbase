@@ -3,6 +3,7 @@ mod directive;
 mod directive_definitions;
 mod emit_extensions;
 mod emit_fields;
+mod emit_linked_schemas;
 mod federation_builtins;
 mod field_types_map;
 
@@ -40,7 +41,13 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
         fields: vec![],
         input_value_definitions: vec![],
         strings: vec![],
+        linked_schemas: vec![],
         extensions: Vec::new(),
+        roots: federated::SchemaRoots {
+            query: ir.query_type,
+            mutation: ir.mutation_type,
+            subscription: ir.subscription_type,
+        },
     };
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
@@ -63,6 +70,8 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
     federation_builtins::emit_federation_builtins(&mut ctx, join_graph_enum_id);
 
     ctx.out.enum_values.sort_unstable_by_key(|v| v.enum_id);
+
+    emit_linked_schemas::emit_linked_schemas(&mut ctx);
 
     drop(ctx);
 

@@ -55,10 +55,10 @@ fn cannot_have_name_fragments() {
     let err = run_with_field_set(graphql_subgraph(), "id ...NamedFragment").unwrap_err();
     insta::assert_snapshot!(err, @r#"
     * At site User.echo, for the extension 'echo-1.0.0' directive @echo: Cannot use named fragments inside a FieldSet
-    22 |   age: Int! @join__field(graph: A)
-    23 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "id ...NamedFragment"}) @join__field(graph: B)
+    30 |   age: Int! @join__field(graph: A)
+    31 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "id ...NamedFragment"}) @join__field(graph: B)
                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    24 |   friends: [User!] @join__field(graph: A)
+    32 |   friends: [User!] @join__field(graph: A)
     "#);
 }
 
@@ -145,10 +145,10 @@ fn type_condiiton_must_have_at_least_one_common_type_union() {
     .unwrap_err();
     insta::assert_snapshot!(err, @r#"
     * At site User.echo, for the extension 'echo-1.0.0' directive @echo: Type condition on 'OtherUnion' cannot be used in a 'User' selection_set
-    26 | {
-    27 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "... on OtherUnion { ... on Other { id } }"}) @join__field(graph: B)
+    34 | {
+    35 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "... on OtherUnion { ... on Other { id } }"}) @join__field(graph: B)
                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    28 |   id: ID! @join__field(graph: A)
+    36 |   id: ID! @join__field(graph: A)
     "#);
 }
 
@@ -184,10 +184,10 @@ fn type_condiiton_must_have_at_least_one_common_type_interface() {
     .unwrap_err();
     insta::assert_snapshot!(err, @r#"
     * At site User.echo, for the extension 'echo-1.0.0' directive @echo: Type condition on 'Node' cannot be used in a 'User' selection_set
-    20 | {
-    21 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "... on Node { id }"}) @join__field(graph: B)
+    28 | {
+    29 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "... on Node { id }"}) @join__field(graph: B)
                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    22 |   id: ID! @join__field(graph: A)
+    30 |   id: ID! @join__field(graph: A)
     "#);
 }
 
@@ -351,10 +351,10 @@ fn unions_have_no_fields() {
     let error = run_with_field_set(graphql_subgraph(), "pets { id }").unwrap_err();
     insta::assert_snapshot!(error, @r#"
     * At site User.echo, for the extension 'echo-1.0.0' directive @echo: Field 'id' at path '.pets' does not exists on Pet, it's a union. Only interfaces and objects have fields, consider using a fragment with a type condition.
-    22 |   age: Int! @join__field(graph: A)
-    23 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "pets { id }"}) @join__field(graph: B)
+    30 |   age: Int! @join__field(graph: A)
+    31 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "pets { id }"}) @join__field(graph: B)
                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    24 |   friends: [User!] @join__field(graph: A)
+    32 |   friends: [User!] @join__field(graph: A)
     "#);
 }
 
@@ -363,10 +363,10 @@ fn inexsitant_type() {
     let error = run_with_field_set(graphql_subgraph(), "... on Unknown { id }").unwrap_err();
     insta::assert_snapshot!(error, @r#"
     * At site User.echo, for the extension 'echo-1.0.0' directive @echo: Unknown type 'Unknown'
-    22 |   age: Int! @join__field(graph: A)
-    23 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "... on Unknown { id }"}) @join__field(graph: B)
+    30 |   age: Int! @join__field(graph: A)
+    31 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "... on Unknown { id }"}) @join__field(graph: B)
                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    24 |   friends: [User!] @join__field(graph: A)
+    32 |   friends: [User!] @join__field(graph: A)
     "#);
 }
 
@@ -393,9 +393,9 @@ fn must_be_output_type() {
     .unwrap_err();
     insta::assert_snapshot!(error, @r#"
     * At site User.echo, for the extension 'echo-1.0.0' directive @echo: UserInput is not an object, interface or union
-    20 | {
-    21 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "... on UserInput { id }"}) @join__field(graph: B)
+    28 | {
+    29 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "... on UserInput { id }"}) @join__field(graph: B)
                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    22 |   id: ID! @join__field(graph: A)
+    30 |   id: ID! @join__field(graph: A)
     "#);
 }

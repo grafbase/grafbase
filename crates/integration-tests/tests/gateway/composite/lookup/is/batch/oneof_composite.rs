@@ -359,10 +359,10 @@ fn invalid_batch() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productBatch, for directive @lookup for associated @is directive: Cannot select a field from [Product!]!, it's a list
-        33 | {
-        34 |   productBatch(input: Lookup! @composite__is(graph: EXT, field: "{ key: { a b } }")): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        41 | {
+        42 |   productBatch(input: Lookup! @composite__is(graph: EXT, field: "{ key: { a b } }")): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        35 |   products: [Product!]! @join__field(graph: GQL)
+        43 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -408,10 +408,10 @@ fn extra_required_argument() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productBatch, for directive @lookup Argument 'required' is required but is not injected by any @is directive.
-        33 | {
-        34 |   productBatch(lookup: Lookup! @composite__is(graph: EXT, field: "{ key: [{ a b }]}"), required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        41 | {
+        42 |   productBatch(lookup: Lookup! @composite__is(graph: EXT, field: "{ key: [{ a b }]}"), required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        35 |   products: [Product!]! @join__field(graph: GQL)
+        43 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -458,10 +458,10 @@ fn extra_required_field() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productBatch, for directive @lookup for associated @is directive: For Lookup.key, field 'x' is required but it's missing from the FieldSelectionMap
-        33 | {
-        34 |   productBatch(lookup: Lookup! @composite__is(graph: EXT, field: "{ key: [{ a b }]}")): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        41 | {
+        42 |   productBatch(lookup: Lookup! @composite__is(graph: EXT, field: "{ key: [{ a b }]}")): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                                                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        35 |   products: [Product!]! @join__field(graph: GQL)
+        43 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }

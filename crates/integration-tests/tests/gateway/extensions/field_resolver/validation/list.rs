@@ -139,10 +139,10 @@ fn incompatible_list_wrapping() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found a String value where we expected a [String!] at path '.value.0'
-        18 | {
-        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {value: ["something"]}) @join__field(graph: A)
+        26 | {
+        27 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {value: ["something"]}) @join__field(graph: A)
                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        20 | }
+        28 | }
         "#);
 
         // Invalid schema directive
@@ -170,10 +170,10 @@ fn incompatible_list_wrapping() {
 
         insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
         * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a String value where we expected a [String!] at path '.value.0'
-        28 | {
-        29 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: ["meta"]}}])
+        36 | {
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: ["meta"]}}])
                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 | }
+        38 | }
         "#);
     });
 }

@@ -1,0 +1,35 @@
+directive @cached(ttl: Int = 300) on FIELD_DEFINITION
+directive @validate(regex: String) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@composeDirective"])
+  @link(url: "https://example.com/directives/v1.0", as: "custom")
+  @composeDirective(name: "@cached")
+  @composeDirective(name: "@custom__rateLimit")
+  @composeDirective(name: "@validate")
+
+directive @custom__rateLimit(max: Int!, window: String!) on FIELD_DEFINITION
+
+type Product @key(fields: "id") {
+  id: ID!
+  name: String!
+  stock: Int! @cached(ttl: 60)
+  warehouse: Warehouse!
+}
+
+type Warehouse @key(fields: "id") {
+  id: ID!
+  location: String!
+  capacity: Int!
+  inventory: [Product!]! @custom__rateLimit(max: 100, window: "1m")
+}
+
+type Query {
+  product(id: ID! @validate(regex: "^[A-Z0-9]+$")): Product
+  warehouses: [Warehouse!]! @cached
+}
+
+type Mutation {
+  updateStock(productId: ID! @validate(regex: "^[A-Z0-9]+$"), quantity: Int!): Product
+    @custom__rateLimit(max: 10, window: "1m")
+}

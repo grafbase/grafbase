@@ -1,5 +1,5 @@
 use super::*;
-use crate::federated_graph::{Import, LinkDirective, QualifiedImport};
+use crate::federated_graph::{Import, LinkDirectiveDeserialize, QualifiedImport};
 use cynic_parser_deser::ConstDeserializer;
 
 fn is_grafbase_extension_registry_url(url: &url::Url) -> bool {
@@ -20,12 +20,12 @@ fn is_grafbase_extension_registry_url(url: &url::Url) -> bool {
 }
 
 pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: SubgraphId, subgraphs: &mut Subgraphs) {
-    let LinkDirective {
+    let LinkDirectiveDeserialize {
         url,
         r#as,
         import,
         r#for: _,
-    }: LinkDirective<'_> = match directive.deserialize() {
+    }: LinkDirectiveDeserialize<'_> = match directive.deserialize() {
         Ok(directive) => directive,
         Err(err) => {
             subgraphs.push_ingestion_diagnostic(subgraph_id, format!("Invalid `@link` directive: {err}"));

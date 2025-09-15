@@ -61,10 +61,10 @@ fn cannot_select_unknown_fields() {
     let err = run_with_field_set(graphql_subgraph(), "unknown").unwrap_err();
     insta::assert_snapshot!(err, @r#"
     * At site User.echo, for the extension 'echo-1.0.0' directive @echo: Unknown field 'unknown' on type 'User'
-    22 |   age: Int! @join__field(graph: A)
-    23 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "unknown"}) @join__field(graph: B)
+    30 |   age: Int! @join__field(graph: A)
+    31 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "unknown"}) @join__field(graph: B)
                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    24 |   friends: [User!] @join__field(graph: A)
+    32 |   friends: [User!] @join__field(graph: A)
     "#);
 }
 
@@ -73,10 +73,10 @@ fn cannot_select_unknown_fields_nested() {
     let err = run_with_field_set(graphql_subgraph(), "friends { friends { address { unknown } } }").unwrap_err();
     insta::assert_snapshot!(err, @r#"
     * At site User.echo, for the extension 'echo-1.0.0' directive @echo: Unknown field 'unknown' on type 'Address' at path '.friends.friends.address'
-    22 |   age: Int! @join__field(graph: A)
-    23 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "friends { friends { address { unknown } } }"}) @join__field(graph: B)
+    30 |   age: Int! @join__field(graph: A)
+    31 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "friends { friends { address { unknown } } }"}) @join__field(graph: B)
                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    24 |   friends: [User!] @join__field(graph: A)
+    32 |   friends: [User!] @join__field(graph: A)
     "#);
 }
 
@@ -85,10 +85,10 @@ fn composite_type_cannot_be_a_leaf() {
     let err = run_with_field_set(graphql_subgraph(), "id address").unwrap_err();
     insta::assert_snapshot!(err, @r#"
     * At site User.echo, for the extension 'echo-1.0.0' directive @echo: Leaf field 'address' must be a scalar or an enum, but is a Address.
-    22 |   age: Int! @join__field(graph: A)
-    23 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "id address"}) @join__field(graph: B)
+    30 |   age: Int! @join__field(graph: A)
+    31 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "id address"}) @join__field(graph: B)
                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    24 |   friends: [User!] @join__field(graph: A)
+    32 |   friends: [User!] @join__field(graph: A)
     "#);
 }
 
@@ -97,10 +97,10 @@ fn composite_type_cannot_be_a_leaf_nested() {
     let err = run_with_field_set(graphql_subgraph(), "id friends { address }").unwrap_err();
     insta::assert_snapshot!(err, @r#"
     * At site User.echo, for the extension 'echo-1.0.0' directive @echo: Leaf field 'address' at path '.friends' must be a scalar or an enum, but is a Address.
-    22 |   age: Int! @join__field(graph: A)
-    23 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "id friends { address }"}) @join__field(graph: B)
+    30 |   age: Int! @join__field(graph: A)
+    31 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "id friends { address }"}) @join__field(graph: B)
                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    24 |   friends: [User!] @join__field(graph: A)
+    32 |   friends: [User!] @join__field(graph: A)
     "#);
 }
 
@@ -109,10 +109,10 @@ fn scalars_cannot_have_selection_set() {
     let err = run_with_field_set(graphql_subgraph(), "name { __typename }").unwrap_err();
     insta::assert_snapshot!(err, @r#"
     * At site User.echo, for the extension 'echo-1.0.0' directive @echo: Field 'name' cannot have a selection set, it's a String!. Only interfaces, unions and objects can.
-    22 |   age: Int! @join__field(graph: A)
-    23 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "name { __typename }"}) @join__field(graph: B)
+    30 |   age: Int! @join__field(graph: A)
+    31 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "name { __typename }"}) @join__field(graph: B)
                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    24 |   friends: [User!] @join__field(graph: A)
+    32 |   friends: [User!] @join__field(graph: A)
     "#);
 }
 
@@ -121,9 +121,9 @@ fn scalars_cannot_have_selection_set_nested() {
     let err = run_with_field_set(graphql_subgraph(), "name friends { name { __typename } }").unwrap_err();
     insta::assert_snapshot!(err, @r#"
     * At site User.echo, for the extension 'echo-1.0.0' directive @echo: Field 'name' at path '.friends' cannot have a selection set, it's a String!. Only interfaces, unions and objects can.
-    22 |   age: Int! @join__field(graph: A)
-    23 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "name friends { name { __typename } }"}) @join__field(graph: B)
+    30 |   age: Int! @join__field(graph: A)
+    31 |   echo: JSON @extension__directive(graph: B, extension: ECHO, name: "echo", arguments: {fields: "name friends { name { __typename } }"}) @join__field(graph: B)
                                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    24 |   friends: [User!] @join__field(graph: A)
+    32 |   friends: [User!] @join__field(graph: A)
     "#);
 }

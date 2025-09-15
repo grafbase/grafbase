@@ -14,6 +14,7 @@ mod ids;
 mod input_value_definitions;
 mod objects;
 mod render_sdl;
+mod roots;
 mod scalar_definitions;
 mod r#type;
 mod view;
@@ -32,6 +33,7 @@ pub(crate) use self::{
     extensions::*,
     ids::*,
     render_sdl::display_graphql_string_literal,
+    roots::*,
     scalar_definitions::ScalarDefinitionRecord,
     r#type::{Definition, Type},
     view::{View, ViewNested},
@@ -41,13 +43,14 @@ use enum_definitions::EnumDefinition;
 use scalar_definitions::ScalarDefinition;
 use std::{fmt, ops::Range};
 
-#[derive(Clone, Default)]
+#[derive(Default)]
 pub struct FederatedGraph {
     pub(crate) subgraphs: Vec<Subgraph>,
     pub extensions: Vec<Extension>,
     pub(crate) objects: Vec<Object>,
     pub(crate) interfaces: Vec<Interface>,
     pub(crate) fields: Vec<Field>,
+    pub(crate) roots: SchemaRoots,
 
     pub(crate) directive_definitions: Vec<DirectiveDefinitionRecord>,
     pub(crate) directive_definition_arguments: Vec<DirectiveDefinitionArgument>,
@@ -56,6 +59,7 @@ pub struct FederatedGraph {
     pub(crate) unions: Vec<Union>,
     pub(crate) input_objects: Vec<InputObject>,
     pub(crate) enum_values: Vec<EnumValueRecord>,
+    pub(crate) linked_schemas: Vec<LinkDirective>,
 
     /// All [input value definitions](http://spec.graphql.org/October2021/#InputValueDefinition) in the federated graph. Concretely, these are arguments of output fields, and input object fields.
     pub(crate) input_value_definitions: Vec<InputValueDefinition>,

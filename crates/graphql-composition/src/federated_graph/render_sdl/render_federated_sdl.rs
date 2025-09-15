@@ -1,7 +1,8 @@
-use itertools::Itertools;
+mod schema_definition;
 
 use super::{directive::write_directive, directive_definition::display_directive_definitions, display_utils::*};
 use crate::federated_graph::*;
+use itertools::Itertools;
 use std::fmt::{self, Display, Write};
 
 /// Render a GraphQL SDL string for a federated graph. It includes [join spec
@@ -10,6 +11,8 @@ pub fn render_federated_sdl(graph: &FederatedGraph) -> Result<String, fmt::Error
     let mut sdl = String::new();
 
     with_formatter(&mut sdl, |f| {
+        schema_definition::display_schema_definition(graph, f)?;
+
         display_directive_definitions(|_| true, directives_filter, graph, f)?;
 
         for scalar in graph.iter_scalar_definitions() {
@@ -500,7 +503,10 @@ mod tests {
         let empty = FederatedGraph::default();
 
         let actual = render_federated_sdl(&empty).expect("valid");
-        assert_eq!(actual, "\n");
+        assert_eq!(
+            actual,
+            "extend schema\n  @link(url: \"https://specs.apollo.dev/link/v1.0\")\n  @link(url: \"https://specs.apollo.dev/join/v0.3\", for: EXECUTION)\n  @link(url: \"https://specs.apollo.dev/inaccessible/v0.2\", for: SECURITY)\n"
+        );
     }
 
     #[test]
@@ -518,12 +524,20 @@ mod tests {
 
         let actual = render_federated_sdl(&empty).expect("valid");
         insta::assert_snapshot!(actual, @r#"
-            directive @dummy(test: String!) on FIELD
+        schema
+          @link(url: "https://specs.apollo.dev/link/v1.0")
+          @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+          @link(url: "https://specs.apollo.dev/inaccessible/v0.2", for: SECURITY)
+        {
+          query: Query
+        }
 
-            type Query
-            {
-              field: String @deprecated(reason: "This is a \"deprecated\" reason") @dummy(test: "a \"test\"")
-            }
+        directive @dummy(test: String!) on FIELD
+
+        type Query
+        {
+          field: String @deprecated(reason: "This is a \"deprecated\" reason") @dummy(test: "a \"test\"")
+        }
         "#);
     }
 
@@ -548,12 +562,20 @@ mod tests {
 
         let actual = render_federated_sdl(&empty).expect("valid");
         insta::assert_snapshot!(actual, @r#"
-            directive @dummy(test: String!) on FIELD
+        schema
+          @link(url: "https://specs.apollo.dev/link/v1.0")
+          @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+          @link(url: "https://specs.apollo.dev/inaccessible/v0.2", for: SECURITY)
+        {
+          query: Query
+        }
 
-            type Query
-            {
-              field: String @deprecated(reason: "This is a \"deprecated\" reason\n\non multiple lines.\n\nyes, way") @dummy(test: "a \"test\"")
-            }
+        directive @dummy(test: String!) on FIELD
+
+        type Query
+        {
+          field: String @deprecated(reason: "This is a \"deprecated\" reason\n\non multiple lines.\n\nyes, way") @dummy(test: "a \"test\"")
+        }
         "#);
     }
 
@@ -576,16 +598,21 @@ mod tests {
         insta::assert_snapshot!(
             &rendered,
             @r#"
-            interface b
-              @join__type(graph: a)
-            {
-              c: String
-            }
+        extend schema
+          @link(url: "https://specs.apollo.dev/link/v1.0")
+          @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+          @link(url: "https://specs.apollo.dev/inaccessible/v0.2", for: SECURITY)
 
-            enum join__Graph
-            {
-              a @join__graph(name: "mocksubgraph", url: "https://mock.example.com/todo/graphql")
-            }
+        interface b
+          @join__type(graph: a)
+        {
+          c: String
+        }
+
+        enum join__Graph
+        {
+          a @join__graph(name: "mocksubgraph", url: "https://mock.example.com/todo/graphql")
+        }
         "#
         );
 

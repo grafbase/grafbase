@@ -3,6 +3,14 @@ source: crates/graphql-composition/tests/composition_tests.rs
 expression: "Internal fields should not appear in the composite schema, but they should be represented in the composite execution schema.\n\nAlso, internal fields do not count toward field collisions"
 input_file: crates/graphql-composition/tests/composition/composite_schemas/basic/composite_schemas_internal_basic/test.md
 ---
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+  @link(url: "https://specs.apollo.dev/inaccessible/v0.2", for: SECURITY)
+{
+  query: Query
+}
+
 directive @composite__lookup on FIELD_DEFINITION
 
 directive @composite__internal on OBJECT | FIELD_DEFINITION

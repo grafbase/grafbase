@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-## Fixes
+### Improvements
+
+- The federated schema now contains a schema extension or definition, with the root types, the `@link` declarations for the directives used in the federated schema, as well as any `@link`ed schema from the subgraphs for directives that are propagated to the federated schema with `@composeDirective`. (https://github.com/grafbase/grafbase/pull/3519)
+
+### Fixes
 
 - There were inconsistencies in what types of subgraphs (no imports, federation v2 import, composite schemas import, with and without associated url) would recognize `@cost` and `@listSize` as built-in directives. This release fixes the inconsistency and treats them as built-ins everywhere. (https://github.com/grafbase/grafbase/pull/3485)
 

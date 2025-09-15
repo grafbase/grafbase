@@ -29,7 +29,7 @@ use self::{
 
 /// Compose subgraphs into a federated graph.
 pub fn compose(subgraphs: &mut Subgraphs) -> CompositionResult {
-    subgraphs.sort_post_ingestion();
+    subgraphs.sort_pre_composition();
 
     let mut diagnostics = Diagnostics::default();
 

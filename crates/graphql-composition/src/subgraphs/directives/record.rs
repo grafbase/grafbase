@@ -18,5 +18,6 @@ pub(crate) enum DirectiveProvenance {
         /// Has the directive been composed with `@composeDirective`?
         is_composed_directive: bool,
     },
+    /// Composed directive without a linked schema.
     ComposedDirective,
 }

@@ -12,6 +12,7 @@ pub(super) struct Context<'a> {
     pub(super) field_types_map: FieldTypesMap,
     pub(super) selection_map: HashMap<(federated::Definition, subgraphs::StringId), federated::FieldId>,
     pub(super) definitions: HashMap<federated::StringId, federated::Definition>,
+    pub(super) composed_directive_linked_schemas: Vec<(subgraphs::LinkedSchemaId, federated::StringId)>,
 
     pub(super) used_directives: UsedDirectives,
 
@@ -34,6 +35,7 @@ impl<'a> Context<'a> {
             field_types_map: FieldTypesMap::default(),
             used_extensions: ir.used_extensions.clone(),
             used_directives: UsedDirectives::empty(),
+            composed_directive_linked_schemas: Vec::new(),
         }
     }
 

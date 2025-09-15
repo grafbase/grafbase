@@ -3,6 +3,14 @@ source: crates/graphql-composition/tests/composition_tests.rs
 expression: "Check that `@link` imports are only valid for the subgraph that define the import. The import for the composite schemas spec `@key` should lead to `resolvable: false` only in the subgraph where it is imported."
 input_file: crates/graphql-composition/tests/composition/link_import_scoping/test.md
 ---
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+  @link(url: "https://specs.apollo.dev/inaccessible/v0.2", for: SECURITY)
+{
+  query: Query
+}
+
 directive @composite__lookup on FIELD_DEFINITION
 
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION

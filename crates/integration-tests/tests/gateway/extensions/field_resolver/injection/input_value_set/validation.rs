@@ -129,10 +129,10 @@ fn invalid_location() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query, for the extension 'echo-1.0.0' directive @echo: InputValueSet can only be used in directive applied on FIELD_DEFINITION, but found on OBJECT
-        17 | type Query
-        18 |   @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "something"})
+        25 | type Query
+        26 |   @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "something"})
                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        19 | {
+        27 | {
         "#);
     });
 }
@@ -176,10 +176,10 @@ fn unknown_field() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Unknown input value 'unknown'
-        18 | {
-        19 |   echo(first: Int, limit: Int, after: String, filters: Filters): JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "unknown"}) @join__field(graph: A)
+        26 | {
+        27 |   echo(first: Int, limit: Int, after: String, filters: Filters): JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "unknown"}) @join__field(graph: A)
                                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        20 | }
+        28 | }
         "#);
     });
 }
@@ -223,10 +223,10 @@ fn unknown_nested_field() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Unknown input value 'unknown' at path '.filters.nested'
-        18 | {
-        19 |   echo(first: Int, limit: Int, after: String, filters: Filters): JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "filters { nested { unknown } }"}) @join__field(graph: A)
+        26 | {
+        27 |   echo(first: Int, limit: Int, after: String, filters: Filters): JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "filters { nested { unknown } }"}) @join__field(graph: A)
                                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        20 | }
+        28 | }
         "#);
     });
 }
@@ -270,10 +270,10 @@ fn cannot_have_selection_set() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Type String cannot have a selecction set at path '.after'
-        18 | {
-        19 |   echo(first: Int, limit: Int, after: String, filters: Filters): JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "after { something }"}) @join__field(graph: A)
+        26 | {
+        27 |   echo(first: Int, limit: Int, after: String, filters: Filters): JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "after { something }"}) @join__field(graph: A)
                                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        20 | }
+        28 | }
         "#);
     });
 }
@@ -317,10 +317,10 @@ fn cannot_have_fragments() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Cannot use fragments inside a InputValueSet
-        18 | {
-        19 |   echo(first: Int, limit: Int, after: String, filters: Filters): JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "filters { ... {  latest } }"}) @join__field(graph: A)
+        26 | {
+        27 |   echo(first: Int, limit: Int, after: String, filters: Filters): JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "filters { ... {  latest } }"}) @join__field(graph: A)
                                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        20 | }
+        28 | }
         "#);
     });
 }
@@ -364,10 +364,10 @@ fn must_be_valid_selection_set() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Could not parse InputValueSet: unexpected closing brace ('}') token (expected one of , "..."RawIdent, schema, query, mutation, subscription, ty, input, true, false, null, implements, interface, "enum", union, scalar, extend, directive, repeatable, on, fragment)
-        18 | {
-        19 |   echo(first: Int, limit: Int, after: String, filters: Filters): JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "filters {"}) @join__field(graph: A)
+        26 | {
+        27 |   echo(first: Int, limit: Int, after: String, filters: Filters): JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: "filters {"}) @join__field(graph: A)
                                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        20 | }
+        28 | }
         "#);
     });
 }

@@ -557,10 +557,10 @@ fn no_arguments() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productLookup, for directive @lookup no matching @key directive was found
-        35 | {
-        36 |   productLookup: Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        43 | {
+        44 |   productLookup: Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        37 |   products: [Product!]! @join__field(graph: GQL)
+        45 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -604,10 +604,10 @@ fn no_matching_argument() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productLookup, for directive @lookup no matching @key directive was found
-        35 | {
-        36 |   productLookup(somethign: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        43 | {
+        44 |   productLookup(somethign: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        37 |   products: [Product!]! @join__field(graph: GQL)
+        45 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -651,10 +651,10 @@ fn no_matching_nested_field() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productLookup, for directive @lookup no matching @key directive was found
-        35 | {
-        36 |   productLookup(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        43 | {
+        44 |   productLookup(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        37 |   products: [Product!]! @join__field(graph: GQL)
+        45 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -694,10 +694,10 @@ fn arg_good_name_bad_type() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productLookup, for directive @lookup no matching @key directive was found
-        35 | {
-        36 |   productLookup(nested: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        43 | {
+        44 |   productLookup(nested: Int): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        37 |   products: [Product!]! @join__field(graph: GQL)
+        45 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -741,10 +741,10 @@ fn field_good_name_bad_type() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productLookup, for directive @lookup no matching @key directive was found
-        35 | {
-        36 |   productLookup(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        43 | {
+        44 |   productLookup(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        37 |   products: [Product!]! @join__field(graph: GQL)
+        45 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -788,10 +788,10 @@ fn good_name_but_a_list() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productLookup, for directive @lookup no matching @key directive was found
-        35 | {
-        36 |   productLookup(nested: [NestedInput!]): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        43 | {
+        44 |   productLookup(nested: [NestedInput!]): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        37 |   products: [Product!]! @join__field(graph: GQL)
+        45 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -835,10 +835,10 @@ fn ambiguous_multiple_arg_matches() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productLookup, for directive @lookup no matching @key directive was found
-        35 | {
-        36 |   productLookup(a: NestedInput!, b: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        43 | {
+        44 |   productLookup(a: NestedInput!, b: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        37 |   products: [Product!]! @join__field(graph: GQL)
+        45 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -883,10 +883,10 @@ fn ambiguous_multiple_field_matches() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productLookup, for directive @lookup no matching @key directive was found
-        35 | {
-        36 |   productLookup(a: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        43 | {
+        44 |   productLookup(a: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        37 |   products: [Product!]! @join__field(graph: GQL)
+        45 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -930,10 +930,10 @@ fn extra_required_argument() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productLookup, for directive @lookup no matching @key directive was found
-        35 | {
-        36 |   productLookup(nested: NestedInput!, required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        43 | {
+        44 |   productLookup(nested: NestedInput!, required: Boolean!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        37 |   products: [Product!]! @join__field(graph: GQL)
+        45 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -978,10 +978,10 @@ fn extra_required_field() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productLookup, for directive @lookup no matching @key directive was found
-        35 | {
-        36 |   productLookup(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        43 | {
+        44 |   productLookup(nested: NestedInput!): Product! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        37 |   products: [Product!]! @join__field(graph: GQL)
+        45 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
