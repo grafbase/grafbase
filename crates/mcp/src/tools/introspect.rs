@@ -1,18 +1,17 @@
 use std::borrow::Cow;
+use std::sync::Arc;
 
+use engine_schema::Schema;
 use http::request::Parts;
 use rmcp::model::CallToolResult;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use super::{SdlAndErrors, SearchTool, Tool, sdl::PartialSdl};
-use crate::EngineWatcher;
+use super::{SdlAndErrors, Tool, sdl::PartialSdl};
 
-pub struct IntrospectTool<R: engine::Runtime> {
-    engine: EngineWatcher<R>,
-}
+pub struct IntrospectTool;
 
-impl<R: engine::Runtime> Tool for IntrospectTool<R> {
+impl Tool for IntrospectTool {
     type Parameters = IntrospectionParameters;
 
     fn name() -> &'static str {
@@ -20,16 +19,16 @@ impl<R: engine::Runtime> Tool for IntrospectTool<R> {
     }
 
     fn description(&self) -> Cow<'_, str> {
-        format!("Provide the complete GraphQL SDL for the requested types. Always use `{}` first to identify relevant fields before if information on a specific type was not explicitly requested. Continue using this tool until you have the definition of all nested types you intend to query.", SearchTool::<R>::name()).into()
+        "Provide the complete GraphQL SDL for the requested types. Always use `search` first to identify relevant fields before if information on a specific type was not explicitly requested. Continue using this tool until you have the definition of all nested types you intend to query.".into()
     }
 
-    async fn call(&self, parts: Parts, parameters: Self::Parameters) -> anyhow::Result<CallToolResult> {
-        let engine = self.engine.borrow().clone();
-        let schema = engine
-            .get_schema(&parts)
-            .await
-            .map_err(|err| anyhow::anyhow!(err.into_owned()))?;
-        Ok(self.introspect(&schema, parameters.types).into())
+    async fn call(
+        &self,
+        _parts: Parts,
+        parameters: Self::Parameters,
+        schema: Arc<Schema>,
+    ) -> anyhow::Result<CallToolResult> {
+        Ok(Self::introspect(&schema, parameters.types).into())
     }
 
     fn annotations(&self) -> rmcp::model::ToolAnnotations {
@@ -42,18 +41,18 @@ pub struct IntrospectionParameters {
     types: Vec<String>,
 }
 
-impl<R: engine::Runtime> IntrospectTool<R> {
-    pub fn new(engine: &EngineWatcher<R>) -> Self {
-        Self { engine: engine.clone() }
+impl IntrospectTool {
+    pub fn new() -> Self {
+        Self
     }
 
-    fn introspect(&self, schema: &engine::Schema, types: Vec<String>) -> SdlAndErrors {
+    fn introspect(schema: &Schema, types: Vec<String>) -> SdlAndErrors {
         let mut site_ids = Vec::new();
         let mut errors = Vec::new();
 
         for type_name in types {
             let Some(type_definition) = schema.type_definition_by_name(&type_name) else {
-                errors.push(format!("Type '{type_name}' not found"));
+                errors.push(format!("Type '{type_name}' not found").into());
                 continue;
             };
 

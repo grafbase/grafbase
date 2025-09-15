@@ -1,6 +1,7 @@
 mod graphql;
 mod health;
 pub(crate) mod layers;
+mod mcp;
 mod public_metadata;
 mod state;
 
@@ -152,7 +153,9 @@ where
     //
     let ct = match &config.mcp {
         Some(mcp_config) if mcp_config.enabled => {
-            let (mcp_router, ct) = grafbase_mcp::router(&engine, mcp_config);
+            let (mcp_router, ct) = self::mcp::router(&engine, &config.graph.contracts, mcp_config)
+                .await
+                .map_err(|err| crate::Error::InternalError(err.to_string()))?;
             router = router.merge(
                 mcp_router.layer(
                     common_layers

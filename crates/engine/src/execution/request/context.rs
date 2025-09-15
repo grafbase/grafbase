@@ -15,7 +15,6 @@ pub(crate) struct EarlyHttpContext {
     pub response_format: ResponseFormat,
     pub content_type: ContentType,
     pub include_grafbase_response_extension: bool,
-    pub include_mcp_response_extension: bool,
 }
 
 /// Context associated with the HTTP request. For batch requests and a websocket session, a single RequestContext is
@@ -29,7 +28,6 @@ pub(crate) struct RequestContext {
     pub token: Token,
     pub subgraph_default_headers: http::HeaderMap,
     pub include_grafbase_response_extension: bool,
-    pub include_mcp_response_extension: bool,
     pub event_queue: Arc<EventQueue>,
     pub hooks_context: Arc<[u8]>,
 }

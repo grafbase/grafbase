@@ -3,18 +3,16 @@ mod introspect;
 mod sdl;
 mod search;
 
+use engine_schema::Schema;
 pub use execute::*;
 use futures::future::BoxFuture;
 use http::request::Parts;
 pub use introspect::*;
 pub use search::*;
 use std::borrow::Cow;
+use std::sync::Arc;
 
-use rmcp::{
-    RoleServer,
-    model::{CallToolResult, Content, ErrorCode, ErrorData, JsonObject, ToolAnnotations},
-    service::RequestContext,
-};
+use rmcp::model::{CallToolResult, Content, ErrorCode, ErrorData, JsonObject, ToolAnnotations};
 
 pub(crate) trait Tool: Send + Sync + 'static {
     type Parameters: serde::de::DeserializeOwned + schemars::JsonSchema;
@@ -24,6 +22,7 @@ pub(crate) trait Tool: Send + Sync + 'static {
         &self,
         parts: Parts,
         parameters: Self::Parameters,
+        schema: Arc<Schema>,
     ) -> impl Future<Output = anyhow::Result<CallToolResult>> + Send;
     fn annotations(&self) -> ToolAnnotations;
 }
@@ -33,8 +32,9 @@ pub(crate) trait RmcpTool: Send + Sync + 'static {
     fn to_tool(&self) -> rmcp::model::Tool;
     fn call(
         &self,
-        ctx: RequestContext<RoleServer>,
+        parts: Parts,
         parameters: Option<JsonObject>,
+        schema: Arc<Schema>,
     ) -> BoxFuture<'_, Result<CallToolResult, ErrorData>>;
 }
 
@@ -55,19 +55,15 @@ impl<T: Tool> RmcpTool for T {
 
     fn call(
         &self,
-        mut ctx: RequestContext<RoleServer>,
+        parts: Parts,
         parameters: Option<JsonObject>,
+        schema: Arc<Schema>,
     ) -> BoxFuture<'_, Result<CallToolResult, ErrorData>> {
-        let parts = ctx
-            .extensions
-            .remove::<Parts>()
-            .unwrap_or_else(|| http::Request::builder().body(Vec::<u8>::new()).unwrap().into_parts().0);
-
         Box::pin(async move {
             let parameters: T::Parameters =
                 serde_json::from_value(serde_json::Value::Object(parameters.unwrap_or_default()))
                     .map_err(|err| ErrorData::new(ErrorCode::INVALID_PARAMS, err.to_string(), None))?;
-            match Tool::call(self, parts, parameters).await {
+            match Tool::call(self, parts, parameters, schema).await {
                 Ok(data) => Ok(data),
                 Err(err) => Err(ErrorData::new(ErrorCode::INTERNAL_ERROR, err.to_string(), None)),
             }
@@ -77,27 +73,34 @@ impl<T: Tool> RmcpTool for T {
 
 struct SdlAndErrors {
     sdl: String,
-    errors: Vec<String>,
+    errors: Vec<Cow<'static, str>>,
 }
 
 impl From<SdlAndErrors> for CallToolResult {
     fn from(SdlAndErrors { sdl, errors }: SdlAndErrors) -> Self {
-        let mut content = Vec::new();
-        if !sdl.is_empty() {
-            content.push(Content::text(sdl));
-        }
-        if !errors.is_empty() {
-            content.push(Content::json(ErrorList { errors }).unwrap());
-        }
+        let out = if !errors.is_empty() {
+            const ERROR_TITLE: &str = "Errors:\n";
+            const SDL_TITLE: &str = "\n== GraphQL SDL ==\n";
+            let mut out = String::with_capacity(
+                SDL_TITLE.len() + ERROR_TITLE.len() + sdl.len() + errors.iter().map(|err| err.len() + 1).sum::<usize>(),
+            );
+            out.push_str(ERROR_TITLE);
+            for err in &errors {
+                out.push_str(err);
+                out.push('\n');
+            }
+            if !sdl.is_empty() {
+                out.push_str(SDL_TITLE);
+                out.push_str(&sdl);
+            }
+            out
+        } else {
+            sdl
+        };
         CallToolResult {
-            content: Some(content),
+            content: Some(vec![Content::text(out)]),
             structured_content: None,
             is_error: None,
         }
     }
-}
-
-#[derive(serde::Serialize)]
-struct ErrorList<T> {
-    errors: Vec<T>,
 }

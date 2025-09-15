@@ -34,7 +34,7 @@ use std::{
 
 pub use self::{
     log_level::*,
-    mcp::{McpTransport, ModelControlProtocolConfig},
+    mcp::{MCPConfig, McpTransport},
     subscription_protocol::SubscriptionProtocol,
     trusted_documents::*,
     websockets_config::WebsocketsConfig,
@@ -222,7 +222,7 @@ pub struct Config {
     /// Websockets configuration
     pub websockets: WebsocketsConfig,
     /// Model Control Protocol configuration
-    pub mcp: Option<ModelControlProtocolConfig>,
+    pub mcp: Option<MCPConfig>,
     pub wasm: Option<WasmConfig>,
 }
 
@@ -2370,10 +2370,10 @@ mod tests {
 
         insta::assert_debug_snapshot!(&config.mcp, @r#"
         Some(
-            ModelControlProtocolConfig {
+            MCPConfig {
                 enabled: false,
                 path: "/mcp",
-                execute_mutations: false,
+                can_mutate: false,
                 transport: StreamingHttp,
             },
         )
@@ -2391,10 +2391,10 @@ mod tests {
 
         insta::assert_debug_snapshot!(&config.mcp, @r#"
         Some(
-            ModelControlProtocolConfig {
+            MCPConfig {
                 enabled: false,
                 path: "/mcp",
-                execute_mutations: false,
+                can_mutate: false,
                 transport: Sse,
             },
         )

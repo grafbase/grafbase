@@ -155,3 +155,9 @@ impl std::fmt::Display for GraphqlError {
         self.message.fmt(f)
     }
 }
+
+impl From<operation::Error> for GraphqlError {
+    fn from(err: operation::Error) -> Self {
+        GraphqlError::new(err.message, err.kind.into()).with_locations(err.locations)
+    }
+}

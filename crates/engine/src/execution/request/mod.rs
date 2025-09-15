@@ -21,7 +21,6 @@ use std::{future::Future, sync::Arc};
 use crate::{
     Body, ContractAwareEngine, Engine, RequestExtensions, Runtime,
     graphql_over_http::{ContentType, ResponseFormat},
-    mcp::McpRequestContext,
     response::Response,
     websocket::InitPayload,
 };
@@ -58,20 +57,14 @@ impl<R: Runtime> ContractAwareEngine<R> {
         let include_grafbase_response_extension =
             should_include_grafbase_response_extension(&self.no_contract.schema.config, &parts.headers);
 
-        let mut ctx = EarlyHttpContext {
+        let ctx = EarlyHttpContext {
             can_mutate: !parts.method.is_safe(),
             method: parts.method,
             uri: parts.uri,
             response_format,
             content_type,
             include_grafbase_response_extension,
-            include_mcp_response_extension: false,
         };
-
-        if let Some(mcp) = parts.extensions.get::<McpRequestContext>() {
-            ctx.can_mutate &= mcp.execute_mutations;
-            ctx.include_mcp_response_extension = true;
-        }
 
         let parts = Parts {
             ctx,
@@ -120,7 +113,6 @@ impl<R: Runtime> Engine<R> {
             token: extensions.token,
             subgraph_default_headers,
             include_grafbase_response_extension: ctx.include_grafbase_response_extension,
-            include_mcp_response_extension: ctx.include_mcp_response_extension,
             event_queue: extensions.event_queue,
             hooks_context: extensions.hooks_context,
         };
