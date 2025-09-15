@@ -188,11 +188,6 @@ pub(crate) fn from_sdl(sdl: &str) -> Result<FederatedGraph, DomainError> {
     let parsed = cynic_parser::parse_type_system_document(sdl).map_err(|err| crate::DomainError(err.to_string()))?;
     let mut state = State::default();
 
-    state.graph.strings.clear();
-    state.graph.objects.clear();
-    state.graph.fields.clear();
-    state.graph.scalar_definitions.clear();
-
     ingest_definitions(&parsed, &mut state)?;
     ingest_schema_and_directive_definitions(&parsed, &mut state)?;
 
@@ -284,6 +279,29 @@ fn ingest_schema_definition(schema: ast::SchemaDefinition<'_>, state: &mut State
         if name != "link" {
             return Err(DomainError(format!("Unsupported directive {name} on schema.")));
         }
+
+        let Some(url) = directive.argument("url").and_then(|arg| arg.value().as_str()) else {
+            continue;
+        };
+
+        if url.starts_with("https://specs.apollo.dev") {
+            continue;
+        }
+
+        let url = state.insert_string(url);
+
+        let imports = directive
+            .argument("import")
+            .and_then(|import| import.value().as_list())
+            .map(|list| {
+                list.into_iter()
+                    .filter_map(|item| item.as_str())
+                    .map(|s| state.insert_string(s.trim_start_matches("@")))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        state.graph.linked_schemas.push(LinkDirective { url, imports });
     }
 
     if let Some(query) = schema.query_type() {
@@ -425,6 +443,19 @@ fn ingest_definitions<'a>(document: &'a ast::TypeSystemDocument, state: &mut Sta
                             implements_interfaces: Vec::new(),
                             fields: NO_FIELDS,
                         }));
+
+                        match type_name {
+                            "Query" => {
+                                state.graph.roots.query = Some(object_id);
+                            }
+                            "Mutation" => {
+                                state.graph.roots.mutation = Some(object_id);
+                            }
+                            "Subscription" => {
+                                state.graph.roots.subscription = Some(object_id);
+                            }
+                            _ => {}
+                        }
 
                         state.definition_names.insert(type_name, Definition::Object(object_id));
                     }
@@ -1300,72 +1331,80 @@ fn test_join_field_type() {
     insta::assert_snapshot!(
         &actual,
         @r#"
-        directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
+    schema
+      @link(url: "https://specs.apollo.dev/link/v1.0")
+      @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+      @link(url: "https://specs.apollo.dev/inaccessible/v0.2", for: SECURITY)
+    {
+      query: Query
+    }
 
-        directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+    directive @join__enumValue(graph: join__Graph!) on ENUM_VALUE
 
-        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+    directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
 
-        directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+    directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
-        directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+    directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
 
-        directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+    directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true, isInterfaceObject: Boolean! = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
 
-        directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) on SCHEMA
+    directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
-        scalar join__FieldSet
+    directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) on SCHEMA
 
-        scalar link__Import
+    scalar join__FieldSet
 
-        type Admin
-          @join__type(graph: B)
-        {
-          id: ID
-          name: String
-          similarAccounts: [Account!]!
-        }
+    scalar link__Import
 
-        type Query
-          @join__type(graph: A)
-          @join__type(graph: B)
-        {
-          users: [User!]! @join__field(graph: A)
-          accounts: [Account!]! @join__field(graph: B)
-        }
+    type Admin
+      @join__type(graph: B)
+    {
+      id: ID
+      name: String
+      similarAccounts: [Account!]!
+    }
 
-        type User
-          @join__type(graph: A)
-          @join__type(graph: B, key: "id")
-        {
-          id: ID @join__field(graph: A, type: "ID") @join__field(graph: B, type: "ID!")
-          name: String @join__field(graph: B)
-          similarAccounts: [Account!]! @join__field(graph: B)
-        }
+    type Query
+      @join__type(graph: A)
+      @join__type(graph: B)
+    {
+      users: [User!]! @join__field(graph: A)
+      accounts: [Account!]! @join__field(graph: B)
+    }
 
-        enum join__Graph
-        {
-          A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
-          B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
-        }
+    type User
+      @join__type(graph: A)
+      @join__type(graph: B, key: "id")
+    {
+      id: ID @join__field(graph: A, type: "ID") @join__field(graph: B, type: "ID!")
+      name: String @join__field(graph: B)
+      similarAccounts: [Account!]! @join__field(graph: B)
+    }
 
-        enum link__Purpose
-        {
-          """
-          `SECURITY` features provide metadata necessary to securely resolve fields.
-          """
-          SECURITY
-          """
-          `EXECUTION` features provide metadata necessary for operation execution.
-          """
-          EXECUTION
-        }
+    enum join__Graph
+    {
+      A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
+      B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
+    }
 
-        union Account
-          @join__type(graph: B)
-          @join__unionMember(graph: B, member: "User")
-          @join__unionMember(graph: B, member: "Admin")
-         = User | Admin
+    enum link__Purpose
+    {
+      """
+      `SECURITY` features provide metadata necessary to securely resolve fields.
+      """
+      SECURITY
+      """
+      `EXECUTION` features provide metadata necessary for operation execution.
+      """
+      EXECUTION
+    }
+
+    union Account
+      @join__type(graph: B)
+      @join__unionMember(graph: B, member: "User")
+      @join__unionMember(graph: B, member: "Admin")
+     = User | Admin
     "#);
 }
 
@@ -1412,37 +1451,45 @@ async fn load_with_extensions() {
     let rendered_sdl = crate::render_federated_sdl(&FederatedGraph::from_sdl(sdl).unwrap()).unwrap();
 
     insta::assert_snapshot!(rendered_sdl, @r#"
-        directive @join__type(graph: join__Graph!, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
+    schema
+      @link(url: "https://specs.apollo.dev/link/v1.0")
+      @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+      @link(url: "https://specs.apollo.dev/inaccessible/v0.2", for: SECURITY)
+    {
+      query: Query
+    }
 
-        directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
+    directive @join__type(graph: join__Graph!, key: join__FieldSet, resolvable: Boolean = true) on OBJECT | INTERFACE
 
-        directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+    directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet) on FIELD_DEFINITION
 
-        scalar join__FieldSet
+    directive @join__graph(name: String!, url: String!) on ENUM_VALUE
 
-        scalar link__Import
+    scalar join__FieldSet
 
-        type Query
-          @join__type(graph: A)
-        {
-          users: [User!]! @extension__directive(graph: A, extension: REST, name: "rest", arguments: {method: GET})
-        }
+    scalar link__Import
 
-        type User
-          @join__type(graph: A)
-        {
-          id: ID!
-        }
+    type Query
+      @join__type(graph: A)
+    {
+      users: [User!]! @extension__directive(graph: A, extension: REST, name: "rest", arguments: {method: GET})
+    }
 
-        enum join__Graph
-        {
-          A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
-          B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
-        }
+    type User
+      @join__type(graph: A)
+    {
+      id: ID!
+    }
 
-        enum extension__Link
-        {
-          REST @extension__link(url: "file:///dummy", schemaDirectives: [{graph: A, name: "test", arguments: {method: "yes"}}])
-        }
+    enum join__Graph
+    {
+      A @join__graph(name: "a", url: "http://localhost:4200/child-type-mismatch/a")
+      B @join__graph(name: "b", url: "http://localhost:4200/child-type-mismatch/b")
+    }
+
+    enum extension__Link
+    {
+      REST @extension__link(url: "file:///dummy", schemaDirectives: [{graph: A, name: "test", arguments: {method: "yes"}}])
+    }
     "#);
 }

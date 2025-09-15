@@ -31,10 +31,10 @@ fn invalid_location() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.echo, extension echo-1.0.0 directive @meta used in the wrong location FIELD_DEFINITION, expected one of: SCHEMA
-        18 | {
-        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "meta", arguments: {}) @join__field(graph: A)
+        26 | {
+        27 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "meta", arguments: {}) @join__field(graph: A)
                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        20 | }
+        28 | }
         "#);
 
         // Invalid schema directive
@@ -64,10 +64,10 @@ fn invalid_location() {
 
         insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
         * At site subgraph named 'a', extension echo-1.0.0 directive @echo used in the wrong location SCHEMA, expected one of: FIELD_DEFINITION
-        28 | {
-        29 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "echo", arguments: {}}])
+        36 | {
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "echo", arguments: {}}])
                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 | }
+        38 | }
         "#);
     });
 }

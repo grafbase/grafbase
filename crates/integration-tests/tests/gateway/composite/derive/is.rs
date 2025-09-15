@@ -31,10 +31,10 @@ fn invalid_type() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Product.user, for directive @composite__derive: for associated @is directive: Cannot map Product.author_id (Int!) into User.id (ID!)
-        24 |   id: ID!
-        25 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{ id: author_id }")
+        32 |   id: ID!
+        33 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{ id: author_id }")
                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        26 | }
+        34 | }
         "#);
     })
 }
@@ -70,10 +70,10 @@ fn invalid_wrapping() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Product.user, for directive @composite__derive: for associated @is directive: Incompatible wrapping, cannot map Product.author_ids ([ID!]!) into User.id (ID!)
-        24 |   id: ID!
-        25 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{ id: author_ids }")
+        32 |   id: ID!
+        33 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{ id: author_ids }")
                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        26 | }
+        34 | }
         "#);
     })
 }
@@ -113,10 +113,10 @@ fn parsing_failure() {
          ^
         invalid object
 
-        24 |   id: ID!
-        25 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{[]}")
+        32 |   id: ID!
+        33 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{[]}")
                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        26 | }
+        34 | }
         "#);
     })
 }
@@ -156,13 +156,13 @@ fn federated_sdl_missing_field_argument() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r"
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Product.user, for directive @composite__derive: for associated @is directive: missing field: field
-        6 |   id: ID!
-        7 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT)
-                                                                       ^^^^^^^^^^^^
-        8 | }
-        ");
+        14 |   id: ID!
+        15 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT)
+                                                                        ^^^^^^^^^^^^
+        16 | }
+        "#);
     })
 }
 
@@ -203,10 +203,10 @@ fn federated_sdl_missing_graph_argument() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Product.user, for directive @composite__derive: for associated @is directive: missing field: graph
-        6 |   id: ID!
-        7 |   user: User! @composite__derive(graph: EXT) @composite__is(field: "{ id: author_id }")
-                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        8 | }
+        14 |   id: ID!
+        15 |   user: User! @composite__derive(graph: EXT) @composite__is(field: "{ id: author_id }")
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        16 | }
         "#);
     })
 }
@@ -246,13 +246,13 @@ fn federated_sdl_invalid_directive_argument_type() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r"
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Product.user, for directive @composite__derive: for associated @is directive: found a Int where we expected a String
-        6 |   id: ID!
-        7 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: 0)
-                                                                       ^^^^^^^^^^^^^^^^^^^^^^
-        8 | }
-        ");
+        14 |   id: ID!
+        15 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: 0)
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^
+        16 | }
+        "#);
     })
 }
 
@@ -293,10 +293,10 @@ fn federated_sdl_unknown_directive_argument() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Product.user, for directive @composite__derive: for associated @is directive: unknown field: yes
-        6 |   id: ID!
-        7 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{ id: author_id }", yes: true)
-                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        8 | }
+        14 |   id: ID!
+        15 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{ id: author_id }", yes: true)
+                                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        16 | }
         "#);
     })
 }
@@ -331,10 +331,10 @@ fn inexistent_field() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Product.user, for directive @composite__derive: for associated @is directive: Type Product does not have a field named 'non_existent_field'
-        23 |   id: ID!
-        24 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{ id: non_existent_field }")
+        31 |   id: ID!
+        32 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{ id: non_existent_field }")
                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        25 | }
+        33 | }
         "#);
     })
 }
@@ -369,10 +369,10 @@ fn inexistent_target_field() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Product.user, for directive @composite__derive: for associated @is directive: Product.user does not have a field named 'non_existent_field' or was present twice in the FieldSelectionMap
-        23 |   id: ID!
-        24 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{ non_existent_field: id }")
+        31 |   id: ID!
+        32 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{ non_existent_field: id }")
                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        25 | }
+        33 | }
         "#);
     })
 }
@@ -408,10 +408,10 @@ fn nullable_vs_required() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Product.user, for directive @composite__derive: for associated @is directive: Incompatible wrapping, cannot map Product.author_id (ID) into User.id (ID!)
-        24 |   id: ID!
-        25 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{ id: author_id }")
+        32 |   id: ID!
+        33 |   user: User! @composite__derive(graph: EXT) @composite__is(graph: EXT, field: "{ id: author_id }")
                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        26 | }
+        34 | }
         "#);
     })
 }

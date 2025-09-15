@@ -1,0 +1,6 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "The `@link`s should be carried over from the subgraphs to the federated schema, with the correct imports."
+input_file: crates/graphql-composition/tests/composition/federation_v2/compose_directive/compose_directive_link_composition/test.md
+---
+

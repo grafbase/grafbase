@@ -140,7 +140,8 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
         ir::Directive::Other {
             name,
             arguments,
-            provenance: ir::DirectiveProvenance::Builtin | ir::DirectiveProvenance::ComposeDirective,
+            provenance:
+                ir::DirectiveProvenance::Builtin | ir::DirectiveProvenance::ComposeDirective { linked_schema_id: None },
         } => federated::Directive::Other {
             name: *name,
             arguments: arguments
@@ -148,6 +149,23 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
                 .map(|(name, value)| (*name, ctx.insert_value(value)))
                 .collect(),
         },
+        ir::Directive::Other {
+            name,
+            arguments,
+            provenance:
+                ir::DirectiveProvenance::ComposeDirective {
+                    linked_schema_id: Some(linked_schema_id),
+                },
+        } => {
+            ctx.composed_directive_linked_schemas.push((*linked_schema_id, *name));
+            federated::Directive::Other {
+                name: *name,
+                arguments: arguments
+                    .iter()
+                    .map(|(name, value)| (*name, ctx.insert_value(value)))
+                    .collect(),
+            }
+        }
         ir::Directive::OneOf => federated::Directive::OneOf,
         ir::Directive::Other {
             name,

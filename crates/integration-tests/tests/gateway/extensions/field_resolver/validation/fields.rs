@@ -85,10 +85,10 @@ fn missing_required_field() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found a null where we expected a String! at path '.input.value'
-        18 | {
-        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: {}}) @join__field(graph: A)
+        26 | {
+        27 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: {}}) @join__field(graph: A)
                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        20 | }
+        28 | }
         "#);
 
         // Invalid schema directive
@@ -120,10 +120,10 @@ fn missing_required_field() {
 
         insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
         * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a null where we expected a String! at path '.input.value'
-        28 | {
-        29 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {input: {}}}])
+        36 | {
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {input: {}}}])
                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 | }
+        38 | }
         "#);
     });
 }
@@ -159,10 +159,10 @@ fn too_many_fields() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Input object EchoInput does not have a field named 'other' at path '.input'
-        18 | {
-        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: {value: "test", other: 1}}) @join__field(graph: A)
+        26 | {
+        27 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: {value: "test", other: 1}}) @join__field(graph: A)
                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        20 | }
+        28 | }
         "#);
 
         // Invalid schema directive
@@ -194,10 +194,10 @@ fn too_many_fields() {
 
         insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
         * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Input object EchoInput does not have a field named 'other' at path '.input'
-        28 | {
-        29 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {input: {value: "test", other: 1}}}])
+        36 | {
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {input: {value: "test", other: 1}}}])
                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 | }
+        38 | }
         "#);
     });
 }
@@ -233,10 +233,10 @@ fn not_an_object() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Found a List value where we expected a 'EchoInput' input object at path '.input'
-        18 | {
-        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: []}) @join__field(graph: A)
+        26 | {
+        27 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {input: []}) @join__field(graph: A)
                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        20 | }
+        28 | }
         "#);
 
         // Invalid schema directive
@@ -268,10 +268,10 @@ fn not_an_object() {
 
         insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
         * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a List value where we expected a 'EchoInput' input object at path '.input'
-        28 | {
-        29 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {input: []}}])
+        36 | {
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {input: []}}])
                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 | }
+        38 | }
         "#);
     });
 }

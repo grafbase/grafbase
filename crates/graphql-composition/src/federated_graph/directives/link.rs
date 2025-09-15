@@ -1,7 +1,12 @@
-use std::collections::HashMap;
-
+use crate::federated_graph as federated;
 use cynic_parser_deser::{ConstDeserializer, ValueDeserialize};
 use serde::Deserialize;
+use std::collections::HashMap;
+
+pub(crate) struct LinkDirective {
+    pub(crate) url: federated::StringId,
+    pub(crate) imports: Vec<federated::StringId>,
+}
 
 /// directive @link(
 ///   url: String!,
@@ -12,7 +17,7 @@ use serde::Deserialize;
 ///
 /// Source: https://specs.apollo.dev/link/v1.0/
 #[derive(Debug)]
-pub struct LinkDirective<'a> {
+pub struct LinkDirectiveDeserialize<'a> {
     pub url: &'a str,
     pub r#as: Option<&'a str>,
     pub import: Option<Vec<Import<'a>>>,
@@ -20,7 +25,7 @@ pub struct LinkDirective<'a> {
     pub r#for: Option<Purpose>,
 }
 
-impl<'a> ValueDeserialize<'a> for LinkDirective<'a> {
+impl<'a> ValueDeserialize<'a> for LinkDirectiveDeserialize<'a> {
     fn deserialize(input: cynic_parser_deser::DeserValue<'a>) -> Result<Self, cynic_parser_deser::Error> {
         let fields = input
             .as_object()
@@ -61,7 +66,7 @@ impl<'a> ValueDeserialize<'a> for LinkDirective<'a> {
             ));
         };
 
-        Ok(LinkDirective {
+        Ok(LinkDirectiveDeserialize {
             url,
             r#as,
             import,

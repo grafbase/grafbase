@@ -277,6 +277,7 @@ pub(super) fn write_description(
 pub(crate) enum AnyValue<'a> {
     Value(Cow<'a, Value>),
     String(Cow<'a, str>),
+    EnumValue(&'static str),
     Object(Vec<(&'static str, AnyValue<'a>)>),
     List(Vec<AnyValue<'a>>),
     FieldSet(SelectionSetDisplay<'a>),
@@ -302,6 +303,7 @@ impl std::fmt::Display for DisplayableAnyValue<'_> {
             AnyValue::FieldSet(v) => v.fmt(f),
             AnyValue::InputValueDefinitionSet(v) => v.fmt(f),
             AnyValue::String(s) => display_graphql_string_literal(s, f),
+            AnyValue::EnumValue(s) => f.write_str(s),
             AnyValue::DirectiveArguments(arguments) => write_arguments(self.graph, f, arguments),
             AnyValue::List(elems) => {
                 f.write_char('[')?;

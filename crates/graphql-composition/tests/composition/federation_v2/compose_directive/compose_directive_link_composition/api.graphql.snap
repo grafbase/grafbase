@@ -1,0 +1,84 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: "The `@link`s should be carried over from the subgraphs to the federated schema, with the correct imports."
+input_file: crates/graphql-composition/tests/composition/federation_v2/compose_directive/compose_directive_link_composition/test.md
+---
+directive @audit(action: String!) on FIELD_DEFINITION
+
+directive @retry(attempts: Int = 3, delay: Int = 1000) on FIELD_DEFINITION
+
+directive @deprecated(reason: String = "No longer supported") on FIELD_DEFINITION | ENUM_VALUE
+
+directive @rateLimit(max: Int!, window: String!) on FIELD_DEFINITION
+
+directive @cached(ttl: Int = 300) on FIELD_DEFINITION
+
+directive @validate(regex: String) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @custom__rateLimit(max: Int!, window: String!) on FIELD_DEFINITION
+
+enum ShipmentStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+  REFUND_REQUESTED
+}
+
+enum ServiceLevel {
+  STANDARD
+  EXPRESS
+  OVERNIGHT
+  ECONOMY
+}
+
+type Product {
+  id: ID!
+  name: String!
+  shippingCost: Float
+  stock: Int!
+  warehouse: Warehouse!
+  weight: Float
+}
+
+type Shipment {
+  carrier: Carrier!
+  estimatedDelivery: String
+  id: ID!
+  products: [Product!]!
+  status: ShipmentStatus!
+  trackingNumber: String!
+}
+
+type Carrier {
+  id: ID!
+  name: String!
+  serviceLevel: ServiceLevel!
+}
+
+type Warehouse {
+  capacity: Int!
+  id: ID!
+  inventory: [Product!]!
+  location: String!
+}
+
+type Query {
+  product(id: ID!): Product
+  shipment(id: ID!): Shipment
+  trackShipment(trackingNumber: String!): Shipment
+  warehouses: [Warehouse!]!
+}
+
+type Mutation {
+  cancelShipment(id: ID!): Shipment
+  createShipment(input: ShipmentInput!): Shipment
+  requestRefund(id: ID!): Shipment
+  updateStock(productId: ID!, quantity: Int!): Product
+}
+
+input ShipmentInput {
+  serviceLevel: ServiceLevel!
+  productIds: [ID!]!
+  carrierId: ID!
+}

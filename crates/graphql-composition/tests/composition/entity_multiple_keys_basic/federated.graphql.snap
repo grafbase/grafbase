@@ -3,6 +3,14 @@ source: crates/graphql-composition/tests/composition_tests.rs
 expression: Federated SDL
 input_file: crates/graphql-composition/tests/composition/entity_multiple_keys_basic/test.md
 ---
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+  @link(url: "https://specs.apollo.dev/inaccessible/v0.2", for: SECURITY)
+{
+  query: Query
+}
+
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE

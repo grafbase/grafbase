@@ -1,0 +1,68 @@
+directive @audit(action: String!) on FIELD_DEFINITION
+directive @retry(attempts: Int = 3, delay: Int = 1000) on FIELD_DEFINITION
+directive @deprecated(reason: String = "No longer supported") on FIELD_DEFINITION | ENUM_VALUE
+directive @rateLimit(max: Int!, window: String!) on FIELD_DEFINITION
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@external", "@requires", "@composeDirective"])
+  @link(url: "https://example.com/monitoring/v1.0", import: [{ name: "@log", as: "@audit" }, "@retry"])
+  @link(url: "https://example.com/lifecycle/v2.0", import: ["@deprecated"])
+  @link(url: "https://example.com/directives/v1.0", import: ["@rateLimit"])
+  @composeDirective(name: "@audit")
+  @composeDirective(name: "@retry")
+  @composeDirective(name: "@deprecated")
+  @composeDirective(name: "@rateLimit")
+
+type Product @key(fields: "id") {
+  id: ID!
+  name: String! @external
+  weight: Float @external
+  shippingCost: Float @requires(fields: "weight")
+}
+
+type Shipment @key(fields: "id") {
+  id: ID!
+  trackingNumber: String!
+  status: ShipmentStatus!
+  products: [Product!]!
+  estimatedDelivery: String @retry(attempts: 5, delay: 2000)
+  carrier: Carrier!
+}
+
+type Carrier {
+  id: ID!
+  name: String!
+  serviceLevel: ServiceLevel!
+}
+
+enum ShipmentStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED @deprecated(reason: "Use REFUND_REQUESTED instead")
+  REFUND_REQUESTED
+}
+
+enum ServiceLevel {
+  STANDARD
+  EXPRESS
+  OVERNIGHT
+  ECONOMY @deprecated
+}
+
+type Query {
+  shipment(id: ID!): Shipment @audit(action: "SHIPMENT_LOOKUP") @rateLimit(max: 100, window: "1m")
+  trackShipment(trackingNumber: String!): Shipment @retry
+}
+
+type Mutation {
+  createShipment(input: ShipmentInput!): Shipment @audit(action: "SHIPMENT_CREATE") @rateLimit(max: 10, window: "1m")
+  cancelShipment(id: ID!): Shipment @audit(action: "SHIPMENT_CANCEL") @deprecated(reason: "Use requestRefund instead")
+  requestRefund(id: ID!): Shipment @audit(action: "REFUND_REQUEST") @rateLimit(max: 5, window: "1m")
+}
+
+input ShipmentInput {
+  productIds: [ID!]!
+  carrierId: ID!
+  serviceLevel: ServiceLevel!
+}

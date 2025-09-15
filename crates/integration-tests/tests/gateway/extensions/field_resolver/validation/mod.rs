@@ -168,10 +168,10 @@ fn too_many_arguments() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Unknown argumant named 'other'
-        18 | {
-        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {value: "ste", other: 1}) @join__field(graph: A)
+        26 | {
+        27 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {value: "ste", other: 1}) @join__field(graph: A)
                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        20 | }
+        28 | }
         "#);
 
         // Invalid schema directive
@@ -201,10 +201,10 @@ fn too_many_arguments() {
 
         insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
         * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Unknown argumant named 'other'
-        28 | {
-        29 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: "str", other: 1}}])
+        36 | {
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: "str", other: 1}}])
                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 | }
+        38 | }
         "#);
     });
 }

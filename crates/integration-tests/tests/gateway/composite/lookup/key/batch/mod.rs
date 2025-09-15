@@ -482,10 +482,10 @@ fn no_arguments() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productBatch, for directive @lookup no matching @key directive was found
-        28 | {
-        29 |   productBatch: [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        36 | {
+        37 |   productBatch: [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 |   products: [Product!]! @join__field(graph: GQL)
+        38 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -521,10 +521,10 @@ fn no_matching_argument() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productBatch, for directive @lookup no matching @key directive was found
-        28 | {
-        29 |   productBatch(somethign: Int): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        36 | {
+        37 |   productBatch(somethign: Int): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 |   products: [Product!]! @join__field(graph: GQL)
+        38 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -560,10 +560,10 @@ fn cannot_inject_nullable_into_required() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productBatch, for directive @lookup no matching @key directive was found
-        28 | {
-        29 |   productBatch(id: [ID!]): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        36 | {
+        37 |   productBatch(id: [ID!]): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 |   products: [Product!]! @join__field(graph: GQL)
+        38 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -599,10 +599,10 @@ fn good_name_bad_type() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productBatch, for directive @lookup no matching @key directive was found
-        28 | {
-        29 |   productBatch(id: [Int]): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        36 | {
+        37 |   productBatch(id: [Int]): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 |   products: [Product!]! @join__field(graph: GQL)
+        38 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -638,10 +638,10 @@ fn good_name_not_a_list() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productBatch, for directive @lookup no matching @key directive was found
-        28 | {
-        29 |   productBatch(id: ID!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        36 | {
+        37 |   productBatch(id: ID!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 |   products: [Product!]! @join__field(graph: GQL)
+        38 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -677,10 +677,10 @@ fn ambiguous_multiple_matches() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productBatch, for directive @lookup no matching @key directive was found
-        28 | {
-        29 |   productBatch(a: [ID!], b: [ID!]): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        36 | {
+        37 |   productBatch(a: [ID!], b: [ID!]): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 |   products: [Product!]! @join__field(graph: GQL)
+        38 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }
@@ -716,10 +716,10 @@ fn extra_required_argument() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productBatch, for directive @lookup no matching @key directive was found
-        28 | {
-        29 |   productBatch(ids: [ID!], required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
+        36 | {
+        37 |   productBatch(ids: [ID!], required: Boolean!): [Product!]! @composite__lookup(graph: EXT) @extension__directive(graph: EXT, extension: ECHO, name: "echo", arguments: {}) @join__field(graph: EXT)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        30 |   products: [Product!]! @join__field(graph: GQL)
+        38 |   products: [Product!]! @join__field(graph: GQL)
         "#);
     })
 }

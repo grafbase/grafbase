@@ -186,13 +186,13 @@ fn nested_but_unknown_fields() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r"
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productLookup, for directive @lookup Type Namespace doesn't define any keys with @key directive that may be used for @lookup. Tried treating it as a namespace type, but it didn't have any fields that may be used for @lookup.
-        18 | 
-        19 | type Namespace
+        26 | 
+        27 | type Namespace
              ^^^^^^^^^^^^^^
-        20 |   @join__type(graph: EXT)
-        ");
+        28 |   @join__type(graph: EXT)
+        "#);
     })
 }
 
@@ -235,12 +235,12 @@ fn multiple_entities() {
             .try_build()
             .await;
 
-        insta::assert_snapshot!(result.unwrap_err(), @r"
+        insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.productLookup, for directive @lookup Type Namespace doesn't define any keys with @key directive that may be used for @lookup. Tried treating it as a namespace type, but it has multiple fields that may be used for @lookup: product and account
-        18 | 
-        19 | type Namespace
+        26 | 
+        27 | type Namespace
              ^^^^^^^^^^^^^^
-        20 |   @join__type(graph: EXT)
-        ");
+        28 |   @join__type(graph: EXT)
+        "#);
     })
 }

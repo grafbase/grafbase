@@ -69,7 +69,9 @@ pub(super) fn collect_composed_directives(
 
         for directive in site.iter_extra_directives(ctx.subgraphs) {
             let provenance = match directive.provenance {
-                subgraphs::DirectiveProvenance::ComposedDirective => Some(ir::DirectiveProvenance::ComposeDirective),
+                subgraphs::DirectiveProvenance::ComposedDirective => {
+                    Some(ir::DirectiveProvenance::ComposeDirective { linked_schema_id: None })
+                }
                 subgraphs::DirectiveProvenance::Linked {
                     linked_schema_id,
                     is_composed_directive,
@@ -89,7 +91,9 @@ pub(super) fn collect_composed_directives(
                                 extension_id,
                             })
                         }
-                        (None, true) => Some(ir::DirectiveProvenance::ComposeDirective),
+                        (None, true) => Some(ir::DirectiveProvenance::ComposeDirective {
+                            linked_schema_id: Some(linked_schema_id),
+                        }),
                         (None, false) => None,
                     }
                 }

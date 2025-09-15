@@ -63,10 +63,10 @@ fn invalid_string() {
 
         insta::assert_snapshot!(result.unwrap_err(), @r#"
         * At site Query.echo, for the extension 'echo-1.0.0' directive @echo: Failed to coerce argument at path '.field': Found a Float value where we expected a String scalar at path '.value'
-        18 | {
-        19 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(value: 7.123)"}) @join__field(graph: A)
+        26 | {
+        27 |   echo: JSON @extension__directive(graph: A, extension: ECHO, name: "echo", arguments: {fields: "field(value: 7.123)"}) @join__field(graph: A)
                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        20 |   field(value: String!): JSON @extension__directive(graph: A, extension: ECHO, name: "echoArgs", arguments: {}) @join__field(graph: A)
+        28 |   field(value: String!): JSON @extension__directive(graph: A, extension: ECHO, name: "echoArgs", arguments: {}) @join__field(graph: A)
         "#);
     });
 }

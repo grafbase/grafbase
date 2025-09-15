@@ -80,6 +80,8 @@ pub(crate) enum DirectiveProvenance {
         linked_schema_id: subgraphs::LinkedSchemaId,
         extension_id: subgraphs::ExtensionId,
     },
-    ComposeDirective,
+    ComposeDirective {
+        linked_schema_id: Option<subgraphs::LinkedSchemaId>,
+    },
     Builtin,
 }
