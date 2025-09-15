@@ -1,11 +1,11 @@
 module github.com/grafbase/grafbase/examples/gqlgen-federation
 
-go 1.23.8
+go 1.24.0
 
 toolchain go1.25.1
 
 require (
-	github.com/99designs/gqlgen v0.17.78
+	github.com/99designs/gqlgen v0.17.79
 	github.com/vektah/gqlparser/v2 v2.5.30
 )
 
@@ -19,6 +19,6 @@ require (
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/sosodev/duration v1.3.1 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 )
