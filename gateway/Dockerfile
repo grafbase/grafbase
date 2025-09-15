@@ -36,7 +36,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 #
 # === Final image ===
 #
-FROM debian:bookworm-slim
+FROM cgr.dev/chainguard/wolfi-base:latest
 
 LABEL org.opencontainers.image.url='https://grafbase.com' \
     org.opencontainers.image.documentation='https://grafbase.com/docs' \
@@ -48,9 +48,9 @@ LABEL org.opencontainers.image.url='https://grafbase.com' \
 WORKDIR /grafbase
 
 # used curl to run a health check query against the server in a docker-compose file
-RUN apt update && apt upgrade -y && apt install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache curl
 
-RUN adduser -u 1000 --home /data grafbase && mkdir -p /data && chown grafbase /data
+RUN adduser -D -u 1000 grafbase && mkdir -p /data && chown grafbase:grafbase /data
 USER grafbase
 
 COPY --from=builder /grafbase/target/release/grafbase-gateway /bin/grafbase-gateway
