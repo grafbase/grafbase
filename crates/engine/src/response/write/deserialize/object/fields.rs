@@ -531,9 +531,6 @@ impl<'ctx> ConcreteShapeFieldsContext<'ctx, '_, '_> {
                 .field_shape_id_to_error_ids
                 .as_ref();
             let mut error_ix = derived_field_shape_id_to_error_ids.partition_point(|(id, _)| *id < start);
-            let mut resp = self.state.response.borrow_mut();
-            let parent_path = self.state.parent_path.get();
-            let mut local_path = self.state.local_path_mut();
             for field_shape in self.derived_field_shape_ids.walk(self.state) {
                 // Handle any errors if there is any for this field.
                 while let Some(&(id, error_id)) = derived_field_shape_id_to_error_ids.get(error_ix) {
@@ -544,7 +541,8 @@ impl<'ctx> ConcreteShapeFieldsContext<'ctx, '_, '_> {
                         Ordering::Equal => {
                             error_ix += 1;
                             let location = field_shape.partition_field().location();
-                            let path = (parent_path, local_path.as_slice());
+                            let path = self.state.path();
+                            let mut resp = self.state.response.borrow_mut();
                             resp.errors
                                 .push_query_error(error_id, location, (&path, field_shape.response_key));
                             if field_shape.wrapping.is_non_null() {
@@ -562,9 +560,7 @@ impl<'ctx> ConcreteShapeFieldsContext<'ctx, '_, '_> {
                         unreachable!("Expected to have a derive entity shape");
                     };
                     DeriveContext {
-                        resp: &mut resp,
-                        parent_path,
-                        local_path: &mut local_path,
+                        state: self.state,
                         field: field_shape,
                         shape,
                     }
