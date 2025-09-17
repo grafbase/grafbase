@@ -3,18 +3,26 @@ Forward:
     CheckDiagnostic {
         message: "The type of the field `HappyKoala.family` changed from `[String]` to `[[String]]`.",
         severity: Error,
+        path: "HappyKoala.family",
+        change_kind: ChangeFieldType,
     },
     CheckDiagnostic {
         message: "The type of the field `HappyKoala.familyRequired` changed from `[String!]` to `[[String!]]`.",
         severity: Error,
+        path: "HappyKoala.familyRequired",
+        change_kind: ChangeFieldType,
     },
     CheckDiagnostic {
         message: "The type of the field `KoalaInput.family` changed from `[String]` to `[[String]]`.",
         severity: Error,
+        path: "KoalaInput.family",
+        change_kind: ChangeFieldType,
     },
     CheckDiagnostic {
         message: "The argument `Query.koalaFeed.koalaInput` changed type but it is used by clients.",
         severity: Error,
+        path: "Query.koalaFeed.koalaInput",
+        change_kind: ChangeFieldArgumentType,
     },
 ]
 
@@ -23,17 +31,25 @@ Backward:
     CheckDiagnostic {
         message: "The type of the field `HappyKoala.family` changed from `[[String]]` to `[String]`.",
         severity: Error,
+        path: "HappyKoala.family",
+        change_kind: ChangeFieldType,
     },
     CheckDiagnostic {
         message: "The type of the field `HappyKoala.familyRequired` changed from `[[String!]]` to `[String!]`.",
         severity: Error,
+        path: "HappyKoala.familyRequired",
+        change_kind: ChangeFieldType,
     },
     CheckDiagnostic {
         message: "The type of the field `KoalaInput.family` changed from `[[String]]` to `[String]`.",
         severity: Error,
+        path: "KoalaInput.family",
+        change_kind: ChangeFieldType,
     },
     CheckDiagnostic {
         message: "The argument `Query.koalaFeed.koalaInput` changed type but it is used by clients.",
         severity: Error,
+        path: "Query.koalaFeed.koalaInput",
+        change_kind: ChangeFieldArgumentType,
     },
 ]

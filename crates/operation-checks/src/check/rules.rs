@@ -38,6 +38,8 @@ pub(super) fn remove_field<T: UsageProvider>(
                     change.path
                 ),
                 severity: Severity::Error,
+                path: change.path.clone(),
+                change_kind: change.kind,
             }
         } else {
             CheckDiagnostic {
@@ -46,6 +48,8 @@ pub(super) fn remove_field<T: UsageProvider>(
                     change.path
                 ),
                 severity: Severity::Warning,
+                path: change.path.clone(),
+                change_kind: change.kind,
             }
         };
 
@@ -57,6 +61,8 @@ pub(super) fn remove_field<T: UsageProvider>(
                 change.path
             ),
             severity: Severity::Error,
+            path: change.path.clone(),
+            change_kind: change.kind,
         })
     } else {
         None
@@ -93,6 +99,8 @@ pub(super) fn add_field_argument<T: UsageProvider>(
             change.path
         ),
         severity: Severity::Error,
+        path: change.path.clone(),
+        change_kind: change.kind,
     })
 }
 
@@ -125,6 +133,8 @@ pub(super) fn add_field<T: UsageProvider>(
                 change.path
             ),
             severity: Severity::Error,
+            path: change.path.clone(),
+            change_kind: change.kind,
         })
     } else {
         None
@@ -169,6 +179,8 @@ pub(super) fn change_field_argument_type<T: UsageProvider>(
                             change.path
                         ),
                         severity: Severity::Error,
+                        path: change.path.clone(),
+                        change_kind: change.kind,
                     });
                 }
                 crate::schema::WrapperTypesComparison::NoChange
@@ -184,6 +196,8 @@ pub(super) fn change_field_argument_type<T: UsageProvider>(
     Some(CheckDiagnostic {
         message: format!("The argument `{}` changed type but it is used by clients.", change.path),
         severity: Severity::Error,
+        path: change.path.clone(),
+        change_kind: change.kind,
     })
 }
 
@@ -202,6 +216,8 @@ pub(super) fn remove_field_argument<T: UsageProvider>(
             change.path
         ),
         severity: Severity::Error,
+        path: change.path.clone(),
+        change_kind: change.kind,
     })
 }
 
@@ -251,6 +267,8 @@ pub(super) fn change_field_type<T: UsageProvider>(
                 target_field.render_type()
             ),
             severity: Severity::Error,
+            path: change.path.clone(),
+            change_kind: change.kind,
         });
     }
 
@@ -262,6 +280,8 @@ pub(super) fn change_field_type<T: UsageProvider>(
                     change.path
                 ),
                 severity: Severity::Warning, // warning because we can't tell if they are providing it or not
+                path: change.path.clone(),
+                change_kind: change.kind,
             })
         }
         (false, crate::schema::WrapperTypesComparison::RemovedNonNull) => Some(CheckDiagnostic {
@@ -270,6 +290,8 @@ pub(super) fn change_field_type<T: UsageProvider>(
                 change.path
             ),
             severity: Severity::Error,
+            path: change.path.clone(),
+            change_kind: change.kind,
         }),
         _ => None,
     }
@@ -297,6 +319,8 @@ pub(super) fn remove_interface_implementation<T: UsageProvider>(
             "The interface implementation for `{interface_name}` on `{type_name}` was removed but it is still used by clients."
         ),
         severity: Severity::Error,
+        path: change.path.clone(),
+        change_kind: change.kind,
     })
 }
 
@@ -317,6 +341,8 @@ pub(super) fn remove_union_member<T: UsageProvider>(
             change.path
         ),
         severity: Severity::Error,
+        path: change.path.clone(),
+        change_kind: change.kind,
     })
 }
 
@@ -340,6 +366,8 @@ pub(crate) fn remove_object_type<T: UsageProvider>(args: CheckArgs<'_, '_, T>) -
                     "The interface implementation for `{interface_name}` on `{type_name}` was removed but it is still used by clients."
                 ),
                 severity: Severity::Error,
+                path: args.change.path.clone(),
+                change_kind: args.change.kind,
             });
         }
     }
@@ -366,6 +394,8 @@ pub(crate) fn remove_object_type<T: UsageProvider>(args: CheckArgs<'_, '_, T>) -
     Some(CheckDiagnostic {
         message: format!("The root type `{type_name}` was removed but it is still used by clients."),
         severity: Severity::Error,
+        path: args.change.path.clone(),
+        change_kind: args.change.kind,
     })
 }
 
@@ -381,6 +411,8 @@ pub(crate) fn remove_enum_value<T: UsageProvider>(args: CheckArgs<'_, '_, T>) ->
             args.change.path
         ),
         severity: Severity::Error,
+        path: args.change.path.clone(),
+        change_kind: args.change.kind,
     })
 }
 
@@ -395,5 +427,7 @@ pub(crate) fn remove_field_argument_default<T: UsageProvider>(args: CheckArgs<'_
     Some(CheckDiagnostic {
         message: format!("The default value for required argument `{path}` was removed but some queries leave it out.",),
         severity: Severity::Error,
+        path: args.change.path.clone(),
+        change_kind: args.change.kind,
     })
 }

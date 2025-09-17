@@ -3,10 +3,14 @@ Forward:
     CheckDiagnostic {
         message: "The argument `Query.findAlbumsByArtist.yearRangeEnd` changed type but it is used by clients.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeEnd",
+        change_kind: ChangeFieldArgumentType,
     },
     CheckDiagnostic {
         message: "The argument `Query.findAlbumsByArtist.yearRangeStart` changed type but it is used by clients.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeStart",
+        change_kind: ChangeFieldArgumentType,
     },
 ]
 
@@ -15,9 +19,13 @@ Backward:
     CheckDiagnostic {
         message: "The argument `Query.findAlbumsByArtist.yearRangeEnd` changed type but it is used by clients.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeEnd",
+        change_kind: ChangeFieldArgumentType,
     },
     CheckDiagnostic {
         message: "The argument `Query.findAlbumsByArtist.yearRangeStart` changed type but it is used by clients.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeStart",
+        change_kind: ChangeFieldArgumentType,
     },
 ]

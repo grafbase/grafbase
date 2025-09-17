@@ -3,10 +3,14 @@ Forward:
     CheckDiagnostic {
         message: "The field `Mammal.weight` became optional, but clients do not expect null.",
         severity: Error,
+        path: "Mammal.weight",
+        change_kind: ChangeFieldType,
     },
     CheckDiagnostic {
         message: "The field `MammalInput.mweight` became required, but clients may not be providing it.",
         severity: Warning,
+        path: "MammalInput.mweight",
+        change_kind: ChangeFieldType,
     },
 ]
 

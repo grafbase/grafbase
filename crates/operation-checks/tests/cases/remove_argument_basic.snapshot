@@ -3,10 +3,14 @@ Forward:
     CheckDiagnostic {
         message: "The argument `Query.findAlbumsByArtist.yearRangeEnd` was removed but it is still used by clients.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeEnd",
+        change_kind: RemoveFieldArgument,
     },
     CheckDiagnostic {
         message: "The argument `Query.findAlbumsByArtist.yearRangeStart` was removed but it is still used by clients.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeStart",
+        change_kind: RemoveFieldArgument,
     },
 ]
 
@@ -15,9 +19,13 @@ Backward:
     CheckDiagnostic {
         message: "The new required argument at `Query.findAlbumsByArtist.yearRangeEnd` would break clients that are not providing it.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeEnd",
+        change_kind: AddFieldArgument,
     },
     CheckDiagnostic {
         message: "The new required argument at `Query.findAlbumsByArtist.yearRangeStart` would break clients that are not providing it.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeStart",
+        change_kind: AddFieldArgument,
     },
 ]
