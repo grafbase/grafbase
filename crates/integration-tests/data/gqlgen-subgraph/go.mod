@@ -5,7 +5,7 @@ go 1.24.0
 toolchain go1.25.1
 
 require (
-	github.com/99designs/gqlgen v0.17.79
+	github.com/99designs/gqlgen v0.17.80
 	github.com/gorilla/websocket v1.5.3
 	github.com/vektah/gqlparser/v2 v2.5.30
 )
