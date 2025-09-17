@@ -1,0 +1,10 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/add_required_argument_with_default.graphql
+---
+Forward:
+[]
+
+Backward:
+[]

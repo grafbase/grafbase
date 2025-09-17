@@ -1,3 +1,8 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/remove_argument_basic.graphql
+---
 Forward:
 [
     CheckDiagnostic {

@@ -279,7 +279,7 @@ mod tests {
         async_graphql_parser::parse_query(query).unwrap().into()
     }
 
-    fn run_test(query: &str, schema: &str, expected: expect_test::Expect) {
+    fn run_test(query: &str, schema: &str) -> Vec<String> {
         let query = parse_query(query);
         let schema = parse_schema(schema);
         let mut usage = FieldUsage::default();
@@ -293,8 +293,7 @@ mod tests {
             .collect::<Vec<_>>();
 
         counts.sort();
-
-        expected.assert_debug_eq(&counts);
+        counts
     }
 
     #[test]
@@ -329,20 +328,20 @@ mod tests {
                 email: String
         }
         "#;
-        let expected = expect_test::expect![[r#"
-            [
-                "Mutation.createTodo => 1",
-                "Mutation.deleteUser => 1",
-                "Todo.author => 1",
-                "Todo.completed => 1",
-                "Todo.id => 1",
-                "Todo.text => 1",
-                "User.email => 1",
-                "User.name => 2",
-            ]
-        "#]];
 
-        run_test(query, schema, expected);
+        let result = run_test(query, schema);
+        insta::assert_debug_snapshot!(result, @r#"
+        [
+            "Mutation.createTodo => 1",
+            "Mutation.deleteUser => 1",
+            "Todo.author => 1",
+            "Todo.completed => 1",
+            "Todo.id => 1",
+            "Todo.text => 1",
+            "User.email => 1",
+            "User.name => 2",
+        ]
+        "#);
     }
 
     #[test]
@@ -383,20 +382,19 @@ mod tests {
         }
         "#;
 
-        let expected = expect_test::expect![[r#"
-            [
-                "Mutation.createTodo => 1",
-                "Mutation.deleteUser => 1",
-                "Todo.author => 1",
-                "Todo.completed => 1",
-                "Todo.id => 1",
-                "Todo.text => 1",
-                "User.email => 1",
-                "User.name => 2",
-            ]
-        "#]];
-
-        run_test(query, schema, expected);
+        let result = run_test(query, schema);
+        insta::assert_debug_snapshot!(result, @r#"
+        [
+            "Mutation.createTodo => 1",
+            "Mutation.deleteUser => 1",
+            "Todo.author => 1",
+            "Todo.completed => 1",
+            "Todo.id => 1",
+            "Todo.text => 1",
+            "User.email => 1",
+            "User.name => 2",
+        ]
+        "#);
     }
 
     #[test]
@@ -444,21 +442,20 @@ mod tests {
             }
         "#;
 
-        let expected = expect_test::expect![[r#"
-            [
-                "Error.message => 1",
-                "Mutation.createTodo => 1",
-                "Mutation.deleteUser => 1",
-                "Todo.author => 1",
-                "Todo.completed => 1",
-                "Todo.id => 1",
-                "Todo.text => 1",
-                "User.email => 1",
-                "User.name => 2",
-            ]
-        "#]];
-
-        run_test(query, schema, expected);
+        let result = run_test(query, schema);
+        insta::assert_debug_snapshot!(result, @r#"
+        [
+            "Error.message => 1",
+            "Mutation.createTodo => 1",
+            "Mutation.deleteUser => 1",
+            "Todo.author => 1",
+            "Todo.completed => 1",
+            "Todo.id => 1",
+            "Todo.text => 1",
+            "User.email => 1",
+            "User.name => 2",
+        ]
+        "#);
     }
 
     #[test]
@@ -499,17 +496,16 @@ mod tests {
             }
         "#;
 
-        let expected = expect_test::expect![[r#"
-            [
-                "Error.message => 1",
-                "Mutation.createTodo => 1",
-                "Todo.completed => 1",
-                "Todo.id => 1",
-                "Todo.text => 1",
-            ]
-        "#]];
-
-        run_test(query, schema, expected);
+        let result = run_test(query, schema);
+        insta::assert_debug_snapshot!(result, @r#"
+        [
+            "Error.message => 1",
+            "Mutation.createTodo => 1",
+            "Todo.completed => 1",
+            "Todo.id => 1",
+            "Todo.text => 1",
+        ]
+        "#);
     }
 
     #[test]
@@ -554,15 +550,13 @@ mod tests {
 
         counts.sort();
 
-        let expected = expect_test::expect![[r#"
-            [
-                "MyQuery.ping => 18000",
-                "Pong.message => 9000",
-                "Pong.pong => 18000",
-            ]
-        "#]];
-
-        expected.assert_debug_eq(&counts);
+        insta::assert_debug_snapshot!(counts, @r#"
+        [
+            "MyQuery.ping => 18000",
+            "Pong.message => 9000",
+            "Pong.pong => 18000",
+        ]
+        "#);
     }
 }
 
