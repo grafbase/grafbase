@@ -11,6 +11,10 @@ pub struct CheckDiagnostic {
     pub message: String,
     /// See [Severity].
     pub severity: Severity,
+    /// The path where the change occurred (e.g., "Type.field.argument").
+    pub path: String,
+    /// The kind of change that triggered this diagnostic.
+    pub change_kind: graphql_schema_diff::ChangeKind,
 }
 
 /// The severity of a [CheckDiagnostic].

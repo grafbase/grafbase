@@ -6,9 +6,13 @@ Backward:
     CheckDiagnostic {
         message: "The new required argument at `Query.findAlbumsByArtist.yearRangeEnd` would break clients that are not providing it.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeEnd",
+        change_kind: AddFieldArgument,
     },
     CheckDiagnostic {
         message: "The new required argument at `Query.findAlbumsByArtist.yearRangeStart` would break clients that are not providing it.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeStart",
+        change_kind: AddFieldArgument,
     },
 ]

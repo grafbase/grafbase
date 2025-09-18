@@ -3,6 +3,8 @@ Forward:
     CheckDiagnostic {
         message: "The union member `DogEars.PointyEars` was removed but it is still used by clients.",
         severity: Error,
+        path: "DogEars.PointyEars",
+        change_kind: RemoveUnionMember,
     },
 ]
 

@@ -3,6 +3,8 @@ Forward:
     CheckDiagnostic {
         message: "The interface implementation for `SpeechCondition` on `Lisp` was removed but it is still used by clients.",
         severity: Error,
+        path: "Lisp",
+        change_kind: RemoveObjectType,
     },
 ]
 
