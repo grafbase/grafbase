@@ -4,5 +4,6 @@ expression: "Very important in this test: no extensions.toml, composition should
 input_file: crates/graphql-composition/tests/composition/grafbase_extensions/linked_schemas_with_file_url_are_extensions/test.md
 ---
 type Query {
+  amazing: Boolean!
   hello: String
 }

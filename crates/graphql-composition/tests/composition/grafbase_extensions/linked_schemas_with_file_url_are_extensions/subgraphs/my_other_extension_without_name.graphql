@@ -1,0 +1,10 @@
+extend schema
+  # This extension import does not have a namespace (`as:`). Composition should use the last path component as a namespace.
+  @link(url: "file:///grafbase-extensions/sparkles", import: ["@sparkles"])
+  # This extension import does not have a namespace (`as:`). Composition should use the last path component as a namespace, except it's "build", so it automatically tries the previous component as a more meaningful name.
+  @link(url: "file:///grafbase-extensions/bubbles/build", import: ["@blub"])
+  @link(url: "https://specs.grafbase.com/grafbase", import: ["InputvalueSet"])
+
+type Query {
+  amazing: Boolean! @sparkles @blub
+}
