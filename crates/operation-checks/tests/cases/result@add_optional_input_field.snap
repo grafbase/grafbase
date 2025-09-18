@@ -1,3 +1,8 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/add_optional_input_field.graphql
+---
 Forward:
 []
 

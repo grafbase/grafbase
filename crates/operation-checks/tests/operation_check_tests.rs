@@ -1,41 +1,22 @@
 use operation_checks::CheckParams;
-use std::{fmt, fs, path::Path, sync::OnceLock};
+use std::{fs, path::Path};
 
-struct DiffError(String);
-
-impl fmt::Debug for DiffError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-impl fmt::Display for DiffError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Debug::fmt(self, f)
-    }
-}
-
-impl std::error::Error for DiffError {}
-
-fn update_expect() -> bool {
-    static UPDATE_EXPECT: OnceLock<bool> = OnceLock::new();
-    *UPDATE_EXPECT.get_or_init(|| std::env::var("UPDATE_EXPECT").is_ok())
-}
-
-fn run_test(case_path: &Path) -> datatest_stable::Result<()> {
-    let case = fs::read_to_string(case_path)?;
+fn run_test(case_path: &Path) {
+    let case = fs::read_to_string(case_path).unwrap();
     let mut sections = case.split("# --- #");
 
     let source_schema_string = sections.next().expect("source schema section missing");
-    let source_schema: operation_checks::Schema = async_graphql_parser::parse_schema(source_schema_string)?.into();
+    let source_schema: operation_checks::Schema =
+        async_graphql_parser::parse_schema(source_schema_string).unwrap().into();
 
     let target_schema_string = sections.next().expect("target schema section missing");
-    let target_schema: operation_checks::Schema = async_graphql_parser::parse_schema(target_schema_string)?.into();
+    let target_schema: operation_checks::Schema =
+        async_graphql_parser::parse_schema(target_schema_string).unwrap().into();
 
     let mut field_usage = operation_checks::FieldUsage::default();
 
     for operation in sections {
-        let parsed_query = async_graphql_parser::parse_query(operation)?;
+        let parsed_query = async_graphql_parser::parse_query(operation).unwrap();
         let operation = operation_checks::Operation::from(parsed_query);
         operation_checks::aggregate_field_usage(&operation, &source_schema, &mut field_usage);
     }
@@ -65,42 +46,21 @@ fn run_test(case_path: &Path) -> datatest_stable::Result<()> {
         operation_checks::check(&params)
     });
 
-    let snapshot_path = case_path.with_extension("snapshot");
+    let rendered = format!("Forward:\n{:#?}\n\nBackward:\n{:#?}\n", result_forward, result_backward);
 
-    let mut result = format!("Forward:\n{result_forward:#?}\n\nBackward:\n{result_backward:#?}\n",);
-
-    if cfg!(windows) {
-        result = result.replace("\r\n", "\n");
-    }
-
-    if update_expect() {
-        fs::write(&snapshot_path, result)?;
-        return Ok(());
-    }
-
-    let mut snapshot = fs::read_to_string(&snapshot_path).unwrap_or_default();
-
-    if cfg!(windows) {
-        snapshot = snapshot.replace("\r\n", "\n");
-    }
-
-    if snapshot != result {
-        return Err(DiffError(format!(
-            "{}\n\n\n=== Hint: run the tests again with UPDATE_EXPECT=1 to update the snapshot. ===",
-            similar::udiff::unified_diff(
-                similar::Algorithm::default(),
-                &snapshot,
-                &result,
-                5,
-                Some(("Snapshot", "Actual"))
-            )
-        ))
-        .into());
-    }
-
-    Ok(())
+    insta::assert_snapshot!("result", rendered);
 }
 
-datatest_stable::harness! {
-   { test = run_test, root = "./tests/cases", pattern = r"^.*\.graphql$" },
+#[test]
+fn operation_check_tests() {
+    insta::glob!("cases/*.graphql", |graphql_file_path| {
+        let test_name = graphql_file_path.file_stem().unwrap().to_str().unwrap();
+        insta::with_settings!({
+            snapshot_path => "cases",
+            prepend_module_to_snapshot => false,
+            snapshot_suffix => test_name,
+        }, {
+            run_test(graphql_file_path);
+        });
+    });
 }
