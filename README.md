@@ -8,10 +8,10 @@
 
 Grafbase is a self-hosted, Rust-powered GraphQL Federation Gateway designed for high-scale, mission-critical applications. Whether you're unifying microservices, legacy systems, or third-party APIs—Grafbase helps teams ship faster and more safely.
 
-### **Built for GraphQL Federation 2.0**
+### **Built for Federation v2**
 
-* **Federation-first architecture** — Native support for Apollo Federation 2.0 specification and the upcoming Composite Schemas spec  
-* **40% faster performance** — Rust-powered engine delivers superior speed vs Apollo alternatives  
+* **Federation-first architecture** — Native support for Apollo Federation v2 specification and the upcoming Composite Schemas spec  
+* **40% faster performance** — Rust-powered engine delivers superior speed  
 * **Extensible via WebAssembly** — Customize authentication, authorization, request lifecycle, and include arbitrary APIs and data sources into your federated graph with resolver extensions  
 * **AI-native with MCP** — First GraphQL gateway with built-in Model Context Protocol server support to turn your GraphQL API into a full fledged MCP server
 
@@ -23,7 +23,7 @@ Grafbase delivers up to 40% faster response times vs Apollo and other gateways w
 
 ### **Enterprise-grade security**
 
-* Advanced schema governance with the Grafbase control plane at grafbase.com, with schema checks  
+* Advanced schema governance with the Grafbase Dashboard at app.grafbase.com, with schema checks  
 * Fine-grained authorization and authentication in the Gateway  
 * Rate limiting, operation limits, and trusted documents  
 * SOC 2 Type II compliant
@@ -49,15 +49,15 @@ Connect any data source through GraphQL Federation:
 
 **Core features**
 
-| Apollo Federation 2.0 | Native support for Apollo Federation 2.0 spec |
+| Apollo Federation v2 | Native support for Apollo Federation v2 spec |
 | :---- | :---- |
 | **Rust-Powered Gateway** | Ultra-low latency and memory efficiency at enterprise scale |
-| **WebAssembly Extensions** | Customize auth, transforms, and business logic without gateway modifications |
-| **Schema Governance (Platform)** | Composition checks, breaking change detection, and approval workflows with schema proposals (in the control plane) |
-| **Branch Environments (Platform)** | Schema versioning and branch-aware development environments (in the control plane) |
+| **Extensions** | Customize auth, transforms, and business logic without gateway modifications |
+| **Schema Governance Platform** | Composition checks, breaking change detection, and approval workflows with schema proposals (in the control plane) |
+| **Branch Environments Platform** | Schema versioning and branch-aware development environments (in the control plane) |
 | **CLI & Gateway** | Complete toolchain for development, deployment, and management |
 | **MCP Integration** | Built-in Model Context Protocol support to efficiently expose your GraphQL API as an MCP server with a few lines of configuration |
-| **Enterprise Observability (in the Platform)** | Traces, metrics, logs, and operation analytics |
+| **Observability (in the Platform)** | Traces, metrics, logs, and operation analytics |
 
 ## Repository overview
 
@@ -65,141 +65,11 @@ This repository contains the core open source components of Grafbase: the CLI, t
 
 ## **🚀 Quick start**
 
-### Prerequisites
-
-* Node.js installed if you want to install via npm  
-* Grafbase CLI installed: `npm install -g grafbase` or `curl -fsSL https://grafbase.com/downloads/cli | bash`  
-* Grafbase account (sign up at https://grafbase.com)
-
-### 1\. Create your first subgraph
-
-```shell
-# Create a simple accounts subgraph
-mkdir accounts && cd accounts
-npm init -y
-npm install graphql-yoga @apollo/subgraph graphql
-
-# Create index.js
-cat > index.js << 'EOF'
-import { createSchema, createYoga } from "graphql-yoga";
-import { buildSubgraphSchema } from "@apollo/subgraph";
-import { createServer } from "http";
-
-const users = [
-  { id: "1", email: "john@example.com", username: "john_doe" },
-  { id: "2", email: "bob@example.com", username: "bob_dole" },
-];
-
-const typeDefs = `
-  type Query {
-    users: [User!]!
-  }
-  
-  type User @key(fields: "id") {
-    id: ID!
-    email: String!
-    username: String!
-  }
-`;
-
-const resolvers = {
-  Query: {
-    users: () => users,
-  },
-  User: {
-    __resolveReference: (reference) => {
-      return users.find(user => user.id === reference.id);
-    },
-  },
-};
-
-const schema = buildSubgraphSchema([{ typeDefs, resolvers }]);
-const yoga = createYoga({ schema });
-const server = createServer(yoga);
-
-server.listen(4000, () => {
-  console.log('🚀 Accounts subgraph ready at http://localhost:4000/graphql');
-});
-EOF
-
-# Start the subgraph
-node index.js
-```
-
-### 2\. Set up local federation
-
-In a new terminal, create your federation configuration:
-
-```shell
-# Create federation directory
-mkdir my-federation && cd my-federation
-
-# Create grafbase.toml configuration
-cat > grafbase.toml << 'EOF'
-[subgraphs.accounts]
-introspection_url = "http://localhost:4000/graphql"
-EOF
-
-# Start local federated development server
-grafbase dev
-```
-
-Your federated graph will be available at:
-
-* **GraphQL Endpoint**: http://localhost:5000/graphql  
-* **Explorer**: http://localhost:5000/
-
-### 4\. Deploy to production using the schema registry
-
-### **Note:** you can also compose the schema locally and pass it to the gateway directly, without any log in or remote component
-
-#### Create a graph in Grafbase Dashboard
-
-1. Visit https://grafbase.com and create/login to your account  
-2. Create a new federated graph  
-3. Copy your graph reference (format: `my-org/my-graph`)
-
-#### Publish your subgraph
-
-```shell
-# Login to Grafbase (one-time setup)
-grafbase login
-
-# Publish the accounts subgraph
-grafbase introspect http://localhost:4000/graphql \
-  | grafbase publish \
-    --name accounts \
-    --url http://localhost:4000/graphql \
-    --message "Initial accounts subgraph" \
-    my-org/my-graph
-```
-
-#### Deploy the gateway
-
-```shell
-# Install Grafbase Gateway
-curl -fsSL https://grafbase.com/downloads/gateway | bash
-
-# Create access token in your Grafbase Dashboard under Settings > Access Tokens
-
-# Start production gateway
-GRAFBASE_ACCESS_TOKEN=your_token_here ./grafbase-gateway \
-  --config grafbase.toml \
-  --graph-ref my-org/my-graph
-```
-
-### Next Steps
-
-* Add more subgraphs following the same pattern  
-* Configure authentication and authorization  
-* Set up schema checks with `grafbase check`  
-* Explore Extensions for connecting databases, gRPC services, and more
-
-Need help? Check out our [Federation Guide](https://grafbase.com/docs/guides/introduction-to-graphql-federation) for building multi-subgraph federations.
+Get started quickly with Grafbase by following our [getting started guide](https://grafbase.com/guides/introduction-to-graphql-federation).
 
 ## **Examples & templates**
 
-Explore real-world implementations and integration patterns in our [examples](http://examples/) directory:
+Explore real-world implementations and integration patterns in our [examples](https://github.com/grafbase/grafbase/tree/main/examples) directory:
 
 **Learn more:**
 
@@ -236,18 +106,15 @@ grafbase extension install
 
 Grafbase consistently outperforms other GraphQL Federation gateways:
 
-| Metric | Grafbase | Apollo Gateway | Improvement |
+| Metric | Grafbase | Apollo Gateway |  Cosmo Router |
 | :---- | :---- | :---- | :---- |
-| **Response Time** | ✅ Baseline | 🟡 \+40% slower | **40% faster** |
-| **Memory Usage** | ✅ Efficient | 🔴 High | **60% less RAM** |
-| **Cold Start** | ✅ Fast | 🟡 Slower | **50% faster** |
-| **Throughput** | ✅ High | 🟡 Moderate | **2-3x higher** |
+| **Response Time** | ✅ Baseline | 🟡 Slower | 🟡 Slower |
+| **Memory Usage** | ✅ Efficient | 🔴 High | 🟡 moderate |
+| **Cold Start** | ✅ Fast | 🟡 Slower | 🟡 Slower |
+| **Throughput** | ✅ High | 🟡 Moderate | 🟡 Moderate |
 
-See detailed benchmarks comparing Grafbase vs Apollo vs Cosmo vs Mesh in our [performance analysis](https://grafbase.com/blog/benchmarking-grafbase-vs-apollo-vs-cosmo-vs-mesh).
+See detailed benchmarks comparing Grafbase vs Apollo vs Cosmo vs Hive in our [performance analysis](https://grafbase.com/blog/benchmarking-graphql-federation-gateways).
 
-## **Self-hosted Gateway Deployment**
-
-The Grafbase Gateway allows you to run a federated graph within your own infrastructure and can operate by either polling the latest graph from the Grafbase API or by passing the federated schema, enabling air-gapped operation.
 
 ### **Installation**
 
@@ -294,7 +161,7 @@ docker run -p 4000:4000 \
 * Entity caching and automatic persisted queries  
 * Health check endpoints and request lifecycle hooks  
 * OpenTelemetry integration for logs, traces, and metrics  
-* … and many more (link)
+* … and [many more](https://grafbase.com/docs/gateway/installation)
 
 ---
 
@@ -325,7 +192,7 @@ We welcome contributions from the community\! Here's how to get involved:
 
 ## **License**
 
-Grafbase is licensed under the [**Mozilla Public License 2.0**](https://www.mozilla.org/en-US/MPL/2.0/) **(MPL-2.0)**.
+Grafbase Gateway is licensed under the [**Mozilla Public License 2.0**](https://www.mozilla.org/en-US/MPL/2.0/) **(MPL-2.0)**.
 
 ## **Useful links**
 
@@ -346,5 +213,5 @@ Grafbase is licensed under the [**Mozilla Public License 2.0**](https://www.mozi
 * [**Website**](https://grafbase.com) \- Product information and features  
 * [**Blog**](https://grafbase.com/blog) \- Technical insights and updates  
 * [**Changelog**](https://grafbase.com/changelog) \- Latest features and improvements  
-* [**Twitter/X**](https://x.com/grafbase) \- News and community updates
+* [**X**](https://x.com/grafbase) \- News and community updates
 
