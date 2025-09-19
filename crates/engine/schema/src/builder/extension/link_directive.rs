@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use cynic_parser_deser::{ConstDeserializer, ValueDeserialize};
-use serde::Deserialize;
 
 /// directive @link(
 ///   url: String!,
@@ -58,24 +57,6 @@ impl<'a> ValueDeserialize<'a> for LinkDirective<'a> {
         };
 
         Ok(LinkDirective { url, r#as, import })
-    }
-}
-
-#[derive(Debug, Deserialize)]
-pub(crate) enum Purpose {
-    Security,
-    Execution,
-}
-
-impl<'a> ValueDeserialize<'a> for Purpose {
-    fn deserialize(input: cynic_parser_deser::DeserValue<'a>) -> Result<Self, cynic_parser_deser::Error> {
-        let str: &str = input.deserialize()?;
-
-        match str {
-            "SECURITY" => Ok(Purpose::Security),
-            "EXECUTION" => Ok(Purpose::Execution),
-            _ => Err(cynic_parser_deser::Error::custom("Bad purpose", input.span())),
-        }
     }
 }
 
