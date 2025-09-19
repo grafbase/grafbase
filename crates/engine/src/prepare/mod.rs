@@ -14,7 +14,7 @@ pub(crate) use operation_plan::*;
 
 use ::operation::{ComplexityCost, Request, Variables};
 use futures::FutureExt;
-use grafbase_telemetry::graphql::{GraphqlOperationAttributes, OperationName, OperationType};
+use grafbase_telemetry::graphql::GraphqlOperationAttributes;
 use runtime::operation_cache::OperationCache;
 use tracing::{Instrument, info_span};
 
@@ -108,14 +108,6 @@ enum OpCache<'a> {
         cache_key: String,
         document: OperationDocument<'a>,
     },
-}
-
-/// The set of Operation attributes that can be cached
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-pub struct CachedOperationAttributes {
-    pub ty: OperationType,
-    pub name: OperationName,
-    pub sanitized_query: Arc<str>,
 }
 
 pub(crate) struct PreparedOperation {

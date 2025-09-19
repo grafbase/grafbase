@@ -347,7 +347,7 @@ fn hex_to_bytes(s: &str) -> Result<Vec<u8>, SdkError> {
 
     let hex_part = &s[2..];
 
-    if hex_part.len() % 2 != 0 {
+    if !hex_part.len().is_multiple_of(2) {
         return Err(SdkError::from("Hex string part has an odd number of characters"));
     }
 

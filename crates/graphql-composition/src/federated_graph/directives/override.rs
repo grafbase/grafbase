@@ -1,16 +1,5 @@
 use crate::federated_graph::{StringId, SubgraphId};
 
-/// Represents an `@override(graph: .., from: ...)` directive on a field in a subgraph.
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
-pub struct Override {
-    pub graph: SubgraphId,
-    /// Points to a subgraph referenced by name, but this is _not_ validated to allow easier field
-    /// migrations between subgraphs.
-    pub from: OverrideSource,
-    #[serde(default)]
-    pub label: Option<OverrideLabel>,
-}
-
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, PartialEq, PartialOrd)]
 pub enum OverrideLabel {
     Percent(u8),

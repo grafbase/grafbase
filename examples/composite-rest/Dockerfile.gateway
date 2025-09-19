@@ -1,4 +1,4 @@
-FROM rust:1.89.0-alpine AS builder
+FROM rust:1.90.0-alpine AS builder
 
 WORKDIR /data
 RUN apk --no-cache add curl bash musl-dev && curl -fsSL https://grafbase.com/downloads/cli | bash -s 0.101.1 && mv ~/.grafbase/bin/grafbase /usr/bin/grafbase
