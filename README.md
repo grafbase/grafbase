@@ -105,7 +105,7 @@ grafbase extension install
 
 Grafbase consistently outperforms other GraphQL Federation gateways:
 
-| Metric | Grafbase | Apollo Gateway |  Cosmo Router |
+| Metric | Grafbase | Apollo Router |  Cosmo Router |
 | :---- | :---- | :---- | :---- |
 | **Response Time** | ✅ Baseline | 🟡 Slower | 🟡 Slower |
 | **Memory Usage** | ✅ Efficient | 🔴 High | 🟡 moderate |
