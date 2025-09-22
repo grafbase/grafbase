@@ -50,7 +50,6 @@ Connect any data source through GraphQL Federation:
 **Core features**
 
 | Apollo Federation v2 | Native support for Apollo Federation v2 spec |
-| :---- | :---- |
 | **Rust-Powered Gateway** | Ultra-low latency and memory efficiency at enterprise scale |
 | **Extensions** | Customize auth, transforms, and business logic without gateway modifications |
 | **Schema Governance Platform** | Composition checks, breaking change detection, and approval workflows with schema proposals (in the control plane) |
