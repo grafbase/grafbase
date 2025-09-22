@@ -1,0 +1,10 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/add_required_argument_without_default_but_no_consumer.graphql
+---
+Forward:
+[]
+
+Backward:
+[]

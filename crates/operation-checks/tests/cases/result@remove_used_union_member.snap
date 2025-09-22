@@ -1,0 +1,17 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/remove_used_union_member.graphql
+---
+Forward:
+[
+    CheckDiagnostic {
+        message: "The union member `DogEars.PointyEars` was removed but it is still used by clients.",
+        severity: Error,
+        path: "DogEars.PointyEars",
+        change_kind: RemoveUnionMember,
+    },
+]
+
+Backward:
+[]

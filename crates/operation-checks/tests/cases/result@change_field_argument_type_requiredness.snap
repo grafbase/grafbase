@@ -1,0 +1,23 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/change_field_argument_type_requiredness.graphql
+---
+Forward:
+[]
+
+Backward:
+[
+    CheckDiagnostic {
+        message: "The argument `Query.findAlbumsByArtist.yearRangeEnd` became required, but clients are not providing it.",
+        severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeEnd",
+        change_kind: ChangeFieldArgumentType,
+    },
+    CheckDiagnostic {
+        message: "The argument `Query.findAlbumsByArtist.yearRangeStart` became required, but clients are not providing it.",
+        severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeStart",
+        change_kind: ChangeFieldArgumentType,
+    },
+]

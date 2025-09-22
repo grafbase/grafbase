@@ -1,0 +1,17 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/remove_used_interface_implementer.graphql
+---
+Forward:
+[
+    CheckDiagnostic {
+        message: "The interface implementation for `SpeechCondition` on `Lisp` was removed but it is still used by clients.",
+        severity: Error,
+        path: "Lisp",
+        change_kind: RemoveObjectType,
+    },
+]
+
+Backward:
+[]

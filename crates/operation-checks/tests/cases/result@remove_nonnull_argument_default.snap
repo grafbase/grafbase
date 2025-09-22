@@ -1,0 +1,17 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/remove_nonnull_argument_default.graphql
+---
+Forward:
+[
+    CheckDiagnostic {
+        message: "The default value for required argument `Turtle.feed.food` was removed but some queries leave it out.",
+        severity: Error,
+        path: "Turtle.feed.food",
+        change_kind: RemoveFieldArgumentDefault,
+    },
+]
+
+Backward:
+[]

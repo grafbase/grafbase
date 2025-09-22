@@ -13,13 +13,7 @@ grafbase-workspace-hack.workspace = true
 graphql-schema-diff = { path = "../graphql-schema-diff" }
 
 [dev-dependencies]
-datatest-stable.workspace = true
-expect-test.workspace = true
-similar.workspace = true
+insta.workspace = true
 
 [lints]
 workspace = true
-
-[[test]]
-name = "operation_check_tests"
-harness = false

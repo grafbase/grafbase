@@ -1,16 +1,27 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/change_requiredness_of_nested_list_type.graphql
+---
 Forward:
 [
     CheckDiagnostic {
         message: "The field `Mammal.vernacularNames` became optional, but clients do not expect null.",
         severity: Error,
+        path: "Mammal.vernacularNames",
+        change_kind: ChangeFieldType,
     },
     CheckDiagnostic {
         message: "The argument `Mutation.createMammals.input` became required, but clients are not providing it.",
         severity: Error,
+        path: "Mutation.createMammals.input",
+        change_kind: ChangeFieldArgumentType,
     },
     CheckDiagnostic {
         message: "The argument `Mutation.createMammals2.input` became required, but clients are not providing it.",
         severity: Error,
+        path: "Mutation.createMammals2.input",
+        change_kind: ChangeFieldArgumentType,
     },
 ]
 

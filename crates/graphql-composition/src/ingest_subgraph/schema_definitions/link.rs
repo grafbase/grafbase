@@ -49,37 +49,8 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
     let url = subgraphs.strings.intern(url);
     let r#as = r#as.map(|r#as| subgraphs.strings.intern(r#as));
 
-    // Treat `@link`ed schemas with a file url or Grafbase extension registry URLs as extensions.
-    if let Some(name) = r#as
-        && let Some(link_url) = &link_url
-        && (link_url.url.scheme() == "file")
-        && !subgraphs.extension_is_defined(name)
-    {
-        subgraphs.push_extension(subgraphs::ExtensionRecord {
-            url,
-            link_url: url,
-            name,
-        });
-    }
-
-    if let Some(link_url) = &link_url
-        && is_grafbase_extension_registry_url(&link_url.url)
-    {
-        let Some(name) = r#as.or_else(|| {
-            let mut segments = link_url.url.path_segments()?;
-
-            segments.next_back()?;
-
-            segments.next_back().map(|s| subgraphs.strings.intern(s))
-        }) else {
-            return;
-        };
-
-        subgraphs.push_extension(subgraphs::ExtensionRecord {
-            url,
-            link_url: url,
-            name,
-        });
+    if let Some(link_url) = link_url.as_ref() {
+        ingest_grafbase_extension_from_link(subgraphs, url, r#as, link_url);
     }
 
     let linked_schema_id = subgraphs.push_linked_schema(subgraphs::LinkedSchemaRecord {
@@ -141,5 +112,59 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
                 );
             }
         }
+    }
+}
+
+/// Treat `@link`ed schemas with a file url or Grafbase extension registry URLs as extensions.
+fn ingest_grafbase_extension_from_link(
+    subgraphs: &mut Subgraphs,
+    url: subgraphs::StringId,
+    r#as: Option<subgraphs::StringId>,
+    link_url: &subgraphs::LinkUrl,
+) {
+    if link_url.url.scheme() == "file" {
+        let Some(name) = r#as.or_else(|| {
+            link_url.url.to_file_path().ok().and_then(|path| {
+                let file_name = path.file_name()?.to_str()?;
+                match file_name {
+                    // This is going to be the name for locally built extension. In that case, the parent directory has a more descriptive name.
+                    "build" => path
+                        .parent()
+                        .and_then(|parent| parent.file_name()?.to_str())
+                        .map(|s| subgraphs.strings.intern(s)),
+                    _ => Some(subgraphs.strings.intern(file_name)),
+                }
+            })
+        }) else {
+            return;
+        };
+
+        if subgraphs.extension_is_defined(name) {
+            return;
+        }
+
+        subgraphs.push_extension(subgraphs::ExtensionRecord {
+            url,
+            link_url: url,
+            name,
+        });
+    }
+
+    if is_grafbase_extension_registry_url(&link_url.url) {
+        let Some(name) = r#as.or_else(|| {
+            let mut segments = link_url.url.path_segments()?;
+
+            segments.next_back()?;
+
+            segments.next_back().map(|s| subgraphs.strings.intern(s))
+        }) else {
+            return;
+        };
+
+        subgraphs.push_extension(subgraphs::ExtensionRecord {
+            url,
+            link_url: url,
+            name,
+        });
     }
 }

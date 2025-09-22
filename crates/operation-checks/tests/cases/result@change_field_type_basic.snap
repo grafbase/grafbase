@@ -1,12 +1,21 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/change_field_type_basic.graphql
+---
 Forward:
 [
     CheckDiagnostic {
         message: "The type of the field `Mammal.weight` changed from `Float!` to `Int!`.",
         severity: Error,
+        path: "Mammal.weight",
+        change_kind: ChangeFieldType,
     },
     CheckDiagnostic {
         message: "The type of the field `MammalInput.mweight` changed from `Float!` to `Int!`.",
         severity: Error,
+        path: "MammalInput.mweight",
+        change_kind: ChangeFieldType,
     },
 ]
 
@@ -15,9 +24,13 @@ Backward:
     CheckDiagnostic {
         message: "The type of the field `Mammal.weight` changed from `Int!` to `Float!`.",
         severity: Error,
+        path: "Mammal.weight",
+        change_kind: ChangeFieldType,
     },
     CheckDiagnostic {
         message: "The type of the field `MammalInput.mweight` changed from `Int!` to `Float!`.",
         severity: Error,
+        path: "MammalInput.mweight",
+        change_kind: ChangeFieldType,
     },
 ]

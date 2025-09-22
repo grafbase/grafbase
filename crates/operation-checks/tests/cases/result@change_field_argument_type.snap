@@ -1,12 +1,21 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/change_field_argument_type.graphql
+---
 Forward:
 [
     CheckDiagnostic {
         message: "The argument `Query.findAlbumsByArtist.yearRangeEnd` changed type but it is used by clients.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeEnd",
+        change_kind: ChangeFieldArgumentType,
     },
     CheckDiagnostic {
         message: "The argument `Query.findAlbumsByArtist.yearRangeStart` changed type but it is used by clients.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeStart",
+        change_kind: ChangeFieldArgumentType,
     },
 ]
 
@@ -15,9 +24,13 @@ Backward:
     CheckDiagnostic {
         message: "The argument `Query.findAlbumsByArtist.yearRangeEnd` changed type but it is used by clients.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeEnd",
+        change_kind: ChangeFieldArgumentType,
     },
     CheckDiagnostic {
         message: "The argument `Query.findAlbumsByArtist.yearRangeStart` changed type but it is used by clients.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeStart",
+        change_kind: ChangeFieldArgumentType,
     },
 ]

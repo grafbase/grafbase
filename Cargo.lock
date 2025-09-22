@@ -6821,11 +6821,9 @@ version = "0.0.0"
 dependencies = [
  "async-graphql-parser",
  "async-graphql-value",
- "datatest-stable",
- "expect-test",
  "grafbase-workspace-hack",
  "graphql-schema-diff",
- "similar",
+ "insta",
 ]
 
 [[package]]

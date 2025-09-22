@@ -1,0 +1,17 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/remove_used_field.graphql
+---
+Forward:
+[
+    CheckDiagnostic {
+        message: "The field `Query.doB` was removed but it is still used by clients.",
+        severity: Error,
+        path: "Query.doB",
+        change_kind: RemoveField,
+    },
+]
+
+Backward:
+[]

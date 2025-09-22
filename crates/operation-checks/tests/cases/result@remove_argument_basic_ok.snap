@@ -1,3 +1,8 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/remove_argument_basic_ok.graphql
+---
 Forward:
 []
 
@@ -6,9 +11,13 @@ Backward:
     CheckDiagnostic {
         message: "The new required argument at `Query.findAlbumsByArtist.yearRangeEnd` would break clients that are not providing it.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeEnd",
+        change_kind: AddFieldArgument,
     },
     CheckDiagnostic {
         message: "The new required argument at `Query.findAlbumsByArtist.yearRangeStart` would break clients that are not providing it.",
         severity: Error,
+        path: "Query.findAlbumsByArtist.yearRangeStart",
+        change_kind: AddFieldArgument,
     },
 ]

@@ -1,0 +1,10 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/remove_unused_field.graphql
+---
+Forward:
+[]
+
+Backward:
+[]

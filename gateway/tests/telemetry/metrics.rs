@@ -20,16 +20,6 @@ const METRICS_DELAY: Duration = Duration::from_secs(6);
 
 #[serde_with::serde_as]
 #[derive(Debug, clickhouse::Row, Deserialize, Serialize, PartialEq)]
-struct SumMetricCountRow {
-    #[serde(rename = "Value")]
-    value: f64,
-    #[serde(rename = "Attributes")]
-    #[serde_as(deserialize_as = "Vec<(_, _)>")]
-    attributes: BTreeMap<String, String>,
-}
-
-#[serde_with::serde_as]
-#[derive(Debug, clickhouse::Row, Deserialize, Serialize, PartialEq)]
 struct ExponentialHistogramRow {
     #[serde(rename = "Count")]
     count: u64,

@@ -1,0 +1,17 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/add_required_argument_without_default.graphql
+---
+Forward:
+[
+    CheckDiagnostic {
+        message: "The new required argument at `Query.sayHi.name` would break clients that are not providing it.",
+        severity: Error,
+        path: "Query.sayHi.name",
+        change_kind: AddFieldArgument,
+    },
+]
+
+Backward:
+[]

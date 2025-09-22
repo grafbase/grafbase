@@ -27,15 +27,19 @@ scalar join__FieldSet
 
 type Query
 {
+  amazing: Boolean! @extension__directive(graph: MY_OTHER_EXTENSION_WITHOUT_NAME, extension: SPARKLES, name: "sparkles", arguments: {}) @extension__directive(graph: MY_OTHER_EXTENSION_WITHOUT_NAME, extension: BUBBLES, name: "blub", arguments: {}) @join__field(graph: MY_OTHER_EXTENSION_WITHOUT_NAME)
   hello: String @join__field(graph: MY_EXTENSION_SUBGRAPH)
 }
 
 enum join__Graph
 {
   MY_EXTENSION_SUBGRAPH @join__graph(name: "my-extension-subgraph", url: "http://example.com/my-extension-subgraph")
+  MY_OTHER_EXTENSION_WITHOUT_NAME @join__graph(name: "my-other-extension-without-name", url: "http://example.com/my-other-extension-without-name")
 }
 
 enum extension__Link
 {
   REST @extension__link(url: "file:///rest-extension/test", schemaDirectives: [{graph: MY_EXTENSION_SUBGRAPH, name: "assured", arguments: {}}])
+  SPARKLES @extension__link(url: "file:///grafbase-extensions/sparkles")
+  BUBBLES @extension__link(url: "file:///grafbase-extensions/bubbles/build")
 }

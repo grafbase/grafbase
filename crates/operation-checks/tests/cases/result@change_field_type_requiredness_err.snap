@@ -1,12 +1,21 @@
+---
+source: crates/operation-checks/tests/operation_check_tests.rs
+expression: rendered
+input_file: crates/operation-checks/tests/cases/change_field_type_requiredness_err.graphql
+---
 Forward:
 [
     CheckDiagnostic {
         message: "The field `Mammal.weight` became optional, but clients do not expect null.",
         severity: Error,
+        path: "Mammal.weight",
+        change_kind: ChangeFieldType,
     },
     CheckDiagnostic {
         message: "The field `MammalInput.mweight` became required, but clients may not be providing it.",
         severity: Warning,
+        path: "MammalInput.mweight",
+        change_kind: ChangeFieldType,
     },
 ]
 
