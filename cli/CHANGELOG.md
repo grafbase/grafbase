@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.102.5] - 2025-09-24
+
+[CHANGELOG](changelog/0.102.5.md)
+
 ## [0.102.4] - 2025-09-04
 
 [CHANGELOG](changelog/0.102.4.md)
