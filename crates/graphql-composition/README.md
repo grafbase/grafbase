@@ -3,7 +3,29 @@
 [![crates.io](https://img.shields.io/crates/v/graphql-composition)](https://crates.io/crates/graphql-composition)
 [![docs.rs](https://img.shields.io/docsrs/graphql-composition)](https://docs.rs/graphql-composition/)
 
-An implementation of [GraphQL federated schema composition](https://www.apollographql.com/docs/federation/federated-types/composition/).
+An implementation of [GraphQL federated schema composition](https://www.apollographql.com/docs/federation/federated-types/composition/), and work-in-progress implementation of the [Composite Schemas spec](https://graphql.github.io/composite-schemas-spec/draft/).
+
+## Grafbase extensions
+
+On top of Federation v2 support and Composite Schemas spec support, this crate also includes information about directives imported from Grafbase extension definitions with `@link` in the composed schema.
+
+For a directive to be composed as an extension directive, it must be imported from an `@link`ed schema, and that schema's URL must either:
+
+- Use the `file:` scheme.
+- Have a `url` that starts with `https://grafbase.com/extensions`
+
+In the following example, all `@link` directives would be interpreted as linking to extensions, and all directives from these extensions would be composed as extension directives:
+
+```graphql
+extend schema
+    @link(url: "file:///path/to/extension", import: ["@test"])
+    @link(url: "https://grafbase.com/extensions/kafka/0.2.1")
+    @link(url: "file:///path/to/another/extension", as: "extension-name")
+    @link(
+      url: "https://grafbase.com/extensions/rest/0.5.0"
+      import: ["@restEndpoint", "@rest"]
+    )
+```
 
 ## Example
 
@@ -102,12 +124,6 @@ type Query
 assert_eq!(expected.trim(), composed.trim());
 
 ```
-
-## Features
-
-- The output is a structured, serializable format with all relevant relationships (FederatedGraph).
-- FederatedGraph can be rendered to GraphQL SDL (see the example above).
-- Good composition error messages.
 
 ## Status
 
