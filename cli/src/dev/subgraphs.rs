@@ -1,7 +1,6 @@
 use super::{
     FullGraphRef,
     data_json::{self, Error, Schemas},
-    extensions::detect_extensions,
 };
 use crate::{
     api::{
@@ -158,10 +157,7 @@ impl SubgraphCache {
     }
 
     /// Compose all cached subgraphs.
-    pub(crate) async fn compose(
-        &self,
-        config: &Config,
-    ) -> anyhow::Result<Result<String, graphql_composition::Diagnostics>> {
+    pub(crate) async fn compose(&self) -> anyhow::Result<Result<String, graphql_composition::Diagnostics>> {
         let mut futs = futures::stream::FuturesOrdered::new();
         let mut all_subgraphs = Vec::with_capacity(self.remote.len());
 
@@ -199,8 +195,6 @@ impl SubgraphCache {
         while let Some(result) = stream.next().await {
             match result {
                 Ok((subgraph, parsed_schema)) => {
-                    let extensions = detect_extensions(config, &parsed_schema).await;
-                    subgraphs.ingest_loaded_extensions(extensions);
                     subgraphs.ingest(&parsed_schema, &subgraph.name, subgraph.url.as_deref());
                 }
                 Err((_, mut errors)) => {

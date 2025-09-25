@@ -228,46 +228,7 @@ impl TestGatewayBuilder {
         }
 
         // Composition
-        let (federated_sdl, mock_subgraphs) = {
-            let extensions = toml_config
-                .extensions
-                .iter()
-                .map(|(name, config)| match config {
-                    ExtensionConfig::Version(version) => Ok(new_loaded_extension(
-                        format!("https://extensions.grafbase.com/{extension_name}/{version}")
-                            .parse()
-                            .unwrap(),
-                        name.clone(),
-                    )),
-                    ExtensionConfig::Structured(StructuredExtensionConfig {
-                        path: None, version, ..
-                    }) => Ok(new_loaded_extension(
-                        format!(
-                            "https://extensions.grafbase.com/{extension_name}/{}",
-                            version
-                                .as_ref()
-                                .ok_or_else(|| anyhow!("Missing path or version for extension '{name}'"))?
-                        )
-                        .parse()
-                        .unwrap(),
-                        name.clone(),
-                    )),
-                    ExtensionConfig::Structured(StructuredExtensionConfig { path: Some(path), .. }) => {
-                        let mut path = PathBuf::from_str(path.as_str())
-                            .context(format!("Invalid path for extension {name}: {path}"))?;
-                        if path.is_relative() {
-                            path = extension_path.join(path);
-                        }
-                        anyhow::Ok(new_loaded_extension(
-                            Url::from_file_path(&path).unwrap(),
-                            name.to_owned(),
-                        ))
-                    }
-                })
-                .collect::<anyhow::Result<Vec<_>>>()?;
-
-            compose(self.subgraphs, &extension_path, extensions).await
-        }?;
+        let (federated_sdl, mock_subgraphs) = compose(self.subgraphs, &extension_path).await?;
 
         if toml_config.wasm.cache_path.is_none() {
             toml_config.wasm.cache_path = Some(extension_path.join("build").join("wasm-cache"));
@@ -403,12 +364,9 @@ pub(crate) fn free_port() -> anyhow::Result<u16> {
 async fn compose(
     subgraphs: impl IntoIterator<Item = Subgraph>,
     extension_path: &Path,
-    extensions: impl IntoIterator<Item = LoadedExtension>,
 ) -> anyhow::Result<(String, Vec<MockGraphQlServer>)> {
     let mut mock_subgraphs = Vec::new();
     let mut composition_subgraphs = Subgraphs::default();
-
-    composition_subgraphs.ingest_loaded_extensions(extensions);
 
     let extension_url = url::Url::from_file_path(extension_path.join("build")).unwrap();
     let re = Regex::new(r#"@link\(\s*url\s*:\s*"(<self>)""#).unwrap();
