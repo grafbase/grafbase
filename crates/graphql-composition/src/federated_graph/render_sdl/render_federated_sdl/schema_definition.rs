@@ -42,6 +42,20 @@ pub(super) fn display_schema_definition(graph: &FederatedGraph, f: &mut fmt::For
         f.write_str("\n")?;
     }
 
+    for directive in &graph.composed_directives_on_schema_definition {
+        f.write_str(INDENT)?;
+
+        {
+            let mut writer = DirectiveWriter::new(&graph[directive.name], f, graph)?;
+
+            for (argument_name, argument_value) in &directive.arguments {
+                writer = writer.arg(&graph[*argument_name], argument_value.clone())?;
+            }
+        }
+
+        f.write_str("\n")?;
+    }
+
     if !query_root_defined {
         return f.write_str("\n");
     }

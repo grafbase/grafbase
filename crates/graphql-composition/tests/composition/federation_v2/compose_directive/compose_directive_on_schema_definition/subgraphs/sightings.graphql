@@ -1,0 +1,15 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@composeDirective"])
+  @link(url: "https://example.com/spec/test/v2")
+
+type BirdSighting {
+  id: ID!
+}
+
+type Query {
+  sightings(sightingID: ID!): BirdSighting
+}
+
+schema @composeDirective(name: "@sighted") @test__sighted {
+  query: Query
+}

@@ -276,32 +276,49 @@ fn ingest_fields<'a>(parsed: &'a ast::TypeSystemDocument, state: &mut State<'a>)
 fn ingest_schema_definition(schema: ast::SchemaDefinition<'_>, state: &mut State<'_>) -> Result<(), DomainError> {
     for directive in schema.directives() {
         let name = directive.name();
-        if name != "link" {
-            return Err(DomainError(format!("Unsupported directive {name} on schema.")));
+
+        match name {
+            "link" => {
+                let Some(url) = directive.argument("url").and_then(|arg| arg.value().as_str()) else {
+                    continue;
+                };
+
+                if url.starts_with("https://specs.apollo.dev") {
+                    continue;
+                }
+
+                let url = state.insert_string(url);
+
+                let imports = directive
+                    .argument("import")
+                    .and_then(|import| import.value().as_list())
+                    .map(|list| {
+                        list.into_iter()
+                            .filter_map(|item| item.as_str())
+                            .map(|s| state.insert_string(s.trim_start_matches("@")))
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
+
+                state.graph.linked_schemas.push(LinkDirective { url, imports });
+            }
+            _ => {
+                let name = state.insert_string(name);
+                let arguments = directive
+                    .arguments()
+                    .map(|argument| {
+                        let name = state.insert_string(argument.name());
+                        let value = state.insert_value(argument.value(), None);
+                        (name, value)
+                    })
+                    .collect();
+
+                state
+                    .graph
+                    .composed_directives_on_schema_definition
+                    .push(OtherDirective { name, arguments });
+            }
         }
-
-        let Some(url) = directive.argument("url").and_then(|arg| arg.value().as_str()) else {
-            continue;
-        };
-
-        if url.starts_with("https://specs.apollo.dev") {
-            continue;
-        }
-
-        let url = state.insert_string(url);
-
-        let imports = directive
-            .argument("import")
-            .and_then(|import| import.value().as_list())
-            .map(|list| {
-                list.into_iter()
-                    .filter_map(|item| item.as_str())
-                    .map(|s| state.insert_string(s.trim_start_matches("@")))
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-
-        state.graph.linked_schemas.push(LinkDirective { url, imports });
     }
 
     if let Some(query) = schema.query_type() {

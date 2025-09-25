@@ -90,7 +90,7 @@ pub(crate) fn write_directive<'a, 'b: 'a>(
                 directive.arg("url", Value::String(*url))?;
             }
         }
-        Directive::Other { name, arguments } => {
+        Directive::Other(OtherDirective { name, arguments }) => {
             let mut directive = DirectiveWriter::new(&graph[*name], f, graph)?;
 
             for (name, value) in arguments {

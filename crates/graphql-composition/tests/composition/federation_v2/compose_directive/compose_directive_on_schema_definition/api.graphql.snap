@@ -1,0 +1,25 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: The directives on schema definitions and extensions should be propagated by @composeDirective
+input_file: crates/graphql-composition/tests/composition/federation_v2/compose_directive/compose_directive_on_schema_definition/test.md
+---
+type BirdObservation {
+  id: ID!
+  location: String!
+  species: String!
+  timestamp: String!
+}
+
+type BirdSighting {
+  id: ID!
+}
+
+type Query {
+  birdObservation(observationID: ID!): BirdObservation
+  birdObservations(filters: BirdObservationFilters): [BirdObservation]
+  sightings(sightingID: ID!): BirdSighting
+}
+
+input BirdObservationFilters {
+  id: ID
+}
