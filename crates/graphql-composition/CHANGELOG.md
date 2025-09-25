@@ -7,6 +7,7 @@
 ### Improvements
 
 - The federated schema now contains a schema extension or definition, with the root types, the `@link` declarations for the directives used in the federated schema, as well as any `@link`ed schema from the subgraphs for directives that are propagated to the federated schema with `@composeDirective`. (https://github.com/grafbase/grafbase/pull/3519)
+- The `grafbase-extensions` cargo feature and the `Subgraphs::ingest_loaded_extensions()` method are removed in this version. Composition of Grafbase extensions is now transparent based on the `@link` url, without hints from the caller of composition.
 
 ### Fixes
 

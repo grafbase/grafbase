@@ -1,6 +1,0 @@
----
-source: crates/graphql-composition/tests/composition_tests.rs
-expression: "Tests that extension names are case insensitive and unique. But if the same extension is ingested twice, as long as the url is compatible, we're fine."
-input_file: crates/graphql-composition/tests/composition/extensions_same_extension_ingested_twice/test.md
----
-

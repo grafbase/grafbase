@@ -28,7 +28,7 @@ pub(super) fn emit_extensions(ctx: &mut Context<'_>, ir: &CompositionIr) {
 
         for char in extension_name_str.chars() {
             match char {
-                '-' => value.push('_'),
+                '-' | '.' => value.push('_'),
                 _ => value.push(char.to_ascii_uppercase()),
             }
         }

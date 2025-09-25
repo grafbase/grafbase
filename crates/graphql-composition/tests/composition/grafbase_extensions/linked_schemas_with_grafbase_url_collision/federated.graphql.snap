@@ -38,6 +38,6 @@ enum join__Graph
 
 enum extension__Link
 {
-  OPENAPI @extension__link(url: "https://grafbase.com/extensions/openapi/v2", schemaDirectives: [{graph: EXTENSION_SUBGRAPH, name: "spec", arguments: {url: "https://api.example.com/spec.json"}}])
   REST @extension__link(url: "https://extensions.grafbase.com/rest/v1", schemaDirectives: [{graph: EXTENSION_SUBGRAPH, name: "config", arguments: {baseUrl: "https://api.example.com"}}])
+  OPENAPI @extension__link(url: "https://grafbase.com/extensions/openapi/v2", schemaDirectives: [{graph: EXTENSION_SUBGRAPH, name: "spec", arguments: {url: "https://api.example.com/spec.json"}}])
 }

@@ -9,16 +9,10 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
 
     let test_description = fs::read_to_string(test_path)?;
     let subgraphs_dir = test_path.with_file_name("").join("subgraphs");
-    let extensions_path = test_path.with_file_name("extensions.toml");
 
     if !subgraphs_dir.is_dir() {
         return Err(anyhow::anyhow!("{} is not a directory.", subgraphs_dir.display()));
     }
-
-    let extensions: TestExtensions = fs::read_to_string(extensions_path)
-        .ok()
-        .map(|file| toml::from_str(&file).unwrap())
-        .unwrap_or_default();
 
     let mut subgraphs_sdl = fs::read_dir(subgraphs_dir)?
         .filter_map(Result::ok)
@@ -39,15 +33,6 @@ fn run_test(test_path: &Path) -> anyhow::Result<()> {
             .ingest_str(&sdl, &name, Some(&format!("http://example.com/{name}")))
             .map_err(|err| anyhow::anyhow!("Error parsing {}: \n{err:#}", path.display()))?;
     }
-
-    // Important: we want to load extensions _after_ ingesting subgraphs, to make sure the subgraph ingestion does not depend on the extensions having been populated.
-    subgraphs.ingest_loaded_extensions(extensions.extensions.into_iter().map(|extension| {
-        graphql_composition::LoadedExtension {
-            url: extension.url.parse().unwrap(),
-            link_url: extension.url,
-            name: extension.name,
-        }
-    }));
 
     let result = graphql_composition::compose(&mut subgraphs);
 
@@ -149,15 +134,4 @@ fn composition_tests() {
             run_test(test_path).unwrap();
         });
     });
-}
-
-#[derive(Debug, serde::Deserialize, Default)]
-struct TestExtensions {
-    extensions: Vec<TestExtension>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct TestExtension {
-    url: String,
-    name: String,
 }

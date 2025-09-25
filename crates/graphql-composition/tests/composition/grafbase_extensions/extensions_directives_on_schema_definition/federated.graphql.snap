@@ -52,6 +52,6 @@ enum join__Graph
 
 enum extension__Link
 {
+  SELECTION_SET_RESOLVER_015_1_0_0 @extension__link(url: "file:///selection-set-resolver-015-1.0.0", schemaDirectives: [{graph: INIT, name: "init", arguments: {}}])
   REST @extension__link(url: "https://grafbase.com/extensions/rest", schemaDirectives: [{graph: DEFINITION, name: "assured", arguments: {}}, {graph: SCHEMA_EXTENSION, name: "assured", arguments: {}}])
-  SELECTION_SET_RESOLVER @extension__link(url: "file:///selection-set-resolver-015-1.0.0", schemaDirectives: [{graph: INIT, name: "init", arguments: {}}])
 }

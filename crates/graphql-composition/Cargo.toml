@@ -7,10 +7,6 @@ description = "An implementation of GraphQL federated schema composition"
 repository = "https://github.com/grafbase/grafbase/tree/main/engine/crates/composition"
 keywords = ["graphql", "federation"]
 
-[features]
-default = ["grafbase-extensions"]
-grafbase-extensions = []
-
 [lints]
 workspace = true
 
