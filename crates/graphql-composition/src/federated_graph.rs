@@ -60,6 +60,7 @@ pub struct FederatedGraph {
     pub(crate) input_objects: Vec<InputObject>,
     pub(crate) enum_values: Vec<EnumValueRecord>,
     pub(crate) linked_schemas: Vec<LinkDirective>,
+    pub(crate) composed_directives_on_schema_definition: Vec<directives::OtherDirective>,
 
     /// All [input value definitions](http://spec.graphql.org/October2021/#InputValueDefinition) in the federated graph. Concretely, these are arguments of output fields, and input object fields.
     pub(crate) input_value_definitions: Vec<InputValueDefinition>,

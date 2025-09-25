@@ -34,7 +34,45 @@ pub(super) fn ingest_schema_definitions(ctx: &mut Context<'_>) {
 
     ctx.root_type_matcher = matcher;
 
-    // We must iterate a second time, because the complete first pass is necessary to have ingested all `@link`s, so we can match other directives on the schema definitions, notably `@composeDirective`.
+    // We must iterate a second time, because the complete first pass is necessary to have ingested all `@link`s, so we can match `@composeDirective`.
+    for schema_definition in ctx.document.definitions().filter_map(|definition| match definition {
+        ast::Definition::Schema(schema_definition) => Some(schema_definition),
+        ast::Definition::SchemaExtension(schema_extension) => Some(schema_extension),
+        _ => None,
+    }) {
+        for directive in schema_definition.directives() {
+            let (_directive_name_id, match_result) = match_directive_name(ctx, directive.name());
+
+            if let DirectiveNameMatch::ComposeDirective = match_result {
+                for arg in directive.arguments() {
+                    if arg.name() == "name" {
+                        let Some(name) = arg.value().as_str() else {
+                            ctx.subgraphs.push_ingestion_diagnostic(
+                                ctx.subgraph_id,
+                                "Invalid `@composeDirective` directive: `name` argument must be a string".to_owned(),
+                            );
+                            continue;
+                        };
+
+                        if !name.starts_with('@') {
+                            ctx.subgraphs.push_ingestion_diagnostic(
+                                ctx.subgraph_id,
+                                "Invalid `@composeDirective` directive: `name` argument must start with `@`".to_owned(),
+                            );
+
+                            continue;
+                        }
+
+                        ctx.subgraphs
+                            .insert_composed_directive(ctx.subgraph_id, name.trim_start_matches('@'));
+                    }
+                }
+            }
+        }
+    }
+
+    // We now need a third pass to ingest the remaining directives
+    // We must iterate a second time, because the complete first pass is necessary to have ingested all `@link`s, so we can match `@composeDirective`.
     for schema_definition in ctx.document.definitions().filter_map(|definition| match definition {
         ast::Definition::Schema(schema_definition) => Some(schema_definition),
         ast::Definition::SchemaExtension(schema_extension) => Some(schema_extension),
@@ -44,33 +82,6 @@ pub(super) fn ingest_schema_definitions(ctx: &mut Context<'_>) {
             let (directive_name_id, match_result) = match_directive_name(ctx, directive.name());
 
             match match_result {
-                DirectiveNameMatch::ComposeDirective => {
-                    for arg in directive.arguments() {
-                        if arg.name() == "name" {
-                            let Some(name) = arg.value().as_str() else {
-                                ctx.subgraphs.push_ingestion_diagnostic(
-                                    ctx.subgraph_id,
-                                    "Invalid `@composeDirective` directive: `name` argument must be a string"
-                                        .to_owned(),
-                                );
-                                continue;
-                            };
-
-                            if !name.starts_with('@') {
-                                ctx.subgraphs.push_ingestion_diagnostic(
-                                    ctx.subgraph_id,
-                                    "Invalid `@composeDirective` directive: `name` argument must start with `@`"
-                                        .to_owned(),
-                                );
-
-                                continue;
-                            }
-
-                            ctx.subgraphs
-                                .insert_composed_directive(ctx.subgraph_id, name.trim_start_matches('@'));
-                        }
-                    }
-                }
                 DirectiveNameMatch::Qualified {
                     linked_schema_id,
                     directive_unqualified_name,
@@ -85,7 +96,9 @@ pub(super) fn ingest_schema_definitions(ctx: &mut Context<'_>) {
                             arguments,
                             provenance: subgraphs::DirectiveProvenance::Linked {
                                 linked_schema_id,
-                                is_composed_directive: false,
+                                is_composed_directive: ctx
+                                    .subgraphs
+                                    .is_composed_directive(ctx.subgraph_id, directive_name_id),
                             },
                         },
                     );
@@ -102,7 +115,9 @@ pub(super) fn ingest_schema_definitions(ctx: &mut Context<'_>) {
                             arguments,
                             provenance: subgraphs::DirectiveProvenance::Linked {
                                 linked_schema_id: linked_definition.linked_schema_id,
-                                is_composed_directive: false,
+                                is_composed_directive: ctx
+                                    .subgraphs
+                                    .is_composed_directive(ctx.subgraph_id, directive_name_id),
                             },
                         },
                     );

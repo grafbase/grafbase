@@ -9,6 +9,7 @@
 ### Fixes
 
 - There were inconsistencies in what types of subgraphs (no imports, federation v2 import, composite schemas import, with and without associated url) would recognize `@cost` and `@listSize` as built-in directives. This release fixes the inconsistency and treats them as built-ins everywhere. (https://github.com/grafbase/grafbase/pull/3485)
+- Directives composed with `@composeDirective` and located on a schema definition or extension are now properly propagated to the composed schema.
 
 ## 0.12.0 - 2025-08-29
 

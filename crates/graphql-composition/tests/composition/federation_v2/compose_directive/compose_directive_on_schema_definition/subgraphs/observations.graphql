@@ -1,0 +1,24 @@
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@composeDirective"])
+  @link(url: "https://example.com/schema.graphql", import: ["@recorded"])
+  @recorded
+
+input BirdObservationFilters {
+  id: ID
+}
+
+type BirdObservation {
+  id: ID!
+  species: String!
+  location: String!
+  timestamp: String!
+}
+
+type Query {
+  birdObservations(filters: BirdObservationFilters): [BirdObservation]
+  birdObservation(observationID: ID!): BirdObservation
+}
+
+schema @composeDirective(name: "@recorded") {
+  query: Query
+}

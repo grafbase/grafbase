@@ -7,16 +7,7 @@ mod emit_linked_schemas;
 mod federation_builtins;
 mod field_types_map;
 
-use self::{
-    context::Context,
-    directive::{
-        emit_composite_spec_directive_definitions, emit_cost_directive_definition, emit_list_size_directive_definition,
-        transform_arbitray_type_directives, transform_enum_value_directives, transform_field_directives,
-        transform_input_value_directives, transform_type_directives,
-    },
-    directive_definitions::emit_directive_definitions,
-    emit_extensions::*,
-};
+use self::{context::Context, directive::*, directive_definitions::emit_directive_definitions, emit_extensions::*};
 use crate::{
     Subgraphs, VecExt,
     composition_ir::{CompositionIr, FieldIr, InputValueDefinitionIr},
@@ -48,6 +39,7 @@ pub(crate) fn emit_federated_graph(mut ir: CompositionIr, subgraphs: &Subgraphs)
             mutation: ir.mutation_type,
             subscription: ir.subscription_type,
         },
+        composed_directives_on_schema_definition: Vec::new(),
     };
 
     let mut ctx = Context::new(&mut ir, subgraphs, &mut out);
@@ -140,6 +132,7 @@ fn emit_directives_and_implements_interface(ctx: &mut Context<'_>, mut ir: Compo
     emit_list_size_directive_definition(ctx);
     emit_composite_spec_directive_definitions(ctx);
     emit_interface_after_directives(ctx);
+    emit_composed_directives_on_schema_definition(ctx);
 }
 
 fn emit_input_value_definitions(input_value_definitions: &[InputValueDefinitionIr], ctx: &mut Context<'_>) {

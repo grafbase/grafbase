@@ -25,43 +25,24 @@ pub(crate) use self::{
 #[derive(PartialEq, PartialOrd, Clone, Debug)]
 pub(crate) enum Directive {
     Authenticated,
-    CompositeLookup {
-        graph: SubgraphId,
-    },
-    CompositeDerive {
-        graph: SubgraphId,
-    },
-    CompositeInternal {
-        graph: SubgraphId,
-    },
-    CompositeRequire {
-        graph: SubgraphId,
-        field: StringId,
-    },
-    CompositeIs {
-        graph: SubgraphId,
-        field: StringId,
-    },
-    Deprecated {
-        reason: Option<StringId>,
-    },
+    CompositeLookup { graph: SubgraphId },
+    CompositeDerive { graph: SubgraphId },
+    CompositeInternal { graph: SubgraphId },
+    CompositeRequire { graph: SubgraphId, field: StringId },
+    CompositeIs { graph: SubgraphId, field: StringId },
+    Deprecated { reason: Option<StringId> },
     OneOf,
     Inaccessible,
     Policy(Vec<Vec<StringId>>),
     RequiresScopes(Vec<Vec<StringId>>),
-    Cost {
-        weight: i32,
-    },
+    Cost { weight: i32 },
     JoinGraph(JoinGraphDirective),
     JoinField(JoinFieldDirective),
     JoinType(JoinTypeDirective),
     JoinUnionMember(JoinUnionMemberDirective),
     JoinImplements(JoinImplementsDirective),
     JoinEnumValue(JoinEnumValueDirective),
-    Other {
-        name: StringId,
-        arguments: Vec<(StringId, Value)>,
-    },
+    Other(OtherDirective),
     ListSize(ListSize),
 
     ExtensionDirective(ExtensionDirective),
@@ -86,6 +67,12 @@ impl Directive {
             _ => None,
         }
     }
+}
+
+#[derive(PartialEq, PartialOrd, Debug, Clone)]
+pub(crate) struct OtherDirective {
+    pub(crate) name: StringId,
+    pub(crate) arguments: Vec<(StringId, Value)>,
 }
 
 #[cfg(test)]

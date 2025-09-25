@@ -1,0 +1,62 @@
+---
+source: crates/graphql-composition/tests/composition_tests.rs
+expression: The directives on schema definitions and extensions should be propagated by @composeDirective
+input_file: crates/graphql-composition/tests/composition/federation_v2/compose_directive/compose_directive_on_schema_definition/test.md
+---
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.3", for: EXECUTION)
+  @link(url: "https://specs.apollo.dev/inaccessible/v0.2", for: SECURITY)
+  @recorded
+  @sighted
+{
+  query: Query
+}
+
+directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
+
+directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
+
+directive @join__graph(name: String!, url: String) on ENUM_VALUE
+
+directive @join__field(graph: join__Graph, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, overrideLabel: String) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolean = false, resolvable: Boolean = true, isInterfaceObject: Boolean = false) on SCALAR | OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT
+
+directive @join__owner(graph: join__Graph!) on OBJECT
+
+scalar join__FieldSet
+
+type BirdObservation
+  @join__type(graph: OBSERVATIONS)
+{
+  id: ID!
+  location: String!
+  species: String!
+  timestamp: String!
+}
+
+type BirdSighting
+  @join__type(graph: SIGHTINGS)
+{
+  id: ID!
+}
+
+type Query
+{
+  birdObservation(observationID: ID!): BirdObservation @join__field(graph: OBSERVATIONS)
+  birdObservations(filters: BirdObservationFilters): [BirdObservation] @join__field(graph: OBSERVATIONS)
+  sightings(sightingID: ID!): BirdSighting @join__field(graph: SIGHTINGS)
+}
+
+enum join__Graph
+{
+  OBSERVATIONS @join__graph(name: "observations", url: "http://example.com/observations")
+  SIGHTINGS @join__graph(name: "sightings", url: "http://example.com/sightings")
+}
+
+input BirdObservationFilters
+  @join__type(graph: OBSERVATIONS)
+{
+  id: ID
+}

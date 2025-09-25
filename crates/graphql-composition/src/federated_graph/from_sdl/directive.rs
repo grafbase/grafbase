@@ -1,15 +1,7 @@
-use std::str::FromStr;
-
+use super::*;
 use cynic_parser::type_system::{self as ast};
 use cynic_parser_deser::ConstDeserializer;
-
-use super::{
-    CostDirective, Definition, DeprecatedDirective, Directive, DomainError, EXTENSION_DIRECTIVE_DIRECTIVE,
-    ExtensionDirective, ExtensionLinkSchemaDirective, FieldId, GetArgumentsExt, InputValueDefinitionId, IntoJson,
-    JoinFieldDirective, JoinImplementsDirective, JoinTypeDirective, JoinUnionMemberDirective, ListSize,
-    ListSizeDirective, OverrideLabel, OverrideSource, State, StringId, Value, attach_selection_set,
-    parse_selection_set,
-};
+use std::str::FromStr;
 
 pub(super) fn collect_definition_directives<'a>(
     definition_id: Definition,
@@ -199,7 +191,7 @@ fn parse_other<'a>(directive: ast::Directive<'a>, state: &mut State<'a>) -> Dire
         .arguments()
         .map(|arg| -> (StringId, Value) { (state.insert_string(arg.name()), state.insert_value(arg.value(), None)) })
         .collect();
-    Directive::Other { name, arguments }
+    Directive::Other(OtherDirective { name, arguments })
 }
 
 fn parse_join_type_directive<'a>(

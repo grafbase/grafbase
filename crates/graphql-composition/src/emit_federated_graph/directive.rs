@@ -1,7 +1,9 @@
+use crate::{
+    composition_ir as ir,
+    federated_graph::{self as federated, Definition},
+    subgraphs,
+};
 use wrapping::Wrapping;
-
-use crate::composition_ir as ir;
-use crate::federated_graph::{self as federated, Definition};
 
 use super::{
     attach_selection,
@@ -142,13 +144,13 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
             arguments,
             provenance:
                 ir::DirectiveProvenance::Builtin | ir::DirectiveProvenance::ComposeDirective { linked_schema_id: None },
-        } => federated::Directive::Other {
+        } => federated::Directive::Other(federated::OtherDirective {
             name: *name,
             arguments: arguments
                 .iter()
                 .map(|(name, value)| (*name, ctx.insert_value(value)))
                 .collect(),
-        },
+        }),
         ir::Directive::Other {
             name,
             arguments,
@@ -158,13 +160,13 @@ fn transform_common_directive(ctx: &mut Context<'_>, directive: &ir::Directive) 
                 },
         } => {
             ctx.composed_directive_linked_schemas.push((*linked_schema_id, *name));
-            federated::Directive::Other {
+            federated::Directive::Other(federated::OtherDirective {
                 name: *name,
                 arguments: arguments
                     .iter()
                     .map(|(name, value)| (*name, ctx.insert_value(value)))
                     .collect(),
-            }
+            })
         }
         ir::Directive::OneOf => federated::Directive::OneOf,
         ir::Directive::Other {
@@ -563,4 +565,32 @@ pub(super) fn emit_composite_spec_directive_definitions(ctx: &mut Context<'_>) {
             repeatable: false,
         });
     }
+}
+
+pub(super) fn emit_composed_directives_on_schema_definition(ctx: &mut Context<'_>) {
+    ctx.out.composed_directives_on_schema_definition = ctx
+        .subgraphs
+        .iter_extra_directives_on_schema_definition()
+        .filter(|(_, directive)| {
+            matches!(
+                directive.provenance,
+                subgraphs::DirectiveProvenance::Linked {
+                    is_composed_directive: true,
+                    ..
+                } | subgraphs::DirectiveProvenance::ComposedDirective
+            )
+        })
+        .map(|(_, directive)| {
+            let arguments = directive
+                .arguments
+                .iter()
+                .map(|(name, value)| (ctx.insert_string(*name), ctx.insert_value(value)))
+                .collect();
+
+            federated::OtherDirective {
+                name: ctx.insert_string(directive.name),
+                arguments,
+            }
+        })
+        .collect();
 }
