@@ -7,7 +7,7 @@ fn query_context() {
         let engine = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authz-21-1.0.0", import: ["@grant"])
+                extend schema @link(url: "authz-21", import: ["@grant"])
 
                 type Query {
                     header(name: String): String @grant
@@ -55,7 +55,7 @@ fn response_context() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                    extend schema @link(url: "authz-21-1.0.0", import: ["@deniedIds"])
+                    extend schema @link(url: "authz-21", import: ["@deniedIds"])
 
                     type Query {
                         users: [User]!

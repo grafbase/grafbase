@@ -118,7 +118,6 @@ impl Subgraphs {
         self.extensions
             .extend(extensions.into_iter().map(|ext| ExtensionRecord {
                 url: self.strings.intern(ext.url.as_str()),
-                link_url: self.strings.intern(ext.link_url.as_str()),
                 name: self.strings.intern(ext.name),
             }));
     }

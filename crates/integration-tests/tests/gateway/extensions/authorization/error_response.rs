@@ -34,7 +34,7 @@ fn can_return_error_response() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     greeting: String @auth

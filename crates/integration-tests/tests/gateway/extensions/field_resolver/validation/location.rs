@@ -11,7 +11,7 @@ fn invalid_location() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
 
                 scalar JSON
 
@@ -43,7 +43,7 @@ fn invalid_location() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @echo
 
                 scalar JSON
@@ -65,8 +65,8 @@ fn invalid_location() {
         insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
         * At site subgraph named 'a', extension echo-1.0.0 directive @echo used in the wrong location SCHEMA, expected one of: FIELD_DEFINITION
         36 | {
-        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "echo", arguments: {}}])
-                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo/v1.0.0", schemaDirectives: [{graph: A, name: "echo", arguments: {}}])
+                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         38 | }
         "#);
     });

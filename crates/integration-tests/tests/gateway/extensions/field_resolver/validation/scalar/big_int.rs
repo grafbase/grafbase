@@ -10,7 +10,7 @@ fn valid_big_int() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(value: 9223372036854775807)
 
                 scalar JSON
@@ -61,7 +61,7 @@ fn float_to_big_int_coercion() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(value: 1.0)
 
                 scalar JSON

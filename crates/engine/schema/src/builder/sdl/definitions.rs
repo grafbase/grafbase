@@ -10,7 +10,7 @@ use super::*;
 
 #[derive(Copy, Clone)]
 pub(crate) enum SdlDefinition<'a> {
-    SchemaDirective(SubgraphId),
+    SchemaDirective(Option<SubgraphId>),
     Scalar(ScalarSdlDefinition<'a>),
     Object(ObjectSdlDefinition<'a>),
     Interface(InterfaceSdlDefinition<'a>),
@@ -37,12 +37,17 @@ impl<'a> SdlDefinition<'a> {
             Self::ArgumentDefinition(def) => def.to_site_string(builder),
             Self::EnumValue(def) => def.to_site_string(builder),
             Self::SchemaDirective(id) => {
-                let name = match id {
-                    SubgraphId::Graphql(id) => &builder.ctx[builder.ctx[id].name_id],
-                    SubgraphId::Introspection => "Introspection",
-                    SubgraphId::Virtual(id) => &builder.ctx[builder.ctx[id].name_id],
-                };
-                format!("subgraph named '{name}'")
+                if let Some(id) = id {
+                    let name = match id {
+                        SubgraphId::Graphql(id) => &builder.ctx[builder.ctx[id].name_id],
+                        SubgraphId::Introspection => "Introspection",
+                        SubgraphId::Virtual(id) => &builder.ctx[builder.ctx[id].name_id],
+                    };
+
+                    format!("subgraph named '{name}'")
+                } else {
+                    "schema".to_string()
+                }
             }
         }
     }
@@ -634,6 +639,6 @@ impl<'a> From<EnumValueSdlDefinition<'a>> for SdlDefinition<'a> {
 
 impl From<SubgraphId> for SdlDefinition<'_> {
     fn from(id: SubgraphId) -> Self {
-        SdlDefinition::SchemaDirective(id)
+        SdlDefinition::SchemaDirective(Some(id))
     }
 }

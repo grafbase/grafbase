@@ -18,7 +18,9 @@ impl<'a> ResolverDefinition<'a> {
             ResolverDefinitionVariant::GraphqlFederationEntity(resolver) => resolver.subgraph_id.into(),
             ResolverDefinitionVariant::GraphqlRootField(resolver) => resolver.subgraph_id.into(),
             ResolverDefinitionVariant::Introspection(_) => SubgraphId::Introspection,
-            ResolverDefinitionVariant::FieldResolverExtension(resolver) => resolver.directive().subgraph_id,
+            ResolverDefinitionVariant::FieldResolverExtension(resolver) => {
+                resolver.directive().subgraph_id.expect("Must be present for resolvers")
+            }
             ResolverDefinitionVariant::Extension(resolver) => resolver.subgraph_id.into(),
             ResolverDefinitionVariant::SelectionSetResolverExtension(resolver) => resolver.subgraph_id.into(),
             ResolverDefinitionVariant::Lookup(resolver) => resolver.resolver().subgraph_id(),
@@ -49,7 +51,14 @@ impl<'a> ResolverDefinition<'a> {
 
 impl FieldResolverExtensionDefinition<'_> {
     pub fn name(&self) -> String {
-        format!("{}#{}", self.directive().name(), self.directive().subgraph().name())
+        format!(
+            "{}#{}",
+            self.directive().name(),
+            self.directive()
+                .subgraph()
+                .expect("Must be present for resolvers")
+                .name()
+        )
     }
 }
 

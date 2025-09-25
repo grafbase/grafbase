@@ -49,13 +49,21 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                     match sdl::parse_extension_directive(directive) {
                         Ok(dir) => match self.subgraphs.try_get(dir.graph, directive.arguments_span()) {
                             Ok(subgraph_id) => {
-                                let extension = self.extensions.get(dir.extension);
+                                let extension = self.extensions.get_by_name(dir.extension);
                                 match self.ingest_extension_directive(
                                     def,
-                                    subgraph_id,
+                                    Some(subgraph_id),
                                     extension,
                                     dir.name,
-                                    dir.arguments,
+                                    dir.arguments
+                                        .and_then(|value| value.as_fields())
+                                        .map(|fields| {
+                                            fields
+                                                .into_iter()
+                                                .map(|field| (field.name(), field.value()))
+                                                .collect::<Vec<_>>()
+                                        })
+                                        .unwrap_or_default(),
                                 ) {
                                     Ok(id) => directive_ids.push(TypeSystemDirectiveId::Extension(id)),
                                     Err(txt) => self.errors.push(Error::new(txt).span(directive.arguments_span())),
@@ -73,6 +81,42 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                 }
                 _ => {}
             };
+
+            // Only  extension directives are left.
+            if self.for_operation_analytics_only {
+                continue;
+            }
+
+            let (extension, name) = if let Some((namespace, name)) = directive.name().split_once("__") {
+                let Some(link_id) = self.sdl.directive_namespaces.get(namespace) else {
+                    continue;
+                };
+                let Some(extension) = self.extensions.get_by_link_id(*link_id) else {
+                    continue;
+                };
+                (extension, name)
+            } else if let Some(import) = self.sdl.directive_imports.get(directive.name()) {
+                let Some(extension) = self.extensions.get_by_link_id(import.link_id) else {
+                    continue;
+                };
+                (extension, import.original_name.unwrap_or(directive.name()))
+            } else {
+                continue;
+            };
+
+            match self.ingest_extension_directive(
+                def,
+                None,
+                extension,
+                name,
+                directive
+                    .arguments()
+                    .map(|arg| (arg.name(), arg.value()))
+                    .collect::<Vec<_>>(),
+            ) {
+                Ok(id) => directive_ids.push(TypeSystemDirectiveId::Extension(id)),
+                Err(txt) => self.errors.push(Error::new(txt).span(directive.arguments_span())),
+            }
         }
 
         match def {

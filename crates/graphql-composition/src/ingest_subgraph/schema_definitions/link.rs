@@ -50,7 +50,7 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
     let r#as = r#as.map(|r#as| subgraphs.strings.intern(r#as));
 
     if let Some(link_url) = link_url.as_ref() {
-        ingest_grafbase_extension_from_link(subgraphs, url, r#as, link_url);
+        ingest_grafbase_extension_from_link(subgraphs, url, link_url);
     }
 
     let linked_schema_id = subgraphs.push_linked_schema(subgraphs::LinkedSchemaRecord {
@@ -119,59 +119,11 @@ pub(super) fn ingest_link_directive(directive: ast::Directive<'_>, subgraph_id: 
 fn ingest_grafbase_extension_from_link(
     subgraphs: &mut Subgraphs,
     url: subgraphs::StringId,
-    r#as: Option<subgraphs::StringId>,
     link_url: &subgraphs::LinkUrl,
 ) {
-    if link_url.url.scheme() == "file" {
-        let Some(name) = r#as.or_else(|| {
-            link_url.url.to_file_path().ok().and_then(|path| {
-                let file_name = path.file_name()?.to_str()?;
-                match file_name {
-                    // This is going to be the name for locally built extension. In that case, the parent directory has a more descriptive name.
-                    "build" => path
-                        .parent()
-                        .and_then(|parent| parent.file_name()?.to_str())
-                        .map(|s| subgraphs.strings.intern(s)),
-                    _ => Some(subgraphs.strings.intern(file_name)),
-                }
-            })
-        }) else {
-            return;
-        };
-
-        subgraphs.push_extension(subgraphs::ExtensionRecord {
-            url,
-            link_url: url,
-            name,
-        });
-    }
-
-    if is_grafbase_extension_registry_url(&link_url.url) {
-        let Some(name) = r#as.or_else(|| {
-            let mut segments = link_url.url.path_segments()?;
-
-            let name = segments.next_back()?;
-            let mut name_chars = name.chars();
-
-            let name = match name_chars.next() {
-                Some('v') => match name_chars.next() {
-                    Some(next_char) if next_char.is_ascii_digit() => segments.next_back(),
-                    _ => Some(name),
-                },
-                Some(c) if c.is_ascii_digit() => segments.next_back(),
-                Some(_) => Some(name),
-                None => segments.next_back(),
-            };
-
-            name.map(|s| subgraphs.strings.intern(s))
-        }) else {
-            return;
-        };
-
-        subgraphs.push_extension(subgraphs::ExtensionRecord {
-            url,
-            link_url: url,
-            name,
-        });
+    if (link_url.url.scheme() == "file" || is_grafbase_extension_registry_url(&link_url.url))
+        && let Some(name) = link_url.name.as_deref().map(|name| subgraphs.strings.intern(name))
+    {
+        subgraphs.push_extension(subgraphs::ExtensionRecord { url, name });
     }
 }

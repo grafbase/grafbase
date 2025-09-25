@@ -60,7 +60,7 @@ fn json_template() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -115,7 +115,7 @@ fn json_should_escape_string_content() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -147,7 +147,7 @@ fn json_should_render_objects_as_json() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -184,7 +184,7 @@ fn json_should_render_lists_as_json() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -221,7 +221,7 @@ fn iterate_object_within_list() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -260,7 +260,7 @@ fn iterate_string_list() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -299,7 +299,7 @@ fn object_section() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -334,7 +334,7 @@ fn string_section() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -370,7 +370,7 @@ fn null_section() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -406,7 +406,7 @@ fn int_section() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -442,7 +442,7 @@ fn boolean_section() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 

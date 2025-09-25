@@ -13,7 +13,7 @@ fn object_type() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     user: User
@@ -78,7 +78,7 @@ fn object_within_list() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     users: [User]
@@ -143,7 +143,7 @@ fn object_within_union() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     pets: [Pet]
@@ -227,7 +227,7 @@ fn explicit_object_behind_interface() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     node: Node

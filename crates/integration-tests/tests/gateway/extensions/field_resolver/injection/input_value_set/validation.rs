@@ -9,7 +9,7 @@ fn invalid_location_but_not_used() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -42,7 +42,7 @@ fn invalid_location_but_not_used_nullable_with_default_value() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -75,7 +75,7 @@ fn invalid_location_but_not_used_required_with_default_value() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -108,7 +108,7 @@ fn invalid_location() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -145,7 +145,7 @@ fn unknown_field() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -192,7 +192,7 @@ fn unknown_nested_field() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -239,7 +239,7 @@ fn cannot_have_selection_set() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -286,7 +286,7 @@ fn cannot_have_fragments() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -333,7 +333,7 @@ fn must_be_valid_selection_set() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 

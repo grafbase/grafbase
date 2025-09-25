@@ -11,7 +11,7 @@ pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>)
     let mut errors = Vec::new();
 
     for (name, ext) in builder.sdl.extensions.iter() {
-        let extension = builder.extensions.get(*name);
+        let extension = builder.extensions.get_by_name(*name);
         for (directive, span) in &ext.directives {
             let subgraph_id = match builder.subgraphs.try_get(directive.graph, *span) {
                 Ok(id) => id,
@@ -21,11 +21,20 @@ pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>)
                 }
             };
             let id = match builder.ingest_extension_directive(
-                sdl::SdlDefinition::SchemaDirective(subgraph_id),
-                subgraph_id,
+                sdl::SdlDefinition::SchemaDirective(Some(subgraph_id)),
+                Some(subgraph_id),
                 extension,
                 directive.name,
-                directive.arguments,
+                directive
+                    .arguments
+                    .and_then(|value| value.as_fields())
+                    .map(|fields| {
+                        fields
+                            .into_iter()
+                            .map(|field| (field.name(), field.value()))
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default(),
             ) {
                 Ok(id) => id,
                 Err(err) => {
@@ -45,6 +54,43 @@ pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>)
         }
     }
 
+    for directive in &builder.sdl.schema_directives {
+        let (extension, name) = if let Some((namespace, name)) = directive.name().split_once("__") {
+            let Some(link_id) = builder.sdl.directive_namespaces.get(namespace) else {
+                continue;
+            };
+            let Some(extension) = builder.extensions.get_by_link_id(*link_id) else {
+                continue;
+            };
+            (extension, name)
+        } else if let Some(import) = builder.sdl.directive_imports.get(directive.name()) {
+            let Some(extension) = builder.extensions.get_by_link_id(import.link_id) else {
+                continue;
+            };
+            (extension, import.original_name.unwrap_or(directive.name()))
+        } else {
+            continue;
+        };
+
+        match builder.ingest_extension_directive(
+            sdl::SdlDefinition::SchemaDirective(None),
+            None,
+            extension,
+            name,
+            directive
+                .arguments()
+                .map(|arg| (arg.name(), arg.value()))
+                .collect::<Vec<_>>(),
+        ) {
+            Ok(id) => {
+                builder.schema_directive_ids.push(id);
+            }
+            Err(err) => {
+                errors.push(Error::new(err).span(directive.name_span()));
+            }
+        };
+    }
+
     if !errors.is_empty() { Err(errors) } else { Ok(()) }
 }
 
@@ -52,10 +98,10 @@ impl<'a> GraphBuilder<'a> {
     pub(crate) fn ingest_extension_directive(
         &mut self,
         current_definition: sdl::SdlDefinition<'a>,
-        subgraph_id: SubgraphId,
-        extension: &'a LoadedExtension<'a>,
+        subgraph_id: Option<SubgraphId>,
+        extension: LoadedExtension<'a>,
         name: &str,
-        arguments: Option<sdl::ConstValue<'a>>,
+        arguments: Vec<(&'a str, sdl::ConstValue<'a>)>,
     ) -> Result<ExtensionDirectiveId, String> {
         let directive_name_id = self.ingest_str(name);
 
@@ -91,13 +137,28 @@ impl<'a> GraphBuilder<'a> {
             ));
         }
 
-        if directive_type.is_selection_set_resolver() {
+        if directive_type.is_resolver() || directive_type.is_field_resolver() {
+            if subgraph_id.is_none() {
+                return Err(format!(
+                    "At site {}, resolver extension '{}' is not linked to a particular subgraph.",
+                    current_definition.to_site_string(self),
+                    extension.manifest.id,
+                ));
+            };
+        } else if directive_type.is_selection_set_resolver() {
+            let Some(subgraph_id) = subgraph_id else {
+                return Err(format!(
+                    "At site {}, resolver extension '{}' is not linked to a particular subgraph.",
+                    current_definition.to_site_string(self),
+                    extension.manifest.id,
+                ));
+            };
             let id = match subgraph_id {
                 SubgraphId::Virtual(id) => id,
                 SubgraphId::Introspection => unreachable!(),
                 SubgraphId::Graphql(id) => {
                     return Err(format!(
-                        "At site {}, resolver extension {}' directive @{name} can only be used on virtual graphs, '{}' isn't one.",
+                        "At site {}, resolver extension '{}' directive @{name} can only be used on virtual graphs, '{}' isn't one.",
                         current_definition.to_site_string(self),
                         extension.manifest.id,
                         &self.ctx[self.ctx[id].name_id]

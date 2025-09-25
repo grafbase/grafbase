@@ -8,6 +8,7 @@ use federated_server::router::RouterConfig;
 use futures::{FutureExt, future::BoxFuture};
 use gateway_config::Config;
 use graphql_mocks::MockGraphQlServer;
+use regex::Regex;
 use runtime::{
     fetch::dynamic::DynamicFetcher,
     trusted_documents_client::{self, TrustedDocumentsEnforcementMode},
@@ -148,19 +149,30 @@ impl GatewayBuilder {
                 Some(sdl) => graphql_composition::FederatedGraph::from_sdl(&sdl).unwrap(),
                 None => {
                     if !subgraphs.is_empty() {
+                        let re = Regex::new(r#"@link\(\s*url\s*:\s*"([^"]*)""#).unwrap();
                         let mut composed_subgraphs = graphql_composition::Subgraphs::default();
 
                         composed_subgraphs.ingest_loaded_extensions(runtime.extensions.iter_with_url().map(
                             |(manifest, url)| graphql_composition::LoadedExtension {
-                                link_url: manifest.id.to_string(),
-                                url,
+                                url: url.to_string(),
                                 name: manifest.id.name.to_string(),
                             },
                         ));
 
                         for subgraph in subgraphs.iter() {
+                            let sdl = subgraph.sdl();
+                            let schema = re.replace_all(&sdl, |caps: &regex::Captures<'_>| {
+                                format!(
+                                    r#"@link(url: "{}""#,
+                                    runtime
+                                        .extensions
+                                        .find_url_by_name(&caps[1])
+                                        .map(|url| url.to_string())
+                                        .unwrap_or(caps[1].to_string())
+                                )
+                            });
                             composed_subgraphs.ingest_str(
-                                subgraph.sdl().as_ref(),
+                                &schema,
                                 subgraph.name(),
                                 subgraph.url().as_ref().map(url::Url::as_str),
                             )?;

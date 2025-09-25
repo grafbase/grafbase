@@ -15,13 +15,25 @@ pub(crate) fn parse_link_url(url: &str) -> Option<LinkUrl> {
 
     let mut reversed_segments = segments.rev();
 
-    let Some(maybe_version_or_name) = reversed_segments.next() else {
+    let Some(mut maybe_version_or_name) = reversed_segments.next() else {
         return Some(LinkUrl {
             url,
             name: None,
             version: None,
         });
     };
+
+    // To be consistent with the name handling we do for extensions.
+    if url.scheme() == "file" && maybe_version_or_name == "build" {
+        let Some(segment) = reversed_segments.next() else {
+            return Some(LinkUrl {
+                url,
+                name: None,
+                version: None,
+            });
+        };
+        maybe_version_or_name = segment;
+    }
 
     if is_valid_version(maybe_version_or_name) {
         let name = reversed_segments
@@ -52,9 +64,13 @@ pub(crate) fn parse_link_url(url: &str) -> Option<LinkUrl> {
 fn is_valid_version(s: &str) -> bool {
     let mut chars = s.chars();
 
-    let Some('v') = chars.next() else { return false };
+    let Some(mut digit) = chars.next() else { return false };
 
-    let Some(digit) = chars.next() else { return false };
+    // Our grafbase extensions don't use the `v` in the URL...
+    if digit == 'v' {
+        let Some(char) = chars.next() else { return false };
+        digit = char;
+    }
 
     if !digit.is_ascii_digit() {
         return false;

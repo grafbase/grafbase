@@ -13,7 +13,7 @@ fn required_item_required_parent() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     user: User
@@ -122,7 +122,7 @@ fn required_item_nullable_parent() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     user: User
@@ -233,7 +233,7 @@ fn nullable_item() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     user: User

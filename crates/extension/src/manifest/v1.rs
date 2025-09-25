@@ -14,20 +14,22 @@ pub struct Manifest {
     pub sdk_version: semver::Version,
     pub minimum_gateway_version: semver::Version,
     pub description: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Vec::is_empty", default)]
+    pub associated_link_urls: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub sdl: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub readme: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub homepage_url: Option<url::Url>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub repository_url: Option<url::Url>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", default)]
     pub license: Option<String>,
     #[serde(default)]
     pub permissions: Vec<ExtensionPermission>,
     // LEGACY Hooks event filter
-    #[serde(skip_serializing_if = "Option::is_none", rename = "event_filter")]
+    #[serde(skip_serializing_if = "Option::is_none", rename = "event_filter", default)]
     pub legacy_event_filter: Option<EventFilter>,
 }
 
@@ -82,7 +84,7 @@ pub enum Type {
     Authentication(Empty),
     Authorization(AuthorizationType),
     Hooks(HooksType),
-    Contracts(Empty),
+    Contracts(ContractType),
 }
 
 impl Type {
@@ -117,6 +119,12 @@ pub enum AuthorizationGroupBy {
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ResolverType {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub directives: Option<Vec<String>>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ContractType {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub directives: Option<Vec<String>>,
 }
@@ -180,6 +188,7 @@ mod tests {
                 ExtensionPermission::Network,
             ],
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
 
         assert_eq!(manifest, expected,);
@@ -222,6 +231,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
 
         assert_eq!(manifest, expected,);
@@ -262,6 +272,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
 
         assert_eq!(manifest, expected,);
@@ -299,6 +310,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
 
         assert_eq!(manifest, expected,)
@@ -336,6 +348,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
 
         assert_eq!(manifest, expected,)
@@ -376,6 +389,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
         assert_eq!(manifest, expected);
 
@@ -429,6 +443,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
 
         assert_eq!(manifest, expected);
@@ -471,6 +486,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
 
         assert_eq!(manifest, expected);
@@ -505,6 +521,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
         assert_eq!(manifest, expected);
     }
@@ -538,6 +555,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
         assert_eq!(manifest, expected);
 
@@ -572,6 +590,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
         assert_eq!(manifest, expected);
     }
@@ -630,6 +649,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: Some(EventFilter::All),
+            associated_link_urls: Vec::new(),
         };
 
         assert_eq!(manifest, expected);
@@ -671,6 +691,7 @@ mod tests {
                 EventType::SubgraphRequest,
                 EventType::HttpRequest,
             ])),
+            associated_link_urls: Vec::new(),
         };
 
         assert_eq!(manifest, expected);
@@ -714,6 +735,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
 
         assert_eq!(manifest, expected);
@@ -754,6 +776,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
 
         assert_eq!(manifest, expected);

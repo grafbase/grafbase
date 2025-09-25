@@ -14,8 +14,8 @@ fn basic_request() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "authz-21-1.0.0", import: ["@grant"])
-                    @link(url: "resolver-21-1.0.0", import: ["@echoContext"])
+                    @link(url: "authz-21", import: ["@grant"])
+                    @link(url: "resolver-21", import: ["@echoContext"])
 
                 scalar JSON
 
@@ -66,8 +66,8 @@ fn basic_subscription() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "authz-21-1.0.0", import: ["@grant"])
-                    @link(url: "resolver-21-1.0.0", import: ["@echoContext"])
+                    @link(url: "authz-21", import: ["@grant"])
+                    @link(url: "resolver-21", import: ["@echoContext"])
 
                 scalar JSON
 
@@ -126,8 +126,8 @@ fn explicit_authz_context() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "authz-21-1.0.0", import: ["@grant"])
-                    @link(url: "resolver-21-1.0.0", import: ["@echoContext"])
+                    @link(url: "authz-21", import: ["@grant"])
+                    @link(url: "resolver-21", import: ["@echoContext"])
 
                 scalar JSON
 

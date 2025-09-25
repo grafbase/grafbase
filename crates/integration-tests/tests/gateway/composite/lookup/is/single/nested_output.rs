@@ -11,7 +11,7 @@ fn single_field() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is", "@shareable"])
 
 
@@ -61,7 +61,7 @@ fn other_unrelated_fields() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is", "@shareable"])
 
 
@@ -113,7 +113,7 @@ fn invalid_namespace_key_at_runtime() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is", "@shareable"])
 
 
@@ -161,7 +161,7 @@ fn nested_but_unknown_fields() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is", "@shareable"])
 
 
@@ -205,7 +205,7 @@ fn multiple_entities() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key", "@is", "@shareable"])
 
 

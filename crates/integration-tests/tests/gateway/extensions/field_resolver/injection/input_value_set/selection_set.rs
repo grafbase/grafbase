@@ -9,7 +9,7 @@ fn multiple_fields() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -71,7 +71,7 @@ fn all() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -135,7 +135,7 @@ fn nested_all() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -198,7 +198,7 @@ fn default_values() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -260,7 +260,7 @@ fn default_values_star() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 
@@ -324,7 +324,7 @@ fn extension_directive_default_value() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 

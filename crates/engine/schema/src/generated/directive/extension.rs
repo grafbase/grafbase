@@ -15,7 +15,7 @@ use walker::{Iter, Walk};
 ///
 /// ```custom,{.language-graphql}
 /// type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "u32") {
-///   subgraph: Subgraph!
+///   subgraph: Subgraph
 ///   extension_id: ExtensionId!
 ///   ty: ExtensionDirectiveType!
 ///   name: String!
@@ -25,7 +25,7 @@ use walker::{Iter, Walk};
 /// ```
 #[derive(Debug, serde::Serialize, serde::Deserialize, Clone)]
 pub struct ExtensionDirectiveRecord {
-    pub subgraph_id: SubgraphId,
+    pub subgraph_id: Option<SubgraphId>,
     pub extension_id: ExtensionId,
     pub ty: ExtensionDirectiveType,
     pub name_id: StringId,
@@ -55,8 +55,8 @@ impl<'a> ExtensionDirective<'a> {
     pub fn as_ref(&self) -> &'a ExtensionDirectiveRecord {
         &self.schema[self.id]
     }
-    pub fn subgraph(&self) -> Subgraph<'a> {
-        self.subgraph_id.walk(self.schema)
+    pub fn subgraph(&self) -> Option<Subgraph<'a>> {
+        self.as_ref().subgraph_id.walk(self.schema)
     }
     pub fn name(&self) -> &'a str {
         self.name_id.walk(self.schema)

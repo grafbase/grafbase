@@ -12,7 +12,7 @@ fn run(sdl: &str, key: &serde_json::Value) -> String {
                 "x",
                 format!(
                     r#"
-                    extend schema @link(url: "contracts-19-0.1.0", import: ["@tag"])
+                    extend schema @link(url: "contracts-19", import: ["@tag"])
                     {sdl}
                     "#
                 ),
@@ -40,7 +40,7 @@ fn run_hide_unreachable_types(sdl: &str, key: &serde_json::Value) -> String {
                 "x",
                 format!(
                     r#"
-                    extend schema @link(url: "contracts-19-0.1.0", import: ["@tag"])
+                    extend schema @link(url: "contracts-19", import: ["@tag"])
                     {sdl}
                     "#
                 ),

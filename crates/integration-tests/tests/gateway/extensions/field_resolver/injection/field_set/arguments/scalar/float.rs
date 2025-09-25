@@ -9,7 +9,7 @@ fn valid_float() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 
@@ -47,7 +47,7 @@ fn int_to_float_conversion() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 
@@ -85,7 +85,7 @@ fn invalid_float() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 

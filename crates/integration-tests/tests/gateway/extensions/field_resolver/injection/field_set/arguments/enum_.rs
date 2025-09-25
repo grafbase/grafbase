@@ -9,7 +9,7 @@ fn valid_enum_value() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 
@@ -51,7 +51,7 @@ fn unknown_enum_value() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 
@@ -87,7 +87,7 @@ fn invalid_enum_value() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 
@@ -118,7 +118,7 @@ fn invalid_enum_value() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 

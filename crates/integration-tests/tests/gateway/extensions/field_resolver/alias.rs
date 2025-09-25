@@ -9,7 +9,7 @@ fn root_field_alias() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 

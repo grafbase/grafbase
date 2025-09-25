@@ -93,11 +93,10 @@ impl FieldResolverExtension for TestExtensions {
             .unwrap();
         let directive_arguments = serde_json::to_value(directive_arguments).unwrap();
         async move {
-            let instance = self
-                .state
-                .lock()
-                .await
-                .get_field_resolver_ext(directive.extension_id, directive.subgraph());
+            let instance = self.state.lock().await.get_field_resolver_ext(
+                directive.extension_id,
+                directive.subgraph().expect("Must be present for resolvers"),
+            );
             instance
                 .resolve_field(
                     directive,

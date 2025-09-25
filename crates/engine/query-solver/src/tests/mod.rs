@@ -194,6 +194,7 @@ impl WithExtensions {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: Default::default(),
+            associated_link_urls: Default::default(),
         };
         self.extensions.push((url, manifest));
         self

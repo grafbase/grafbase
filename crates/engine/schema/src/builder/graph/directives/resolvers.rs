@@ -61,8 +61,8 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
             let directive = &graph.extension_directives[usize::from(id)];
             match directive.ty {
                 ExtensionDirectiveType::FieldResolver => {
-                    let subgraph_id = directive.subgraph_id;
-                    if !directive.subgraph_id.is_virtual() {
+                    let subgraph_id = directive.subgraph_id.expect("Must be present for field resolvers");
+                    if !subgraph_id.is_virtual() {
                         ingester.errors.push(
                             Error::new("Field resolver extensions can only be used with virtual subgraphs (subgraphs without a URL).")
                         );
@@ -81,8 +81,8 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
                         .push(ResolverDefinitionId::from(graph.resolver_definitions.len() - 1))
                 }
                 ExtensionDirectiveType::Resolver => {
-                    let subgraph_id = directive.subgraph_id;
-                    let virtual_subgraph_id = match directive.subgraph_id.as_virtual() {
+                    let subgraph_id = directive.subgraph_id.expect("Must be present for field resolvers");
+                    let virtual_subgraph_id = match subgraph_id.as_virtual() {
                         Some(id) => id,
                         None => {
                             ingester.errors.push(
@@ -117,7 +117,10 @@ fn create_extension_resolvers(ingester: &mut DirectivesIngester<'_, '_>) {
     // Ensure they're not mixed with field resolvers.
     for resolver in &builder.graph.resolver_definitions {
         if let Some(FieldResolverExtensionDefinitionRecord { directive_id }) = resolver.as_field_resolver_extension() {
-            let Some(subgraph_id) = builder.graph[*directive_id].subgraph_id.as_virtual() else {
+            let subgraph_id = builder.graph[*directive_id]
+                .subgraph_id
+                .expect("Must be present for field resolvers");
+            let Some(subgraph_id) = subgraph_id.as_virtual() else {
                 // Already validated above that field resolvers are only on virtual subgraphs
                 continue;
             };

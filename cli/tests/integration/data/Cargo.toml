@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["echo_extension"]
+members = ["echo-extension"]
 
 [workspace.package]
 version = "0.1.0"

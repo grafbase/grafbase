@@ -33,7 +33,7 @@ impl FieldResolverExtension for EngineWasmExtensions {
 
         async move {
             let mut instance = self.get(directive.extension_id).await?;
-            let subgraph = directive.subgraph();
+            let subgraph = directive.subgraph().expect("Must be present for resolvers");
 
             let directive = wit::FieldDefinitionDirective {
                 name: directive.name(),
@@ -63,7 +63,7 @@ impl FieldResolverExtension for EngineWasmExtensions {
         'ctx: 'f,
     {
         let mut instance = self.get(directive.extension_id).await?;
-        let subgraph = directive.subgraph();
+        let subgraph = directive.subgraph().expect("Must be present for resolvers");
         let arguments = &cbor::to_vec(directive_arguments).unwrap();
 
         let site = wit::FieldDefinitionDirectiveSite {

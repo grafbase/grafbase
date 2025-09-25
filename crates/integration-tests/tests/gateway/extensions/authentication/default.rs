@@ -13,7 +13,7 @@ fn no_extension() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -41,7 +41,7 @@ fn extension() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -78,7 +78,7 @@ fn no_extension_with_anonymous_default() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -112,7 +112,7 @@ fn extension_with_anonymous_default() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -150,7 +150,7 @@ fn no_extension_with_deny_default() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -192,7 +192,7 @@ fn extension_with_deny_default() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -227,7 +227,7 @@ fn graphql_no_extension() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -268,7 +268,7 @@ fn graphql_default_override() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -331,7 +331,7 @@ fn graphql_extension() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -377,7 +377,7 @@ fn graphql_no_extension_with_anonymous_default() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -416,7 +416,7 @@ fn graphql_extension_with_anonymous_default() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -455,7 +455,7 @@ fn graphql_no_extension_with_deny_default() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -502,7 +502,7 @@ fn graphql_extension_with_deny_default() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -538,7 +538,7 @@ fn mcp_no_extension() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -596,7 +596,7 @@ fn mcp_extension() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -662,7 +662,7 @@ fn mcp_default_override() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -733,7 +733,7 @@ fn mcp_no_extension_with_anonymous_default() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -792,7 +792,7 @@ fn mcp_extension_with_anonymous_default() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -851,7 +851,7 @@ fn mcp_no_extension_with_deny_default() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -921,7 +921,7 @@ fn mcp_extension_with_deny_default() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth

@@ -11,7 +11,7 @@ fn invalid_json() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@resolve"])
+                    @link(url: "static", import: ["@resolve"])
 
                 scalar JSON
 
@@ -61,7 +61,7 @@ fn item_error_on_required_field() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@resolve"])
+                    @link(url: "static", import: ["@resolve"])
 
                 scalar JSON
 
@@ -109,7 +109,7 @@ fn item_error_on_nullable_field() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@resolve"])
+                    @link(url: "static", import: ["@resolve"])
 
                 scalar JSON
 
@@ -159,7 +159,7 @@ fn resolver_error_on_required_field() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@resolve"])
+                    @link(url: "static", import: ["@resolve"])
 
                 scalar JSON
 
@@ -209,7 +209,7 @@ fn resolver_error_on_nullable_field() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@resolve"])
+                    @link(url: "static", import: ["@resolve"])
 
                 scalar JSON
 

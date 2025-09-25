@@ -12,7 +12,7 @@ fn authorization_failure_with_response_header_from_extension() {
         let engine = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
