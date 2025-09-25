@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.12.1 - 2025-09-25
+
 ### Improvements
 
 - The federated schema now contains a schema extension or definition, with the root types, the `@link` declarations for the directives used in the federated schema, as well as any `@link`ed schema from the subgraphs for directives that are propagated to the federated schema with `@composeDirective`. (https://github.com/grafbase/grafbase/pull/3519)

@@ -1,6 +1,5 @@
 mod assets;
 mod data_json;
-mod extensions;
 mod hot_reload;
 mod subgraphs;
 
@@ -102,7 +101,7 @@ async fn start(args: DevCommand, logging_filter: String) -> anyhow::Result<()> {
     let subgraph_cache =
         Arc::new(SubgraphCache::new(args.graph_ref.as_ref(), &config, composition_warnings_sender).await?);
 
-    let composition_result = subgraph_cache.compose(&config).await?;
+    let composition_result = subgraph_cache.compose().await?;
 
     let federated_sdl = match composition_result {
         Ok(federated_schema) => federated_schema,
