@@ -56,9 +56,7 @@ futures-util = { workspace = true, optional = true }
 fxhash = "0.2"
 grafbase-sdk-derive = { version = "0.6.0", path = "derive" }
 grafbase-sdk-mock = { version = "0.2.0", path = "mock", optional = true }
-graphql-composition = { version = "0.11.0", features = [
-    "grafbase-extensions",
-], optional = true }
+graphql-composition = { version = "0.12.1", optional = true }
 graphql-ws-client = { workspace = true, optional = true }
 hashbrown = { workspace = true, optional = true }
 http = "1"
