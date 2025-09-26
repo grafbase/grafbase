@@ -10,7 +10,7 @@ fn invalid_link() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "greet-1.0.0", import: ["@greet"])
+                    @link(url: "greet", import: ["@greet"])
 
                 scalar JSON
 
@@ -40,7 +40,7 @@ fn valid_link() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "greet-1.0.0", import: ["@greet"])
+                    @link(url: "greet", import: ["@greet"])
 
                 scalar JSON
 

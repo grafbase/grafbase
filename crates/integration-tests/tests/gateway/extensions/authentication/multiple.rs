@@ -12,7 +12,7 @@ fn double_authentication() {
         let engine = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -96,7 +96,7 @@ fn double_authentication_with_deny_default() {
         let engine = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -171,7 +171,7 @@ fn double_authentication_with_anonymous_default() {
         let engine = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth

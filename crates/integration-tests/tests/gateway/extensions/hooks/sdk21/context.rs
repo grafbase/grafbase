@@ -17,7 +17,7 @@ fn on_graphql_subgraph_request() {
             .with_extension("authz-21")
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authz-21-1.0.0", import: ["@grant"])
+                extend schema @link(url: "authz-21", import: ["@grant"])
 
                 type Query {
                     header(name: String): String @grant
@@ -64,8 +64,8 @@ fn on_virtual_subgraph_request() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "authz-21-1.0.0", import: ["@grant"])
-                    @link(url: "resolver-21-1.0.0", import: ["@echo"])
+                    @link(url: "authz-21", import: ["@grant"])
+                    @link(url: "resolver-21", import: ["@echo"])
 
                 scalar JSON
 

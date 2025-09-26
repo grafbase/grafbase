@@ -123,7 +123,7 @@ fn basic() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
 
                 scalar JSON
 

@@ -10,7 +10,7 @@ fn default_values() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta
 
                 scalar JSON
@@ -69,7 +69,7 @@ fn default_values_partial_override() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(a: { x: 5 })
 
                 scalar JSON
@@ -128,7 +128,7 @@ fn default_values_override() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(a: { x: 5, y: "override" })
 
                 scalar JSON

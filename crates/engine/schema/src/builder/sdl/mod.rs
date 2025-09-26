@@ -1,5 +1,6 @@
 mod definitions;
 mod directives;
+mod link_directive;
 mod span;
 mod wrapping;
 
@@ -14,11 +15,15 @@ use rapidhash::fast::RapidHashMap;
 pub(crate) use self::wrapping::*;
 pub(crate) use definitions::*;
 pub(crate) use directives::*;
+pub(crate) use link_directive::*;
 pub(crate) use span::*;
 
 use super::error::Error;
 
-#[derive(Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, id_derives::Id)]
+pub(crate) struct LinkId(u16);
+
+#[derive(Default, id_derives::IndexedFields)]
 pub(crate) struct Sdl<'a> {
     pub raw: &'a str,
     pub scalar_count: usize,
@@ -30,9 +35,19 @@ pub(crate) struct Sdl<'a> {
     pub type_definitions: Vec<TypeDefinition<'a>>,
     pub type_extensions: RapidHashMap<&'a str, Vec<TypeDefinition<'a>>>,
     pub root_types: SdlRootTypes<'a>,
-    pub schema_directives: Vec<Directive<'a>>,
     pub subgraphs: RapidHashMap<GraphName<'a>, SdlSubGraph<'a>>,
     pub extensions: RapidHashMap<ExtensionName<'a>, SdlExtension<'a>>,
+    pub directive_namespaces: RapidHashMap<String, LinkId>,
+    pub directive_imports: RapidHashMap<&'a str, DirectiveImport<'a>>,
+    #[indexed_by(LinkId)]
+    pub links: Vec<LinkDirective<'a>>,
+    pub schema_directives: Vec<Directive<'a>>,
+}
+
+impl<'a> Sdl<'a> {
+    pub fn iter_links(&self) -> impl Iterator<Item = (LinkId, &LinkDirective<'a>)> {
+        self.links.iter().enumerate().map(|(i, link)| (LinkId::from(i), link))
+    }
 }
 
 impl std::ops::Index<cynic_parser::Span> for Sdl<'_> {
@@ -41,6 +56,12 @@ impl std::ops::Index<cynic_parser::Span> for Sdl<'_> {
     fn index(&self, span: cynic_parser::Span) -> &Self::Output {
         &self.raw[span.start..span.end]
     }
+}
+
+#[derive(Debug)]
+pub(crate) struct DirectiveImport<'a> {
+    pub link_id: LinkId,
+    pub original_name: &'a str,
 }
 
 pub(crate) struct SdlExtension<'a> {
@@ -75,13 +96,16 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
             type_definitions: Vec::new(),
             type_extensions: RapidHashMap::default(),
             root_types: SdlRootTypes::default(),
-            schema_directives: Vec::new(),
             subgraphs: RapidHashMap::default(),
             extensions: RapidHashMap::default(),
+            directive_namespaces: Default::default(),
+            directive_imports: Default::default(),
+            links: Default::default(),
+            schema_directives: Default::default(),
         };
         let mut errors = Vec::new();
         let mut schema_definition = None;
-        let mut schema_definitions = Vec::new();
+        let mut all_schema_definitions = Vec::new();
 
         for def in doc.definitions() {
             match def {
@@ -91,13 +115,13 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
                             .push(Error::new("A document must include at most one schema definition").span(def.span()));
                     } else {
                         schema_definition = Some(def);
-                        schema_definitions.push(def);
-                        let last_ix = schema_definitions.len() - 1;
-                        schema_definitions.swap(0, last_ix);
+                        all_schema_definitions.push(def);
+                        let last_ix = all_schema_definitions.len() - 1;
+                        all_schema_definitions.swap(0, last_ix);
                     }
                 }
                 Definition::SchemaExtension(def) => {
-                    schema_definitions.push(def);
+                    all_schema_definitions.push(def);
                 }
                 Definition::Type(type_definition) => {
                     if let Some(name) = type_definition.name().strip_prefix("join__") {
@@ -170,8 +194,55 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
             }
         }
 
-        for schema in schema_definitions {
-            sdl.schema_directives.extend(schema.directives());
+        for schema in all_schema_definitions {
+            for directive in schema.directives() {
+                if directive.name() != "link" {
+                    sdl.schema_directives.push(directive);
+                    continue;
+                }
+
+                let link = match directive.deserialize::<LinkDirective<'a>>() {
+                    Ok(link) => link,
+                    Err(err) => {
+                        errors.push(
+                            Error::new(format!("Could not parse @link directive: {err}")).span(directive.name_span()),
+                        );
+                        continue;
+                    }
+                };
+
+                let link_id = LinkId::from(sdl.links.len());
+
+                if let Some(namespace) = link.namespace.clone() {
+                    sdl.directive_namespaces.insert(namespace, link_id);
+                }
+
+                for import in link.import.as_ref().map(|import| import.iter()).unwrap_or_default() {
+                    match import {
+                        Import::String(name) | Import::Qualified(QualifiedImport { name, r#as: None }) => {
+                            let name = name.strip_prefix('@').unwrap_or(name);
+                            sdl.directive_imports.insert(
+                                name,
+                                DirectiveImport {
+                                    link_id,
+                                    original_name: name,
+                                },
+                            )
+                        }
+                        Import::Qualified(QualifiedImport {
+                            name: original_name,
+                            r#as: Some(name),
+                        }) => {
+                            let name = name.strip_prefix('@').unwrap_or(name);
+                            let original_name = original_name.strip_prefix('@').unwrap_or(original_name);
+                            sdl.directive_imports
+                                .insert(name, DirectiveImport { link_id, original_name })
+                        }
+                    };
+                }
+
+                sdl.links.push(link);
+            }
             for root_type in schema.root_operations() {
                 match root_type.operation_type() {
                     cynic_parser::common::OperationType::Query => {

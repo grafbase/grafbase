@@ -9,7 +9,7 @@ fn valid_boolean() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 
@@ -47,7 +47,7 @@ fn invalid_boolean() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 

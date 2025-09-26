@@ -28,6 +28,7 @@ pub(crate) struct GraphBuilder<'a> {
     pub graph: Graph,
     pub root_object_ids: Vec<ObjectDefinitionId>,
     pub selections: SelectionsBuilder,
+    pub schema_directive_ids: Vec<ExtensionDirectiveId>,
 
     // -- used for coercion
     pub value_path: Vec<ValuePathSegment>,
@@ -122,7 +123,9 @@ impl GraphBuilder<'_> {
 
     pub(crate) fn get_subgraph_id(&self, id: ResolverDefinitionId) -> SubgraphId {
         match &self.graph[id] {
-            ResolverDefinitionRecord::FieldResolverExtension(record) => self.graph[record.directive_id].subgraph_id,
+            ResolverDefinitionRecord::FieldResolverExtension(record) => self.graph[record.directive_id]
+                .subgraph_id
+                .expect("Must be present for resolvers"),
             ResolverDefinitionRecord::GraphqlFederationEntity(record) => record.subgraph_id.into(),
             ResolverDefinitionRecord::GraphqlRootField(record) => record.subgraph_id.into(),
             ResolverDefinitionRecord::Introspection => SubgraphId::Introspection,

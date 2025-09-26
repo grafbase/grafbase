@@ -11,7 +11,7 @@ fn nested_field() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key", "@external"])
 
                 type Product @key(fields: "id") {
@@ -61,7 +61,7 @@ fn list() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key", "@external"])
 
                 type Product @key(fields: "id") {
@@ -117,7 +117,7 @@ fn input_object() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key", "@external"])
 
                 type Product @key(fields: "id") {

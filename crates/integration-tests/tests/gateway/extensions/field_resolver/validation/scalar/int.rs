@@ -10,7 +10,7 @@ fn valid_int() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(value: 9089)
 
                 scalar JSON
@@ -59,7 +59,7 @@ fn float_to_int_coercion() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(value: 1.0)
 
                 scalar JSON
@@ -109,7 +109,7 @@ fn invalid_int() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
 
                 scalar JSON
 
@@ -139,7 +139,7 @@ fn invalid_int() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(value: 79.123)
 
                 scalar JSON
@@ -159,8 +159,8 @@ fn invalid_int() {
         insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
         * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a Float value where we expected a Int scalar at path '.value'
         36 | {
-        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: 79.123}}])
-                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo/v1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: 79.123}}])
+                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         38 | }
         "#);
     });

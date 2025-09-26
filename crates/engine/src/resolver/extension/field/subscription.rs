@@ -22,7 +22,12 @@ impl super::FieldResolverExtension {
         new_response: impl Fn() -> ResponseBuilder<'ctx> + Send + 'ctx,
     ) -> BoxStream<'ctx, (ResponseBuilder<'ctx>, ResponsePartBuilder<'ctx>)> {
         let directive = self.directive_id.walk(ctx.schema());
-        let subgraph_headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
+        let subgraph_headers = ctx.subgraph_headers_with_rules(
+            directive
+                .subgraph()
+                .expect("Must be provided for resolvers")
+                .header_rules(),
+        );
 
         let PreparedField { field_id } = self.prepared.first().unwrap();
         let field = plan.get_field(*field_id);

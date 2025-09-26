@@ -8,7 +8,7 @@ fn type_conditions() {
                 "echo-selection-set",
                 r#"
                 extend schema
-                    @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"])
+                    @link(url: "selection-set-resolver-015", import: ["@init"])
                     @init
 
                 interface Character {
@@ -366,7 +366,7 @@ fn complex_arguments() {
                 "echo-selection-set",
                 r#"
                 extend schema
-                    @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"])
+                    @link(url: "selection-set-resolver-015", import: ["@init"])
                     @init
 
                 input BookFilter {
@@ -793,7 +793,7 @@ fn variables() {
                 "echo-selection-set",
                 r#"
                 extend schema
-                    @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"])
+                    @link(url: "selection-set-resolver-015", import: ["@init"])
                     @init
 
                 input Filters {
@@ -1246,7 +1246,7 @@ fn simple_object_selection_set() {
                 "echo-selection-set",
                 r#"
                 extend schema
-                    @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"])
+                    @link(url: "selection-set-resolver-015", import: ["@init"])
                     @init
 
                 type Book {
@@ -1636,7 +1636,7 @@ fn nested_type_conditions() {
                 "echo-selection-set",
                 r#"
                 extend schema
-                    @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"])
+                    @link(url: "selection-set-resolver-015", import: ["@init"])
                     @init
 
                 interface Node {

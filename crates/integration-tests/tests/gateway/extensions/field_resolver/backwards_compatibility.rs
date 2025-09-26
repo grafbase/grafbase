@@ -8,7 +8,7 @@ fn resolver_0_10_0() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-10-1.0.0", import: ["@config", "@resolve"])
+                    @link(url: "resolver-10", import: ["@config", "@resolve"])
                     @config(id: 879)
 
                 type Query {

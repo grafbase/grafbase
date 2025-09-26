@@ -15,7 +15,7 @@ fn error_on_derived_field() {
                 DynamicSchema::builder(
                     r#"
                     extend schema
-                        @link(url: "authorization-1.0.0", import: ["@auth"])
+                        @link(url: "authorization", import: ["@auth"])
                         @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@key", "@derive"])
 
                     type Query {
@@ -77,7 +77,7 @@ fn error_on_derived_entity() {
                 DynamicSchema::builder(
                     r#"
                     extend schema
-                        @link(url: "authorization-1.0.0", import: ["@auth"])
+                        @link(url: "authorization", import: ["@auth"])
                         @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@key", "@derive"])
 
                     type Query {

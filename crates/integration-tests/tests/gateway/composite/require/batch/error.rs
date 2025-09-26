@@ -13,7 +13,7 @@ fn resolver_error() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key", "@external"])
 
                 type Product @key(fields: "id") {
@@ -78,7 +78,7 @@ fn invalid_subgraph_response_for_one_element() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key", "@external"])
 
                 type Product @key(fields: "id") {
@@ -148,7 +148,7 @@ fn invalid_subgraph_response_missing_one_element() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key", "@external"])
 
                 type Product @key(fields: "id") {
@@ -213,7 +213,7 @@ fn invalid_subgraph_response_missing_two_elements() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key", "@external"])
 
                 type Product @key(fields: "id") {
@@ -277,7 +277,7 @@ fn invalid_subgraph_response_null_response_for_nullable_field() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key", "@external"])
 
                 type Product @key(fields: "id") {
@@ -341,7 +341,7 @@ fn invalid_subgraph_response_returns_null() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key", "@external"])
 
                 type Product @key(fields: "id") {
@@ -399,7 +399,7 @@ fn invalid_subgraph_response_returns_not_a_list_nor_null() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key", "@external"])
 
                 type Product @key(fields: "id") {
@@ -463,7 +463,7 @@ fn null_propagation() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@require", "@key", "@external"])
 
                 type Product @key(fields: "id") {

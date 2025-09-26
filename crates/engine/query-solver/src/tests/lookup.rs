@@ -23,6 +23,7 @@ fn direct_lookup_call() {
         license: None,
         permissions: Default::default(),
         legacy_event_filter: Default::default(),
+        associated_link_urls: Default::default(),
     };
 
     std::fs::write(

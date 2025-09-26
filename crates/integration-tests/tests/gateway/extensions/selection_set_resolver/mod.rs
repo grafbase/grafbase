@@ -78,7 +78,7 @@ fn basic() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "static", import: ["@init"])
                     @init
 
                 scalar JSON

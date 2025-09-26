@@ -8,7 +8,7 @@ fn root_field_aliases() {
                 "echo-selection-set",
                 r#"
                 extend schema
-                    @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"])
+                    @link(url: "selection-set-resolver-015", import: ["@init"])
                     @init
 
                 type Book {

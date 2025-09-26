@@ -10,7 +10,7 @@ fn valid_id() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(value: "8709")
 
                 scalar JSON
@@ -60,7 +60,7 @@ fn invalid_id() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
 
                 scalar JSON
 
@@ -90,7 +90,7 @@ fn invalid_id() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(value: [])
 
                 scalar JSON
@@ -110,8 +110,8 @@ fn invalid_id() {
         insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
         * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a List value where we expected a ID scalar at path '.value'
         36 | {
-        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: []}}])
-                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo/v1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: []}}])
+                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         38 | }
         "#);
     });

@@ -22,7 +22,12 @@ impl super::FieldResolverExtension {
         subgraph_response: ResponsePartBuilder<'ctx>,
     ) -> Executor<'ctx> {
         let directive = self.directive_id.walk(ctx.schema());
-        let subgraph_headers = ctx.subgraph_headers_with_rules(directive.subgraph().header_rules());
+        let subgraph_headers = ctx.subgraph_headers_with_rules(
+            directive
+                .subgraph()
+                .expect("Must be provided for resolvers")
+                .header_rules(),
+        );
 
         let (fields, futures) = self
             .prepared

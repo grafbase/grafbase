@@ -9,7 +9,7 @@ fn unexpected_null() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 
@@ -41,7 +41,7 @@ fn missing_required_argument() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 
@@ -73,7 +73,7 @@ fn missing_nullable_argument() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 
@@ -109,7 +109,7 @@ fn distinguish_providing_null_from_not_present() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 

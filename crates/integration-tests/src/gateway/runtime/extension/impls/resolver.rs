@@ -102,7 +102,10 @@ impl TestExtensions {
         self.state
             .lock()
             .await
-            .get_resolver_ext(directive.extension_id, directive.subgraph())
+            .get_resolver_ext(
+                directive.extension_id,
+                directive.subgraph().expect("Must be present for resolvers"),
+            )
             .prepare(
                 directive,
                 serde_json::to_value(directive_arguments).unwrap(),
@@ -122,7 +125,10 @@ impl TestExtensions {
         self.state
             .lock()
             .await
-            .get_resolver_ext(directive.extension_id, directive.subgraph())
+            .get_resolver_ext(
+                directive.extension_id,
+                directive.subgraph().expect("Must be present for resolvers"),
+            )
             .resolve(directive, prepared_data, subgraph_headers, arguments)
             .await
     }
@@ -141,7 +147,10 @@ impl TestExtensions {
         self.state
             .lock()
             .await
-            .get_resolver_ext(directive.extension_id, directive.subgraph())
+            .get_resolver_ext(
+                directive.extension_id,
+                directive.subgraph().expect("Must be present for resolvers"),
+            )
             .resolve_subscription(directive, prepared_data, subgraph_headers, arguments)
             .await
     }

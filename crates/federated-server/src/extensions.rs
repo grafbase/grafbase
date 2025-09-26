@@ -207,6 +207,7 @@ mod tests {
             license: None,
             permissions: Default::default(),
             legacy_event_filter: Default::default(),
+            associated_link_urls: vec![],
         })
     }
 

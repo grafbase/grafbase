@@ -11,7 +11,7 @@ fn unknown_type() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
 
                 scalar JSON
 
@@ -43,7 +43,7 @@ fn unknown_type() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(value: { a: 1 })
 
                 scalar JSON
@@ -66,8 +66,8 @@ fn unknown_type() {
         insta::assert_snapshot!(err, @r#"
         * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Unknown type 'EchoInput'
         36 | {
-        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: {a: 1}}}])
-                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo/v1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: {a: 1}}}])
+                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         38 | }
         "#);
     });
@@ -82,7 +82,7 @@ fn not_a_input_type() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
 
                 scalar JSON
 
@@ -116,7 +116,7 @@ fn not_a_input_type() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(value: { a: 1 })
 
                 scalar JSON
@@ -140,8 +140,8 @@ fn not_a_input_type() {
         insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
         * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Type 'EchoInput' is used for an input value but is not a scalar, input object or enum.
         36 | {
-        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: {a: 1}}}])
-                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo/v1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: {a: 1}}}])
+                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         38 | }
         "#);
     });

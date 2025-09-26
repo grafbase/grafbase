@@ -13,7 +13,7 @@ fn can_load_authenticated_extension() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authenticated-21-1.0.0", import: ["@authenticated"])
+                extend schema @link(url: "authenticated-21", import: ["@authenticated"])
 
                 type Query {
                     private: String @authenticated
@@ -77,7 +77,7 @@ fn can_access_token() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authenticated-21-1.0.0", import: ["@authenticated"])
+                extend schema @link(url: "authenticated-21", import: ["@authenticated"])
 
                 type Query {
                     private: String @authenticated

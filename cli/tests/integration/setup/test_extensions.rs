@@ -7,7 +7,7 @@ pub(crate) enum TestExtensions {
 impl TestExtensions {
     fn src_path(&self) -> PathBuf {
         let dir_name = match self {
-            TestExtensions::Echo => "echo_extension",
+            TestExtensions::Echo => "echo-extension",
         };
 
         Path::new(env!("CARGO_MANIFEST_DIR"))

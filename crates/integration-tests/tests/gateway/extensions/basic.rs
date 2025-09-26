@@ -41,7 +41,7 @@ fn simple_resolver_from_federated_sdl() {
             .with_federated_sdl(
                 r#"
                 enum extension__Link {
-                    REST @extension__link(url: "greet-1.0.0")
+                    REST @extension__link(url: "greet")
                 }
 
                 enum join__Graph {
@@ -77,7 +77,7 @@ fn simple_resolver_from_subgraph_sdl() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "greet-1.0.0", import: ["@greet"])
+                    @link(url: "greet", import: ["@greet"])
 
                 type Query {
                     greeting(name: String): String @greet

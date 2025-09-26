@@ -11,7 +11,7 @@ fn arg_with_same_name() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
 
@@ -74,7 +74,7 @@ fn nullable_lookup() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
 
@@ -137,7 +137,7 @@ fn arg_type_compatibility_inner_nullable() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
 
@@ -200,7 +200,7 @@ fn arg_with_same_name_and_extra_input_field() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
 
@@ -264,7 +264,7 @@ fn arg_with_different_name() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
 
@@ -327,7 +327,7 @@ fn arg_with_different_name_and_extra_optional_arg_with_matching_name() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
 
@@ -392,7 +392,7 @@ fn not_a_list() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
 
@@ -441,7 +441,7 @@ fn ambiguous_multiple_arg_matches() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
 
@@ -490,7 +490,7 @@ fn ambiguous_multiple_oneof_input_field_matches() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
 
@@ -540,7 +540,7 @@ fn ambiguous_multiple_input_field_matches() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
 
@@ -590,7 +590,7 @@ fn extra_required_argument() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
 
@@ -639,7 +639,7 @@ fn extra_required_field() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
 

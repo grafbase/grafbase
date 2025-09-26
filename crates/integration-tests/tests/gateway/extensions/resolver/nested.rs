@@ -8,7 +8,7 @@ fn nested_static_resolver() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
 
                 scalar JSON
 
@@ -55,7 +55,7 @@ fn lookup_shouldnt_count_as_nested_resolver() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
 
                 scalar JSON

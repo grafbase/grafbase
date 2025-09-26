@@ -226,6 +226,8 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
         std::fs::read(wasm_path).with_context(|| format!("failed to read extension `{}`", wasm_path.display()))?;
 
     let versions = parse_versions(&wasm_bytes)?;
+    let mut directives_definition = None;
+    let mut associated_link_urls = Vec::new();
 
     let extension_type = match toml.extension.r#type {
         // == Legacy types ==
@@ -242,14 +244,19 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
                 resolver: extension_toml::ResolverType,
             }
 
-            Type::Resolver(if let Some(res) = toml.resolver {
+            Type::Resolver(if let Some(cfg) = toml.resolver {
+                directives_definition = cfg.directives.definition;
+                associated_link_urls = cfg.directives.link_urls;
                 extension::ResolverType {
-                    directives: res.directives,
+                    directives: cfg.directives.names,
                 }
-            } else if let Some(directives) = toml.legacy_directives.resolvers.clone() {
+            } else if let Some(directives) = toml.legacy_directives.resolvers {
                 let new_toml = toml::to_string_pretty(&NewFormat {
                     resolver: extension_toml::ResolverType {
-                        directives: Some(directives.clone()),
+                        directives: extension_toml::Directives {
+                            names: Some(directives.clone()),
+                            ..Default::default()
+                        },
                     },
                 })
                 .unwrap();
@@ -268,15 +275,21 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
                 authorization: extension_toml::AuthorizationType,
             }
 
-            Type::Authorization(if let Some(res) = toml.authorization {
+            Type::Authorization(if let Some(cfg) = toml.authorization {
+                directives_definition = cfg.directives.definition;
+                associated_link_urls = cfg.directives.link_urls;
                 extension::AuthorizationType {
-                    directives: res.directives,
-                    group_by: res.group_by,
+                    directives: cfg.directives.names,
+                    group_by: cfg.group_by,
                 }
-            } else if let Some(directives) = toml.legacy_directives.authorization.clone() {
+            } else if let Some(directives) = toml.legacy_directives.authorization {
                 let new_toml = toml::to_string_pretty(&NewFormat {
                     authorization: extension_toml::AuthorizationType {
-                        directives: Some(directives.clone()),
+                        directives: extension_toml::Directives {
+                            names: Some(directives.clone()),
+                            definition: None,
+                            link_urls: Vec::new(),
+                        },
                         group_by: None,
                     },
                 })
@@ -290,29 +303,37 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
                 Default::default()
             })
         }
-        ExtensionType::Hooks => Type::Hooks(if let Some(hooks) = toml.hooks {
+        ExtensionType::Hooks => Type::Hooks(if let Some(cfg) = toml.hooks {
             extension::HooksType {
-                event_filter: hooks.events.map(Into::into),
+                event_filter: cfg.events.map(Into::into),
             }
         } else {
             Default::default()
         }),
-        ExtensionType::Contracts => Type::Contracts(Default::default()),
+        ExtensionType::Contracts => Type::Contracts(if let Some(cfg) = toml.contracts {
+            directives_definition = cfg.directives.definition;
+            associated_link_urls = cfg.directives.link_urls;
+            extension::ContractType {
+                directives: cfg.directives.names,
+            }
+        } else {
+            Default::default()
+        }),
     };
 
-    let sdl_path = toml
-        .legacy_directives
-        .definitions
-        .map(|path| {
-                watercolor::output!("⚠️ Warning: Specifying 'directives.definitions' is deprecated. GraphQL directives will always be expected to be in 'definitions.graphql' in the future.", @BrightYellow);
-    source_dir.join(&path)
-        })
-        .or_else(|| {
-            let path = source_dir.join("definitions.graphql");
-            path.exists().then_some(path)
-        });
+    if let Some(path) = toml.legacy_directives.definitions {
+        watercolor::output!("⚠️ Warning: Specifying global 'directives.definitions' is deprecated.", @BrightYellow);
+        if directives_definition.is_some() {
+            watercolor::output!("⚠️ Warning: Global 'directives.definitions' is ignored because extension type specific 'directives.definition' is specified.", @BrightYellow);
+        } else {
+            directives_definition = Some(path);
+        }
+    }
 
-    let sdl = match sdl_path {
+    let sdl = match directives_definition.map(|path| source_dir.join(path)).or_else(|| {
+        let path = source_dir.join("definitions.graphql");
+        path.exists().then_some(path)
+    }) {
         Some(ref path) => {
             let Ok(sdl) = std::fs::read_to_string(path) else {
                 anyhow::bail!("failed to read directive definitions in {}", path.display())
@@ -362,6 +383,7 @@ fn parse_manifest(source_dir: &Path, wasm_path: &Path) -> anyhow::Result<Manifes
         license: toml.extension.license,
         permissions,
         legacy_event_filter: None,
+        associated_link_urls,
     };
 
     Ok(manifest)

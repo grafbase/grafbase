@@ -13,7 +13,7 @@ fn basic_input_value_set() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo"])
+                    @link(url: "echo", import: ["@echo"])
 
                 scalar JSON
 

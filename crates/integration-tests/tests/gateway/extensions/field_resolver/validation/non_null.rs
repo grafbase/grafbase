@@ -11,7 +11,7 @@ fn unexpected_null() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
 
                 scalar JSON
 
@@ -41,7 +41,7 @@ fn unexpected_null() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(value: null)
 
                 scalar JSON
@@ -61,8 +61,8 @@ fn unexpected_null() {
         insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
         * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Found a null where we expected a String! at path '.value'
         36 | {
-        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: null}}])
-                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo/v1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {value: null}}])
+                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         38 | }
         "#);
     });
@@ -77,7 +77,7 @@ fn missing_required_argument() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
 
                 scalar JSON
 
@@ -107,7 +107,7 @@ fn missing_required_argument() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta
 
                 scalar JSON
@@ -127,8 +127,8 @@ fn missing_required_argument() {
         insta::assert_snapshot!(cleanup_error(result.unwrap_err()), @r#"
         * At site subgraph named 'a', for the extension 'echo-1.0.0' directive @meta: Missing required argument named 'value'
         36 | {
-        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo-1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {}}])
-                                                                                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        37 |   ECHO @extension__link(url: "file:///tmp/XXXXXXXXXX/extensions/echo/v1.0.0", schemaDirectives: [{graph: A, name: "meta", arguments: {}}])
+                                                                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         38 | }
         "#);
     });
@@ -142,7 +142,7 @@ fn missing_nullable_argument() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta
 
                 scalar JSON
@@ -186,7 +186,7 @@ fn distinquish_providing_null_from_not_present_at_all() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(a: null)
 
                 scalar JSON

@@ -27,7 +27,7 @@ fn required_entity_nullable_field_null_entity() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "static", import: ["@init"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
@@ -88,7 +88,7 @@ fn nullable_entity_required_entity_null_entity() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "static", import: ["@init"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 
@@ -146,7 +146,7 @@ fn required_field_null_entity() {
                 "ext",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@init"])
+                    @link(url: "static", import: ["@init"])
                     @link(url: "https://specs.grafbase.com/composite-schemas/v1", import: ["@lookup", "@key"])
                     @init
 

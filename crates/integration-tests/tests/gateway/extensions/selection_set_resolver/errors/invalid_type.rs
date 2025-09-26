@@ -5,7 +5,7 @@ use crate::gateway::extensions::selection_set_resolver::StaticSelectionSetResolv
 
 const SDL: &str = r#"
 extend schema
-    @link(url: "static-1.0.0", import: ["@init"])
+    @link(url: "static", import: ["@init"])
     @init
 
 type Nullable {

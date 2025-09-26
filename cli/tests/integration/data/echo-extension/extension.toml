@@ -4,6 +4,3 @@ version = "0.1.0"
 kind = "resolver"
 description = "A test extension that returns mostly what it is sent."
 
-[directives]
-definitions = "definitions.graphql"
-field_resolvers = ["hello"]

@@ -45,13 +45,9 @@ impl ExtensionsBuilder {
         }
     }
 
-    pub fn get_url(&self, id: &str) -> url::Url {
-        let Some((extension_id, _)) = self
-            .catalog
-            .iter_with_id()
-            .find(|(_, ext)| ext.manifest.id.to_string() == id)
-        else {
-            panic!("Extension '{id}' not found");
+    pub fn get_url(&self, name: &str) -> url::Url {
+        let Some((extension_id, _)) = self.catalog.iter_with_id().find(|(_, ext)| ext.manifest.name() == name) else {
+            panic!("Extension '{name}' not found");
         };
 
         self.url(extension_id)
@@ -61,7 +57,12 @@ impl ExtensionsBuilder {
         let extension = &self.catalog[extension_id];
         match self.dispatch[&extension_id] {
             DispatchRule::Wasm => Url::from_file_path(extension.wasm_path.parent().unwrap()).unwrap(),
-            DispatchRule::Test => Url::from_file_path(self.tmpdir.join(extension.manifest.id.to_string())).unwrap(),
+            DispatchRule::Test => Url::from_file_path(
+                self.tmpdir
+                    .join(extension.manifest.name())
+                    .join(format!("v{}", extension.manifest.version())),
+            )
+            .unwrap(),
         }
     }
 
@@ -106,9 +107,13 @@ impl ExtensionsBuilder {
             repository_url: None,
             permissions: Default::default(),
             legacy_event_filter: None,
+            associated_link_urls: Vec::new(),
         };
 
-        let dir = self.tmpdir.join(manifest.id.to_string());
+        let dir = self
+            .tmpdir
+            .join(manifest.name())
+            .join(format!("v{}", manifest.version()));
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(
             dir.join("manifest.json"),
@@ -132,6 +137,13 @@ impl ExtensionsBuilder {
         self.catalog
             .iter_with_id()
             .map(move |(id, ext)| (&ext.manifest, self.url(id)))
+    }
+
+    pub fn find_url_by_name(&self, name: &str) -> Option<Url> {
+        self.catalog
+            .iter_with_id()
+            .find(|(_, ext)| ext.manifest.name() == name)
+            .map(|(id, _)| self.url(id))
     }
 
     pub async fn build_and_ingest_catalog_into_config(

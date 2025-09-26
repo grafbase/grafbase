@@ -9,7 +9,7 @@ fn list_coercion() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 
@@ -49,7 +49,7 @@ fn list_list_coercion() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 
@@ -91,7 +91,7 @@ fn incompatible_list_wrapping() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echoArgs", "@echo"])
+                    @link(url: "echo", import: ["@echoArgs", "@echo"])
 
                 scalar JSON
 

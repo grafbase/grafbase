@@ -14,7 +14,7 @@ fn unauthorized() {
         let engine = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -63,7 +63,7 @@ fn config() {
         let engine = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
@@ -119,7 +119,7 @@ fn reads_headers_and_cache_key() {
         let engine = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
