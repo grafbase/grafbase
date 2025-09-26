@@ -12,6 +12,7 @@ use std::sync::Arc;
 pub(crate) use data::*;
 pub(crate) use error::*;
 pub(crate) use extensions::*;
+use gateway_config::ErrorCodeMapping;
 use grafbase_telemetry::graphql::{GraphqlExecutionTelemetry, GraphqlOperationAttributes, GraphqlResponseStatus};
 pub(crate) use object_set::*;
 pub(crate) use path::*;
@@ -65,6 +66,7 @@ impl ExecutedResponse {
 }
 
 pub(crate) struct RequestErrorResponse {
+    error_code_mapping: ErrorCodeMapping,
     operation_attributes: Option<GraphqlOperationAttributes>,
     errors: Vec<GraphqlError>,
     error_code_counter: ErrorCodeCounter,
@@ -72,6 +74,7 @@ pub(crate) struct RequestErrorResponse {
 }
 
 pub(crate) struct RefusedRequestResponse {
+    error_code_mapping: ErrorCodeMapping,
     status: http::StatusCode,
     operation_attributes: Option<GraphqlOperationAttributes>,
     errors: Vec<GraphqlError>,
@@ -98,6 +101,7 @@ impl Response {
     }
 
     pub(crate) fn refused_request(
+        error_code_mapping: ErrorCodeMapping,
         status: http::StatusCode,
         errors: impl IntoIterator<Item = impl Into<GraphqlError>>,
         headers: http::HeaderMap,
@@ -114,6 +118,7 @@ impl Response {
             .collect::<Vec<_>>();
 
         Self::RefusedRequest(RefusedRequestResponse {
+            error_code_mapping,
             status,
             operation_attributes: None,
             errors,
@@ -123,7 +128,7 @@ impl Response {
         })
     }
 
-    pub(crate) fn request_error<E>(errors: impl IntoIterator<Item = E>) -> Self
+    pub(crate) fn request_error<E>(error_code_mapping: ErrorCodeMapping, errors: impl IntoIterator<Item = E>) -> Self
     where
         E: Into<GraphqlError>,
     {
@@ -131,6 +136,7 @@ impl Response {
         let error_code_counter = ErrorCodeCounter::from_errors(&errors);
 
         Self::RequestError(RequestErrorResponse {
+            error_code_mapping,
             operation_attributes: None,
             errors,
             error_code_counter,

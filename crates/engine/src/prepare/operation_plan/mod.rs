@@ -21,6 +21,7 @@ pub async fn plan(
     operation: &CachedOperation,
     variables: &Variables,
 ) -> Result<OperationPlan, Response> {
+    let schema = ctx.schema();
     async move {
         let query_modifications = QueryModifications::build(ctx, operation, variables).await?;
         let plan = OperationPlan::plan(ctx, operation, query_modifications).await?;
@@ -28,18 +29,21 @@ pub async fn plan(
     }
     .await
     .map_err(|error| match error {
-        PlanError::Internal => Response::request_error([GraphqlError::new(
-            "Could not plan operation",
-            ErrorCode::OperationPlanningError,
-        )]),
-        PlanError::GraphqlError(error) => Response::request_error([error]),
+        PlanError::Internal => Response::request_error(
+            schema.config.error_code_mapping.clone(),
+            [GraphqlError::new(
+                "Could not plan operation",
+                ErrorCode::OperationPlanningError,
+            )],
+        ),
+        PlanError::GraphqlError(error) => Response::request_error(schema.config.error_code_mapping.clone(), [error]),
         PlanError::ErrorResponse(error_response) => {
             let ErrorResponse {
                 status,
                 errors,
                 headers,
             } = *error_response;
-            Response::refused_request(status, errors, headers)
+            Response::refused_request(schema.config.error_code_mapping.clone(), status, errors, headers)
         }
     })
 }

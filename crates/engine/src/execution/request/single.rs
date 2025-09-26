@@ -83,7 +83,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 ErrorCode::BadRequest,
             );
 
-            return Response::request_error([error])
+            return Response::request_error(self.schema().config.error_code_mapping.clone(), [error])
                 .with_operation_attributes(attributes)
                 .with_extensions(extensions);
         }

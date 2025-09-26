@@ -75,7 +75,11 @@ impl<R: Runtime> ContractAwareEngine<R> {
         if let Some(key) = parts.extensions.contract_key.as_ref() {
             match self.get_engine_for_contract(key).await {
                 Ok(engine) => engine.execute(parts, body).await,
-                Err(err) => crate::http_error_response(parts.ctx.response_format, err),
+                Err(err) => crate::http_error_response(
+                    self.no_contract.schema.config.error_code_mapping.clone(),
+                    parts.ctx.response_format,
+                    err,
+                ),
             }
         } else {
             self.no_contract.execute(parts, body).await
@@ -235,8 +239,11 @@ impl<R: Runtime> Engine<R> {
         match self
             .with_gateway_timeout(async { futures::try_join!(context_fut, request_fut) })
             .await
-            .unwrap_or_else(|| Err(crate::execution::errors::response::gateway_timeout()))
-        {
+            .unwrap_or_else(|| {
+                Err(crate::execution::errors::response::gateway_timeout(
+                    self.schema.config.error_code_mapping.clone(),
+                ))
+            }) {
             Ok((request_context, request)) => self.execute_well_formed_graphql_request(request_context, request).await,
             Err(response) => Http::error(ctx.response_format, response),
         }

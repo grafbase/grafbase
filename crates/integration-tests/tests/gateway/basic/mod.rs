@@ -6,6 +6,7 @@
 mod collisions;
 mod empty_config;
 mod enums;
+mod error_code_mapping;
 mod error_extensions;
 mod errors;
 mod fragments;
