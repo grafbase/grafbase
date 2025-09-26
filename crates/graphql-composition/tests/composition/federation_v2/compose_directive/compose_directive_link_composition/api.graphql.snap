@@ -15,8 +15,6 @@ directive @cached(ttl: Int = 300) on FIELD_DEFINITION
 
 directive @validate(regex: String) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
 
-directive @custom__rateLimit(max: Int!, window: String!) on FIELD_DEFINITION
-
 enum ShipmentStatus {
   PENDING
   IN_TRANSIT

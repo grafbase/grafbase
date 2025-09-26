@@ -27,8 +27,6 @@ directive @cached(ttl: Int = 300) on FIELD_DEFINITION
 
 directive @validate(regex: String) on ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION
 
-directive @custom__rateLimit(max: Int!, window: String!) on FIELD_DEFINITION
-
 directive @join__unionMember(graph: join__Graph!, member: String!) on UNION
 
 directive @join__implements(graph: join__Graph!, interface: String!) on OBJECT | INTERFACE
@@ -81,7 +79,7 @@ type Warehouse
 {
   capacity: Int!
   id: ID!
-  inventory: [Product!]!
+  inventory: [Product!]! @rateLimit(max: 100, window: "1m")
   location: String!
 }
 
@@ -98,7 +96,7 @@ type Mutation
   cancelShipment(id: ID!): Shipment @log(action: "SHIPMENT_CANCEL") @deprecated(reason: "Use requestRefund instead") @join__field(graph: SHIPPING)
   createShipment(input: ShipmentInput!): Shipment @log(action: "SHIPMENT_CREATE") @rateLimit(max: 10, window: "1m") @join__field(graph: SHIPPING)
   requestRefund(id: ID!): Shipment @log(action: "REFUND_REQUEST") @rateLimit(max: 5, window: "1m") @join__field(graph: SHIPPING)
-  updateStock(productId: ID!, quantity: Int!): Product @join__field(graph: STORAGE)
+  updateStock(productId: ID!, quantity: Int!): Product @rateLimit(max: 10, window: "1m") @join__field(graph: STORAGE)
 }
 
 enum ShipmentStatus

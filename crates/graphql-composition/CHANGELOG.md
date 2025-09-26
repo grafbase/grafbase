@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## Fixes
+
+- Fixed the handling of namespace-prefixed directives composed with `@composeDirective`. This schema illustrates what now works:
+
+  ```graphql
+  extend schema
+    @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@composeDirective"])
+    @link(url: "https://specs.mydomain.com/specs/reports/v1.0")
+    @composeDirective(name: "@reports__observation")
+    @reports__observation(test: "argument")
+  ```
+
+  Previously, `@reports__observation` would not have been included in the composed schema.
+
 ## 0.12.1 - 2025-09-25
 
 ### Improvements

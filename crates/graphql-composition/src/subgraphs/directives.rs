@@ -72,9 +72,7 @@ impl Subgraphs {
         self.directives.authenticated.insert(id);
     }
 
-    pub(crate) fn insert_composed_directive(&mut self, subgraph_id: SubgraphId, directive_name: &str) {
-        let directive_name = self.strings.intern(directive_name);
-
+    pub(crate) fn insert_composed_directive(&mut self, subgraph_id: SubgraphId, directive_name: StringId) {
         self.directives
             .composed_directives
             .insert((subgraph_id, directive_name));
