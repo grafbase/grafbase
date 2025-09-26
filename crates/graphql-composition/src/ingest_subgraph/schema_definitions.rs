@@ -63,8 +63,10 @@ pub(super) fn ingest_schema_definitions(ctx: &mut Context<'_>) {
                             continue;
                         }
 
-                        ctx.subgraphs
-                            .insert_composed_directive(ctx.subgraph_id, name.trim_start_matches('@'));
+                        let name = name.trim_start_matches('@');
+                        let (name, _) = match_directive_name(ctx, name);
+
+                        ctx.subgraphs.insert_composed_directive(ctx.subgraph_id, name);
                     }
                 }
             }
