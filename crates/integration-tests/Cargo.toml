@@ -30,7 +30,7 @@ futures-util.workspace = true
 gateway-config.workspace = true
 grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
-graphql-composition = { workspace = true, features = ["grafbase-extensions"] }
+graphql-composition.workspace = true
 graphql-mocks.workspace = true
 graphql-ws-client.workspace = true
 headers.workspace = true

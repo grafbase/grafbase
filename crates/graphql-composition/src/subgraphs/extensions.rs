@@ -9,10 +9,6 @@ pub(crate) struct ExtensionRecord {
 }
 
 impl Subgraphs {
-    pub(crate) fn extension_is_defined(&self, name: StringId) -> bool {
-        self.extensions.iter().any(|extension| extension.name == name)
-    }
-
     pub(crate) fn iter_extensions(&self) -> impl ExactSizeIterator<Item = Extension<'_>> {
         self.extensions
             .iter()

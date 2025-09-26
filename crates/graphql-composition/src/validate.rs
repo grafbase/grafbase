@@ -1,6 +1,7 @@
 use crate::{federated_graph::OverrideLabel, subgraphs};
 
 pub(crate) mod composite_schemas;
+mod directives;
 mod extension_names;
 mod selection;
 mod subgraph_names;
@@ -15,6 +16,7 @@ pub(crate) fn validate_pre_merge(ctx: &mut ValidateContext<'_>) {
     validate_root_nonempty(ctx);
     validate_fields(ctx);
     selection::validate_keys(ctx);
+    directives::validate(ctx);
 }
 
 fn validate_root_nonempty(ctx: &mut ValidateContext<'_>) {

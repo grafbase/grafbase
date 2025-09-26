@@ -1,3 +1,5 @@
+extend schema @link(url: "https://grafbase.com/extensions/rest/0.2.0") @link(url: "file:///extensions/rest")
+
 type Query {
-  hiMark: String
+  hiMark: String @rest__get(path: "http://example.com")
 }

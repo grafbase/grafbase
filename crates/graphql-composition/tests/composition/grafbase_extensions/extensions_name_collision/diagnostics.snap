@@ -1,6 +1,6 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
 expression: Tests that extension names are case insensitive and unique.
-input_file: crates/graphql-composition/tests/composition/extensions_name_collision/test.md
+input_file: crates/graphql-composition/tests/composition/grafbase_extensions/extensions_name_collision/test.md
 ---
-- ❌ Found two extensions named "REST". The urls must match, but got "https://grafbase.com/extensions/rest" and "file://my/home/rest-connector-dev".
+- ❌ Found multiple extensions named "rest". The urls must match, but got "https://grafbase.com/extensions/rest" and "file:///extensions/rest".

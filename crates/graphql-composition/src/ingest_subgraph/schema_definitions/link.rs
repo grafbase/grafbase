@@ -139,10 +139,6 @@ fn ingest_grafbase_extension_from_link(
             return;
         };
 
-        if subgraphs.extension_is_defined(name) {
-            return;
-        }
-
         subgraphs.push_extension(subgraphs::ExtensionRecord {
             url,
             link_url: url,
@@ -154,9 +150,20 @@ fn ingest_grafbase_extension_from_link(
         let Some(name) = r#as.or_else(|| {
             let mut segments = link_url.url.path_segments()?;
 
-            segments.next_back()?;
+            let name = segments.next_back()?;
+            let mut name_chars = name.chars();
 
-            segments.next_back().map(|s| subgraphs.strings.intern(s))
+            let name = match name_chars.next() {
+                Some('v') => match name_chars.next() {
+                    Some(next_char) if next_char.is_ascii_digit() => segments.next_back(),
+                    _ => Some(name),
+                },
+                Some(c) if c.is_ascii_digit() => segments.next_back(),
+                Some(_) => Some(name),
+                None => segments.next_back(),
+            };
+
+            name.map(|s| subgraphs.strings.intern(s))
         }) else {
             return;
         };

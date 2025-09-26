@@ -1,9 +1,0 @@
-[[extensions]]
-url = "https://grafbase.com/extensions/rest"
-name = "rest"
-version = "1.0.0"
-
-[[extensions]]
-url = "https://grafbase.com/extensions/rest"
-name = "REST"
-version = "1.0.0"

@@ -1,7 +1,7 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: actual_api_sdl
-input_file: crates/graphql-composition/tests/composition/extensions_basic/test.md
+expression: "A test with three extensions, used in different subgraphs with different imports. We expect to see the `extension__Link` enum and `extension__directive` instances in the right places.\n\nAlso note we have a facebook linked schema, that should not appear in the federated graph."
+input_file: crates/graphql-composition/tests/composition/grafbase_extensions/extensions_basic/test.md
 ---
 enum AppointmentStatus {
   SCHEDULED

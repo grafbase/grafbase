@@ -81,21 +81,21 @@ type Query
 
 type Mutation
 {
-  cancelAppointment(id: ID!): Boolean! @extension__directive(graph: APPOINTMENTS, extension: KAFKA, name: "post", arguments: {topic: "cancellations", value: "{\"id\":$id}"}) @join__field(graph: APPOINTMENTS)
-  createDoctor(input: DoctorInput!): Doctor! @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "execute_sql", arguments: {sql: "INSERT INTO doctors (first_name, last_name, specialty, email, phone) VALUES ($input.firstName, $input.lastName, $input.specialty, $input.email, $input.phone) RETURNING *"}) @join__field(graph: DOCTORS)
-  createPatient(input: PatientInput!): Patient! @extension__directive(graph: PATIENTS, extension: KAFKA, name: "post", arguments: {topic: "newPatients"}) @join__field(graph: PATIENTS)
+  cancelAppointment(id: ID!): Boolean! @extension__directive(graph: APPOINTMENTS, extension: QUEUE, name: "post", arguments: {topic: "cancellations", value: "{\"id\":$id}"}) @join__field(graph: APPOINTMENTS)
+  createDoctor(input: DoctorInput!): Doctor! @extension__directive(graph: DOCTORS, extension: ORACLE, name: "execute_sql", arguments: {sql: "INSERT INTO doctors (first_name, last_name, specialty, email, phone) VALUES ($input.firstName, $input.lastName, $input.specialty, $input.email, $input.phone) RETURNING *"}) @join__field(graph: DOCTORS)
+  createPatient(input: PatientInput!): Patient! @extension__directive(graph: PATIENTS, extension: QUEUE, name: "post", arguments: {topic: "newPatients"}) @join__field(graph: PATIENTS)
   scheduleAppointment(input: AppointmentInput!): Appointment! @join__field(graph: APPOINTMENTS)
-  updateDoctor(id: ID!, input: DoctorInput!): Doctor! @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "execute", arguments: {procedure: "update_doctor"}) @extension__directive(graph: DOCTORS, extension: KAFKA, name: "post", arguments: {topic: "doctorUpdates"}) @join__field(graph: DOCTORS)
+  updateDoctor(id: ID!, input: DoctorInput!): Doctor! @extension__directive(graph: DOCTORS, extension: ORACLE, name: "execute", arguments: {procedure: "update_doctor"}) @extension__directive(graph: DOCTORS, extension: QUEUE, name: "post", arguments: {topic: "doctorUpdates"}) @join__field(graph: DOCTORS)
   updatePatient(id: ID!, input: PatientInput!): Patient! @join__field(graph: PATIENTS)
 }
 
 type Subscription
 {
-  newAppointments(doctorId: ID!): Appointment! @extension__directive(graph: APPOINTMENTS, extension: KAFKA, name: "tail", arguments: {topic: "appointments", filter: "doctorId = $doctorId"}) @join__field(graph: APPOINTMENTS)
+  newAppointments(doctorId: ID!): Appointment! @extension__directive(graph: APPOINTMENTS, extension: QUEUE, name: "tail", arguments: {topic: "appointments", filter: "doctorId = $doctorId"}) @join__field(graph: APPOINTMENTS)
 }
 
 enum AppointmentStatus
-  @extension__directive(graph: APPOINTMENTS, extension: KAFKA, name: "message", arguments: {topic: "appointments"})
+  @extension__directive(graph: APPOINTMENTS, extension: QUEUE, name: "message", arguments: {topic: "appointments"})
   @join__type(graph: APPOINTMENTS)
 {
   SCHEDULED @join__enumValue(graph: APPOINTMENTS)
@@ -104,11 +104,11 @@ enum AppointmentStatus
 }
 
 enum DoctorType
-  @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "databaseEnum", arguments: {name: "dr_type"})
+  @extension__directive(graph: DOCTORS, extension: ORACLE, name: "databaseEnum", arguments: {name: "dr_type"})
   @join__type(graph: DOCTORS)
 {
-  CARDIOLOGIST @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "databaseEnumValue", arguments: {value: "cardiologist_t"}) @join__enumValue(graph: DOCTORS)
-  PEDIATRICIAN @extension__directive(graph: DOCTORS, extension: ORACLE_CONNECTOR, name: "databaseEnumValue", arguments: {value: "pediatrician_t"}) @join__enumValue(graph: DOCTORS)
+  CARDIOLOGIST @extension__directive(graph: DOCTORS, extension: ORACLE, name: "databaseEnumValue", arguments: {value: "cardiologist_t"}) @join__enumValue(graph: DOCTORS)
+  PEDIATRICIAN @extension__directive(graph: DOCTORS, extension: ORACLE, name: "databaseEnumValue", arguments: {value: "pediatrician_t"}) @join__enumValue(graph: DOCTORS)
   SURGEON @join__enumValue(graph: DOCTORS)
 }
 
@@ -121,9 +121,9 @@ enum join__Graph
 
 enum extension__Link
 {
-  KAFKA @extension__link(url: "https://grafbase.com/extensions/kafka/v1.0.0")
-  ORACLE_CONNECTOR @extension__link(url: "file:///home/lellison/src/oracle-grafbase-extension/dist")
+  ORACLE @extension__link(url: "file:///home/lellison/src/oracle-grafbase-extension/dist")
   REST @extension__link(url: "https://grafbase.com/extensions/rest")
+  QUEUE @extension__link(url: "https://grafbase.com/extensions/kafka/v1.0.0")
 }
 
 input AppointmentInput
