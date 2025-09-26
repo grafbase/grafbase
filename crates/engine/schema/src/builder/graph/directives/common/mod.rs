@@ -74,6 +74,10 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                         Err(err) => self.errors.push(err),
                     }
                 }
+                // treated separately
+                name if name.starts_with("join__") => {
+                    continue;
+                }
                 name if name.starts_with("composite__") && !self.for_operation_analytics_only => {
                     if let Err(err) = self.ingest_composite_directive_before_federation(def, directive) {
                         self.errors.push(err.span_if_absent(directive.arguments_span()));
@@ -82,7 +86,7 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                 _ => {}
             };
 
-            // Only  extension directives are left.
+            // Only extension directives are left.
             if self.for_operation_analytics_only {
                 continue;
             }
@@ -96,10 +100,11 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                 };
                 (extension, name)
             } else if let Some(import) = self.sdl.directive_imports.get(directive.name()) {
+                println!("Found import for directive @{}: {:?}", directive.name(), import);
                 let Some(extension) = self.extensions.get_by_link_id(import.link_id) else {
                     continue;
                 };
-                (extension, import.original_name.unwrap_or(directive.name()))
+                (extension, import.original_name)
             } else {
                 continue;
             };

@@ -122,6 +122,11 @@ impl<'a> ExtensionsContext<'a> {
             ) else {
                 continue;
             };
+            tracing::debug!(
+                "Matched link URL {} to extension {}",
+                link.url.as_str(),
+                catalog[extension_id].manifest.id
+            );
             extensions.link_to_extension.insert(link_id, extension_id);
 
             if extensions[extension_id].is_none()

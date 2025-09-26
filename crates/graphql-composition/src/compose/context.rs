@@ -19,15 +19,15 @@ impl<'a> Context<'a> {
         subgraphs.emit_ingestion_diagnostics(diagnostics);
 
         // We want link_url here because that's the one that appears in the schema SDL.
-        let extensions_by_url: HashMap<_, _> = subgraphs
+        let extensions_by_link_url: HashMap<_, _> = subgraphs
             .iter_extensions()
-            .map(|extension| (extension.url, extension.id))
+            .map(|extension| (extension.link_url, extension.id))
             .collect();
 
         let linked_schema_to_extension = subgraphs
             .iter_linked_schemas()
             .filter_map(|linked_schema| {
-                extensions_by_url
+                extensions_by_link_url
                     .get(&linked_schema.url)
                     .map(|extension_id| (linked_schema.id, *extension_id))
             })

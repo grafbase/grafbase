@@ -1,5 +1,6 @@
 mod exclude;
 mod include;
+mod link_urls;
 mod mixed_tags;
 mod unreachable_types;
 

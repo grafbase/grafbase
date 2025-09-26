@@ -27,17 +27,12 @@ impl ExtensionCatalog {
         version: Option<&semver::VersionReq>,
     ) -> Option<ExtensionId> {
         // First look for explicitly associated link URLs.
-        if let Some((ix, _)) = self.extensions.iter().enumerate().find(|(_, ext)| {
-            ext.manifest.associated_link_urls.iter().any(|prefix| {
-                link_url.starts_with(prefix) && {
-                    match (name, version) {
-                        (Some(name), Some(version)) => ext.manifest.id.is_compatible_with(name, version),
-                        (Some(name), None) => ext.manifest.name() == name,
-                        _ => true,
-                    }
-                }
-            })
-        }) {
+        if let Some((ix, _)) = self
+            .extensions
+            .iter()
+            .enumerate()
+            .find(|(_, ext)| ext.manifest.associated_link_urls.iter().any(|url| url == link_url))
+        {
             return Some(ix.into());
         }
         match (name, version) {

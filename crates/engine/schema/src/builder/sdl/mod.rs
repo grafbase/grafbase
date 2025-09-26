@@ -58,9 +58,10 @@ impl std::ops::Index<cynic_parser::Span> for Sdl<'_> {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct DirectiveImport<'a> {
     pub link_id: LinkId,
-    pub original_name: Option<&'a str>,
+    pub original_name: &'a str,
 }
 
 pub(crate) struct SdlExtension<'a> {
@@ -219,24 +220,24 @@ impl<'a> TryFrom<(&'a str, &'a TypeSystemDocument)> for Sdl<'a> {
                 for import in link.import.as_ref().map(|import| import.iter()).unwrap_or_default() {
                     match import {
                         Import::String(name) | Import::Qualified(QualifiedImport { name, r#as: None }) => {
+                            let name = name.strip_prefix('@').unwrap_or(name);
                             sdl.directive_imports.insert(
                                 name,
                                 DirectiveImport {
                                     link_id,
-                                    original_name: None,
+                                    original_name: name,
                                 },
                             )
                         }
                         Import::Qualified(QualifiedImport {
                             name: original_name,
                             r#as: Some(name),
-                        }) => sdl.directive_imports.insert(
-                            name,
-                            DirectiveImport {
-                                link_id,
-                                original_name: Some(original_name),
-                            },
-                        ),
+                        }) => {
+                            let name = name.strip_prefix('@').unwrap_or(name);
+                            let original_name = original_name.strip_prefix('@').unwrap_or(original_name);
+                            sdl.directive_imports
+                                .insert(name, DirectiveImport { link_id, original_name })
+                        }
                     };
                 }
 

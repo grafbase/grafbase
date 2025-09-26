@@ -67,7 +67,7 @@ pub(crate) fn ingest_extension_schema_directives(builder: &mut GraphBuilder<'_>)
             let Some(extension) = builder.extensions.get_by_link_id(import.link_id) else {
                 continue;
             };
-            (extension, import.original_name.unwrap_or(directive.name()))
+            (extension, import.original_name)
         } else {
             continue;
         };

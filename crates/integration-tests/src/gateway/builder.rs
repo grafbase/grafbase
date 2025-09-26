@@ -152,13 +152,6 @@ impl GatewayBuilder {
                         let re = Regex::new(r#"@link\(\s*url\s*:\s*"([^"]*)""#).unwrap();
                         let mut composed_subgraphs = graphql_composition::Subgraphs::default();
 
-                        composed_subgraphs.ingest_loaded_extensions(runtime.extensions.iter_with_url().map(
-                            |(manifest, url)| graphql_composition::LoadedExtension {
-                                url: url.to_string(),
-                                name: manifest.id.name.to_string(),
-                            },
-                        ));
-
                         for subgraph in subgraphs.iter() {
                             let sdl = subgraph.sdl();
                             let schema = re.replace_all(&sdl, |caps: &regex::Captures<'_>| {

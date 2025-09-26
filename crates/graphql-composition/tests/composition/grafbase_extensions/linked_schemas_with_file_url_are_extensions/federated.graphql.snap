@@ -39,7 +39,7 @@ enum join__Graph
 
 enum extension__Link
 {
-  TEST @extension__link(url: "file:///rest-extension/test", schemaDirectives: [{graph: MY_EXTENSION_SUBGRAPH, name: "assured", arguments: {}}])
+  REST @extension__link(url: "file:///rest-extension/test", schemaDirectives: [{graph: MY_EXTENSION_SUBGRAPH, name: "assured", arguments: {}}])
   SPARKLES @extension__link(url: "file:///grafbase-extensions/sparkles")
   BUBBLES @extension__link(url: "file:///grafbase-extensions/bubbles/build")
 }
