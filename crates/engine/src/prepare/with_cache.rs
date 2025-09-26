@@ -42,15 +42,20 @@ impl<R: Runtime> PrepareContext<'_, R> {
         // This error would be confusing for a websocket connection, but today mutation are always
         // allowed for it.
         if cached.operation.attributes.ty.is_mutation() && !self.request_context.can_mutate {
-            return Err(mutation_not_allowed_with_safe_method());
+            return Err(mutation_not_allowed_with_safe_method(
+                self.schema().config.error_code_mapping.clone(),
+            ));
         }
 
         let variables = match Variables::bind(self.schema(), &cached.operation, variables) {
             Ok(variables) => variables,
             Err(errors) => {
-                return Err(Response::request_error(errors.into_iter().map(|err| {
-                    GraphqlError::new(err.message, ErrorCode::VariableError).with_locations(err.locations)
-                }))
+                return Err(Response::request_error(
+                    self.schema().config.error_code_mapping.clone(),
+                    errors.into_iter().map(|err| {
+                        GraphqlError::new(err.message, ErrorCode::VariableError).with_locations(err.locations)
+                    }),
+                )
                 .with_operation_attributes(cached.operation.attributes.clone().with_complexity_cost(None)));
             }
         };
@@ -62,8 +67,10 @@ impl<R: Runtime> PrepareContext<'_, R> {
             Ok(cost) => cost,
             Err(err) => {
                 let error = GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError);
-                return Err(Response::request_error([error])
-                    .with_operation_attributes(cached.operation.attributes.clone().with_complexity_cost(None)));
+                return Err(
+                    Response::request_error(self.schema().config.error_code_mapping.clone(), [error])
+                        .with_operation_attributes(cached.operation.attributes.clone().with_complexity_cost(None)),
+                );
             }
         };
 

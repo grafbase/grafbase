@@ -226,6 +226,7 @@ fn build_extension_layer<E: GatewayExtensions>(
         gateway_config.graph.contracts.default_key.clone(),
         extension_ids,
         config.default.or(gateway_config.authentication.default),
+        gateway_config.graph.error_code_mapping.clone(),
     ))
 }
 

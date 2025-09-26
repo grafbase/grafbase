@@ -22,4 +22,5 @@ pub struct PartialConfig {
     pub trusted_documents: TrustedDocumentsConfig,
     pub websocket_forward_connection_init_payload: bool,
     pub contract_cache_max_size: usize,
+    pub error_code_mapping: gateway_config::ErrorCodeMapping,
 }

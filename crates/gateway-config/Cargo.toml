@@ -16,6 +16,7 @@ chrono.workspace = true
 duration-str.workspace = true
 grafbase-workspace-hack.workspace = true
 http.workspace = true
+rapidhash.workspace = true
 regex.workspace = true
 semver = { workspace = true, features = ["serde"] }
 serde.workspace = true

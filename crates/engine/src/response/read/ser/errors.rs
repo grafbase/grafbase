@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use error::ErrorPath;
+use gateway_config::ErrorCodeMapping;
 use id_newtypes::BitSet;
 use operation::{Location, ResponseKeys};
 use serde::ser::{SerializeMap, SerializeSeq};
@@ -12,6 +13,7 @@ use crate::{
 };
 
 pub(super) struct SerializableErrorParts<'a> {
+    pub error_code_mapping: &'a ErrorCodeMapping,
     pub keys: &'a ResponseKeys,
     pub query_modifications: &'a QueryModifications,
     pub errors: &'a ErrorParts,
@@ -25,7 +27,11 @@ impl serde::Serialize for SerializableErrorParts<'_> {
         let mut seq = serializer.serialize_seq(Some(self.errors.len()))?;
         for part in self.errors.parts() {
             for error in part.errors() {
-                seq.serialize_element(&SerializableError { keys: self.keys, error })?;
+                seq.serialize_element(&SerializableError {
+                    error_code_mapping: self.error_code_mapping,
+                    keys: self.keys,
+                    error,
+                })?;
             }
             let mut bitset = BitSet::with_capacity(self.query_modifications.errors.len());
             for QueryErrorWithLocationAndPath {
@@ -37,6 +43,7 @@ impl serde::Serialize for SerializableErrorParts<'_> {
                 if !bitset.put(*error_id) {
                     let error = &self.query_modifications[*error_id];
                     seq.serialize_element(&SerializableQueryError {
+                        error_code_mapping: self.error_code_mapping,
                         keys: self.keys,
                         error,
                         location: *location,
@@ -50,6 +57,7 @@ impl serde::Serialize for SerializableErrorParts<'_> {
 }
 
 pub(super) struct SerializableErrors<'a> {
+    pub error_code_mapping: &'a ErrorCodeMapping,
     pub keys: &'a ResponseKeys,
     pub errors: &'a [GraphqlError],
 }
@@ -61,13 +69,18 @@ impl serde::Serialize for SerializableErrors<'_> {
     {
         let mut seq = serializer.serialize_seq(Some(self.errors.len()))?;
         for error in self.errors {
-            seq.serialize_element(&SerializableError { keys: self.keys, error })?;
+            seq.serialize_element(&SerializableError {
+                error_code_mapping: self.error_code_mapping,
+                keys: self.keys,
+                error,
+            })?;
         }
         seq.end()
     }
 }
 
 struct SerializableQueryError<'a> {
+    error_code_mapping: &'a ErrorCodeMapping,
     keys: &'a ResponseKeys,
     error: &'a GraphqlError,
     location: Location,
@@ -79,7 +92,7 @@ impl serde::Serialize for SerializableQueryError<'_> {
     where
         S: serde::Serializer,
     {
-        let mut map = serializer.serialize_map(Some(4))?;
+        let mut map = serializer.serialize_map(None)?;
         map.serialize_entry("message", &self.error.message)?;
         map.serialize_entry("locations", &[self.location])?;
         map.serialize_entry(
@@ -92,6 +105,7 @@ impl serde::Serialize for SerializableQueryError<'_> {
         map.serialize_entry(
             "extensions",
             &SerializableExtension {
+                error_code_mapping: self.error_code_mapping,
                 code: self.error.code,
                 extensions: &self.error.extensions,
             },
@@ -101,6 +115,7 @@ impl serde::Serialize for SerializableQueryError<'_> {
 }
 
 struct SerializableError<'a> {
+    error_code_mapping: &'a ErrorCodeMapping,
     keys: &'a ResponseKeys,
     error: &'a GraphqlError,
 }
@@ -121,6 +136,7 @@ impl serde::Serialize for SerializableError<'_> {
         map.serialize_entry(
             "extensions",
             &SerializableExtension {
+                error_code_mapping: self.error_code_mapping,
                 code: self.error.code,
                 extensions: &self.error.extensions,
             },
@@ -156,6 +172,7 @@ impl serde::Serialize for SerializableResponsePath<'_> {
 }
 
 pub(super) struct SerializableExtension<'a> {
+    pub error_code_mapping: &'a ErrorCodeMapping,
     pub code: ErrorCode,
     pub extensions: &'a [(Cow<'static, str>, serde_json::Value)],
 }
@@ -172,7 +189,12 @@ impl serde::Serialize for SerializableExtension<'_> {
             map.serialize_entry(key, value)?;
         }
         if !has_code {
-            map.serialize_entry("code", &self.code)?;
+            let code: &'static str = self.code.into();
+            if let Some(code) = self.error_code_mapping.get(code) {
+                map.serialize_entry("code", code)?;
+            } else {
+                map.serialize_entry("code", code)?;
+            }
         }
         map.end()
     }

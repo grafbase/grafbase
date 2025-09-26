@@ -4,7 +4,7 @@ use axum::body::Body;
 use engine::{ErrorResponse, GraphqlError, RequestExtensions};
 use event_queue::ExecutedHttpRequest;
 use extension_catalog::ExtensionId;
-use gateway_config::DefaultAuthenticationBehavior;
+use gateway_config::{DefaultAuthenticationBehavior, ErrorCodeMapping};
 use http::{Request, Response};
 use runtime::extension::{GatewayExtensions, OnRequest, Token};
 use tower::Layer;
@@ -19,6 +19,7 @@ struct ExtensionLayerInner<Ext> {
     default_contract_key: Option<String>,
     authentication_extension_ids: Vec<ExtensionId>,
     default_authentication_behavior: Option<DefaultAuthenticationBehavior>,
+    error_code_mapping: ErrorCodeMapping,
 }
 
 impl<Ext> ExtensionLayer<Ext>
@@ -30,12 +31,14 @@ where
         default_contract_key: Option<String>,
         authentication_extension_ids: Vec<ExtensionId>,
         default_authentication_behavior: Option<DefaultAuthenticationBehavior>,
+        error_code_mapping: ErrorCodeMapping,
     ) -> Self {
         Self(Arc::new(ExtensionLayerInner {
             extensions,
             default_contract_key,
             authentication_extension_ids,
             default_authentication_behavior,
+            error_code_mapping,
         }))
     }
 }
@@ -96,7 +99,8 @@ where
             } = match layer.extensions.on_request(parts).await {
                 Ok(on_request) => on_request,
                 Err(err) => {
-                    let error_response = engine::http_error_response(response_format, err);
+                    let error_response =
+                        engine::http_error_response(layer.error_code_mapping.clone(), response_format, err);
                     return Ok(into_axum_response(error_response));
                 }
             };
@@ -142,7 +146,8 @@ where
                     next.call(Request::from_parts(parts, body)).await?
                 }
                 Err(err) => {
-                    let error_response = engine::http_error_response(response_format, err);
+                    let error_response =
+                        engine::http_error_response(layer.error_code_mapping.clone(), response_format, err);
                     return Ok(into_axum_response(error_response));
                 }
             };
@@ -159,6 +164,7 @@ where
                 Ok(parts) => parts,
                 Err(err) => {
                     let error_response = engine::http_error_response(
+                        layer.error_code_mapping.clone(),
                         response_format,
                         ErrorResponse::new(http::StatusCode::INTERNAL_SERVER_ERROR)
                             .with_error(engine::GraphqlError::new(err, engine::ErrorCode::ExtensionError)),

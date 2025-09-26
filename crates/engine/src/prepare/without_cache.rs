@@ -23,7 +23,10 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 "Executable document exceeded the maximum configured size",
                 ErrorCode::OperationValidationError,
             );
-            return Err(Response::request_error([error]));
+            return Err(Response::request_error(
+                self.schema().config.error_code_mapping.clone(),
+                [error],
+            ));
         }
 
         let operation = match Operation::parse(self.schema(), document.operation_name(), &document.content) {
@@ -31,17 +34,22 @@ impl<R: Runtime> PrepareContext<'_, R> {
             Err(operation::Errors { items, attributes }) => {
                 let resp = if self.request_context.include_mcp_response_extension {
                     let site_ids = items.iter().filter_map(|error| error.site_id).collect::<Vec<_>>();
-                    Response::request_error(items.into_iter().map(operation_error_into_graphql_error)).with_extensions(
-                        ResponseExtensions {
-                            mcp: Some(McpResponseExtension {
-                                schema: self.engine.schema.clone(),
-                                site_ids,
-                            }),
-                            ..Default::default()
-                        },
+                    Response::request_error(
+                        self.schema().config.error_code_mapping.clone(),
+                        items.into_iter().map(operation_error_into_graphql_error),
                     )
+                    .with_extensions(ResponseExtensions {
+                        mcp: Some(McpResponseExtension {
+                            schema: self.engine.schema.clone(),
+                            site_ids,
+                        }),
+                        ..Default::default()
+                    })
                 } else {
-                    Response::request_error(items.into_iter().map(operation_error_into_graphql_error))
+                    Response::request_error(
+                        self.schema().config.error_code_mapping.clone(),
+                        items.into_iter().map(operation_error_into_graphql_error),
+                    )
                 };
 
                 return Err(if let Some(attributes) = attributes {
@@ -66,15 +74,20 @@ impl<R: Runtime> PrepareContext<'_, R> {
         // This error would be confusing for a websocket connection, but today mutation are always
         // allowed for it.
         if operation.attributes.ty.is_mutation() && !self.request_context.can_mutate {
-            return Err(mutation_not_allowed_with_safe_method());
+            return Err(mutation_not_allowed_with_safe_method(
+                self.schema().config.error_code_mapping.clone(),
+            ));
         }
 
         let variables = match Variables::bind(self.schema(), &operation, variables) {
             Ok(variables) => variables,
             Err(errors) => {
-                return Err(Response::request_error(errors.into_iter().map(|err| {
-                    GraphqlError::new(err.message, ErrorCode::VariableError).with_locations(err.locations)
-                }))
+                return Err(Response::request_error(
+                    self.schema().config.error_code_mapping.clone(),
+                    errors.into_iter().map(|err| {
+                        GraphqlError::new(err.message, ErrorCode::VariableError).with_locations(err.locations)
+                    }),
+                )
                 .with_operation_attributes(operation.attributes.clone().with_complexity_cost(None)));
             }
         };
@@ -83,8 +96,10 @@ impl<R: Runtime> PrepareContext<'_, R> {
             Ok(cost) => cost,
             Err(err) => {
                 let error = GraphqlError::new(err.to_string(), ErrorCode::OperationValidationError);
-                return Err(Response::request_error([error])
-                    .with_operation_attributes(operation.attributes.clone().with_complexity_cost(None)));
+                return Err(
+                    Response::request_error(self.schema().config.error_code_mapping.clone(), [error])
+                        .with_operation_attributes(operation.attributes.clone().with_complexity_cost(None)),
+                );
             }
         };
 
@@ -92,8 +107,10 @@ impl<R: Runtime> PrepareContext<'_, R> {
         let cached = match crate::prepare::solve(self.schema(), document, operation) {
             Ok(plan) => plan,
             Err(err) => {
-                return Err(Response::request_error([err])
-                    .with_operation_attributes(attributes.with_complexity_cost(complexity_cost)));
+                return Err(
+                    Response::request_error(self.schema().config.error_code_mapping.clone(), [err])
+                        .with_operation_attributes(attributes.with_complexity_cost(complexity_cost)),
+                );
             }
         };
 

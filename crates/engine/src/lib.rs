@@ -1,5 +1,6 @@
 #![deny(clippy::future_not_send, unused_crate_dependencies)]
 
+use gateway_config::ErrorCodeMapping;
 use grafbase_workspace_hack as _;
 
 mod engine;
@@ -20,6 +21,7 @@ pub use prepare::cached::CachedOperation;
 pub use schema::Schema;
 
 pub fn http_error_response(
+    error_code_mapping: ErrorCodeMapping,
     format: ResponseFormat,
     ErrorResponse {
         status,
@@ -27,5 +29,8 @@ pub fn http_error_response(
         headers,
     }: ErrorResponse,
 ) -> http::Response<Body> {
-    graphql_over_http::Http::error(format, response::Response::refused_request(status, errors, headers))
+    graphql_over_http::Http::error(
+        format,
+        response::Response::refused_request(error_code_mapping, status, errors, headers),
+    )
 }

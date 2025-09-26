@@ -171,7 +171,10 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 let extensions = default_response_extensions(schema, request_context);
 
                 sender
-                    .send(errors::response::gateway_timeout().with_extensions(extensions))
+                    .send(
+                        errors::response::gateway_timeout(schema.config.error_code_mapping.clone())
+                            .with_extensions(extensions),
+                    )
                     .await
                     .ok();
                 return None;

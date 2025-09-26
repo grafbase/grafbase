@@ -9,6 +9,7 @@ use std::sync::Arc;
 
 pub(crate) use cached::*;
 pub(crate) use context::*;
+use gateway_config::ErrorCodeMapping;
 use operation::Operation;
 pub(crate) use operation_plan::*;
 
@@ -66,6 +67,7 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 // to load, so we don't consider it a well-formed GraphQL-over-HTTP request.
                 Err(err) => {
                     return Err(Response::refused_request(
+                        self.schema().config.error_code_mapping.clone(),
                         http::StatusCode::BAD_REQUEST,
                         [err],
                         Default::default(),
@@ -83,7 +85,12 @@ impl<R: Runtime> PrepareContext<'_, R> {
                 self.metrics().record_operation_cache_miss();
                 match extracted.into_operation_document().await {
                     Ok(document) => OpCache::Miss { cache_key, document },
-                    Err(err) => return Err(Response::request_error([err])),
+                    Err(err) => {
+                        return Err(Response::request_error(
+                            self.schema().config.error_code_mapping.clone(),
+                            [err],
+                        ));
+                    }
                 }
             }
         };
@@ -127,8 +134,9 @@ impl PreparedOperation {
     }
 }
 
-fn mutation_not_allowed_with_safe_method() -> Response {
+fn mutation_not_allowed_with_safe_method(error_code_mapping: ErrorCodeMapping) -> Response {
     Response::refused_request(
+        error_code_mapping,
         http::StatusCode::METHOD_NOT_ALLOWED,
         [GraphqlError::new(
             "Mutation is not allowed with a safe method like GET",

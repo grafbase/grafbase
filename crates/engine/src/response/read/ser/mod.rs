@@ -38,6 +38,7 @@ impl serde::Serialize for Response {
                     map.serialize_entry(
                         "errors",
                         &errors::SerializableErrorParts {
+                            error_code_mapping: &schema.config.error_code_mapping,
                             query_modifications: &operation.plan.query_modifications,
                             keys,
                             errors,
@@ -51,7 +52,12 @@ impl serde::Serialize for Response {
 
                 map.end()
             }
-            Response::RequestError(RequestErrorResponse { errors, extensions, .. }) => {
+            Response::RequestError(RequestErrorResponse {
+                errors,
+                extensions,
+                error_code_mapping,
+                ..
+            }) => {
                 let mut map = serializer.serialize_map(None)?;
                 // Shouldn't happen, but better safe than sorry.
                 if !errors.is_empty() {
@@ -59,6 +65,7 @@ impl serde::Serialize for Response {
                     map.serialize_entry(
                         "errors",
                         &errors::SerializableErrors {
+                            error_code_mapping,
                             keys: &empty_keys,
                             errors,
                         },
@@ -70,7 +77,12 @@ impl serde::Serialize for Response {
 
                 map.end()
             }
-            Response::RefusedRequest(RefusedRequestResponse { errors, extensions, .. }) => {
+            Response::RefusedRequest(RefusedRequestResponse {
+                errors,
+                extensions,
+                error_code_mapping,
+                ..
+            }) => {
                 let mut map = serializer.serialize_map(None)?;
 
                 // There shouldn't be any response paths needing this, but better safe than sorry.
@@ -78,6 +90,7 @@ impl serde::Serialize for Response {
                 map.serialize_entry(
                     "errors",
                     &errors::SerializableErrors {
+                        error_code_mapping,
                         keys: &empty_keys,
                         errors,
                     },
