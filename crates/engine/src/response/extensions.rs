@@ -195,7 +195,11 @@ impl From<(OperationPlanContext<'_>, &FieldResolverExtension)> for QueryPlanNode
         QueryPlanNode::Extension(ExtensionNode {
             directive_name: Some(directive.name().to_string()),
             id: ctx.schema[directive.extension_id].clone(),
-            subgraph_name: directive.subgraph().name().to_string(),
+            subgraph_name: directive
+                .subgraph()
+                .expect("Must be provided for resolvers")
+                .name()
+                .to_string(),
         })
     }
 }

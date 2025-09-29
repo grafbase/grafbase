@@ -15,3 +15,6 @@ network = false
 stdout = false
 stderr = false
 environment_variables = false
+
+[contracts.directives]
+link_urls = ["https://example.com/tag"]

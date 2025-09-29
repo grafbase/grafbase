@@ -16,7 +16,7 @@ fn field_resolver_extension_with_url_subgraph_returns_error() {
                 "products",
                 r#"
                 extend schema
-                    @link(url: "static-1.0.0", import: ["@resolve"])
+                    @link(url: "static", import: ["@resolve"])
 
                 type Query {
                     product(id: ID!): Product @resolve
@@ -56,7 +56,7 @@ fn resolver_extension_with_url_subgraph_returns_error() {
                 "products",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
 
                 scalar JSON
 

@@ -91,6 +91,7 @@ pub(crate) fn ingest_definitions(
         virtual_subgraph_to_selection_set_resolver: vec![None; ctx.subgraphs.virtual_subgraphs.len()],
         // Added at the end
         definitions: Default::default(),
+        schema_directive_ids: Default::default(),
         ctx,
     };
 

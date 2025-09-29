@@ -2,7 +2,7 @@ use crate::{
     ExtensionDirectiveArgumentId, ExtensionDirectiveArgumentRecord, FieldSetRecord, TemplateEscaping, TemplateRecord,
     builder::{
         GraphBuilder,
-        extension::{ExtensionSdl, GrafbaseScalar},
+        extension::{GrafbaseScalar, ParsedExtensionSdl},
         sdl,
     },
     extension::{ExtensionInputValueRecord, InjectionStage},
@@ -14,7 +14,7 @@ use super::{ExtensionInputValueError, InputValueError, can_coerce_to_int, value_
 
 pub(crate) struct ExtensionDirectiveArgumentsCoercer<'a, 'b> {
     pub(super) ctx: &'a mut GraphBuilder<'b>,
-    pub(super) sdl: &'a ExtensionSdl,
+    pub(super) sdl: &'a ParsedExtensionSdl,
     pub(super) current_definition: sdl::SdlDefinition<'b>,
     pub(super) current_injection_stage: InjectionStage,
     pub(super) is_default_value: bool,
@@ -38,9 +38,9 @@ impl<'a> GraphBuilder<'a> {
     pub fn coerce_extension_directive_arguments(
         &mut self,
         current_definition: sdl::SdlDefinition<'a>,
-        sdl: &ExtensionSdl,
+        sdl: &ParsedExtensionSdl,
         directive: sdl::DirectiveDefinition<'_>,
-        arguments: Option<sdl::ConstValue<'a>>,
+        mut arguments: Vec<(&'a str, sdl::ConstValue<'a>)>,
     ) -> Result<(IdRange<ExtensionDirectiveArgumentId>, FieldSetRecord), ExtensionInputValueError> {
         let start = self.graph.extension_directive_arguments.len();
         let mut coercer = ExtensionDirectiveArgumentsCoercer {
@@ -51,35 +51,32 @@ impl<'a> GraphBuilder<'a> {
             requirements: Default::default(),
             is_default_value: false,
         };
-        if let Some(arguments) = arguments.and_then(|arg| arg.as_fields()) {
-            let mut arguments = arguments.collect::<Vec<_>>();
-            coercer.graph.extension_directive_arguments.reserve(arguments.len());
+        coercer.graph.extension_directive_arguments.reserve(arguments.len());
 
-            for def in directive.arguments() {
-                let name_id = coercer.ingest_str(def.name());
-                let sdl_value = arguments
-                    .iter()
-                    .position(|arg| arg.name() == def.name())
-                    .map(|ix| arguments.swap_remove(ix).value());
+        for def in directive.arguments() {
+            let name_id = coercer.ingest_str(def.name());
+            let sdl_value = arguments
+                .iter()
+                .position(|(name, _)| *name == def.name())
+                .map(|ix| arguments.swap_remove(ix).1);
 
-                let maybe_coerced_argument = coercer.coerce_argument(def, sdl_value)?;
+            let maybe_coerced_argument = coercer.coerce_argument(def, sdl_value)?;
 
-                if let Some((value, injection_stage)) = maybe_coerced_argument {
-                    coercer
-                        .ctx
-                        .graph
-                        .extension_directive_arguments
-                        .push(ExtensionDirectiveArgumentRecord {
-                            name_id,
-                            value,
-                            injection_stage,
-                        });
-                }
+            if let Some((value, injection_stage)) = maybe_coerced_argument {
+                coercer
+                    .ctx
+                    .graph
+                    .extension_directive_arguments
+                    .push(ExtensionDirectiveArgumentRecord {
+                        name_id,
+                        value,
+                        injection_stage,
+                    });
             }
+        }
 
-            if let Some(arg) = arguments.first() {
-                return Err(InputValueError::UnknownArgument(arg.name().into()).into());
-            }
+        if let Some((name, _)) = arguments.first() {
+            return Err(InputValueError::UnknownArgument(name.to_string()).into());
         }
 
         let requirements = coercer.requirements;

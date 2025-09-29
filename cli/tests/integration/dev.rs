@@ -29,7 +29,6 @@ async fn local_extension() {
     let extension_path = TestExtensions::Echo.build_dir_path();
     let extension_path = extension_path.display();
 
-    println!("{extension_path}");
     let dev = GrafbaseDevConfig::new()
         .with_config(format!(
             r#"

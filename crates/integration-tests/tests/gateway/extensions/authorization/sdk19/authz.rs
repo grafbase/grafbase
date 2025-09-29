@@ -14,7 +14,7 @@ fn query_and_response_auth_with_headers_modifications() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                    extend schema @link(url: "authz-19-1.0.0", import: ["@deniedIds", "@deny"])
+                    extend schema @link(url: "authz-19", import: ["@deniedIds", "@deny"])
 
                     type Query {
                         users: [User]!

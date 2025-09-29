@@ -47,7 +47,7 @@ fn complexity_control_should_work_with_virtual_subgraphs() {
                 "x",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
 
                 type Query {
                     super: SuperObj @resolve

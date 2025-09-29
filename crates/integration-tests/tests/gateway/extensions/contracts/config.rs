@@ -7,7 +7,7 @@ fn no_contract() {
             .with_subgraph_sdl(
                 "user",
                 r#"
-                extend schema @link(url: "contracts-19-0.1.0", import: ["@tag"])
+                extend schema @link(url: "contracts-19", import: ["@tag"])
 
                 type Query {
                     public: ID! @tag(name: "public")
@@ -42,7 +42,7 @@ fn static_contract() {
             .with_subgraph_sdl(
                 "user",
                 r#"
-                extend schema @link(url: "contracts-19-0.1.0", import: ["@tag"])
+                extend schema @link(url: "contracts-19", import: ["@tag"])
 
                 type Query {
                     public: ID! @tag(name: "public")
@@ -77,7 +77,7 @@ fn no_cache_size() {
             .with_subgraph_sdl(
                 "user",
                 r#"
-                extend schema @link(url: "contracts-19-0.1.0", import: ["@tag"])
+                extend schema @link(url: "contracts-19", import: ["@tag"])
 
                 type Query {
                     public: ID! @tag(name: "public")
@@ -123,7 +123,7 @@ fn invalid_cache_size() {
             .with_subgraph_sdl(
                 "user",
                 r#"
-                extend schema @link(url: "contracts-19-0.1.0", import: ["@tag"])
+                extend schema @link(url: "contracts-19", import: ["@tag"])
 
                 type Query {
                     public: ID! @tag(name: "public")
@@ -159,7 +159,7 @@ fn invalid_contract() {
             .with_subgraph_sdl(
                 "user",
                 r#"
-                extend schema @link(url: "contracts-19-0.1.0", import: ["@tag"])
+                extend schema @link(url: "contracts-19", import: ["@tag"])
 
                 type Query {
                     public: ID! @tag(name: "public")

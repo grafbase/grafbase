@@ -7,7 +7,7 @@ fn can_read_config() {
             .with_subgraph_sdl(
                 "echo-config",
                 r#"
-                extend schema @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"]) @init
+                extend schema @link(url: "selection-set-resolver-015", import: ["@init"]) @init
                 scalar JSON
                 type Query {
                     test: JSON
@@ -53,7 +53,7 @@ fn can_fail_reading_config_with_nullable_field() {
             .with_subgraph_sdl(
                 "echo-config",
                 r#"
-                extend schema @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"]) @init
+                extend schema @link(url: "selection-set-resolver-015", import: ["@init"]) @init
                 scalar JSON
                 type Query {
                     test: JSON
@@ -81,7 +81,7 @@ fn can_fail_reading_config_with_required_field() {
             .with_subgraph_sdl(
                 "echo-config",
                 r#"
-                extend schema @link(url: "selection-set-resolver-015-1.0.0", import: ["@init"]) @init
+                extend schema @link(url: "selection-set-resolver-015", import: ["@init"]) @init
                 scalar JSON
                 type Query {
                     test: JSON!

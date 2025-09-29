@@ -27,7 +27,7 @@ fn extension_mixed_with_graphql_subgraph_root_fields() {
                 "y",
                 r#"
                     extend schema
-                        @link(url: "greet-1.0.0", import: ["@greet"])
+                        @link(url: "greet", import: ["@greet"])
 
                     scalar JSON
 

@@ -67,7 +67,7 @@ fn virtual_subgraph_header_change() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
 
                 scalar JSON
 
@@ -108,7 +108,7 @@ fn virtual_subgraph_header_change() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
 
                 scalar JSON
 
@@ -251,7 +251,7 @@ fn virtual_receives_header_from_on_request() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
 
                 scalar JSON
 
@@ -316,7 +316,7 @@ fn virtual_subgraph_name() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-1.0.0", import: ["@resolve"])
+                    @link(url: "resolver", import: ["@resolve"])
 
                 scalar JSON
 

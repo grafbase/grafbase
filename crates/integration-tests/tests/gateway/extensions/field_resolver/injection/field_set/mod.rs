@@ -20,7 +20,7 @@ fn run_with_field_set(subgraph: DynamicSchemaBuilder, field_set: &str) -> Result
                 format!(
                     r#"
                     extend schema
-                        @link(url: "echo-1.0.0", import: ["@echo"])
+                        @link(url: "echo", import: ["@echo"])
 
                     scalar JSON
 
@@ -134,7 +134,7 @@ fn default_value() {
                 "b",
                 r#"
                     extend schema
-                        @link(url: "echo-1.0.0", import: ["@echo"])
+                        @link(url: "echo", import: ["@echo"])
 
                     scalar JSON
 

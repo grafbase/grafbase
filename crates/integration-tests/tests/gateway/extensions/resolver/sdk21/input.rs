@@ -14,7 +14,7 @@ fn basic_request() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-21-1.0.0", import: ["@echoInput"])
+                    @link(url: "resolver-21", import: ["@echoInput"])
 
                 scalar JSON
 
@@ -64,7 +64,7 @@ fn basic_subscription() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "resolver-21-1.0.0", import: ["@echoInput"])
+                    @link(url: "resolver-21", import: ["@echoInput"])
 
                 scalar JSON
 

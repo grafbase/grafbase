@@ -10,7 +10,7 @@ fn builder() -> GatewayBuilder {
         .with_subgraph(
             DynamicSchema::builder(
                 r#"
-                extend schema @link(url: "authz-19-subgraph-grouping-0.1.0", import: ["@auth"])
+                extend schema @link(url: "authz-19-subgraph-grouping", import: ["@auth"])
 
                 type Query {
                     publicA: String
@@ -48,7 +48,7 @@ fn builder() -> GatewayBuilder {
         .with_subgraph(
             DynamicSchema::builder(
                 r#"
-                extend schema @link(url: "authz-19-subgraph-grouping-0.1.0", import: ["@auth"])
+                extend schema @link(url: "authz-19-subgraph-grouping", import: ["@auth"])
 
                 type Query {
                     publicB: String

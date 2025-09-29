@@ -67,7 +67,13 @@ impl ResolverExtension<EngineOperationContext> for EngineWasmExtensions {
 
         wasmsafe!(
             instance
-                .prepare(event_queue, directive.subgraph().name(), dir, 0, &fields)
+                .prepare(
+                    event_queue,
+                    directive.subgraph().expect("Must be present for resolvers").name(),
+                    dir,
+                    0,
+                    &fields
+                )
                 .await
         )
     }

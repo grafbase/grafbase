@@ -95,7 +95,7 @@ fn multiple_directives() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@grant", "@deny"])
+                extend schema @link(url: "authorization", import: ["@grant", "@deny"])
 
                 type Query {
                     greeting: String @grant
@@ -153,8 +153,8 @@ fn multiple_extensions_and_directives() {
             .with_subgraph(
                 DynamicSchema::builder(
                     r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@grant", "@deny"])
-                extend schema @link(url: "authorizationBis-1.0.0", import: ["@grantBis", "@denyBis"])
+                extend schema @link(url: "authorization", import: ["@grant", "@deny"])
+                extend schema @link(url: "authorizationBis", import: ["@grantBis", "@denyBis"])
 
                 type Query {
                     greeting: String @grant @grantBis

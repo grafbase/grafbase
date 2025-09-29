@@ -10,7 +10,7 @@ fn valid_string() {
                 "a",
                 r#"
                 extend schema
-                    @link(url: "echo-1.0.0", import: ["@echo", "@meta"])
+                    @link(url: "echo", import: ["@echo", "@meta"])
                     @meta(value: [{a:1}, 789, "test"])
 
                 scalar JSON

@@ -251,7 +251,7 @@ scalar ExtensionDirectiveArgumentId @id
 scalar ExtensionDirectiveType @copy
 
 type ExtensionDirective @meta(module: "directive/extension") @indexed(id_size: "u32") {
-  subgraph: Subgraph!
+  subgraph: Subgraph
   extension_id: ExtensionId!
   ty: ExtensionDirectiveType!
   name: String!

@@ -71,13 +71,13 @@ fn dot_graph(dot: &'static str) -> (Graph<String, SteinerWeight>, HashMap<String
     let mut nodes = HashMap::new();
     for (node, attrs) in dot_graph.nodes.set {
         // Only convert to String once for the graph node and HashMap key
-        let id = graph.add_node(attrs.id.into());
-        nodes.insert(node.into(), id);
+        let id = graph.add_node(attrs.id);
+        nodes.insert(node, id);
     }
     for edge in dot_graph.edges.set {
         // Convert edge endpoints to String to look up in HashMap
-        let from_str: String = edge.from.into();
-        let to_str: String = edge.to.into();
+        let from_str: String = edge.from;
+        let to_str: String = edge.to;
         let from_ni = nodes.get(&from_str).unwrap();
         let to_ni = nodes.get(&to_str).unwrap();
         let weight = edge

@@ -15,13 +15,25 @@ pub(crate) fn parse_link_url(url: &str) -> Option<LinkUrl> {
 
     let mut reversed_segments = segments.rev();
 
-    let Some(maybe_version_or_name) = reversed_segments.next() else {
+    let Some(mut maybe_version_or_name) = reversed_segments.next() else {
         return Some(LinkUrl {
             url,
             name: None,
             version: None,
         });
     };
+
+    // To tolerate multiple links with file pattern.
+    if url.scheme() == "file" && maybe_version_or_name == "build" {
+        let Some(next) = reversed_segments.next() else {
+            return Some(LinkUrl {
+                url,
+                name: None,
+                version: None,
+            });
+        };
+        maybe_version_or_name = next;
+    }
 
     if is_valid_version(maybe_version_or_name) {
         let name = reversed_segments

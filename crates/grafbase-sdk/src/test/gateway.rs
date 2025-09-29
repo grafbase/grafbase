@@ -2,7 +2,6 @@ use std::{
     collections::hash_map::Entry,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     path::{Path, PathBuf},
-    str::FromStr,
     time::Duration,
 };
 
@@ -16,7 +15,7 @@ use crate::test::{
 
 use anyhow::{Context, anyhow};
 use grafbase_sdk_mock::{MockGraphQlServer, Subgraph};
-use graphql_composition::{LoadedExtension, Subgraphs};
+use graphql_composition::Subgraphs;
 use itertools::Itertools;
 use regex::Regex;
 use tempfile::TempDir;
@@ -411,13 +410,5 @@ impl Drop for TestGateway {
         if let Err(err) = self.handle.kill() {
             eprintln!("Failed to kill grafbase-gateway: {err}")
         }
-    }
-}
-
-fn new_loaded_extension(url: Url, name: String) -> LoadedExtension {
-    LoadedExtension {
-        link_url: url.to_string(),
-        url,
-        name,
     }
 }

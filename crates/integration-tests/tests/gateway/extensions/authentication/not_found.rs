@@ -45,7 +45,7 @@ fn deny_default_with_extensions_404() {
         let gateway = Gateway::builder()
             .with_subgraph(EchoSchema::default().with_sdl(
                 r#"
-                extend schema @link(url: "authorization-1.0.0", import: ["@auth"])
+                extend schema @link(url: "authorization", import: ["@auth"])
 
                 type Query {
                     header(name: String): String @auth
