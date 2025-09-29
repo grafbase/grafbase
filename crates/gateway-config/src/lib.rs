@@ -1,5 +1,6 @@
 use apq::AutomaticPersistedQueries;
 use operation_caching::OperationCacheConfig;
+use rapidhash::RapidHashMap;
 use serde::Deserialize;
 
 pub mod apq;
@@ -29,6 +30,7 @@ use std::{
     net::SocketAddr,
     path::{Path, PathBuf},
     str::FromStr as _,
+    sync::Arc,
     time::Duration,
 };
 
@@ -480,6 +482,7 @@ pub struct GraphConfig {
     // We do want to distinguish None from false for grafbase dev
     pub introspection: Option<bool>,
     pub contracts: ContractsConfig,
+    pub error_code_mapping: ErrorCodeMapping,
 }
 
 impl Default for GraphConfig {
@@ -489,7 +492,18 @@ impl Default for GraphConfig {
             websocket_path: "/ws".to_string(),
             introspection: None,
             contracts: ContractsConfig::default(),
+            error_code_mapping: ErrorCodeMapping::default(),
         }
+    }
+}
+
+#[derive(Default, Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct ErrorCodeMapping(Arc<RapidHashMap<String, String>>);
+
+impl std::ops::Deref for ErrorCodeMapping {
+    type Target = RapidHashMap<String, String>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 

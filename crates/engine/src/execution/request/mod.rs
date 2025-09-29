@@ -36,17 +36,26 @@ impl<R: Runtime> ContractAwareEngine<R> {
             //   In alignment with the HTTP 1.1 Accept specification, when a client does not include at least one supported media type in the Accept HTTP header, the server MUST either:
             //     1. Respond with a 406 Not Acceptable status code and stop processing the request (RECOMMENDED); OR
             //     2. Disregard the Accept header and respond with the server's choice of media type (NOT RECOMMENDED).
-            return Err(errors::not_acceptable_error(ResponseFormat::default()));
+            return Err(errors::not_acceptable_error(
+                self.no_contract.schema.config.error_code_mapping.clone(),
+                ResponseFormat::default(),
+            ));
         };
 
         let content_type = if parts.method == http::Method::POST {
             // GraphQL-over-HTTP spec:
             //   If the client does not supply a Content-Type header with a POST request,
             //   the server SHOULD reject the request using the appropriate 4xx status code.
-            ContentType::extract(&parts.headers).ok_or_else(|| errors::unsupported_content_type(response_format))?
+            ContentType::extract(&parts.headers).ok_or_else(|| {
+                errors::unsupported_content_type(
+                    self.no_contract.schema.config.error_code_mapping.clone(),
+                    response_format,
+                )
+            })?
         } else {
             if parts.method != http::Method::GET {
                 return Err(errors::method_not_allowed(
+                    self.no_contract.schema.config.error_code_mapping.clone(),
                     response_format,
                     "Only GET or POST are supported.",
                 ));
@@ -101,7 +110,9 @@ impl<R: Runtime> Engine<R> {
 
         // Currently it doesn't rely on authentication, but likely will at some point.
         if self.runtime.rate_limiter().limit(&RateLimitKey::Global).await.is_err() {
-            return Err(errors::response::gateway_rate_limited());
+            return Err(errors::response::gateway_rate_limited(
+                self.schema.config.error_code_mapping.clone(),
+            ));
         }
 
         let mut subgraph_default_headers = http::HeaderMap::new();
@@ -137,22 +148,24 @@ impl<R: Runtime> Engine<R> {
         F: Future<Output = Result<Bytes, (http::StatusCode, String)>> + Send,
     {
         if ctx.method == http::Method::POST {
-            let body = body
-                .await
-                .map_err(|(status_code, message)| errors::refuse_request_with(status_code, message))?;
+            let body = body.await.map_err(|(status_code, message)| {
+                errors::refuse_request_with(self.schema.config.error_code_mapping.clone(), status_code, message)
+            })?;
 
             self.runtime.metrics().record_request_body_size(body.len());
 
             match ctx.content_type {
                 ContentType::Json => sonic_rs::from_slice(&body).map_err(|err| {
-                    errors::not_well_formed_graphql_over_http_request(format_args!(
-                        "JSON deserialization failure: {err}",
-                    ))
+                    errors::not_well_formed_graphql_over_http_request(
+                        self.schema.config.error_code_mapping.clone(),
+                        format_args!("JSON deserialization failure: {err}",),
+                    )
                 }),
                 ContentType::Cbor => minicbor_serde::from_slice(&body).map_err(|err| {
-                    errors::not_well_formed_graphql_over_http_request(format_args!(
-                        "CBOR deserialization failure: {err}"
-                    ))
+                    errors::not_well_formed_graphql_over_http_request(
+                        self.schema.config.error_code_mapping.clone(),
+                        format_args!("CBOR deserialization failure: {err}"),
+                    )
                 }),
             }
         } else {
@@ -161,9 +174,10 @@ impl<R: Runtime> Engine<R> {
             serde_urlencoded::from_str::<QueryParamsRequest>(query)
                 .map(|request| BatchRequest::Single(request.into()))
                 .map_err(|err| {
-                    errors::not_well_formed_graphql_over_http_request(format_args!(
-                        "Could not deserialize request from query parameters: {err}"
-                    ))
+                    errors::not_well_formed_graphql_over_http_request(
+                        self.schema.config.error_code_mapping.clone(),
+                        format_args!("Could not deserialize request from query parameters: {err}"),
+                    )
                 })
         }
     }

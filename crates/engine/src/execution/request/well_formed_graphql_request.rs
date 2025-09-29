@@ -92,7 +92,7 @@ impl<R: Runtime> Engine<R> {
         let error = GraphqlError::new(format!("Bad request: {message}"), ErrorCode::BadRequest);
         Http::error(
             request_context.response_format,
-            Response::request_error([error])
+            Response::request_error(self.schema.config.error_code_mapping.clone(), [error])
                 .with_extensions(default_response_extensions(&self.schema, request_context)),
         )
     }
@@ -100,7 +100,7 @@ impl<R: Runtime> Engine<R> {
     fn gateway_timeout_error(&self, request_context: &RequestContext) -> http::Response<Body> {
         Http::error(
             request_context.response_format,
-            super::errors::response::gateway_timeout()
+            super::errors::response::gateway_timeout(self.schema.config.error_code_mapping.clone())
                 .with_extensions(default_response_extensions(&self.schema, request_context)),
         )
     }

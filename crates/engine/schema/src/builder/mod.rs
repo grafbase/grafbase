@@ -197,5 +197,6 @@ fn build_settings(config: &Config) -> PartialConfig {
         trusted_documents: config.trusted_documents.clone().into(),
         websocket_forward_connection_init_payload: config.websockets.forward_connection_init_payload,
         contract_cache_max_size: config.graph.contracts.cache.max_size,
+        error_code_mapping: config.graph.error_code_mapping.clone(),
     }
 }
