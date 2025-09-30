@@ -135,7 +135,7 @@ inquire = "0.8"
 insta = { version = "1.43.2", features = ["json", "redactions", "glob"] }
 internment = { version = "0.8", features = ["serde", "arc"] }
 itertools = "0.14.0"
-jsonwebtoken = "9.3.1"
+jsonwebtoken = "10.0.0"
 jwt-compact = "0.8"
 lambda_http = "0.17.0"
 lasso2 = "0.8"
