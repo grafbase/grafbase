@@ -18,43 +18,29 @@ jobs:
   what-changed:
     runs-on: depot-ubuntu-24.04-small
     outputs:
-      changed-packages: ${{ steps.rust.outputs.changed-packages }}
+      engine: ${{ steps.paths-changed.outputs.engine }}
+      federation-audit-tests: ${{ steps.paths-changed.outputs.federation-audit-tests }}
       github-action: ${{ steps.paths-changed.outputs.github-action }}
     steps:
       - uses: actions/checkout@v5
-        with:
-          # TODO: Figure out how to not make this zero
-          # Seems like if it's not zero you dont get branches
-          fetch-depth: 0
-
-      - uses: ./.github/actions/install-rust
-        with:
-          target: x86_64-unknown-linux-musl
-
-      - uses: Swatinem/rust-cache@v2.8.0
-        with:
-          prefix-key: cargo-v1
-
-      - name: Run what-rust-changed
-        id: rust
-        uses: grafbase/what-rust-changed@v0.2.1
-        with:
-          config: .github/what-rust-changed.toml
-          base: ${{ github.event.pull_request.base.ref || 'main' }}
 
       - name: Check paths changed
         uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: paths-changed
         with:
           filters: |
+            engine:
+              - 'crates/engine/**'
+            federation-audit-tests:
+              - 'crates/federation-audit-tests/**'
             github-action:
-              - .github/workflows/federation-audit.yml
+              - '.github/workflows/federation-audit.yml'
 
   audit:
     needs: [what-changed]
     if: |
-      contains(fromJson(needs.what-changed.outputs.changed-packages), 'engine')
-      || contains(fromJson(needs.what-changed.outputs.changed-packages), 'federation-audit-tests')
+      needs.what-changed.outputs.engine == 'true'
+      || needs.what-changed.outputs.federation-audit-tests == 'true'
       || needs.what-changed.outputs.github-action == 'true'
     runs-on: depot-ubuntu-24.04-8
     permissions:
