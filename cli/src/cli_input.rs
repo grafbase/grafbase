@@ -14,11 +14,12 @@ mod login;
 mod mcp;
 mod publish;
 mod schema;
+mod schema_proposal;
 mod sub_command;
 mod subgraph;
 mod trust;
 
-pub(crate) use self::{check::CheckCommand, compose::*, extension::*, mcp::*, trust::TrustCommand};
+pub(crate) use self::{check::CheckCommand, compose::*, extension::*, mcp::*, schema_proposal::*, trust::TrustCommand};
 pub(crate) use branch::BranchSubCommand;
 pub(crate) use branch_ref::BranchRef;
 pub(crate) use completions::CompletionsCommand;

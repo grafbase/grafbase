@@ -4,7 +4,7 @@ use url::Url;
 
 /// Publish a subgraph
 #[derive(Debug, Parser)]
-pub struct PublishCommand {
+pub(crate) struct PublishCommand {
     #[arg(help = FullGraphRef::ARG_DESCRIPTION)]
     pub(crate) graph_ref: FullGraphRef,
 

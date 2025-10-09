@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use crate::{
     api::{
         self,
+        errors::SchemaProposalParserError,
         graphql::mutations::{SchemaCheckDiagnostic, SchemaCheckStep},
     },
     common::{
@@ -195,6 +196,38 @@ pub(crate) fn publish_command_success(subgraph_name: &str) {
 
 pub(crate) fn subgraph_delete_success(subgraph_name: &str) {
     println!("🗑️  Subgraph {subgraph_name} deleted successfully");
+}
+
+pub(crate) fn schema_proposal_create_success(schema_proposal_id: &str) {
+    println!("✨ Schema proposal created: {schema_proposal_id}");
+}
+
+pub(crate) fn schema_proposal_edit_success(schema_proposal_id: &str) {
+    println!("✨ Schema proposal {schema_proposal_id} updated");
+}
+
+pub(crate) fn schema_proposal_edit_parser_errors(errors: &[SchemaProposalParserError]) {
+    watercolor::output!("❌ Failed to edit the schema proposal due to parser errors:", @BrightRed);
+    println!();
+
+    for error in errors {
+        watercolor::output!(
+            "- subgraph `{}` ({}-{}): {}",
+            error.subgraph_name,
+            error.span_start,
+            error.span_end,
+            error.error,
+            @BrightRed
+        );
+        println!();
+    }
+}
+
+pub(crate) fn schema_proposal_edit_after_create_failed(schema_proposal_id: &str) {
+    watercolor::output!(
+        "⚠️ Created schema proposal {schema_proposal_id}, but the initial edit was not applied.",
+        @BrightYellow
+    );
 }
 
 pub(crate) fn publish_no_change() {

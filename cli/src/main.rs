@@ -21,6 +21,7 @@ mod plugins;
 mod prompts;
 mod publish;
 mod schema;
+mod schema_proposal;
 mod subgraph;
 mod trust;
 mod upgrade;
@@ -156,6 +157,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
             SubgraphSubCommand::Delete(cmd) => subgraph::delete(cmd.graph_ref, cmd.name),
         },
         SubCommand::Schema(cmd) => schema::schema(cmd),
+        SubCommand::SchemaProposal(cmd) => schema_proposal::schema_proposal(cmd),
         SubCommand::Publish(cmd) => publish::publish(cmd),
         SubCommand::Introspect(cmd) => introspect::introspect(&cmd),
         SubCommand::Check(cmd) => check::check(cmd),
