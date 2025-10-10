@@ -1,6 +1,7 @@
 pub(crate) mod delete_subgraph;
 pub(crate) mod extension_publish;
 pub(crate) mod extension_versions_by_version_requirement;
+pub(crate) mod schema_proposal;
 pub(crate) mod submit_trusted_documents;
 
 use super::schema;

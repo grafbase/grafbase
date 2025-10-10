@@ -4,8 +4,8 @@ use crate::{cli_input::ExtensionSubCommand, is_not_direct_install};
 
 use super::{
     CheckCommand, CompletionsCommand, CreateCommand, DevCommand, ExtensionCommand, IntrospectCommand, LintCommand,
-    LoginCommand, PublishCommand, SchemaCommand, SubgraphCommand, branch::BranchCommand, compose::ComposeCommand,
-    mcp::McpCommand, trust::TrustCommand,
+    LoginCommand, PublishCommand, SchemaCommand, SchemaProposalCommand, SubgraphCommand, branch::BranchCommand,
+    compose::ComposeCommand, mcp::McpCommand, trust::TrustCommand,
 };
 
 #[derive(Debug, Parser, strum::AsRefStr, strum::Display)]
@@ -31,6 +31,8 @@ pub(crate) enum SubCommand {
     Subgraph(SubgraphCommand),
     /// Fetch a schema from the registry
     Schema(SchemaCommand),
+    /// Manage schema proposals
+    SchemaProposal(SchemaProposalCommand),
     /// Publish a schema to the registry
     Publish(PublishCommand),
     /// Run validation, composition and breaking change checks
@@ -64,6 +66,7 @@ impl RequiresLogin for SubCommand {
                 | SubCommand::Publish(_)
                 | SubCommand::Trust(_)
                 | SubCommand::Subgraph(_)
+                | SubCommand::SchemaProposal(_)
                 | SubCommand::Check(_)
                 | SubCommand::Branch(_)
                 | SubCommand::Schema(_)

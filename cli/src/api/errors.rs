@@ -56,6 +56,10 @@ pub enum ApiError {
     #[error(transparent)]
     PublishError(#[from] PublishError),
 
+    /// wraps a [`SchemaProposalError`]
+    #[error(transparent)]
+    SchemaProposalError(#[from] SchemaProposalError),
+
     /// wraps a [`BranchError`]
     #[error(transparent)]
     BranchError(#[from] BranchError),
@@ -111,6 +115,30 @@ pub enum PublishError {
     /// returned if an unknown error occurs
     #[error("could not publish, encountered an unknown error\nCaused by: {0}")]
     Unknown(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct SchemaProposalParserError {
+    pub subgraph_name: String,
+    pub error: String,
+    pub span_start: i32,
+    pub span_end: i32,
+}
+
+#[derive(Error, Debug)]
+pub enum SchemaProposalError {
+    /// returned when the target branch for the proposal does not exist
+    #[error("branch {branch_ref} does not exist")]
+    BranchNotFound { branch_ref: String },
+    /// returned when the schema proposal cannot be found
+    #[error("schema proposal {proposal_id} does not exist")]
+    ProposalDoesNotExist { proposal_id: String },
+    /// returned when the schema proposal edit contains syntax errors
+    #[error("schema proposal edit contains parser errors")]
+    EditParserErrors { errors: Vec<SchemaProposalParserError> },
+    /// returned when an unknown error is encountered
+    #[error("schema proposal error: {message}")]
+    Unknown { message: String },
 }
 
 #[derive(Error, Debug)]

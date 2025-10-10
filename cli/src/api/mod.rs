@@ -10,6 +10,7 @@ pub(crate) mod login;
 pub(crate) mod logout;
 pub(crate) mod publish;
 pub(crate) mod schema;
+pub(crate) mod schema_proposal;
 pub(crate) mod subgraph;
 pub(crate) mod submit_trusted_documents;
 pub(crate) mod types;

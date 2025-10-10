@@ -1,2 +1,6 @@
 [build]
 rustflags = ["--cfg", "tracing_unstable"]
+
+# If target-specific rustflags are defined anywhere, they take precedence over build.rustflags.
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["--cfg", "tracing_unstable"]
