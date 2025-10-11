@@ -67,3 +67,8 @@ You should use this method only in emergencies or if the GitHub Actions workflow
     ```bash
     helm push gateway-0.X.Y.tgz oci://ghcr.io/grafbase/helm-charts
     ```
+    
+## Doppler Support
+
+Environment secrets for Grafbase deployments are sourced from the shared Doppler project. Before running pipelines, make sure the project includes:
+- `GRAFBASE_ACCESS_TOKEN` – Access token for Grafbase Cloud
