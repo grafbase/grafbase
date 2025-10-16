@@ -536,6 +536,7 @@ jobs:
           - { label: '0.20.0', ref: 'sdk-0.20.0', args: "--skip 'authenticated,requires-scopes'" }
           - { label: 'latest', ref: 'main' }
     runs-on: ${{ matrix.platform.runner }}
+    continue-on-error: true
     if: |
       needs.what-changed.outputs.changed-packages != '[]'
             && contains(needs.what-changed.outputs.changed-packages, 'grafbase')

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use dashmap::DashMap;
 use engine_error::{ErrorCode, ErrorResponse};
@@ -78,7 +78,26 @@ impl ExtensionState {
         tracing::info!("Loading extension {}", config.manifest_id);
         let meter = meter_from_global_provider();
         let request_durations = meter.u64_histogram("grafbase.hook.http_request.duration").build();
-        let http_client = reqwest::Client::new();
+        let http_client = reqwest::Client::builder()
+            // Hyper connection pool only exposes two parameters max idle connections per host
+            // and idle connection timeout. There is not TTL on the connections themselves to
+            // force a refresh, necessary if the DNS changes its records. Somehow, even within
+            // a benchmark ramping *up* traffic, we do pick up DNS changes by setting a pool
+            // idle timeout of 5 seconds even though in theory no connection should be idle?
+            // A bit confusing, and I suspect I don't fully understand how Hyper is managing
+            // connections underneath. But seems like best choice we have right now, Apollo'
+            // router uses this same default value.
+            .pool_idle_timeout(Some(Duration::from_secs(5)))
+            .tcp_nodelay(true)
+            .tcp_keepalive(Some(std::time::Duration::from_secs(60)))
+            .default_headers({
+                let mut headers = http::HeaderMap::new();
+                headers.insert(http::header::CONNECTION, http::HeaderValue::from_static("keep-alive"));
+                headers
+            })
+            .build()
+            .unwrap();
+
         Self {
             catalog: catalog.clone(),
             request_durations,
