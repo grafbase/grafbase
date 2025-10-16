@@ -2,7 +2,7 @@ module example.com/grafbase-go-extension
 
 go 1.23.0
 
-toolchain go1.25.1
+toolchain go1.25.3
 
 require (
 	github.com/fxamacker/cbor/v2 v2.9.0
