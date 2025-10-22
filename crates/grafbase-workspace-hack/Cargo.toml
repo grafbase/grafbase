@@ -36,7 +36,7 @@ clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
 combine = { version = "4", features = ["tokio"] }
 cranelift-bitset = { version = "0.122", default-features = false, features = ["enable-serde"] }
-criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
+criterion = { version = "0.7", features = ["async_tokio", "html_reports"] }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest", "http-surf"] }
@@ -55,7 +55,6 @@ fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
 fixedbitset = { version = "0.5", features = ["serde"] }
 form_urlencoded = { version = "1" }
-futures = { version = "0.3" }
 futures-channel = { version = "0.3", features = ["sink"] }
 futures-core = { version = "0.3" }
 futures-executor = { version = "0.3" }
@@ -67,7 +66,8 @@ generic-array = { version = "0.14", default-features = false, features = ["more_
 getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std", "wasm_js"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 group = { version = "0.13", default-features = false, features = ["alloc"] }
-hashbrown = { version = "0.15", features = ["serde"] }
+hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15", features = ["serde"] }
+hashbrown-986da7b5efc2b80e = { package = "hashbrown", version = "0.16" }
 hex = { version = "0.4" }
 http-types = { version = "2" }
 hyper = { version = "1", features = ["full"] }
@@ -90,14 +90,13 @@ percent-encoding = { version = "2" }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
 portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
-prost = { version = "0.13" }
 pulley-interpreter = { version = "35", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
 rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
 rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
-regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
+regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "std", "unicode"] }
 regex-syntax = { version = "0.8" }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls-tls", "rustls-tls-native-roots", "stream", "zstd"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "aws_lc_rs", "logging", "ring", "std", "tls12"] }
@@ -127,13 +126,13 @@ tokio-stream = { version = "0.1", features = ["fs", "sync"] }
 tokio-util = { version = "0.7", features = ["codec", "compat", "io"] }
 toml_datetime = { version = "0.6", default-features = false, features = ["serde"] }
 toml_edit = { version = "0.22", default-features = false, features = ["display", "parse", "serde"] }
-tonic = { version = "0.13", default-features = false, features = ["codegen", "prost", "tls-aws-lc", "tls-native-roots", "tls-ring"] }
-tower = { version = "0.5", default-features = false, features = ["balance", "buffer", "limit", "log", "retry"] }
+tower = { version = "0.5", default-features = false, features = ["balance", "buffer", "limit", "load-shed", "log", "retry"] }
 tower-http = { version = "0.6", features = ["compression-br", "compression-deflate", "compression-gzip", "compression-zstd", "cors", "fs", "set-header", "timeout", "trace"] }
 tracing = { version = "0.1", features = ["log", "valuable"] }
 tracing-core = { version = "0.1", features = ["valuable"] }
 tracing-log = { version = "0.2" }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["ansi", "env-filter", "json", "tracing-log", "valuable"] }
+tungstenite = { version = "0.28", default-features = false, features = ["handshake", "url"] }
 ulid = { version = "1", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
 wasmparser = { version = "0.235", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
@@ -160,7 +159,7 @@ clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
 combine = { version = "4", features = ["tokio"] }
 cranelift-bitset = { version = "0.122", default-features = false, features = ["enable-serde"] }
-criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
+criterion = { version = "0.7", features = ["async_tokio", "html_reports"] }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest", "http-surf"] }
@@ -179,7 +178,6 @@ fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
 fixedbitset = { version = "0.5", features = ["serde"] }
 form_urlencoded = { version = "1" }
-futures = { version = "0.3" }
 futures-channel = { version = "0.3", features = ["sink"] }
 futures-core = { version = "0.3" }
 futures-executor = { version = "0.3" }
@@ -191,7 +189,8 @@ generic-array = { version = "0.14", default-features = false, features = ["more_
 getrandom-468e82937335b1c9 = { package = "getrandom", version = "0.3", default-features = false, features = ["std", "wasm_js"] }
 getrandom-6f8ce4dd05d13bba = { package = "getrandom", version = "0.2", default-features = false, features = ["std"] }
 group = { version = "0.13", default-features = false, features = ["alloc"] }
-hashbrown = { version = "0.15", features = ["serde"] }
+hashbrown-3575ec1268b04181 = { package = "hashbrown", version = "0.15", features = ["serde"] }
+hashbrown-986da7b5efc2b80e = { package = "hashbrown", version = "0.16" }
 hex = { version = "0.4" }
 http-types = { version = "2" }
 hyper = { version = "1", features = ["full"] }
@@ -214,14 +213,13 @@ percent-encoding = { version = "2" }
 pkcs8 = { version = "0.10", default-features = false, features = ["pem", "std"] }
 portable-atomic = { version = "1", features = ["require-cas"] }
 proc-macro2 = { version = "1" }
-prost = { version = "0.13" }
 pulley-interpreter = { version = "35", default-features = false, features = ["disas", "interp", "std"] }
 quote = { version = "1" }
 rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
 rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
-regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
+regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "std", "unicode"] }
 regex-syntax = { version = "0.8" }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls-tls", "rustls-tls-native-roots", "stream", "zstd"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "aws_lc_rs", "logging", "ring", "std", "tls12"] }
@@ -252,13 +250,13 @@ tokio-stream = { version = "0.1", features = ["fs", "sync"] }
 tokio-util = { version = "0.7", features = ["codec", "compat", "io"] }
 toml_datetime = { version = "0.6", default-features = false, features = ["serde"] }
 toml_edit = { version = "0.22", default-features = false, features = ["display", "parse", "serde"] }
-tonic = { version = "0.13", default-features = false, features = ["codegen", "prost", "tls-aws-lc", "tls-native-roots", "tls-ring"] }
-tower = { version = "0.5", default-features = false, features = ["balance", "buffer", "limit", "log", "retry"] }
+tower = { version = "0.5", default-features = false, features = ["balance", "buffer", "limit", "load-shed", "log", "retry"] }
 tower-http = { version = "0.6", features = ["compression-br", "compression-deflate", "compression-gzip", "compression-zstd", "cors", "fs", "set-header", "timeout", "trace"] }
 tracing = { version = "0.1", features = ["log", "valuable"] }
 tracing-core = { version = "0.1", features = ["valuable"] }
 tracing-log = { version = "0.2" }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["ansi", "env-filter", "json", "tracing-log", "valuable"] }
+tungstenite = { version = "0.28", default-features = false, features = ["handshake", "url"] }
 ulid = { version = "1", features = ["serde"] }
 uuid = { version = "1", features = ["serde", "v4"] }
 wasmparser = { version = "0.235", default-features = false, features = ["component-model", "features", "serde", "simd", "std", "validate"] }
@@ -281,8 +279,7 @@ miniz_oxide = { version = "0.8", default-features = false, features = ["with-all
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
+rustix = { version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
 signal-hook = { version = "0.3" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
 tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
@@ -301,8 +298,7 @@ miniz_oxide = { version = "0.8", default-features = false, features = ["with-all
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
+rustix = { version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
 signal-hook = { version = "0.3" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
 tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
@@ -320,8 +316,7 @@ miniz_oxide = { version = "0.8", default-features = false, features = ["with-all
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
+rustix = { version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
 signal-hook = { version = "0.3" }
 spin = { version = "0.9" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
@@ -341,8 +336,7 @@ miniz_oxide = { version = "0.8", default-features = false, features = ["with-all
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
+rustix = { version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
 signal-hook = { version = "0.3" }
 spin = { version = "0.9" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
@@ -354,7 +348,7 @@ crossbeam-epoch = { version = "0.9" }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "net"] }
+rustix = { version = "1", features = ["event", "fs", "net"] }
 socket2 = { version = "0.5", default-features = false, features = ["all"] }
 spin = { version = "0.9" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
@@ -364,6 +358,7 @@ windows-sys-4db8c43aad08e7ae = { package = "windows-sys", version = "0.60", feat
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
 windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_Time", "Win32_UI_Shell"] }
+windows-sys-d4189bed749088b6 = { package = "windows-sys", version = "0.61", features = ["Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
 cc = { version = "1", default-features = false, features = ["parallel"] }
@@ -372,7 +367,7 @@ crossbeam-epoch = { version = "0.9" }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "net"] }
+rustix = { version = "1", features = ["event", "fs", "net"] }
 socket2 = { version = "0.5", default-features = false, features = ["all"] }
 spin = { version = "0.9" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
@@ -382,6 +377,7 @@ windows-sys-4db8c43aad08e7ae = { package = "windows-sys", version = "0.60", feat
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
 windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_Time", "Win32_UI_Shell"] }
+windows-sys-d4189bed749088b6 = { package = "windows-sys", version = "0.61", features = ["Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_Pipes", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
 
 [target.x86_64-unknown-linux-musl.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
@@ -397,8 +393,7 @@ miniz_oxide = { version = "0.8", default-features = false, features = ["with-all
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
+rustix = { version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
 signal-hook = { version = "0.3" }
 spin = { version = "0.9" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
@@ -419,8 +414,7 @@ miniz_oxide = { version = "0.8", default-features = false, features = ["with-all
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
+rustix = { version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
 signal-hook = { version = "0.3" }
 spin = { version = "0.9" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
@@ -440,8 +434,7 @@ miniz_oxide = { version = "0.8", default-features = false, features = ["with-all
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
+rustix = { version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
 signal-hook = { version = "0.3" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
 tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
@@ -461,8 +454,7 @@ miniz_oxide = { version = "0.8", default-features = false, features = ["with-all
 mio = { version = "1", features = ["net", "os-ext"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
-rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
-rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
+rustix = { version = "1", features = ["event", "fs", "mm", "net", "param", "pipe", "process", "stdio", "termios", "thread", "time"] }
 signal-hook = { version = "0.3" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
 tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
