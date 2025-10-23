@@ -22,7 +22,7 @@ services:
 
   clickhouse:
     restart: unless-stopped
-    image: clickhouse/clickhouse-server:25.9.2-alpine
+    image: clickhouse/clickhouse-server:25.9.4-alpine
     environment:
       CLICKHOUSE_SKIP_USER_SETUP: 1
     ports:
