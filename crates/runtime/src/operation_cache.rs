@@ -30,3 +30,17 @@ where
         None
     }
 }
+
+impl<V, T> OperationCache<V> for std::sync::Arc<T>
+where
+    V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
+    T: OperationCache<V>,
+{
+    async fn insert(&self, key: String, value: V) {
+        T::insert(self.as_ref(), key, value).await
+    }
+
+    async fn get(&self, key: &String) -> Option<V> {
+        T::get(self.as_ref(), key).await
+    }
+}

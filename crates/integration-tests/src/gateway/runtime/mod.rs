@@ -1,7 +1,7 @@
 mod extension;
 mod hooks;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use engine::{CachedOperation, Schema};
 use extension_catalog::ExtensionCatalog;
@@ -17,10 +17,68 @@ use tokio::sync::watch;
 pub use extension::*;
 pub use hooks::*;
 
+pub struct InstrumentedOperationCache<V> {
+    inner: InMemoryOperationCache<V>,
+    keys: Arc<Mutex<Vec<String>>>,
+}
+
+impl<V> Default for InstrumentedOperationCache<V>
+where
+    V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
+{
+    fn default() -> Self {
+        Self {
+            inner: InMemoryOperationCache::default(),
+            keys: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+}
+
+impl<V> InstrumentedOperationCache<V>
+where
+    V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
+{
+    pub fn recorded_keys(&self) -> Arc<Mutex<Vec<String>>> {
+        Arc::clone(&self.keys)
+    }
+
+    pub fn values(&self) -> impl Iterator<Item = V> + '_ {
+        self.inner.values()
+    }
+
+    pub fn inactive() -> Self {
+        Self {
+            inner: InMemoryOperationCache::inactive(),
+            keys: Arc::new(Mutex::new(Vec::new())),
+        }
+    }
+}
+
+impl<V> runtime::operation_cache::OperationCache<V> for InstrumentedOperationCache<V>
+where
+    V: Clone + Send + Sync + 'static + serde::Serialize + serde::de::DeserializeOwned,
+{
+    fn insert(&self, key: String, value: V) -> impl std::future::Future<Output = ()> + Send {
+        let keys = Arc::clone(&self.keys);
+        let inner = &self.inner;
+        async move {
+            {
+                let mut recorded = keys.lock().unwrap();
+                recorded.push(key.clone());
+            }
+            inner.insert(key, value).await;
+        }
+    }
+
+    fn get(&self, key: &String) -> impl std::future::Future<Output = Option<V>> + Send {
+        self.inner.get(key)
+    }
+}
+
 pub struct TestRuntime {
     pub fetcher: DynamicFetcher,
     pub trusted_documents: trusted_documents_client::Client,
-    pub operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
+    pub operation_cache: Arc<InstrumentedOperationCache<Arc<CachedOperation>>>,
     pub metrics: EngineMetrics,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
     pub entity_cache: InMemoryEntityCache,
@@ -59,7 +117,7 @@ impl TestRuntimeBuilder {
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
-            operation_cache: InMemoryOperationCache::default(),
+            operation_cache: Arc::new(InstrumentedOperationCache::default()),
             engine_extensions,
             gateway_extensions,
         };
@@ -77,7 +135,7 @@ impl TestRuntime {
         Self {
             fetcher,
             trusted_documents: trusted_documents_client::Client::new(()),
-            operation_cache: InMemoryOperationCache::default(),
+            operation_cache: Arc::new(InstrumentedOperationCache::default()),
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
@@ -89,7 +147,7 @@ impl TestRuntime {
 
 impl engine::Runtime for TestRuntime {
     type Fetcher = DynamicFetcher;
-    type OperationCache = InMemoryOperationCache<Arc<CachedOperation>>;
+    type OperationCache = Arc<InstrumentedOperationCache<Arc<CachedOperation>>>;
     type Extensions = EngineTestExtensions;
 
     fn fetcher(&self) -> &Self::Fetcher {
@@ -136,7 +194,7 @@ impl engine::Runtime for TestRuntime {
                 .map_err(|err| format!("Failed to adjust extensions for contract: {err}"))?,
             rate_limiter: self.rate_limiter.clone(),
             entity_cache: InMemoryEntityCache::default(),
-            operation_cache: InMemoryOperationCache::default(),
+            operation_cache: Arc::clone(&self.operation_cache),
             gateway_extensions: self.gateway_extensions.clone(),
         })
     }

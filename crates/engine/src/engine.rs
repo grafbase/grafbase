@@ -137,8 +137,9 @@ impl<R: Runtime> ContractAwareEngine<R> {
         match self.by_contract_key.get_value_or_guard_async(key).await {
             Ok(engine) => Ok(engine),
             Err(guard) => {
+                let base_schema_hash = self.no_contract.schema.hash;
                 let schema: Schema = self.no_contract.schema.as_ref().clone();
-                let Some(schema) = self
+                let Some(mut schema) = self
                     .no_contract
                     .runtime
                     .extensions()
@@ -147,6 +148,7 @@ impl<R: Runtime> ContractAwareEngine<R> {
                 else {
                     return Err(ErrorResponse::internal_extension_error());
                 };
+                schema.hash = derive_contract_hash(base_schema_hash, key);
                 let schema = Arc::new(schema);
                 let runtime = self
                     .no_contract
@@ -312,5 +314,37 @@ impl<R: Runtime> WebsocketSession<R> {
                 payload: websocket::ResponsePayload(response),
             },
         })
+    }
+}
+
+fn derive_contract_hash(base_hash: [u8; 32], contract_key: &str) -> [u8; 32] {
+    let mut hasher = blake3::Hasher::new();
+    hasher.update(&base_hash);
+    hasher.update(b"/contract/");
+    hasher.update(&(contract_key.len() as u64).to_ne_bytes());
+    hasher.update(contract_key.as_bytes());
+    hasher.finalize().into()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::derive_contract_hash;
+
+    #[test]
+    fn contract_hash_changes_with_key() {
+        let base_hash = [42u8; 32];
+        assert_ne!(
+            derive_contract_hash(base_hash, "a"),
+            derive_contract_hash(base_hash, "b")
+        );
+    }
+
+    #[test]
+    fn contract_hash_changes_with_base() {
+        let key = "feature:alpha";
+        assert_ne!(
+            derive_contract_hash([1u8; 32], key),
+            derive_contract_hash([2u8; 32], key)
+        );
     }
 }

@@ -167,4 +167,19 @@ impl Gateway {
             .map(|req| req.body)
             .collect()
     }
+
+    pub fn operation_cache_entry_count(&self) -> usize {
+        self.engine.no_contract.runtime.operation_cache.values().count()
+    }
+
+    pub fn operation_cache_keys(&self) -> Vec<String> {
+        self.engine
+            .no_contract
+            .runtime
+            .operation_cache
+            .recorded_keys()
+            .lock()
+            .unwrap()
+            .clone()
+    }
 }
