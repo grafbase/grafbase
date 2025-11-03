@@ -98,6 +98,13 @@ impl Schema {
     pub fn builder(sdl: &str) -> Builder<'_> {
         Builder::new(sdl)
     }
+
+    pub fn rehash_with_contract_key(&mut self, contract_key: &str) {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(&self.hash);
+        hasher.update(contract_key.as_bytes());
+        self.hash = hasher.finalize().into();
+    }
 }
 
 impl<T> std::ops::Index<T> for Schema

@@ -1,4 +1,4 @@
-use std::{net::TcpStream, time::Duration};
+use std::time::Duration;
 
 use graphql_mocks::dynamic::{DynamicSchema, Resolver, ResolverContext};
 use rand::{Rng, distributions::Alphanumeric};
@@ -30,11 +30,6 @@ query Viewer {
 
 #[test]
 fn redis_operation_cache_serves_default_contract() {
-    if TcpStream::connect("127.0.0.1:6379").is_err() {
-        eprintln!("skipping redis contract regression test: redis is not available at 127.0.0.1:6379");
-        return;
-    }
-
     runtime().block_on(async move {
         let key_prefix = rand::thread_rng()
             .sample_iter(&Alphanumeric)
@@ -62,7 +57,7 @@ fn redis_operation_cache_serves_default_contract() {
         "#,
         );
 
-        // Simulate the gateway successfully serving a contract before the restart.
+        // Simulate the gateway successfully serving a contract before restarting.
         {
             let gateway = Gateway::builder()
                 .with_subgraph(
@@ -88,7 +83,7 @@ fn redis_operation_cache_serves_default_contract() {
             );
         }
 
-        // Restart the gateway and warm the default contract (no feature tags).
+        // Warm the default contract (no feature tags).
         let gateway = Gateway::builder()
             .with_subgraph(
                 DynamicSchema::builder(SDL)
@@ -108,6 +103,15 @@ fn redis_operation_cache_serves_default_contract() {
             baseline.errors().is_empty(),
             "default request should succeed after restart: {baseline}"
         );
+
+        // Default schema should still expose the secret field.
+        insta::assert_yaml_snapshot!(baseline, @r"
+        data:
+          viewer:
+            id: user-1
+            secret: classified
+        ");
+
         assert_eq!(
             baseline["data"]["viewer"]["secret"], "classified",
             "default schema should still expose secret field"
@@ -122,17 +126,16 @@ fn redis_operation_cache_serves_default_contract() {
             .header("contract-key", serde_json::to_vec(&contract_key).unwrap())
             .await;
 
-        // This assertion documents the buggy behaviour when Redis-backed operation caching is enabled:
-        // after the restart, the contract request reuses the cached plan built for the default schema
-        // and therefore still returns the secret field (instead of rejecting the query).
-        assert!(
-            contract.errors().is_empty(),
-            "contract request unexpectedly failed (bug no longer reproduced?): {contract}"
-        );
-        assert_eq!(
-            contract["data"]["viewer"]["secret"], "classified",
-            "contract schema unexpectedly dropped the secret field; bug is no longer reproduced"
-        );
+        // contract request should fail (secret field hidden in contract schema)
+        insta::assert_yaml_snapshot!(contract, @r#"
+        errors:
+          - message: "User does not have a field named 'secret'."
+            locations:
+              - line: 5
+                column: 9
+            extensions:
+              code: OPERATION_VALIDATION_ERROR
+        "#);
     });
 }
 

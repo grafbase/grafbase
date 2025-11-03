@@ -138,7 +138,7 @@ impl<R: Runtime> ContractAwareEngine<R> {
             Ok(engine) => Ok(engine),
             Err(guard) => {
                 let schema: Schema = self.no_contract.schema.as_ref().clone();
-                let Some(schema) = self
+                let Some(mut schema) = self
                     .no_contract
                     .runtime
                     .extensions()
@@ -147,6 +147,7 @@ impl<R: Runtime> ContractAwareEngine<R> {
                 else {
                     return Err(ErrorResponse::internal_extension_error());
                 };
+                schema.rehash_with_contract_key(key);
                 let schema = Arc::new(schema);
                 let runtime = self
                     .no_contract
