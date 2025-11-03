@@ -9,8 +9,10 @@ use gateway_config::Config;
 use grafbase_telemetry::metrics::{self, EngineMetrics};
 use runtime::{entity_cache::EntityCache, fetch::dynamic::DynamicFetcher, trusted_documents_client};
 use runtime_local::{
-    InMemoryEntityCache, InMemoryOperationCache, NativeFetcher,
+    InMemoryEntityCache, NativeFetcher,
+    operation_cache::{InMemoryOperationCache, RedisOperationCache, TieredOperationCache},
     rate_limiting::in_memory::key_based::InMemoryRateLimiter,
+    redis::{RedisPoolFactory, RedisTlsConfig},
 };
 use tokio::sync::watch;
 
@@ -20,7 +22,8 @@ pub use hooks::*;
 pub struct TestRuntime {
     pub fetcher: DynamicFetcher,
     pub trusted_documents: trusted_documents_client::Client,
-    pub operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
+    pub operation_cache: TieredOperationCache<Arc<CachedOperation>>,
+    pub operation_cache_config: gateway_config::operation_caching::OperationCacheConfig,
     pub metrics: EngineMetrics,
     pub rate_limiter: runtime::rate_limiting::RateLimiter,
     pub entity_cache: InMemoryEntityCache,
@@ -59,7 +62,8 @@ impl TestRuntimeBuilder {
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
-            operation_cache: InMemoryOperationCache::default(),
+            operation_cache: build_operation_cache(&config.operation_caching)?,
+            operation_cache_config: config.operation_caching.clone(),
             engine_extensions,
             gateway_extensions,
         };
@@ -77,7 +81,8 @@ impl TestRuntime {
         Self {
             fetcher,
             trusted_documents: trusted_documents_client::Client::new(()),
-            operation_cache: InMemoryOperationCache::default(),
+            operation_cache: build_operation_cache(&config.operation_caching).expect("operation cache build"),
+            operation_cache_config: config.operation_caching.clone(),
             metrics: EngineMetrics::build(&metrics::meter_from_global_provider(), None),
             rate_limiter: InMemoryRateLimiter::runtime_with_watcher(rx),
             entity_cache: InMemoryEntityCache::default(),
@@ -89,7 +94,7 @@ impl TestRuntime {
 
 impl engine::Runtime for TestRuntime {
     type Fetcher = DynamicFetcher;
-    type OperationCache = InMemoryOperationCache<Arc<CachedOperation>>;
+    type OperationCache = TieredOperationCache<Arc<CachedOperation>>;
     type Extensions = EngineTestExtensions;
 
     fn fetcher(&self) -> &Self::Fetcher {
@@ -136,8 +141,41 @@ impl engine::Runtime for TestRuntime {
                 .map_err(|err| format!("Failed to adjust extensions for contract: {err}"))?,
             rate_limiter: self.rate_limiter.clone(),
             entity_cache: InMemoryEntityCache::default(),
-            operation_cache: InMemoryOperationCache::default(),
+            operation_cache: build_operation_cache(&self.operation_cache_config)
+                .map_err(|err| format!("Failed to build operation cache for contract: {err}"))?,
+            operation_cache_config: self.operation_cache_config.clone(),
             gateway_extensions: self.gateway_extensions.clone(),
         })
     }
+}
+
+fn build_operation_cache(
+    config: &gateway_config::operation_caching::OperationCacheConfig,
+) -> anyhow::Result<TieredOperationCache<Arc<CachedOperation>>> {
+    let in_memory = if config.enabled {
+        InMemoryOperationCache::new(config.limit)
+    } else {
+        InMemoryOperationCache::inactive()
+    };
+
+    if !config.enabled {
+        return Ok(TieredOperationCache::new(in_memory, None));
+    }
+
+    let distributed = if let Some(redis_config) = &config.redis {
+        let mut factory = RedisPoolFactory::default();
+        let tls = redis_config.tls.as_ref().map(|tls| RedisTlsConfig {
+            cert: tls.cert.as_deref(),
+            key: tls.key.as_deref(),
+            ca: tls.ca.as_deref(),
+        });
+        let pool = factory
+            .pool(redis_config.url.as_str(), tls)
+            .map_err(|err| anyhow::anyhow!("failed to create Redis pool: {err}"))?;
+        Some(RedisOperationCache::new(pool, &redis_config.key_prefix))
+    } else {
+        None
+    };
+
+    Ok(TieredOperationCache::new(in_memory, distributed))
 }
