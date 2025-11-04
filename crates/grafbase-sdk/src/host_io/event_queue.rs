@@ -38,7 +38,7 @@
 //! # Log Aggregation
 //!
 //! By itself, event queue calls do nothing in the Grafbase Gateway. You must implement
-//! an [`Hosts`] type of an extension with event filtering, which will be called after
+//! a hook type of an extension with event filtering, which will be called after
 //! a response is sent back to the user.
 
 use std::time::Duration;

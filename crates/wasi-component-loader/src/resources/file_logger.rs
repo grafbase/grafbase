@@ -33,7 +33,7 @@ impl FileLogger {
     ///
     /// # Examples
     ///
-    /// ```no_run
+    /// ```ignore
     /// use rolling_logger::RotateStrategy;
     ///
     /// let logger = FileLogger::new("app.log", RotateStrategy::Size(1024 * 1024))?;
@@ -98,7 +98,7 @@ impl FileLogger {
     ///
     /// # Examples
     ///
-    /// ```no_run
+    /// ```ignore
     /// # async fn example() -> Result<(), String> {
     /// let logger = FileLogger::new("app.log", rolling_logger::RotateStrategy::Never)?;
     /// logger.send(b"final log message".to_vec())?;

@@ -92,7 +92,7 @@ pub(crate) trait AnyExtension {
     fn on_response(
         &mut self,
         ctx: &RequestContext,
-        status: http::StatusCode,
+        status: &mut http::StatusCode,
         headers: &mut Headers,
         event_queue: EventQueue,
     ) -> Result<(), Error> {

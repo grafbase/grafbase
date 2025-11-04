@@ -20,7 +20,7 @@ use crate::{
     EngineOperationContext, Runtime,
     execution::{ExecutionError, ExecutionResult},
     resolver::graphql::SubgraphContext,
-    response::{ErrorCode, GraphqlError, ResponsePartBuilder},
+    response::{GraphqlError, ResponsePartBuilder},
 };
 
 pub trait ResponseIngester: Send {
@@ -168,19 +168,14 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
                 ctx.record_http_response(&http_response);
                 // If the status code isn't a success as this point it means it's either a client error or
                 // we've exhausted our retry budget for server errors.
-                if http_response.status().is_success() {
-                    Ok((http_response, ctx))
-                } else {
+                if !http_response.status().is_success() {
                     tracing::debug!(
                         "Subgraph request failed with status code: {}\n{}",
                         http_response.status().as_u16(),
                         String::from_utf8_lossy(http_response.body())
                     );
-                    Err(GraphqlError::new(
-                        format!("Request failed with status code: {}", http_response.status().as_u16()),
-                        ErrorCode::SubgraphRequestError,
-                    ))
                 }
+                Ok((http_response, ctx))
             }
             Err(err) => {
                 ctx.set_as_http_error(err.as_fetch_invalid_status_code());

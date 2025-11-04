@@ -2,7 +2,7 @@ use wasmtime::component::{Resource, ResourceType, WasmList, WasmStr};
 
 use crate::{InstanceState, extension::api::since_0_19_0::wit::event_types};
 
-pub(super) use crate::resources::EventQueueResource as EventQueue;
+pub use crate::resources::EventQueueResource as EventQueue;
 
 impl Host for InstanceState {}
 

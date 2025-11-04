@@ -50,7 +50,7 @@ use crate::{
 ///     fn on_response(
 ///         &mut self,
 ///         ctx: &RequestContext,
-///         status: http::StatusCode,
+///         status: &mut http::StatusCode,
 ///         headers: &mut Headers,
 ///         event_queue: EventQueue,
 ///     ) -> Result<(), Error> {
@@ -120,7 +120,7 @@ pub trait HooksExtension: Sized + 'static {
     fn on_response(
         &mut self,
         ctx: &RequestContext,
-        status: http::StatusCode,
+        status: &mut http::StatusCode,
         headers: &mut Headers,
         event_queue: EventQueue,
     ) -> Result<(), Error> {
@@ -183,7 +183,7 @@ pub fn register<T: HooksExtension>() {
         fn on_response(
             &mut self,
             ctx: &RequestContext,
-            status: StatusCode,
+            status: &mut StatusCode,
             headers: &mut Headers,
             event_queue: EventQueue,
         ) -> Result<(), Error> {

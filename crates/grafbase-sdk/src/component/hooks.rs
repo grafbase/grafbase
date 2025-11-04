@@ -28,16 +28,19 @@ impl wit::HooksGuest for Component {
         ctx: wit::RequestContext,
         status: u16,
         headers: wit::Headers,
-    ) -> Result<wit::Headers, String> {
-        let status = http::StatusCode::from_u16(status)
+    ) -> Result<wit::OnResponseOutput, String> {
+        let mut status = http::StatusCode::from_u16(status)
             .expect("we converted this from http::StatusCode in the host, this cannot be invalid");
 
         let mut headers: Headers = headers.into();
 
         state::extension()
             .map_err(|err| err.message)?
-            .on_response(&(ctx.into()), status, &mut headers, event_queue.into())
-            .map(|_| headers.into())
+            .on_response(&(ctx.into()), &mut status, &mut headers, event_queue.into())
+            .map(|_| wit::OnResponseOutput {
+                headers: headers.into(),
+                status: status.as_u16(),
+            })
             .map_err(|err| err.0.message)
     }
 

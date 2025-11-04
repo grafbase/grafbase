@@ -3829,7 +3829,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.22.3"
+version = "0.23.0"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -5184,6 +5184,7 @@ dependencies = [
  "ulid",
  "url",
  "wasi-component-loader",
+ "wiremock",
  "zstd",
 ]
 

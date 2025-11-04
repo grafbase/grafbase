@@ -167,11 +167,18 @@ impl Cache {
         timeout: Duration,
         f: impl FnOnce() -> Result<(T, Vec<u8>), E>,
     ) -> Result<(Option<T>, Vec<u8>), E> {
-        if let Some(value) = self.inner.get_or_reserve(key, timeout.as_millis() as u64) {
-            return Ok((None, value));
+        if let Some(bytes) = self.inner.get_or_reserve(key, timeout.as_millis() as u64) {
+            return Ok((None, bytes));
         }
-        let (value, bytes) = f()?;
-        self.inner.insert(key, &bytes);
-        Ok((Some(value), bytes))
+        match f() {
+            Ok((value, bytes)) => {
+                self.inner.insert(key, &bytes);
+                Ok((Some(value), bytes))
+            }
+            Err(err) => {
+                self.inner.remove(key);
+                Err(err)
+            }
+        }
     }
 }

@@ -21,7 +21,7 @@ impl HooksExtension for {{name}} {
     fn on_response(
         &mut self,
         ctx: &RequestContext,
-        status: StatusCode,
+        status: &mut StatusCode,
         headers: &mut GatewayHeaders,
         event_queue: EventQueue,
     ) -> Result<(), Error> {
