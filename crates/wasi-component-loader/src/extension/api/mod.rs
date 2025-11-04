@@ -6,6 +6,7 @@ pub(crate) mod since_0_17_0;
 pub(crate) mod since_0_18_0;
 pub(crate) mod since_0_19_0;
 pub(crate) mod since_0_21_0;
+pub(crate) mod since_0_23_0;
 
 use std::sync::Arc;
 
@@ -18,7 +19,8 @@ use since_0_17_0::SdkPre0_17_0;
 use since_0_18_0::SdkPre0_18_0;
 use since_0_19_0::SdkPre0_19_0;
 use since_0_21_0::SdkPre0_21_0;
-pub use since_0_21_0::wit;
+use since_0_23_0::SdkPre0_23_0;
+pub use since_0_23_0::wit;
 
 use super::{ExtensionConfig, ExtensionInstance};
 use crate::InstanceState;
@@ -33,6 +35,7 @@ pub(crate) enum SdkPre {
     Since0_18_0(SdkPre0_18_0),
     Since0_19_0(SdkPre0_19_0),
     Since0_21_0(SdkPre0_21_0),
+    Since0_23_0(SdkPre0_23_0),
 }
 
 impl SdkPre {
@@ -51,6 +54,7 @@ impl SdkPre {
             (0, 18) => SdkPre::Since0_18_0(SdkPre0_18_0::new(schema, config, component, linker)?),
             (0, 19..=20) => SdkPre::Since0_19_0(SdkPre0_19_0::new(schema, config, component, linker)?),
             (0, 21..=22) => SdkPre::Since0_21_0(SdkPre0_21_0::new(schema, config, component, linker)?),
+            (0, 23..) => SdkPre::Since0_23_0(SdkPre0_23_0::new(schema, config, component, linker)?),
             (major, minor) => unimplemented!("SDK version {major}.{minor} is not supported",),
         })
     }
@@ -65,6 +69,7 @@ impl SdkPre {
             SdkPre::Since0_18_0(sdk_pre) => sdk_pre.instantiate(state).await,
             SdkPre::Since0_19_0(sdk_pre) => sdk_pre.instantiate(state).await,
             SdkPre::Since0_21_0(sdk_pre) => sdk_pre.instantiate(state).await,
+            SdkPre::Since0_23_0(sdk_pre) => sdk_pre.instantiate(state).await,
         }
     }
 }

@@ -1,0 +1,16 @@
+interface authentication-types {
+    use headers.{headers};
+    use error.{error-response, error};
+    use token.{token};
+
+    /// An HTTP endpoint exposed publicly on the Gateway. This is typically used to return metadata for authentication purposes, for example with the [OAuth 2.0 Protected Resource Metadata](https://datatracker.ietf.org/doc/html/rfc9728) spec.
+    record public-metadata-endpoint {
+        /// The absolute path (without domain) of the endpoint. Example: "/.well-known/oauth-protected-resource".
+        path: string,
+        /// The contents of the response body that the endpoint will return.
+        response-body: list<u8>,
+        /// The headers sent from with the response by the public endpoint. Example: "Content-Type: application/json".
+        response-headers: headers,
+    }
+}
+

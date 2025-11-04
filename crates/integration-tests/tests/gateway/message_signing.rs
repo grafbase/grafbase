@@ -380,18 +380,9 @@ fn test_message_signing_failures() {
       "data": null,
       "errors": [
         {
-          "message": "Request failed with status code: 403",
-          "locations": [
-            {
-              "line": 1,
-              "column": 9
-            }
-          ],
-          "path": [
-            "serverVersion"
-          ],
+          "message": "signature validation failed",
           "extensions": {
-            "code": "SUBGRAPH_REQUEST_ERROR"
+            "code": "SUBGRAPH_ERROR"
           }
         }
       ]

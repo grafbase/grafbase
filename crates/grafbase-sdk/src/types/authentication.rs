@@ -5,7 +5,7 @@ use crate::{types::Headers, wit};
 pub struct PublicMetadataEndpoint {
     /// The absolute path (without domain) of the endpoint. Example: "/.well-known/oauth-protected-resource".
     path: String,
-    /// The contents of the response body that the endpoint will return. Example: '{"resource": "https://secure.example.com" }'.
+    /// The contents of the response body that the endpoint will return. Example: `{"resource": "https://secure.example.com" }`.
     response_body: Vec<u8>,
     /// The headers sent from with the response by the public endpoint. Example: ["Content-Type: application/json"].
     response_headers: Headers,

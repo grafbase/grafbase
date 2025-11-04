@@ -71,6 +71,7 @@ tracing-subscriber = { workspace = true, default-features = false, features = [
 ulid.workspace = true
 url.workspace = true
 wasi-component-loader.workspace = true
+wiremock.workspace = true
 zstd.workspace = true
 
 [dev-dependencies]

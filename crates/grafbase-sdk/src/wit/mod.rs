@@ -8,7 +8,7 @@ mod resolver_types;
 
 wit_bindgen::generate!({
     skip: ["register-extension"],
-    path: "./wit/since_0_21_0/",
+    path: "./wit/since_0_23_0/",
     world: "sdk",
     with: {
         "grafbase:sdk/resolver-types": resolver_types,
@@ -36,7 +36,7 @@ pub(crate) use grafbase::sdk::event_types::{
 };
 pub(crate) use grafbase::sdk::grpc::*;
 pub(crate) use grafbase::sdk::headers::HeaderError;
-pub(crate) use grafbase::sdk::hooks_types::{HttpRequestParts, OnRequestOutput};
+pub(crate) use grafbase::sdk::hooks_types::{HttpRequestParts, OnRequestOutput, OnResponseOutput};
 pub(crate) use grafbase::sdk::http_client::HttpClient;
 pub(crate) use grafbase::sdk::http_types::*;
 pub(crate) use grafbase::sdk::kafka_client::*;

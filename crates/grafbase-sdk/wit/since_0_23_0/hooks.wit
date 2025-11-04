@@ -1,0 +1,43 @@
+interface hooks {
+    use http-types.{http-method};
+    use error.{error-response, error};
+    use headers.{headers};
+    use context.{request-context, authorized-operation-context};
+    use event-queue.{event-queue};
+    use hooks-types.{on-request-output, http-request-parts, on-response-output};
+
+    /// Hook function called when processing an incoming request
+    ///
+    /// This allows middleware to inspect and potentially modify the request
+    /// before it continues through the processing pipeline.
+    on-request: func(
+        event-queue: event-queue,
+        parts: http-request-parts,
+    ) -> result<on-request-output, error-response>;
+
+    /// Hook function called when processing an outgoing response
+    ///
+    /// This allows middleware to inspect and potentially modify the response
+    /// before it is sent back to the client.
+    on-response: func(
+        event-queue: event-queue,
+        context: request-context,
+        status: u16,
+        headers: headers,
+    ) -> result<on-response-output, string>;
+
+    on-graphql-subgraph-request: func(
+        event-queue: event-queue,
+        context: authorized-operation-context,
+        subgraph-name: string,
+        parts: http-request-parts,
+    ) -> result<http-request-parts, error>;
+
+    on-virtual-subgraph-request: func(
+        event-queue: event-queue,
+        context: authorized-operation-context,
+        subgraph-name: string,
+        headers: headers,
+    ) -> result<headers, error>;
+
+}

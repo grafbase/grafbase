@@ -104,6 +104,11 @@ impl Cache {
         }
     }
 
+    pub fn remove(&self, key: &str) {
+        self.wait_list.remove(key);
+        self.cache.invalidate(&key.to_owned());
+    }
+
     /// Gets or creates a wait list for the given cache key. The first caller to a cache value that is
     /// missing will create a new wait list, this function returns None and the caller must initialize
     /// a new value in the guest, and set a new value in the cache.

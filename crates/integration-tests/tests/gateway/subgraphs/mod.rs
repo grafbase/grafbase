@@ -6,6 +6,7 @@ mod requires;
 mod shared_root;
 mod sibling_dependencies;
 mod simple_key;
+mod status_code;
 
 use graphql_mocks::{
     FederatedAccountsSchema, FederatedInventorySchema, FederatedProductsSchema, FederatedReviewsSchema,
