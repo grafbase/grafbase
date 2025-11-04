@@ -69,8 +69,6 @@ fn request_attributes(request: &reqwest::Request) -> Vec<KeyValue> {
         request.method().as_ref().to_string(),
     ));
 
-    attributes.push(KeyValue::new("http.route", request.url().path().to_string()));
-
     if let Some(host) = request.url().host() {
         attributes.push(KeyValue::new("server.address", host.to_string()));
     }
