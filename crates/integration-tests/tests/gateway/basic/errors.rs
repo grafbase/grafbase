@@ -1,3 +1,4 @@
+use graphql_mocks::FakeGithubSchema;
 use indoc::indoc;
 use integration_tests::{
     gateway::{DeterministicEngine, Gateway},
@@ -509,4 +510,38 @@ fn unknown_argument() {
       ]
     }
     "#);
+}
+
+#[test]
+fn invalid_variable() {
+    runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_subgraph(FakeGithubSchema::default())
+            .build()
+            .await;
+
+        let response = engine
+            .raw_execute(
+                http::Request::builder()
+                    .uri("http://localhost/graphql")
+                    .method(http::Method::POST)
+                    .header(http::header::CONTENT_TYPE, "application/json")
+                    .body(br###"{"query":"{ __typename }","variables":1}"###.to_vec())
+                    .unwrap(),
+            )
+            .await;
+        let body: serde_json::Value = serde_json::from_slice(&response.into_body()).unwrap();
+        insta::assert_json_snapshot!(body, @r#"
+        {
+          "errors": [
+            {
+              "message": "Bad request: GraphQL request is not well formed: JSON deserialization failure: invalid type: integer `1`, expected a map at line 1 column 39\n\n\tiables\":1}\n\t........^.\n",
+              "extensions": {
+                "code": "BAD_REQUEST"
+              }
+            }
+          ]
+        }
+        "#);
+    })
 }
