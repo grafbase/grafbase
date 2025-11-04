@@ -11,9 +11,10 @@ mod strings;
 mod top;
 mod unions;
 mod view;
+
 pub(crate) use self::{
-    definitions::*, directives::*, extensions::*, field_types::*, fields::*, ids::*, keys::*, linked_schemas::*,
-    strings::StringId, top::*, view::View,
+    definitions::*, directives::*, enums::*, extensions::*, field_types::*, fields::*, ids::*, keys::*,
+    linked_schemas::*, strings::StringId, top::*, view::View,
 };
 
 use crate::VecExt;
@@ -181,6 +182,10 @@ impl Subgraphs {
         self.directives
             .extra_directives
             .sort_unstable_by_key(|directive| directive.directive_site_id);
+
+        self.enums
+            .values
+            .sort_unstable_by_key(|value| (value.parent_enum_id, value.name));
 
         self.fields
             .fields

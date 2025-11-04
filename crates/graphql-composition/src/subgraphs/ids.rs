@@ -40,6 +40,7 @@ make_ids! {
     definitions.definitions[DefinitionId] -> Definition,
     directives.directive_definitions[DirectiveDefinitionId] -> DirectiveDefinition,
     directives.extra_directives[DirectiveId] -> ExtraDirectiveRecord,
+    enums.values[EnumValueId] -> EnumValue,
     extensions[ExtensionId] -> ExtensionRecord,
     fields.fields[FieldId] -> FieldTuple,
     keys.keys[KeyId] -> Key,

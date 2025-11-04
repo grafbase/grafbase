@@ -84,12 +84,12 @@ impl<'a> Context<'a> {
     pub(crate) fn insert_enum_value(
         &mut self,
         value: &str,
-        description: Option<&str>,
+        description: Option<subgraphs::StringId>,
         directives: Vec<ir::Directive>,
         enum_id: federated::EnumDefinitionId,
     ) -> federated::EnumValueId {
         let value = self.ir.strings.insert(value);
-        let description = description.map(|description| self.ir.strings.insert(description));
+        let description = description.map(|id| self.insert_string(id));
 
         federated::EnumValueId::from(self.ir.enum_values.push_return_idx(ir::EnumValueIr {
             federated: federated::EnumValueRecord {

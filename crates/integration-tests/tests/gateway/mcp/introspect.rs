@@ -605,7 +605,9 @@ fn test_descriptions() {
         I'm a multiline comment.
         """
         enum PostStatus {
+          "Post is published."
           PUBLISHED
+          "Post is in draft state."
           DRAFT
         }
         "#);
