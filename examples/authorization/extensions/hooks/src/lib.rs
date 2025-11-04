@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use common::AuthContext;
 use grafbase_sdk::{
     HooksExtension,
@@ -28,10 +26,4 @@ impl HooksExtension for Hooks {
         }
         Ok(())
     }
-}
-
-#[derive(serde::Serialize, serde::Deserialize)]
-struct SubgraphTokens {
-    // Token by subgraph name
-    tokens: HashMap<String, String>,
 }
