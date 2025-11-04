@@ -1,0 +1,7 @@
+---
+source: crates/engine/query-solver/src/tests/root_type.rs
+expression: "digraph {\n    0 [ label = \"root\", color=forestgreen ]\n}\n"
+---
+digraph {
+    0 [ label = "root", steiner=1 ]
+}
