@@ -4,11 +4,11 @@ use std::sync::{
 };
 
 use bytes::Bytes;
-use engine::{Body, CachedOperation, RequestExtensions};
+use engine::{Body, RequestExtensions};
 use event_queue::SubgraphResponseBuilder;
 use futures::{StreamExt, TryStreamExt};
 use runtime::fetch::{FetchRequest, FetchResult, dynamic::DynFetcher};
-use runtime_local::InMemoryOperationCache;
+use runtime_local::operation_cache::{InMemoryOperationCache, TieredOperationCache};
 
 use crate::gateway::{GraphqlResponse, GraphqlStreamingResponse};
 
@@ -23,7 +23,7 @@ pub struct DeterministicEngine {
 }
 
 pub struct DeterministicEngineBuilder<'a> {
-    operation_cache: InMemoryOperationCache<Arc<CachedOperation>>,
+    operation_cache_enabled: bool,
     schema: &'a str,
     query: &'a str,
     subgraphs_json_responses: Vec<String>,
@@ -39,7 +39,7 @@ impl DeterministicEngineBuilder<'_> {
 
     #[must_use]
     pub fn without_operation_cache(mut self) -> Self {
-        self.operation_cache = InMemoryOperationCache::inactive();
+        self.operation_cache_enabled = false;
         self
     }
 
@@ -54,12 +54,20 @@ impl DeterministicEngineBuilder<'_> {
         );
 
         let schema = engine::Schema::from_sdl_or_panic(self.schema).await;
-        let runtime = TestRuntime::new(&Default::default(), &schema).await;
-        let runtime = TestRuntime {
-            fetcher: fetcher.into(),
-            operation_cache: self.operation_cache,
-            ..runtime
-        };
+        let mut runtime = TestRuntime::new(&Default::default(), &schema).await;
+        runtime.fetcher = fetcher.into();
+        runtime.operation_cache = TieredOperationCache::new(
+            if self.operation_cache_enabled {
+                InMemoryOperationCache::default()
+            } else {
+                InMemoryOperationCache::inactive()
+            },
+            None,
+        );
+        runtime.operation_cache_config.enabled = self.operation_cache_enabled;
+        if !self.operation_cache_enabled {
+            runtime.operation_cache_config.limit = 0;
+        }
         let engine = engine::ContractAwareEngine::new(Arc::new(schema), runtime);
         let body = Bytes::from(serde_json::to_vec(&serde_json::json!({"query": self.query})).unwrap());
         DeterministicEngine {
@@ -85,7 +93,7 @@ impl DeterministicEngineBuilder<'_> {
 impl DeterministicEngine {
     pub fn builder<'a>(schema: &'a str, query: &'a str) -> DeterministicEngineBuilder<'a> {
         DeterministicEngineBuilder {
-            operation_cache: Default::default(),
+            operation_cache_enabled: true,
             schema,
             query,
             subgraphs_json_responses: Vec::new(),

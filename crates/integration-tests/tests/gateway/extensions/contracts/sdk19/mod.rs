@@ -2,6 +2,7 @@ mod exclude;
 mod include;
 mod link_urls;
 mod mixed_tags;
+mod regression;
 mod unreachable_types;
 
 use integration_tests::{gateway::Gateway, runtime};
