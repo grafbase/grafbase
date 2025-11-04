@@ -1,0 +1,20 @@
+---
+source: crates/engine/query-solver/src/tests/root_type.rs
+expression: "digraph {\n    0 [ label = \"root\" ]\n    3 [ label = \"Query.products\" ]\n    4 [ label = \"Product.id\" ]\n    5 [ label = \"Root#a\", shape=parallelogram, color=dodgerblue ]\n    6 [ label = \"products#a\", shape=box, color=dodgerblue ]\n    7 [ label = \"id#a\", shape=box, color=dodgerblue ]\n    0 -> 3 [  ]\n    3 -> 4 [  ]\n    0 -> 5 [ color=royalblue,fontcolor=royalblue ]\n    0 -> 5 [ style=dashed,arrowhead=none ]\n    5 -> 6 [ color=royalblue,fontcolor=royalblue ]\n    6 -> 3 [ color=violet,arrowhead=none ]\n    6 -> 7 [ color=royalblue,fontcolor=royalblue ]\n    7 -> 4 [ color=violet,arrowhead=none ]\n}\n"
+---
+digraph {
+    0 [ root]
+    3 [ Query.products]
+    4 [ Product.id]
+    5 [ Root#a]
+    6 [ products#a]
+    7 [ id#a]
+    0 -> 3 [ label = "Field" ]
+    3 -> 4 [ label = "Field" ]
+    0 -> 5 [ label = "CreateChildResolver" ]
+    0 -> 5 [ label = "HasChildResolver" ]
+    5 -> 6 [ label = "CanProvide" ]
+    6 -> 3 [ label = "Provides" ]
+    6 -> 7 [ label = "CanProvide" ]
+    7 -> 4 [ label = "Provides" ]
+}

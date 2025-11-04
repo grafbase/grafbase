@@ -13,12 +13,13 @@ mod lookup;
 mod mutation;
 mod provides;
 mod requirements;
+mod root_type;
 mod shared_root;
 mod sibling_dependencies;
 mod tea_shop;
 mod typename;
 
-use std::sync::OnceLock;
+use std::{borrow::Cow, sync::OnceLock};
 
 use itertools::Itertools;
 use schema::Schema;
@@ -157,7 +158,7 @@ macro_rules! assert_solution_snapshots {
 
 #[allow(clippy::large_enum_variant)]
 pub enum IntoSchema {
-    Sdl(&'static str),
+    Sdl(Cow<'static, str>),
     Schema(Schema),
     WithExtensions(WithExtensions),
 }
@@ -233,7 +234,13 @@ impl WithExtensions {
 
 impl From<&'static str> for IntoSchema {
     fn from(sdl: &'static str) -> Self {
-        IntoSchema::Sdl(sdl)
+        IntoSchema::Sdl(sdl.into())
+    }
+}
+
+impl From<String> for IntoSchema {
+    fn from(sdl: String) -> Self {
+        IntoSchema::Sdl(sdl.into())
     }
 }
 
@@ -252,7 +259,7 @@ impl From<WithExtensions> for IntoSchema {
 impl IntoSchema {
     pub async fn into_schema(self) -> Schema {
         match self {
-            IntoSchema::Sdl(sdl) => Schema::from_sdl_or_panic(sdl).await,
+            IntoSchema::Sdl(sdl) => Schema::from_sdl_or_panic(sdl.as_ref()).await,
             IntoSchema::Schema(schema) => schema,
             IntoSchema::WithExtensions(ext) => ext.into_schema().await,
         }
