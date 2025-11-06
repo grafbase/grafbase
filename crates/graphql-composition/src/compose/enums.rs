@@ -34,7 +34,7 @@ pub(super) fn merge_enum_definitions<'a>(
             merge_exactly_matching(first, definitions, enum_id, ctx);
         }
         (false, false) => {
-            // The enum isn't used at all, act as if it were used in return position
+            // The enum isn't used at all. Act as if it were used in return position
             let enum_id = ctx.insert_enum(enum_name_str, description, directives);
             merge_union(definitions, enum_id, ctx);
         }
@@ -100,49 +100,47 @@ fn merge_intersection<'a>(
         let value_definitions = definitions
             .iter()
             .filter_map(|enm| enm.id.enum_value_by_name(ctx.subgraphs, value));
+
         let sites = value_definitions.clone().map(|value| value.directives);
         let mut composed_directives = collect_composed_directives(sites, ctx);
+        let mut description = None;
 
         for value_definition in value_definitions {
+            description = description.or(value_definition.description);
             let parent_definition = ctx.subgraphs.at(value_definition.parent_enum_id);
             composed_directives.push(ir::Directive::JoinEnumValue(ir::JoinEnumValueDirective {
                 graph: parent_definition.subgraph_id.idx().into(),
             }));
         }
 
-        ctx.insert_enum_value(&ctx.subgraphs[value], None, composed_directives, enum_id);
+        ctx.insert_enum_value(&ctx.subgraphs[value], description, composed_directives, enum_id);
     }
 }
 
 fn merge_union<'a>(definitions: &[DefinitionView<'_>], enum_id: federated::EnumDefinitionId, ctx: &mut Context<'a>) {
-    let mut all_values: Vec<(StringId, subgraphs::DefinitionId, _)> = definitions
+    let mut all_values: Vec<_> = definitions
         .iter()
-        .flat_map(|def| {
-            def.id
-                .enum_values(ctx.subgraphs)
-                .map(|value| (value.name, value.parent_enum_id, value.directives))
-        })
+        .flat_map(|def| def.id.enum_values(ctx.subgraphs))
         .collect();
 
-    all_values.sort();
+    all_values.sort_by_key(|value| value.name);
 
-    let mut start = 0;
+    for values in all_values.chunk_by(|a, b| a.name == b.name) {
+        let name = values[0].name;
 
-    while start < all_values.len() {
-        let name = all_values[start].0;
-        let end = all_values[start..].partition_point(|(n, _, _)| *n == name) + start;
-        let sites = all_values[start..end].iter().map(|(_, _, directives)| *directives);
+        let sites = values.iter().map(|v| v.directives);
         let mut composed_directives = collect_composed_directives(sites, ctx);
+        let mut description = None;
 
-        for (_, parent_definition_id, _) in &all_values[start..end] {
-            let parent_definition = ctx.subgraphs.at(*parent_definition_id);
+        for value in values {
+            description = description.or(value.description);
+            let parent_definition = ctx.subgraphs.at(value.parent_enum_id);
             composed_directives.push(ir::Directive::JoinEnumValue(ir::JoinEnumValueDirective {
                 graph: parent_definition.subgraph_id.idx().into(),
             }));
         }
 
-        ctx.insert_enum_value(&ctx.subgraphs[name], None, composed_directives, enum_id);
-        start = end;
+        ctx.insert_enum_value(&ctx.subgraphs[name], description, composed_directives, enum_id);
     }
 }
 
@@ -178,13 +176,16 @@ fn merge_exactly_matching<'a>(
         let sites = enum_value_definitions.clone().map(|value| value.directives);
         let mut composed_directives = collect_composed_directives(sites, ctx);
 
+        let mut description = None;
+
         for value_definition in enum_value_definitions {
+            description = description.or(value_definition.description);
             let parent_definition = ctx.subgraphs.at(value_definition.parent_enum_id);
             composed_directives.push(ir::Directive::JoinEnumValue(ir::JoinEnumValueDirective {
                 graph: parent_definition.subgraph_id.idx().into(),
             }))
         }
 
-        ctx.insert_enum_value(&ctx.subgraphs[value], None, composed_directives, enum_id);
+        ctx.insert_enum_value(&ctx.subgraphs[value], description, composed_directives, enum_id);
     }
 }

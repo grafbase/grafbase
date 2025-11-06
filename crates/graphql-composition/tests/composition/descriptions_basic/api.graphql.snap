@@ -1,14 +1,23 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: actual_api_sdl
+expression: API SDL
 input_file: crates/graphql-composition/tests/composition/descriptions_basic/test.md
 ---
 """
 Defines different types of tofu.
 """
 enum TofuType {
+  """
+  Silken tofu - soft and smooth, often used in soups and sauces.
+  """
   SILKEN
+  """
+  Firm tofu - holds its shape well, good for grilling and frying.
+  """
   FIRM
+  """
+  Extra firm tofu - very dense and solid, ideal for stir-fries.
+  """
   EXTRA_FIRM
 }
 

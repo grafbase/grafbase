@@ -16,6 +16,10 @@
 
   Previously, `@reports__observation` would not have been included in the composed schema.
 
+## Improvements
+
+- Descriptions of enum values are now included in the composed schema.
+
 ## 0.12.1 - 2025-09-25
 
 ### Improvements

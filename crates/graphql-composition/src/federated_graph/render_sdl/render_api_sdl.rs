@@ -284,8 +284,8 @@ fn write_enum_variant<'a, 'b: 'a>(
     enum_variant: &EnumValueRecord,
     graph: &'a FederatedGraph,
 ) -> fmt::Result {
-    f.write_str(INDENT)?;
     write_description(f, enum_variant.description, INDENT, graph)?;
+    f.write_str(INDENT)?;
     f.write_str(&graph[enum_variant.value])?;
     write_public_directives(f, &enum_variant.directives, graph)?;
     f.write_char('\n')

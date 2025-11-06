@@ -161,8 +161,17 @@ enum TofuType
   @join__type(graph: SELFEXPLANATORYTOFU)
   @join__type(graph: TOFU)
 {
+  """
+  Silken tofu - soft and smooth, often used in soups and sauces.
+  """
   SILKEN @join__enumValue(graph: SELFEXPLANATORYTOFU) @join__enumValue(graph: TOFU)
+  """
+  Firm tofu - holds its shape well, good for grilling and frying.
+  """
   FIRM @join__enumValue(graph: SELFEXPLANATORYTOFU) @join__enumValue(graph: TOFU)
+  """
+  Extra firm tofu - very dense and solid, ideal for stir-fries.
+  """
   EXTRA_FIRM @join__enumValue(graph: SELFEXPLANATORYTOFU) @join__enumValue(graph: TOFU)
 }
 
