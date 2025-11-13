@@ -100,7 +100,6 @@ impl<'sdl> DirectivesIngester<'_, 'sdl> {
                 };
                 (extension, name)
             } else if let Some(import) = self.sdl.directive_imports.get(directive.name()) {
-                println!("Found import for directive @{}: {:?}", directive.name(), import);
                 let Some(extension) = self.extensions.get_by_link_id(import.link_id) else {
                     continue;
                 };
