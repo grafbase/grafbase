@@ -136,7 +136,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
                         }
                     }
 
-                    if status == http::StatusCode::TOO_MANY_REQUESTS {
+                    if status.is_server_error() || status == http::StatusCode::TOO_MANY_REQUESTS {
                         Err(FetchError::InvalidStatusCode(status))
                     } else {
                         Ok(response)
