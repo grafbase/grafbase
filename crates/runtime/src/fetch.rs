@@ -4,13 +4,14 @@ use bytes::Bytes;
 use engine_schema::GraphqlSubgraphId;
 use event_queue::SubgraphResponseBuilder;
 use futures_util::{stream::BoxStream, Stream, StreamExt, TryFutureExt};
+use http::Response;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum FetchError {
     #[error("{0}")]
     Message(String),
     #[error("Invalid status code: {0:?}")]
-    InvalidStatusCode(http::StatusCode),
+    InvalidStatusCode(http::StatusCode, Option<Response<Bytes>>),
     #[error("Could not sign subgraph request: {0}")]
     MessageSigningFailed(String),
     #[error("Request error: {0}")]
@@ -38,7 +39,7 @@ impl From<&str> for FetchError {
 impl FetchError {
     pub fn as_invalid_status_code(&self) -> Option<http::StatusCode> {
         match self {
-            FetchError::InvalidStatusCode(status) => Some(*status),
+            FetchError::InvalidStatusCode(status_code, _) => Some(*status_code),
             _ => None,
         }
     }

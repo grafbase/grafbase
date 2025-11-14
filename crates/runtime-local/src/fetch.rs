@@ -174,7 +174,7 @@ impl Fetcher for NativeFetcher {
             .unwrap()
             .map_err(|err| match err {
                 reqwest_eventsource::Error::InvalidStatusCode(status_code, _) => {
-                    FetchError::InvalidStatusCode(status_code)
+                    FetchError::InvalidStatusCode(status_code, None)
                 }
                 err => FetchError::Message(err.to_string()),
             })
