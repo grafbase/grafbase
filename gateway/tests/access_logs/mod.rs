@@ -408,18 +408,9 @@ fn with_subgraph_status_500() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed.",
-              "locations": [
-                {
-                  "line": 1,
-                  "column": 16
-                }
-              ],
-              "path": [
-                "me"
-              ],
+              "message": "FAILED",
               "extensions": {
-                "code": "SUBGRAPH_REQUEST_ERROR"
+                "code": "SUBGRAPH_ERROR"
               }
             }
           ]
@@ -468,7 +459,7 @@ fn with_subgraph_status_500() {
             }
           ],
           "cache_status": "miss",
-          "has_errors": false
+          "has_errors": true
         }
       ],
       "http_requests": [
@@ -520,18 +511,9 @@ fn with_subgraph_status_500_retried() {
           "data": null,
           "errors": [
             {
-              "message": "Request to subgraph 'accounts' failed.",
-              "locations": [
-                {
-                  "line": 1,
-                  "column": 16
-                }
-              ],
-              "path": [
-                "me"
-              ],
+              "message": "FAILED",
               "extensions": {
-                "code": "SUBGRAPH_REQUEST_ERROR"
+                "code": "SUBGRAPH_ERROR"
               }
             }
           ]
@@ -586,7 +568,7 @@ fn with_subgraph_status_500_retried() {
             }
           ],
           "cache_status": "miss",
-          "has_errors": false
+          "has_errors": true
         }
       ],
       "http_requests": [
