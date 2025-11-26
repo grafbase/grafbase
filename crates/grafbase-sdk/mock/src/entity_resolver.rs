@@ -1,13 +1,17 @@
 use async_graphql::{ServerError, dynamic::ResolverContext};
 
+/// Context provided to entity resolvers.
 pub struct EntityResolverContext<'a> {
-    pub inner_context: &'a ResolverContext<'a>,
+    /// The underlying resolver context.
+    pub resolver_context: &'a ResolverContext<'a>,
+    /// The __typename of the entity being resolved.
     pub typename: String,
+    /// The representation of the entity being resolved.
     pub representation: serde_json::Map<String, serde_json::Value>,
 }
 
 impl<'a> EntityResolverContext<'a> {
-    pub(super) fn new(inner_context: &'a ResolverContext<'a>, representation: serde_json::Value) -> Self {
+    pub(super) fn new(resolver_context: &'a ResolverContext<'a>, representation: serde_json::Value) -> Self {
         let serde_json::Value::Object(representation) = representation else {
             panic!("repesentations need to be objects");
         };
@@ -18,14 +22,15 @@ impl<'a> EntityResolverContext<'a> {
             .into();
 
         EntityResolverContext {
-            inner_context,
+            resolver_context,
             typename,
             representation,
         }
     }
 
+    /// Adds an error to the response.
     pub fn add_error(&self, error: ServerError) {
-        self.inner_context.query_env.errors.lock().unwrap().push(error);
+        self.resolver_context.query_env.errors.lock().unwrap().push(error);
     }
 }
 

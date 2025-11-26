@@ -11,5 +11,7 @@ mod request;
 
 pub use config::LogLevel;
 pub use gateway::{TestGateway, TestGatewayBuilder};
-pub use grafbase_sdk_mock::{GraphqlSubgraph, GraphqlSubgraphBuilder, VirtualSubgraph};
+pub use grafbase_sdk_mock::{
+    EntityResolverContext, GraphqlSubgraph, GraphqlSubgraphBuilder, ResolverContext, VirtualSubgraph,
+};
 pub use request::{GraphqlCollectedStreamingResponse, GraphqlRequest, GraphqlResponse, GraphqlStreamingResponse};
