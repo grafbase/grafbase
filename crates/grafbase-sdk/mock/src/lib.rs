@@ -16,7 +16,9 @@ use std::{
     sync::Arc,
 };
 
+pub use async_graphql::dynamic::ResolverContext;
 pub use builder::GraphqlSubgraphBuilder;
+pub use entity_resolver::EntityResolverContext;
 pub use server::MockGraphQlServer;
 
 /// A dynamic subgraph implementation that can be started as a mock GraphQL server.
@@ -147,4 +149,48 @@ fn anonymous_name(schema: &str) -> String {
     let mut hasher = DefaultHasher::default();
     hasher.write(schema.as_bytes());
     format!("anonymous{:X}", hasher.finish())
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crate::*;
+
+    #[tokio::test]
+    async fn echo_header() {
+        let subgraph = GraphqlSubgraph::with_schema(r#"type Query { header(name: String!): String }"#)
+            .with_resolver("Query", "header", |ctx: ResolverContext<'_>| {
+                ctx.data_unchecked::<http::HeaderMap>()
+                    .get(ctx.args.get("name").unwrap().string().unwrap())
+                    .map(|value| value.to_str().unwrap().to_owned().into())
+            })
+            .build();
+
+        let server = subgraph.start().await;
+
+        let response = reqwest::Client::new()
+            .post(server.url().clone())
+            .body(serde_json::to_vec(&serde_json::json!({"query":r#"query { header(name: "hi") }"#})).unwrap())
+            .header("hi", "John")
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
+
+        let response: serde_json::Value = serde_json::from_str(&response).unwrap_or_else(|err| {
+            panic!(
+                "Failed to parse response as JSON: {}\nResponse body:\n{}",
+                err, response
+            )
+        });
+        insta::assert_json_snapshot!(response, @r#"
+        {
+          "data": {
+            "header": "John"
+          }
+        }
+        "#);
+    }
 }

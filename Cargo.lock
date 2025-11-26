@@ -3614,7 +3614,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.105.0"
+version = "0.105.1"
 dependencies = [
  "anyhow",
  "askama",
@@ -3718,7 +3718,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.51.0"
+version = "0.51.1"
 dependencies = [
  "anyhow",
  "ascii",
@@ -3829,7 +3829,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk"
-version = "0.23.0"
+version = "0.23.1"
 dependencies = [
  "anyhow",
  "async-tungstenite",
@@ -3888,7 +3888,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-sdk-mock"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "async-graphql",
@@ -3896,6 +3896,9 @@ dependencies = [
  "axum",
  "cynic-parser 0.10.0",
  "grafbase-workspace-hack",
+ "http 1.3.1",
+ "insta",
+ "reqwest 0.12.23",
  "serde",
  "serde_json",
  "tokio",

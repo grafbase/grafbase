@@ -78,9 +78,13 @@ impl MockGraphQlServer {
     }
 }
 
-async fn graphql_handler(State(state): State<AppState>, req: GraphQLRequest) -> axum::response::Response {
+async fn graphql_handler(
+    State(state): State<AppState>,
+    headers: http::HeaderMap,
+    req: GraphQLRequest,
+) -> axum::response::Response {
     let req = req.into_inner();
-    let response: GraphQLResponse = state.schema.0.execute(req).await.into();
+    let response: GraphQLResponse = state.schema.0.execute(req.data(headers)).await.into();
 
     response.into_response()
 }
