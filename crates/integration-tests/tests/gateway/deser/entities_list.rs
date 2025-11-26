@@ -513,3 +513,55 @@ fn expected_nullable_object_got_with_missing_required_field() {
     }
     "#);
 }
+
+#[test]
+fn null_data() {
+    let response = run(
+        NULLABLE_OBJECT_SCHEMA,
+        QUERY,
+        &[
+            json!({"data": {"users": [
+                {"organization": {"id": "1"}, "valid": "yes"},
+                {"organization": {"id": "2"}, "valid": "yes"}
+            ], "dummy": "yes"}}),
+            json!({"data": null}),
+        ],
+    );
+    insta::assert_json_snapshot!(response, @r#"
+    {
+      "data": {
+        "users": [
+          {
+            "organization": null,
+            "valid": "yes"
+          },
+          {
+            "organization": null,
+            "valid": "yes"
+          }
+        ],
+        "dummy": "yes"
+      },
+      "errors": [
+        {
+          "message": "Invalid response from subgraph",
+          "locations": [
+            {
+              "line": 5,
+              "column": 13
+            }
+          ],
+          "path": [
+            "users",
+            0,
+            "organization",
+            "name"
+          ],
+          "extensions": {
+            "code": "SUBGRAPH_INVALID_RESPONSE_ERROR"
+          }
+        }
+      ]
+    }
+    "#);
+}

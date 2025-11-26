@@ -1,6 +1,6 @@
 use serde::{
     Deserializer,
-    de::{DeserializeSeed, IgnoredAny, MapAccess, Visitor},
+    de::{DeserializeSeed, EnumAccess, IgnoredAny, MapAccess, SeqAccess, Visitor},
 };
 
 use crate::response::{ErrorPath, ErrorPathSegment};
@@ -19,6 +19,22 @@ impl<EntitiesSeed> EntitiesDataSeed<EntitiesSeed> {
     }
 }
 
+impl<'de, EntitiesSeed> EntitiesDataSeed<EntitiesSeed>
+where
+    EntitiesSeed: DeserializeSeed<'de, Value = ()>,
+{
+    fn unexpected_type<E>(self) -> Result<(), E>
+    where
+        E: serde::de::Error,
+    {
+        self.entities_seed
+            .deserialize(serde_json::Value::Array(Vec::new()))
+            .expect("Deserializer never fails");
+
+        Ok(())
+    }
+}
+
 impl<'de, EntitiesSeed> DeserializeSeed<'de> for EntitiesDataSeed<EntitiesSeed>
 where
     EntitiesSeed: DeserializeSeed<'de, Value = ()>,
@@ -29,7 +45,7 @@ where
     where
         D: Deserializer<'de>,
     {
-        deserializer.deserialize_map(self)
+        deserializer.deserialize_any(self)
     }
 }
 
@@ -41,6 +57,119 @@ where
 
     fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter.write_str("data with an entities list")
+    }
+
+    fn visit_bool<E>(self, _v: bool) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_i64<E>(self, _v: i64) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_i128<E>(self, _v: i128) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_u64<E>(self, _v: u64) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_u128<E>(self, _v: u128) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_f64<E>(self, _v: f64) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_char<E>(self, _v: char) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_str<E>(self, _v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_borrowed_str<E>(self, _v: &'de str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_string<E>(self, _v: String) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_bytes<E>(self, _v: &[u8]) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_none<E>(self) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_some<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(self)
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        self.unexpected_type()
+    }
+
+    fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_any(self)
+    }
+
+    fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        while seq.next_element::<IgnoredAny>()?.is_some() {}
+        self.unexpected_type()
     }
 
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
@@ -68,6 +197,14 @@ where
         }
 
         Ok(())
+    }
+
+    fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
+    where
+        A: EnumAccess<'de>,
+    {
+        let _ = data.variant::<IgnoredAny>()?;
+        self.unexpected_type()
     }
 }
 
