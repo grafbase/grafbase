@@ -136,8 +136,10 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
                         }
                     }
 
-                    if status.is_server_error() || status == http::StatusCode::TOO_MANY_REQUESTS {
-                        Err(FetchError::InvalidStatusCode(status))
+                    if status.is_server_error() {
+                        Err(FetchError::InvalidStatusCode(status, Some(response)))
+                    } else if status == http::StatusCode::TOO_MANY_REQUESTS {
+                        Err(FetchError::InvalidStatusCode(status, None))
                     } else {
                         Ok(response)
                     }
@@ -152,7 +154,7 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
                         http_span.set_as_http_error(err.as_invalid_status_code());
                         // Only clear info for non-status-code errors (e.g., network errors)
                         // For status code errors, we want to preserve the response info
-                        if !matches!(err, FetchError::InvalidStatusCode(_)) {
+                        if !matches!(err, FetchError::InvalidStatusCode(_, _)) {
                             info = None;
                         }
                     }
@@ -177,10 +179,29 @@ pub(crate) async fn execute_subgraph_request<'ctx, R: Runtime>(
                 }
                 Ok((http_response, ctx))
             }
-            Err(err) => {
-                ctx.set_as_http_error(err.as_fetch_invalid_status_code());
-                Err(err.into())
-            }
+            Err(err) => match err {
+                ExecutionError::Fetch {
+                    error: FetchError::InvalidStatusCode(code, Some(http_response)),
+                    ..
+                } => {
+                    ctx.set_as_http_error(Some(code));
+                    ctx.record_http_response(&http_response);
+                    // If the status code isn't a success as this point it means it's either a client error or
+                    // we've exhausted our retry budget for server errors.
+                    if !http_response.status().is_success() {
+                        tracing::debug!(
+                            "Subgraph request failed with status code: {}\n{}",
+                            http_response.status().as_u16(),
+                            String::from_utf8_lossy(http_response.body())
+                        );
+                    }
+                    Ok((http_response, ctx))
+                }
+                _ => {
+                    ctx.set_as_http_error(err.as_fetch_invalid_status_code());
+                    Err(err.into())
+                }
+            },
         }
     };
 

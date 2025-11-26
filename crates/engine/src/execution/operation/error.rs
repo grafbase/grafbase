@@ -20,7 +20,7 @@ impl ExecutionError {
     pub fn as_fetch_invalid_status_code(&self) -> Option<http::StatusCode> {
         match self {
             Self::Fetch {
-                error: FetchError::InvalidStatusCode(code),
+                error: FetchError::InvalidStatusCode(code, _),
                 ..
             } => Some(*code),
             _ => None,
