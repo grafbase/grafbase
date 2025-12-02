@@ -24,8 +24,6 @@ directive @join__type(graph: join__Graph, key: join__FieldSet, extension: Boolea
 
 directive @join__owner(graph: join__Graph!) on OBJECT
 
-scalar _Any
-
 scalar join__FieldSet
 
 type Lentil
