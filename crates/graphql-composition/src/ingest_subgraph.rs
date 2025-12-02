@@ -113,14 +113,30 @@ fn ingest_top_level_definitions(ctx: &mut Context<'_>) {
                         description,
                     ),
 
-                    ast::TypeDefinition::Scalar(_) => ctx.subgraphs.get_or_push_definition(
-                        subgraph_id,
-                        type_name,
-                        DefinitionKind::Scalar,
-                        description,
-                    ),
-
+                    ast::TypeDefinition::Scalar(ty) => {
+                        if [
+                            "_Any",
+                            "FieldSet",
+                            "link__Import",
+                            "federation__ContextFieldValue",
+                            "federation__Scope",
+                            "federation__Policy",
+                        ]
+                        .contains(&ty.name())
+                        {
+                            continue;
+                        }
+                        ctx.subgraphs.get_or_push_definition(
+                            subgraph_id,
+                            type_name,
+                            DefinitionKind::Scalar,
+                            description,
+                        )
+                    }
                     ast::TypeDefinition::Enum(_enum_type) => {
+                        if _enum_type.name() == "link__Purpose" {
+                            continue;
+                        }
                         ctx.subgraphs
                             .get_or_push_definition(subgraph_id, type_name, DefinitionKind::Enum, description)
                     }
