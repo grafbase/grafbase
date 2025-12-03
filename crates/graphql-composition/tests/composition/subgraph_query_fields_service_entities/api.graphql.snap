@@ -1,6 +1,6 @@
 ---
 source: crates/graphql-composition/tests/composition_tests.rs
-expression: API SDL
+expression: actual_api_sdl
 input_file: crates/graphql-composition/tests/composition/subgraph_query_fields_service_entities/test.md
 ---
 type Lentil {
@@ -53,3 +53,5 @@ input NutritionalInfoInput {
   fiber: Float
   fat: Float
 }
+
+scalar _Any
