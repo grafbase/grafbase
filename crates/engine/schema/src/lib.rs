@@ -27,6 +27,7 @@ mod object;
 mod prelude;
 mod resolver;
 mod scalar;
+mod sdl;
 mod subgraph;
 mod template;
 mod ty;
@@ -104,6 +105,10 @@ impl Schema {
         hasher.update(&self.hash);
         hasher.update(contract_key.as_bytes());
         self.hash = hasher.finalize().into();
+    }
+
+    pub fn to_sdl(&self) -> String {
+        crate::sdl::to_sdl(self)
     }
 }
 

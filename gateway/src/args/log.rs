@@ -22,6 +22,7 @@ const LIBS: &[&str] = &[
     "hyper",
     "reqwest",
     "tantivy",
+    "rmcp",
     "opentelemetry_sdk",
     "opentelemetry-otlp",
 ];
