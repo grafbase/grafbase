@@ -24,50 +24,57 @@ jobs:
   what-changed:
     runs-on: depot-ubuntu-24.04-small
     outputs:
-      # These 2 are JSON lists
-      changed-packages: ${{ steps.rust.outputs.changed-packages }}
-      changed-binaries: ${{ steps.rust.outputs.changed-binaries }}
-
-      # These 4 are strings
-      cargo-build-specs: ${{ steps.rust.outputs.cargo-build-specs }}
-      cargo-test-specs: ${{ steps.rust.outputs.cargo-test-specs }}
-      cargo-docker-test-specs: ${{ steps.rust.outputs.cargo-docker-test-specs }}
-      cargo-bin-specs: ${{ steps.rust.outputs.cargo-bin-specs }}
-
+      rust-code: ${{ steps.paths-changed.outputs.rust-code }}
+      grafbase-sdk: ${{ steps.paths-changed.outputs.grafbase-sdk }}
+      grafbase-gateway: ${{ steps.paths-changed.outputs.grafbase-gateway }}
+      integration-tests: ${{ steps.paths-changed.outputs.integration-tests }}
+      grafbase-cli: ${{ steps.paths-changed.outputs.grafbase-cli }}
       gateway-docker: ${{ steps.paths-changed.outputs.gateway-docker }}
       examples: ${{ steps.paths-changed.outputs.examples }}
+      engine: ${{ steps.paths-changed.outputs.engine }}
     steps:
       - uses: actions/checkout@v5
-        with:
-          # TODO: Figure out how to not make this zero
-          # Seems like if it's not zero you dont get branches
-          fetch-depth: 0
-          fetch-tags: true
-
-      - uses: Swatinem/rust-cache@v2.8.0
-        with:
-          prefix-key: cargo-v1
-
-      - name: Run what-rust-changed
-        id: rust
-        uses: grafbase/what-rust-changed@v0.2.1
-        with:
-          config: .github/what-rust-changed.toml
-          base: ${{ inputs.base_ref || github.event.pull_request.base.ref || 'main' }}
 
       - name: Check paths changed
         uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
         id: paths-changed
         with:
           filters: |
+            rust-code:
+              - '**/*.rs'
+              - '**/Cargo.toml'
+              - '**/Cargo.lock'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'rust-toolchain.toml'
+              - '.github/workflows/rust-prs.yml'
+            grafbase-sdk:
+              - 'crates/grafbase-sdk/**'
+            grafbase-gateway:
+              - 'gateway/**'
+              - 'crates/gateway/**'
+              - 'crates/engine/**'
+              - 'crates/composition/**'
+              - 'crates/parser-*/**'
+            integration-tests:
+              - 'crates/integration-tests/**'
+              - 'gateway/**'
+              - 'crates/gateway/**'
+              - 'crates/engine/**'
+            grafbase-cli:
+              - 'grafbase/**'
+              - 'crates/cli/**'
+              - 'crates/grafbase-sdk/**'
             gateway-docker:
-              - gateway/Dockerfile
+              - 'gateway/Dockerfile'
             examples:
-              - examples/**
+              - 'examples/**'
+            engine:
+              - 'crates/engine/**'
 
   check-licenses:
     needs: [what-changed]
-    if: needs.what-changed.outputs.changed-packages != '[]'
+    if: needs.what-changed.outputs.rust-code == 'true'
     runs-on: depot-ubuntu-24.04-small
     steps:
       - uses: actions/checkout@v5
@@ -89,7 +96,7 @@ jobs:
 
   check-format:
     needs: [what-changed]
-    if: needs.what-changed.outputs.changed-packages != '[]'
+    if: needs.what-changed.outputs.rust-code == 'true'
     runs-on: depot-ubuntu-24.04-small
     steps:
       - uses: actions/checkout@v5
@@ -115,7 +122,7 @@ jobs:
 
   grafbase-sdk-doc:
     needs: [what-changed]
-    if: contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-sdk')
+    if: needs.what-changed.outputs.grafbase-sdk == 'true'
     runs-on: depot-ubuntu-24.04-small
     steps:
       - uses: actions/checkout@v5
@@ -146,9 +153,8 @@ jobs:
     needs: [what-changed]
     runs-on: depot-ubuntu-24.04-8
     if: |
-      contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
-      || contains(fromJson(needs.what-changed.outputs.changed-packages), 'integration-tests')
-      || contains(fromJson(needs.what-changed.outputs.changed-packages), 'wasi-component-loader')
+      needs.what-changed.outputs.grafbase-gateway == 'true'
+      || needs.what-changed.outputs.integration-tests == 'true'
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/fetch-assets
@@ -203,7 +209,7 @@ jobs:
     # In particular we need `cancelled()` because `always()` (the other way of doing this)
     # makes this job uncancellable - which is not great.
     if: |
-      needs.what-changed.outputs.changed-packages != '[]'
+      needs.what-changed.outputs.rust-code == 'true'
       && !(cancelled())
       && !(contains(needs.*.result, 'failure'))
     strategy:
@@ -287,21 +293,20 @@ jobs:
         uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b # v1
 
       - name: Build debug binaries
-        if: needs.what-changed.outputs.cargo-bin-specs
+        if: needs.what-changed.outputs.grafbase-cli == 'true' || needs.what-changed.outputs.grafbase-gateway == 'true'
         shell: bash
         env:
           RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo build --target ${{ matrix.platform.target }} ${{ needs.what-changed.outputs.cargo-bin-specs }}
+          cargo build --target ${{ matrix.platform.target }} --bin grafbase --bin grafbase-gateway
 
       - name: Clippy
-        if: needs.what-changed.outputs.cargo-build-specs
         shell: bash
         run: |
           cargo clippy \
             --locked \
-            --target ${{ matrix.platform.target }} \
-            ${{ needs.what-changed.outputs.cargo-build-specs }}
+            --workspace \
+            --target ${{ matrix.platform.target }}
 
       - name: Docker Login
         env:
@@ -318,7 +323,7 @@ jobs:
         # Will fail if there is nothing to build.
         continue-on-error: true
         if: |
-          contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
+          needs.what-changed.outputs.grafbase-gateway == 'true'
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
         with:
@@ -332,7 +337,7 @@ jobs:
         # Will fail if there is nothing to build.
         continue-on-error: true
         if: |
-          contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
+          needs.what-changed.outputs.grafbase-gateway == 'true'
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
         with:
@@ -344,7 +349,7 @@ jobs:
 
       - name: Start integration-test docker compose
         if: |
-          contains(fromJson(needs.what-changed.outputs.changed-packages), 'integration-tests')
+          needs.what-changed.outputs.integration-tests == 'true'
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         working-directory: crates/integration-tests
@@ -353,7 +358,7 @@ jobs:
 
       - name: Start gateway docker compose
         if: |
-          contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
+          needs.what-changed.outputs.grafbase-gateway == 'true'
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         working-directory: gateway
@@ -363,46 +368,38 @@ jobs:
       # It's kinda useful to get build vs run timings on tests, so splitting out the build from the run
       # here
       - name: Build tests (non docker platforms)
-        if: |
-          needs.what-changed.outputs.cargo-test-specs
-          && matrix.platform.target != 'x86_64-unknown-linux-musl'
+        if: matrix.platform.target != 'x86_64-unknown-linux-musl'
         shell: bash
         env:
           RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ needs.what-changed.outputs.cargo-test-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci --workspace --exclude integration-tests --exclude grafbase-gateway
 
       - name: Run tests (non docker platforms)
         id: tests
-        if: |
-          needs.what-changed.outputs.cargo-test-specs
-          && matrix.platform.target != 'x86_64-unknown-linux-musl'
+        if: matrix.platform.target != 'x86_64-unknown-linux-musl'
         shell: bash
         env:
           RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci ${{ needs.what-changed.outputs.cargo-test-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci --workspace --exclude integration-tests --exclude grafbase-gateway
 
       - name: Build tests (docker platforms)
-        if: |
-          needs.what-changed.outputs.cargo-docker-test-specs
-          && matrix.platform.target == 'x86_64-unknown-linux-musl'
+        if: matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         env:
           RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --no-run --profile ci --workspace
 
       - name: Run tests (docker platforms)
         id: tests_docker
-        if: |
-          needs.what-changed.outputs.cargo-docker-test-specs
-          && matrix.platform.target == 'x86_64-unknown-linux-musl'
+        if: matrix.platform.target == 'x86_64-unknown-linux-musl'
         shell: bash
         env:
           RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci ${{ needs.what-changed.outputs.cargo-docker-test-specs }}
+          cargo nextest run --target ${{ matrix.platform.target }} --no-tests=warn --profile ci --workspace
 
       - name: Clean up cargo cache
         uses: ./.github/actions/cleanup-cargo-cache
@@ -413,7 +410,7 @@ jobs:
     if: |
       needs.what-changed.outputs.gateway-docker == 'true'
       || needs.what-changed.outputs.examples == 'true'
-      || contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
+      || needs.what-changed.outputs.grafbase-gateway == 'true'
     env:
       COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -538,11 +535,10 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     continue-on-error: true
     if: |
-      needs.what-changed.outputs.changed-packages != '[]'
-            && contains(needs.what-changed.outputs.changed-packages, 'grafbase')
-            && contains(needs.what-changed.outputs.changed-packages, 'grafbase-gateway')
-            && !(cancelled())
-            && !(contains(needs.*.result, 'failure'))
+      needs.what-changed.outputs.grafbase-cli == 'true'
+      && needs.what-changed.outputs.grafbase-gateway == 'true'
+      && !(cancelled())
+      && !(contains(needs.*.result, 'failure'))
     steps:
       - uses: actions/checkout@v5
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
