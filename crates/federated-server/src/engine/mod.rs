@@ -49,7 +49,7 @@ pub(super) async fn generate(
             .extensions(&extension_catalog)
             .build()
             .await
-            .map_err(|err| crate::Error::SchemaValidationError(err.to_string()))?,
+            .map_err(|errors| crate::Error::SchemaValidationError(errors.join("\n\n")))?,
     );
 
     let runtime = EngineRuntime::build(context, &graph, &schema, extension_catalog).await?;

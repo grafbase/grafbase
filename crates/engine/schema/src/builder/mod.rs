@@ -69,17 +69,15 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub async fn build(self) -> Result<Schema, String> {
+    pub async fn build(self) -> Result<Schema, Vec<String>> {
         let sdl = self.sdl;
         self.build_inner().await.map_err(|mut errors| {
-            use std::fmt::Write;
             let translator = SpanTranslator::new(sdl);
             errors.sort_by_key(|err| err.span.map_or(0, |span| span.start));
-            let mut out = String::with_capacity(errors.len() * 100);
-            for err in errors {
-                writeln!(&mut out, "{}", err.display(&translator)).unwrap();
-            }
-            out
+            errors
+                .into_iter()
+                .map(|err| err.display(&translator).to_string())
+                .collect()
         })
     }
 
