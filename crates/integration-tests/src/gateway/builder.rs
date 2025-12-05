@@ -232,7 +232,7 @@ impl GatewayBuilder {
                 .extensions(runtime.extensions.catalog())
                 .build()
                 .await
-                .map_err(|err| anyhow::anyhow!(err))?,
+                .map_err(|errors| anyhow::anyhow!(errors.join("\n\n")))?,
         );
 
         let (runtime, extension_catalog) = runtime.finalize_runtime_and_config(&mut config, &schema).await?;

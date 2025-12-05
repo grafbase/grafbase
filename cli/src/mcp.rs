@@ -72,7 +72,7 @@ pub(crate) async fn run(args: McpCommand) -> anyhow::Result<()> {
             .extensions(&extensions_catalog)
             .build()
             .await
-            .map_err(|err| anyhow::anyhow!("Internal: failed to build schema: {err}"))?
+            .map_err(|errors| anyhow::anyhow!("Internal: failed to build schema: {}", errors.join("\n\n")))?
     };
 
     let extensions = EngineWasmExtensions::default();
