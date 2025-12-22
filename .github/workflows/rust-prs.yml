@@ -14,7 +14,6 @@ env:
   CARGO_PROFILE_TEST_DEBUG: 0
   CARGO_TERM_COLOR: 'always'
   RUST_BACKTRACE: 1
-  DEPOT_PROJECT: lc6t0h7bhh
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-rust-pr
@@ -22,7 +21,7 @@ concurrency:
 
 jobs:
   what-changed:
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: ubuntu-24.04
     outputs:
       # These 2 are JSON lists
       changed-packages: ${{ steps.rust.outputs.changed-packages }}
@@ -68,7 +67,7 @@ jobs:
   check-licenses:
     needs: [what-changed]
     if: needs.what-changed.outputs.changed-packages != '[]'
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/install-rust
@@ -90,7 +89,7 @@ jobs:
   check-format:
     needs: [what-changed]
     if: needs.what-changed.outputs.changed-packages != '[]'
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/install-rust
@@ -116,7 +115,7 @@ jobs:
   grafbase-sdk-doc:
     needs: [what-changed]
     if: contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-sdk')
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
@@ -144,7 +143,7 @@ jobs:
 
   wasm-extensions:
     needs: [what-changed]
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: ubuntu-24.04
     if: |
       contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
       || contains(fromJson(needs.what-changed.outputs.changed-packages), 'integration-tests')
@@ -211,10 +210,10 @@ jobs:
       matrix:
         platform:
           [
-            { 'target': 'x86_64-unknown-linux-musl', 'runner': 'depot-ubuntu-24.04-8' },
-            { 'target': 'aarch64-unknown-linux-musl', 'runner': 'depot-ubuntu-24.04-arm-8' },
-            { 'target': 'aarch64-apple-darwin', 'runner': 'depot-macos-latest' },
-            { 'target': 'x86_64-pc-windows-msvc', 'runner': 'depot-windows-2022-8' },
+            { 'target': 'x86_64-unknown-linux-musl', 'runner': 'ubuntu-24.04' },
+            { 'target': 'aarch64-unknown-linux-musl', 'runner': 'ubuntu-24.04-arm' },
+            { 'target': 'aarch64-apple-darwin', 'runner': 'macos-latest' },
+            { 'target': 'x86_64-pc-windows-msvc', 'runner': 'windows-2022' },
           ]
     runs-on: ${{ matrix.platform.runner }}
     env:
@@ -312,7 +311,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
+      - uses: docker/setup-buildx-action@v3
 
       - name: Build integration-tests docker compose
         # Will fail if there is nothing to build.
@@ -320,10 +319,8 @@ jobs:
         if: |
           contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
-        uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
+        uses: docker/bake-action@v6
         with:
-          project: ${{ env.DEPOT_PROJECT }}
-          token: ${{ secrets.DEPOT_TOKEN }}
           workdir: crates/integration-tests
           load: true
           pull: true
@@ -334,10 +331,8 @@ jobs:
         if: |
           contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
-        uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
+        uses: docker/bake-action@v6
         with:
-          project: ${{ env.DEPOT_PROJECT }}
-          token: ${{ secrets.DEPOT_TOKEN }}
           workdir: gateway
           load: true
           pull: true
@@ -417,12 +412,20 @@ jobs:
     env:
       COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
       dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: ubuntu-24.04
     permissions:
       packages: write
     steps:
       - if: env.dockerhub_username != ''
         uses: actions/checkout@v5
+
+      - name: Set up QEMU
+        if: env.dockerhub_username != ''
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: env.dockerhub_username != ''
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to GitHub Container Registry
         if: env.dockerhub_username != ''
@@ -441,10 +444,8 @@ jobs:
 
       - name: Build and push
         if: env.dockerhub_username != ''
-        uses: depot/build-push-action@v1.16.2
+        uses: docker/build-push-action@v6
         with:
-          project: ${{ env.DEPOT_PROJECT }}
-          token: ${{ secrets.DEPOT_TOKEN }}
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ghcr.io/grafbase/gateway:${{ env.COMMIT_SHA }}
@@ -464,7 +465,7 @@ jobs:
           - examples/composite-rest
           - examples/grpc-composite-schemas
           - examples/dynamic-schema-contracts
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: ubuntu-24.04
     steps:
       - name: Get sources
         uses: actions/checkout@v5
@@ -491,15 +492,13 @@ jobs:
         run: |
           sed -i "s/\(FROM ghcr.io\/grafbase\/gateway:\)latest/\1$COMMIT_SHA/" Dockerfile.gateway
 
-      - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
+      - uses: docker/setup-buildx-action@v3
 
       - name: Build docker compose
         # Will fail if there is nothing to build.
         continue-on-error: true
-        uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
+        uses: docker/bake-action@v6
         with:
-          project: ${{ env.DEPOT_PROJECT }}
-          token: ${{ secrets.DEPOT_TOKEN }}
           workdir: ${{ matrix.working_directory }}
           load: true
           pull: true
@@ -520,7 +519,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [{ 'runner': 'depot-ubuntu-24.04-8' }]
+        platform: [{ 'runner': 'ubuntu-24.04' }]
         version:
           # From the gateway 0.46 onwards, we dropped support for the native JWT authentication.
           # So we're skipping authenticated & requires-scopes which are simple enough that we shouldn't have to worry.
@@ -592,15 +591,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
+      - uses: docker/setup-buildx-action@v3
 
       - name: Build docker compose
         # Will fail if there is nothing to build.
         continue-on-error: true
-        uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
+        uses: docker/bake-action@v6
         with:
-          project: ${{ env.DEPOT_PROJECT }}
-          token: ${{ secrets.DEPOT_TOKEN }}
           workdir: extensions
           load: true
           pull: true
@@ -631,7 +628,7 @@ jobs:
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
     needs: [check-format, grafbase-sdk-doc, tests, examples, extensions]
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: ubuntu-24.04
     if: ${{ always() }}
     steps:
       - name: Check that the builds succeeded

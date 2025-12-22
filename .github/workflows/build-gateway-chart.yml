@@ -18,7 +18,7 @@ env:
 
 jobs:
   detect-change-type:
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: ubuntu-24.04
     outputs:
       build: ${{ steps.filter.outputs.build }}
     steps:
@@ -33,7 +33,7 @@ jobs:
 
   gateway-helm-release:
     name: Build gateway helm chart
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: ubuntu-24.04
     needs: [detect-change-type]
     steps:
       - uses: actions/checkout@v5

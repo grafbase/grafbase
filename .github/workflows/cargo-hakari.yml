@@ -10,7 +10,7 @@ concurrency:
 
 jobs:
   what-changed:
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: ubuntu-24.04
     outputs:
       cargo: ${{ steps.paths-changed.outputs.cargo }}
 
@@ -29,7 +29,7 @@ jobs:
 
   hakari:
     needs: [what-changed]
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: ubuntu-24.04
     if: needs.what-changed.outputs.cargo == 'true'
     steps:
       - uses: actions/checkout@v5
