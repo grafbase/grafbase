@@ -1,7 +1,11 @@
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use error::{ErrorCode, GraphqlError};
 use futures::StreamExt;
+use hive_console_sdk::agent::usage_agent::{ExecutionReport, UsageAgentExt};
 use operation::{BatchRequest, Request};
 
 use crate::{
@@ -18,6 +22,7 @@ impl<R: Runtime> Engine<R> {
         request_context: Arc<RequestContext>,
         request: BatchRequest,
     ) -> http::Response<Body> {
+        let start = std::time::Instant::now();
         match request {
             BatchRequest::Single(request) => match request_context.response_format {
                 ResponseFormat::Streaming(format) => {
@@ -30,6 +35,31 @@ impl<R: Runtime> Engine<R> {
                     else {
                         return self.gateway_timeout_error(&request_context);
                     };
+
+                    if let (Some(hive_usage_reporter), Some(operation_attrs)) =
+                        (&self.hive_usage_reporter, response.operation_attributes())
+                    {
+                        let error_count = response.error_code_counter().count();
+                        let duration = start.elapsed();
+                        if let Err(err) = hive_usage_reporter
+                            .usage_agent
+                            .add_report(ExecutionReport {
+                                schema: hive_usage_reporter.schema.clone(),
+                                client_name: request_context.client.as_ref().map(|c| c.name.clone()),
+                                client_version: request_context.client.as_ref().and_then(|c| c.version.clone()),
+                                timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64,
+                                duration,
+                                ok: error_count == 0,
+                                errors: error_count,
+                                operation_body: operation_attrs.sanitized_query.to_string(),
+                                operation_name: operation_attrs.name.original().map(str::to_string),
+                                persisted_document_hash: None,
+                            })
+                            .await
+                        {
+                            tracing::error!("Failed to send usage report to Hive: {err}");
+                        }
+                    }
 
                     Http::single(format, response)
                 }
