@@ -274,7 +274,7 @@ wit-bindgen = "0.46.0"
 xshell = "0.2"
 zerocopy = "0.8.27"
 zstd = "0.13"
-hive-console-sdk = { version = "0.3.1" }
+hive-console-sdk = { version = "0.3.3" }
 
 # Workspace
 engine = { path = "crates/engine" }
