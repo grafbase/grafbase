@@ -5,18 +5,22 @@ use runtime::trusted_documents_client::{
 
 pub struct HivePersistedDocuments {
     manager: PersistedDocumentsManager,
+    enforcement_mode: TrustedDocumentsEnforcementMode,
 }
 
 impl HivePersistedDocuments {
-    pub fn new(manager: PersistedDocumentsManager) -> Self {
-        Self { manager }
+    pub fn new(manager: PersistedDocumentsManager, enforcement_mode: TrustedDocumentsEnforcementMode) -> Self {
+        Self {
+            manager,
+            enforcement_mode,
+        }
     }
 }
 
 #[async_trait::async_trait]
 impl TrustedDocumentsClient for HivePersistedDocuments {
     fn enforcement_mode(&self) -> TrustedDocumentsEnforcementMode {
-        TrustedDocumentsEnforcementMode::Enforce
+        self.enforcement_mode
     }
 
     async fn fetch(&self, _client_name: &str, document_id: &str) -> TrustedDocumentsResult<String> {

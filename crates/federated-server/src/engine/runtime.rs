@@ -129,6 +129,7 @@ impl EngineRuntime {
                 manager
                     .build()
                     .map_err(|e| crate::Error::InternalError(e.to_string()))?,
+                enforcement_mode,
             ))
         } else {
             runtime::trusted_documents_client::Client::new(())
