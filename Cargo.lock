@@ -3744,7 +3744,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-gateway"
-version = "0.51.2"
+version = "0.52.0"
 dependencies = [
  "anyhow",
  "ascii",
@@ -4007,7 +4007,6 @@ dependencies = [
  "ed25519-dalek",
  "either",
  "elliptic-curve",
- "event-listener 5.4.0",
  "fastrand 2.3.0",
  "ff",
  "fixedbitset",
@@ -4044,6 +4043,7 @@ dependencies = [
  "minicbor-serde",
  "miniz_oxide",
  "mio",
+ "moka",
  "num-traits",
  "object",
  "once_cell",

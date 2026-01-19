@@ -34,12 +34,12 @@ grafbase-telemetry = { workspace = true }
 grafbase-workspace-hack.workspace = true
 graph-ref.workspace = true
 graphql-composition.workspace = true
+hive-console-sdk.workspace = true
 http.workspace = true
 http-body.workspace = true
 http-body-util.workspace = true
 hyper.workspace = true
 indoc.workspace = true
-hive-console-sdk.workspace = true
 lambda_http = { workspace = true, optional = true }
 mini-moka.workspace = true
 minicbor-serde = { workspace = true, features = ["alloc"] }

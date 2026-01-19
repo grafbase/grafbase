@@ -35,9 +35,9 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "serd
 clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
 combine = { version = "4", features = ["tokio"] }
-concurrent-queue = { version = "2" }
 cranelift-bitset = { version = "0.122", default-features = false, features = ["enable-serde"] }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
+crossbeam-epoch = { version = "0.9" }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest"] }
@@ -51,7 +51,6 @@ ed25519-compact = { version = "2" }
 ed25519-dalek = { version = "2", features = ["digest", "pem"] }
 either = { version = "1", features = ["serde", "use_std"] }
 elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "jwk", "pem", "std"] }
-event-listener = { version = "5" }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
 fixedbitset = { version = "0.5", features = ["serde"] }
@@ -96,7 +95,7 @@ rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
 rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
-regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
+regex-automata = { version = "0.4" }
 regex-syntax = { version = "0.8" }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls-tls", "rustls-tls-native-roots", "stream", "zstd"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "aws_lc_rs", "logging", "ring", "std", "tls12"] }
@@ -117,6 +116,7 @@ spki = { version = "0.7", default-features = false, features = ["pem", "std"] }
 stable_deref_trait = { version = "1" }
 strum = { version = "0.27", features = ["derive"] }
 subtle = { version = "2" }
+syn = { version = "2", features = ["extra-traits", "fold", "full", "visit", "visit-mut"] }
 sync_wrapper = { version = "1", default-features = false, features = ["futures"] }
 time = { version = "0.3", features = ["serde-well-known"] }
 tokio = { version = "1", features = ["full", "test-util"] }
@@ -157,9 +157,9 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "serd
 clap = { version = "4", features = ["cargo", "derive", "env", "wrap_help"] }
 clap_builder = { version = "4", default-features = false, features = ["cargo", "color", "env", "std", "suggestions", "usage", "wrap_help"] }
 combine = { version = "4", features = ["tokio"] }
-concurrent-queue = { version = "2" }
 cranelift-bitset = { version = "0.122", default-features = false, features = ["enable-serde"] }
 criterion = { version = "0.5", features = ["async_tokio", "html_reports"] }
+crossbeam-epoch = { version = "0.9" }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest"] }
@@ -173,7 +173,6 @@ ed25519-compact = { version = "2" }
 ed25519-dalek = { version = "2", features = ["digest", "pem"] }
 either = { version = "1", features = ["serde", "use_std"] }
 elliptic-curve = { version = "0.13", features = ["ecdh", "hazmat", "jwk", "pem", "std"] }
-event-listener = { version = "5" }
 fastrand = { version = "2" }
 ff = { version = "0.13", default-features = false, features = ["alloc"] }
 fixedbitset = { version = "0.5", features = ["serde"] }
@@ -218,7 +217,7 @@ rand-274715c4dabd11b0 = { package = "rand", version = "0.9" }
 rand-c38e5c1d305a1b54 = { package = "rand", version = "0.8", features = ["small_rng"] }
 rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
-regex-automata = { version = "0.4", default-features = false, features = ["dfa", "hybrid", "meta", "nfa", "perf", "unicode"] }
+regex-automata = { version = "0.4" }
 regex-syntax = { version = "0.8" }
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls-tls", "rustls-tls-native-roots", "stream", "zstd"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "aws_lc_rs", "logging", "ring", "std", "tls12"] }
@@ -267,7 +266,7 @@ zstd-sys = { version = "2", default-features = false, features = ["experimental"
 [target.aarch64-apple-darwin.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 chrono = { version = "0.4" }
-crossbeam-epoch = { version = "0.9" }
+concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
@@ -275,6 +274,7 @@ iana-time-zone = { version = "0.1", default-features = false, features = ["fallb
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
+moka = { version = "0.12", features = ["future", "sync"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
@@ -287,7 +287,7 @@ tower-http = { version = "0.6", default-features = false, features = ["follow-re
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 cc = { version = "1", default-features = false, features = ["parallel"] }
 chrono = { version = "0.4" }
-crossbeam-epoch = { version = "0.9" }
+concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
@@ -295,6 +295,7 @@ iana-time-zone = { version = "0.1", default-features = false, features = ["fallb
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
+moka = { version = "0.12", features = ["future", "sync"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
@@ -306,7 +307,7 @@ tower-http = { version = "0.6", default-features = false, features = ["follow-re
 [target.x86_64-apple-darwin.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 chrono = { version = "0.4" }
-crossbeam-epoch = { version = "0.9" }
+concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
@@ -314,6 +315,7 @@ iana-time-zone = { version = "0.1", default-features = false, features = ["fallb
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
+moka = { version = "0.12", features = ["future", "sync"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
@@ -327,7 +329,7 @@ tower-http = { version = "0.6", default-features = false, features = ["follow-re
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 cc = { version = "1", default-features = false, features = ["parallel"] }
 chrono = { version = "0.4" }
-crossbeam-epoch = { version = "0.9" }
+concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
@@ -335,6 +337,7 @@ iana-time-zone = { version = "0.1", default-features = false, features = ["fallb
 libc = { version = "0.2", features = ["extra_traits"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
+moka = { version = "0.12", features = ["future", "sync"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
@@ -346,9 +349,10 @@ tower-http = { version = "0.6", default-features = false, features = ["follow-re
 
 [target.x86_64-pc-windows-msvc.dependencies]
 chrono = { version = "0.4" }
-crossbeam-epoch = { version = "0.9" }
+concurrent-queue = { version = "2" }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
+moka = { version = "0.12", features = ["future", "sync"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 socket2 = { version = "0.5", default-features = false, features = ["all"] }
 spin = { version = "0.9" }
@@ -363,9 +367,10 @@ windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", feat
 [target.x86_64-pc-windows-msvc.build-dependencies]
 cc = { version = "1", default-features = false, features = ["parallel"] }
 chrono = { version = "0.4" }
-crossbeam-epoch = { version = "0.9" }
+concurrent-queue = { version = "2" }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
+moka = { version = "0.12", features = ["future", "sync"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 socket2 = { version = "0.5", default-features = false, features = ["all"] }
 spin = { version = "0.9" }
@@ -380,7 +385,7 @@ windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", feat
 [target.x86_64-unknown-linux-musl.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 chrono = { version = "0.4" }
-crossbeam-epoch = { version = "0.9" }
+concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
@@ -389,6 +394,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 linux-raw-sys = { version = "0.9", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
+moka = { version = "0.12", features = ["future", "sync"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
@@ -402,7 +408,7 @@ tower-http = { version = "0.6", default-features = false, features = ["follow-re
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 cc = { version = "1", default-features = false, features = ["parallel"] }
 chrono = { version = "0.4" }
-crossbeam-epoch = { version = "0.9" }
+concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
@@ -411,6 +417,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 linux-raw-sys = { version = "0.9", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
+moka = { version = "0.12", features = ["future", "sync"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
@@ -423,7 +430,7 @@ tower-http = { version = "0.6", default-features = false, features = ["follow-re
 [target.aarch64-unknown-linux-musl.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 chrono = { version = "0.4" }
-crossbeam-epoch = { version = "0.9" }
+concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
@@ -432,6 +439,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 linux-raw-sys = { version = "0.9", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
+moka = { version = "0.12", features = ["future", "sync"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
@@ -444,7 +452,7 @@ tower-http = { version = "0.6", default-features = false, features = ["follow-re
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 cc = { version = "1", default-features = false, features = ["parallel"] }
 chrono = { version = "0.4" }
-crossbeam-epoch = { version = "0.9" }
+concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
@@ -453,6 +461,7 @@ libc = { version = "0.2", features = ["extra_traits"] }
 linux-raw-sys = { version = "0.9", default-features = false, features = ["elf", "errno", "general", "if_ether", "ioctl", "net", "netlink", "no_std", "prctl", "xdp"] }
 miniz_oxide = { version = "0.8", default-features = false, features = ["with-alloc"] }
 mio = { version = "1", features = ["net", "os-ext"] }
+moka = { version = "0.12", features = ["future", "sync"] }
 object = { version = "0.36", default-features = false, features = ["archive", "read_core", "unaligned", "write"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
