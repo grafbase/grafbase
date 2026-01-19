@@ -1,9 +1,10 @@
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use ::engine::{CachedOperation, Schema};
 use extension_catalog::ExtensionCatalog;
 use gateway_config::{EntityCachingRedisConfig, operation_caching::OperationCacheConfig};
 use grafbase_telemetry::metrics::EngineMetrics;
+use hive_console_sdk::persisted_documents::PersistedDocumentsManager;
 use runtime::{entity_cache::EntityCache, trusted_documents_client::TrustedDocumentsEnforcementMode};
 use runtime_local::{
     InMemoryEntityCache, InMemoryOperationCache, NativeFetcher, RedisEntityCache,
@@ -17,6 +18,7 @@ use wasi_component_loader::extension::EngineWasmExtensions;
 use crate::{
     engine::{
         EngineBuildContext,
+        hive_persisted_documents::HivePersistedDocuments,
         trusted_documents_client::{TrustedDocumentsClient, TrustedDocumentsClientConfig},
     },
     graph::{Graph, object_storage_host},
@@ -94,14 +96,14 @@ impl EngineRuntime {
 
         tracing::debug!("Setting up authentication");
 
-        let trusted_documents = if let Some((access_token, branch_id)) = ctx.access_token.zip(graph.branch_id()) {
-            let cfg = &ctx.gateway_config.trusted_documents;
-            let enforcement_mode = if cfg.enforced {
-                TrustedDocumentsEnforcementMode::Enforce
-            } else {
-                TrustedDocumentsEnforcementMode::Allow
-            };
+        let cfg = &ctx.gateway_config.trusted_documents;
+        let enforcement_mode = if cfg.enforced {
+            TrustedDocumentsEnforcementMode::Enforce
+        } else {
+            TrustedDocumentsEnforcementMode::Allow
+        };
 
+        let trusted_documents = if let Some((access_token, branch_id)) = ctx.access_token.zip(graph.branch_id()) {
             let bypass_header = cfg
                 .bypass_header
                 .bypass_header_name
@@ -118,6 +120,17 @@ impl EngineRuntime {
                     .map_err(|e| crate::Error::InternalError(e.to_string()))?,
                 access_token,
             }))
+        } else if let Ok(hive_cdn_endpoint) = env::var("HIVE_CDN_ENDPOINT") {
+            let mut manager = PersistedDocumentsManager::builder().add_endpoint(hive_cdn_endpoint);
+            if let Ok(hive_cdn_key) = env::var("HIVE_CDN_KEY") {
+                manager = manager.key(hive_cdn_key);
+            }
+            runtime::trusted_documents_client::Client::new(HivePersistedDocuments::new(
+                manager
+                    .build()
+                    .map_err(|e| crate::Error::InternalError(e.to_string()))?,
+                enforcement_mode,
+            ))
         } else {
             runtime::trusted_documents_client::Client::new(())
         };

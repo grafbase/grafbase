@@ -42,6 +42,16 @@ pub struct Args {
     /// If set, parts of the configuration will get reloaded when changed.
     #[arg(long, action)]
     hot_reload: bool,
+
+    // Hive Console specific options
+    #[arg(long, env = "HIVE_CDN_ENDPOINT")]
+    pub hive_cdn_endpoint: Option<String>,
+
+    #[arg(long, env = "HIVE_CDN_KEY")]
+    pub hive_cdn_key: Option<String>,
+
+    #[arg(long, env = "HIVE_CDN_POLL_INTERVAL", default_value = "10")]
+    pub hive_cdn_poll_interval: u64,
 }
 
 impl super::Args for Args {
@@ -51,11 +61,16 @@ impl super::Args for Args {
 
     /// The method of fetching a graph
     fn fetch_method(&self) -> anyhow::Result<GraphLoader> {
-        match self.schema {
-            Some(ref schema) => Ok(GraphLoader::FromSchemaFile {
+        match (&self.schema, &self.hive_cdn_endpoint) {
+            (Some(schema), _) => Ok(GraphLoader::FromSchemaFile {
                 path: schema.to_owned(),
             }),
-            None => {
+            (_, Some(hive_cdn_endpoint)) => Ok(GraphLoader::FromHiveConsole {
+                endpoints: vec![hive_cdn_endpoint.clone()],
+                key: self.hive_cdn_key.clone(),
+                poll_interval: std::time::Duration::from_secs(self.hive_cdn_poll_interval),
+            }),
+            (None, _) => {
                 let graph_ref = self.graph_ref.clone().ok_or_else(|| {
                     anyhow::format_err!("The graph-ref argument must be set if not using a static schema file.")
                 })?;

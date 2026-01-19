@@ -13,9 +13,12 @@ use error::{ErrorCode, ErrorResponse, GraphqlError};
 use event_queue::EventQueue;
 use futures::{StreamExt, TryFutureExt};
 use futures_util::Stream;
+use graphql_tools::{parser::parse_schema, static_graphql::schema::Document};
+use hive_console_sdk::agent::usage_agent::{UsageAgent, UsageAgentExt};
 use retry_budget::RetryBudgets;
 use schema::Schema;
-use std::{borrow::Cow, future::Future, sync::Arc};
+use std::{borrow::Cow, env, future::Future, sync::Arc};
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     Body,
@@ -172,16 +175,52 @@ pub struct Engine<R: Runtime> {
     pub schema: Arc<Schema>,
     pub runtime: R,
     pub(crate) retry_budgets: RetryBudgets,
+    pub hive_usage_reporter: Option<HiveUsageReporter>,
+}
+
+pub struct HiveUsageReporter {
+    pub schema: Arc<Document>,
+    pub usage_agent: UsageAgent,
 }
 
 impl<R: Runtime> Engine<R> {
     /// schema_version is used in operation cache key which ensures we only retrieve cached
     /// operation for the same schema version. If none is provided, a random one is generated.
     pub(crate) fn new(schema: Arc<Schema>, runtime: R) -> Self {
+        let mut hive_usage_reporter = None;
+        if let Ok(hive_access_token) = env::var("HIVE_ACCESS_TOKEN") {
+            let mut usage_agent = UsageAgent::builder().token(hive_access_token);
+            if let Ok(hive_target_id) = env::var("HIVE_TARGET") {
+                usage_agent = usage_agent.target_id(hive_target_id);
+            }
+            match usage_agent.build() {
+                Ok(usage_agent) => {
+                    tracing::info!("Hive Console Usage Reporting is started");
+                    match parse_schema(&schema.to_sdl()) {
+                        Ok(doc) => {
+                            let schema = doc.into_static().into();
+                            let agent_for_spawn = usage_agent.clone();
+                            tokio::spawn(async move {
+                                let cancellation_token: CancellationToken = CancellationToken::new();
+                                agent_for_spawn.start_flush_interval(&cancellation_token).await;
+                            });
+                            hive_usage_reporter = Some(HiveUsageReporter { schema, usage_agent });
+                        }
+                        Err(err) => {
+                            tracing::error!("Failed to parse the schema for Hive Console Usage Reporting: {err}");
+                        }
+                    }
+                }
+                Err(err) => {
+                    tracing::error!("Failed to initialize Hive Console Usage Reporting: {err}");
+                }
+            }
+        }
         Self {
             retry_budgets: RetryBudgets::build(&schema),
             schema,
             runtime,
+            hive_usage_reporter,
         }
     }
 

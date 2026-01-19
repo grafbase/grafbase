@@ -1,11 +1,13 @@
+mod hive_console;
 mod object_storage;
 mod schema_file;
 
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
 use graph_ref::GraphRef;
 use tokio::sync::mpsc;
 
+pub use hive_console::*;
 pub use object_storage::*;
 pub use schema_file::*;
 
@@ -26,6 +28,11 @@ pub enum GraphLoader {
     },
     FromChannel {
         sdl_receiver: mpsc::Receiver<String>,
+    },
+    FromHiveConsole {
+        endpoints: Vec<String>,
+        key: Option<String>,
+        poll_interval: Duration,
     },
 }
 
@@ -79,6 +86,21 @@ impl GraphLoader {
                             break;
                         }
                     }
+                });
+
+                Ok(())
+            }
+            GraphLoader::FromHiveConsole {
+                endpoints,
+                key,
+                poll_interval,
+            } => {
+                tokio::spawn(async move {
+                    HiveConsoleUpdater::new(endpoints, key, poll_interval, sender)?
+                        .poll()
+                        .await;
+
+                    Ok::<_, crate::Error>(())
                 });
 
                 Ok(())

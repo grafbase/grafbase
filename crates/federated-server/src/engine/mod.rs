@@ -1,3 +1,4 @@
+mod hive_persisted_documents;
 mod reloader;
 mod runtime;
 mod trusted_documents_client;

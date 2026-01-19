@@ -113,6 +113,7 @@ futures-util = "0.3.30"
 fxhash = "0.2"
 governor = "0.10"
 graphql-parser = { git = "https://github.com/graphql-rust/graphql-parser", version = "0.4.0" }
+graphql-tools = "0.4.2"
 graphql-ws-client = { version = "0.11.1", features = ["tungstenite"] }
 handlebars = "6.3.2"
 hashbrown = "0.16"
@@ -273,6 +274,7 @@ wit-bindgen = "0.46.0"
 xshell = "0.2"
 zerocopy = "0.8.27"
 zstd = "0.13"
+hive-console-sdk = { version = "0.3.3" }
 
 # Workspace
 engine = { path = "crates/engine" }
