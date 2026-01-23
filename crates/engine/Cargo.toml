@@ -32,9 +32,9 @@ gateway-config.workspace = true
 grafbase-telemetry.workspace = true
 grafbase-workspace-hack.workspace = true
 graphql-tools.workspace = true
-hive-console-sdk.workspace = true
 headers.workspace = true
 hex.workspace = true
+hive-console-sdk.workspace = true
 http.workspace = true
 id-derives = { path = "./id-derives", package = "engine-id-derives" }
 id-newtypes = { path = "./id-newtypes", package = "engine-id-newtypes" }
