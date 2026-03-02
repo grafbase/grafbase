@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> [The Guild](https://the-guild.dev) has acquired Grafbase! 
+>
+> [Read more](https://the-guild.dev/graphql/hive/blog/acquired-grafbase)
+
 # **![Grafbase](https://github.com/grafbase/grafbase/assets/14347895/9580d0f7-d50f-4d30-8dd0-dcea1a83409e)** **Grafbase**
 
 **The High-Performance GraphQL Federation Platform for Mission-Critical APIs**
@@ -213,4 +218,3 @@ Grafbase Gateway is licensed under the [**Mozilla Public License 2.0**](https://
 * [**Blog**](https://grafbase.com/blog) \- Technical insights and updates  
 * [**Changelog**](https://grafbase.com/changelog) \- Latest features and improvements  
 * [**X**](https://x.com/grafbase) \- News and community updates
-
