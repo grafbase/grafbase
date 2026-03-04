@@ -370,7 +370,7 @@ impl GraphBuilder<'_> {
         type __Field {
           name: String!
           description: String
-          args: [__InputValue!]!
+          args(includeDeprecated: Boolean! = false): [__InputValue!]!
           type: __Type!
           isDeprecated: Boolean!
           deprecationReason: String
@@ -414,7 +414,7 @@ impl GraphBuilder<'_> {
           interfaces: [__Type!]
           possibleTypes: [__Type!]
           enumValues(includeDeprecated: Boolean = false): [__EnumValue!]
-          inputFields: [__InputValue!]
+          inputFields(includeDeprecated: Boolean = false): [__InputValue!]
           ofType: __Type
           specifiedByURL: String
         }
@@ -470,24 +470,6 @@ impl GraphBuilder<'_> {
                 ("interfaces", nullable__type_list, __Type::Interfaces),
             ],
         );
-
-        {
-            let default_value = Some(
-                self.graph
-                    .input_values
-                    .push_value(SchemaInputValueRecord::Boolean(false)),
-            );
-            self.set_field_arguments(
-                __type.id,
-                "fields",
-                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
-            );
-            self.set_field_arguments(
-                __type.id,
-                "enumValues",
-                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
-            );
-        }
 
         let __input_value = self.insert_object_fields(
             __input_value,
@@ -577,6 +559,34 @@ impl GraphBuilder<'_> {
             "__type",
             std::iter::once(("name", required_string, None)),
         );
+
+        {
+            let default_value = Some(
+                self.graph
+                    .input_values
+                    .push_value(SchemaInputValueRecord::Boolean(false)),
+            );
+            self.set_field_arguments(
+                __type.id,
+                "inputFields",
+                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
+            );
+            self.set_field_arguments(
+                __field.id,
+                "args",
+                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
+            );
+            self.set_field_arguments(
+                __type.id,
+                "fields",
+                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
+            );
+            self.set_field_arguments(
+                __type.id,
+                "enumValues",
+                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
+            );
+        }
 
         // DataSource
         IntrospectionSubgraph {

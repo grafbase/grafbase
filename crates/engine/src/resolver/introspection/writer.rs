@@ -271,10 +271,21 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                     __Type::InputFields => {
                         let shape_id = field.shape.as_concrete().unwrap();
                         let mut values = Vec::with_capacity(input_object.input_field_ids.len());
+                        let include_deprecated = field
+                            .id
+                            .as_data()
+                            .unwrap()
+                            .walk(&self.ctx)
+                            .arguments()
+                            .get_arg_value_as::<bool>("includeDeprecated", self.ctx.variables());
+
                         values.extend(
                             input_object
                                 .input_fields()
-                                .filter(|input_field| !input_field.is_inaccessible())
+                                .filter(|input_field| {
+                                    !input_field.is_inaccessible()
+                                        && (!is_deprecated(input_field.directives()) || include_deprecated)
+                                })
                                 .map(|input_field| self.__input_value(input_field, shape_id)),
                         );
                         self.response.borrow_mut().data.push_list(values).into()
@@ -348,10 +359,20 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
             _Field::Args => {
                 let shape_id = field.shape.as_concrete().unwrap();
                 let mut values = Vec::with_capacity(target.argument_ids.len());
+                let include_deprecated = field
+                    .id
+                    .as_data()
+                    .unwrap()
+                    .walk(&self.ctx)
+                    .arguments()
+                    .get_arg_value_as::<bool>("includeDeprecated", self.ctx.variables());
+
                 values.extend(
                     target
                         .arguments()
-                        .filter(|argument| !argument.is_inaccessible())
+                        .filter(|argument| {
+                            !argument.is_inaccessible() && (!is_deprecated(argument.directives()) || include_deprecated)
+                        })
                         .map(|argument| self.__input_value(argument, shape_id)),
                 );
                 self.response.borrow_mut().data.push_list(values).into()

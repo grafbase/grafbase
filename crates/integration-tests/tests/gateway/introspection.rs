@@ -1075,3 +1075,549 @@ pub fn introspection_to_sdl(data: serde_json::Value) -> String {
         .expect("valid schema")
         .to_sdl()
 }
+
+#[test]
+fn type_input_fields_include_deprecated_filter() {
+    let schema = r#"
+        type Query {
+            dummy(t: MyType): String
+        }
+
+        input MyType {
+            old: String @deprecated(reason: "test")
+            new: String
+        }
+        "#;
+    let response = runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_toml_config(CONFIG)
+            .with_subgraph_sdl("test", schema)
+            .build()
+            .await;
+
+        engine
+            .post(
+                r#"
+                    query {
+                        __schema {
+                            types {
+                                name
+                                withDeprecated: inputFields(includeDeprecated: true) { name }
+                                withoutDeprecated: inputFields(includeDeprecated: false) { name }
+                                defaultDeprecated: inputFields { name }
+                            }
+                        }
+                    }
+                    "#,
+            )
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "__schema": {
+          "types": [
+            {
+              "name": "Boolean",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "Float",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "ID",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "Int",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "MyType",
+              "withDeprecated": [
+                {
+                  "name": "old"
+                },
+                {
+                  "name": "new"
+                }
+              ],
+              "withoutDeprecated": [
+                {
+                  "name": "new"
+                }
+              ],
+              "defaultDeprecated": [
+                {
+                  "name": "new"
+                }
+              ]
+            },
+            {
+              "name": "Query",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "String",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "__Directive",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "__DirectiveLocation",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "__EnumValue",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "__Field",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "__InputValue",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "__Schema",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "__Type",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            },
+            {
+              "name": "__TypeKind",
+              "withDeprecated": null,
+              "withoutDeprecated": null,
+              "defaultDeprecated": null
+            }
+          ]
+        }
+      }
+    }
+    "###);
+}
+
+#[test]
+fn field_args_include_deprecated_filter() {
+    let schema = r#"
+        type Query {
+            test(
+                old: String @deprecated(reason: "test")
+                new: String
+            ): String
+        }
+        "#;
+    let response = runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_toml_config(CONFIG)
+            .with_subgraph_sdl("test", schema)
+            .build()
+            .await;
+
+        engine
+            .post(
+                r#"
+                    query {
+                        __schema {
+                            types {
+                                name
+                                fields {
+                                    name
+                                    withDeprecated: args(includeDeprecated: true) { name }
+                                    withoutDeprecated: args(includeDeprecated: false) { name }
+                                    defaultDeprecated: args { name }
+                                }
+                            }
+                        }
+                    }
+                    "#,
+            )
+            .await
+    });
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "__schema": {
+          "types": [
+            {
+              "name": "Boolean",
+              "fields": null
+            },
+            {
+              "name": "Float",
+              "fields": null
+            },
+            {
+              "name": "ID",
+              "fields": null
+            },
+            {
+              "name": "Int",
+              "fields": null
+            },
+            {
+              "name": "Query",
+              "fields": [
+                {
+                  "name": "test",
+                  "withDeprecated": [
+                    {
+                      "name": "old"
+                    },
+                    {
+                      "name": "new"
+                    }
+                  ],
+                  "withoutDeprecated": [
+                    {
+                      "name": "new"
+                    }
+                  ],
+                  "defaultDeprecated": [
+                    {
+                      "name": "new"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "String",
+              "fields": null
+            },
+            {
+              "name": "__Directive",
+              "fields": [
+                {
+                  "name": "name",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "description",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "locations",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "args",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "isRepeatable",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                }
+              ]
+            },
+            {
+              "name": "__DirectiveLocation",
+              "fields": null
+            },
+            {
+              "name": "__EnumValue",
+              "fields": [
+                {
+                  "name": "name",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "description",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "isDeprecated",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "deprecationReason",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                }
+              ]
+            },
+            {
+              "name": "__Field",
+              "fields": [
+                {
+                  "name": "name",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "description",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "args",
+                  "withDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ],
+                  "withoutDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ],
+                  "defaultDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ]
+                },
+                {
+                  "name": "isDeprecated",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "deprecationReason",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "type",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                }
+              ]
+            },
+            {
+              "name": "__InputValue",
+              "fields": [
+                {
+                  "name": "name",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "description",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "defaultValue",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "type",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                }
+              ]
+            },
+            {
+              "name": "__Schema",
+              "fields": [
+                {
+                  "name": "description",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "types",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "queryType",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "mutationType",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "subscriptionType",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "directives",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                }
+              ]
+            },
+            {
+              "name": "__Type",
+              "fields": [
+                {
+                  "name": "kind",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "name",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "description",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "inputFields",
+                  "withDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ],
+                  "withoutDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ],
+                  "defaultDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ]
+                },
+                {
+                  "name": "specifiedByURL",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "fields",
+                  "withDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ],
+                  "withoutDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ],
+                  "defaultDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ]
+                },
+                {
+                  "name": "enumValues",
+                  "withDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ],
+                  "withoutDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ],
+                  "defaultDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ]
+                },
+                {
+                  "name": "ofType",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "possibleTypes",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "interfaces",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                }
+              ]
+            },
+            {
+              "name": "__TypeKind",
+              "fields": null
+            }
+          ]
+        }
+      }
+    }
+    "###);
+}
