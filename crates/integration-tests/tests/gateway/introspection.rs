@@ -1400,9 +1400,21 @@ fn field_args_include_deprecated_filter() {
                 },
                 {
                   "name": "args",
-                  "withDeprecated": [],
-                  "withoutDeprecated": [],
-                  "defaultDeprecated": []
+                  "withDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ],
+                  "withoutDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ],
+                  "defaultDeprecated": [
+                    {
+                      "name": "includeDeprecated"
+                    }
+                  ]
                 },
                 {
                   "name": "isRepeatable",
