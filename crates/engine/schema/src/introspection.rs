@@ -383,7 +383,7 @@ impl GraphBuilder<'_> {
           name: String!
           description: String
           locations: [__DirectiveLocation!]!
-          args: [__InputValue!]!
+          args(includeDeprecated: Boolean! = false): [__InputValue!]!
           isRepeatable: Boolean!
         }
         */
@@ -561,30 +561,35 @@ impl GraphBuilder<'_> {
         );
 
         {
-            let default_value = Some(
+            let include_deprecated_default_value = Some(
                 self.graph
                     .input_values
                     .push_value(SchemaInputValueRecord::Boolean(false)),
             );
             self.set_field_arguments(
+                __directive.id,
+                "args",
+                std::iter::once(("includeDeprecated", nullable_boolean, include_deprecated_default_value)),
+            );
+            self.set_field_arguments(
                 __type.id,
                 "inputFields",
-                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
+                std::iter::once(("includeDeprecated", nullable_boolean, include_deprecated_default_value)),
             );
             self.set_field_arguments(
                 __field.id,
                 "args",
-                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
+                std::iter::once(("includeDeprecated", nullable_boolean, include_deprecated_default_value)),
             );
             self.set_field_arguments(
                 __type.id,
                 "fields",
-                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
+                std::iter::once(("includeDeprecated", nullable_boolean, include_deprecated_default_value)),
             );
             self.set_field_arguments(
                 __type.id,
                 "enumValues",
-                std::iter::once(("includeDeprecated", nullable_boolean, default_value)),
+                std::iter::once(("includeDeprecated", nullable_boolean, include_deprecated_default_value)),
             );
         }
 

@@ -1231,6 +1231,64 @@ fn type_input_fields_include_deprecated_filter() {
 }
 
 #[test]
+fn directive_args_include_deprecated_filter() {
+    let schema = r#"
+        extend schema
+          @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@composeDirective"])
+          @composeDirective(name: "@test")
+
+        type Query {
+            test: String
+        }
+
+        directive @test(
+            new: String
+            old: String @deprecated(reason: "test")
+        ) on OBJECT
+        "#;
+
+    let response = runtime().block_on(async move {
+        let engine = Gateway::builder()
+            .with_toml_config(CONFIG)
+            .with_subgraph_sdl("test", schema)
+            .build()
+            .await;
+
+        engine
+            .post(
+                r#"
+                    query {
+                        __schema {
+                            directives {
+                                name
+                                withDeprecated: args(includeDeprecated: true) { name }
+                                withoutDeprecated: args(includeDeprecated: false) { name }
+                                defaultDeprecated: args { name }
+                            }
+                        }
+                    }
+                    "#,
+            )
+            .await
+    });
+
+    // TODO: Need to implemented directives... once this is done, then the schema will resolve correctly
+    // Currently, we have that as part of the introspection, to align with the GraphQL spec, but the `__schema.directives`
+    // resolves into empty.
+    // See crates/engine/src/resolver/introspection/writer.rs
+
+    insta::assert_json_snapshot!(response, @r###"
+    {
+      "data": {
+        "__schema": {
+          "directives": []
+        }
+      }
+    }
+    "###);
+}
+
+#[test]
 fn field_args_include_deprecated_filter() {
     let schema = r#"
         type Query {
