@@ -1297,6 +1297,11 @@ fn field_args_include_deprecated_filter() {
                 new: String
             ): String
         }
+
+        input InputTest {
+            old: String @deprecated(reason: "removed")
+            new: String
+        }
         "#;
     let response = runtime().block_on(async move {
         let engine = Gateway::builder()
@@ -1312,6 +1317,11 @@ fn field_args_include_deprecated_filter() {
                         __schema {
                             types {
                                 name
+                                inputFields(includeDeprecated: true) {
+                                    name
+                                    isDeprecated
+                                    deprecationReason
+                                }
                                 fields {
                                     name
                                     withDeprecated: args(includeDeprecated: true) { name }
@@ -1333,22 +1343,43 @@ fn field_args_include_deprecated_filter() {
           "types": [
             {
               "name": "Boolean",
+              "inputFields": null,
               "fields": null
             },
             {
               "name": "Float",
+              "inputFields": null,
               "fields": null
             },
             {
               "name": "ID",
+              "inputFields": null,
+              "fields": null
+            },
+            {
+              "name": "InputTest",
+              "inputFields": [
+                {
+                  "name": "old",
+                  "isDeprecated": true,
+                  "deprecationReason": "removed"
+                },
+                {
+                  "name": "new",
+                  "isDeprecated": false,
+                  "deprecationReason": null
+                }
+              ],
               "fields": null
             },
             {
               "name": "Int",
+              "inputFields": null,
               "fields": null
             },
             {
               "name": "Query",
+              "inputFields": null,
               "fields": [
                 {
                   "name": "test",
@@ -1375,10 +1406,12 @@ fn field_args_include_deprecated_filter() {
             },
             {
               "name": "String",
+              "inputFields": null,
               "fields": null
             },
             {
               "name": "__Directive",
+              "inputFields": null,
               "fields": [
                 {
                   "name": "name",
@@ -1426,10 +1459,12 @@ fn field_args_include_deprecated_filter() {
             },
             {
               "name": "__DirectiveLocation",
+              "inputFields": null,
               "fields": null
             },
             {
               "name": "__EnumValue",
+              "inputFields": null,
               "fields": [
                 {
                   "name": "name",
@@ -1459,6 +1494,7 @@ fn field_args_include_deprecated_filter() {
             },
             {
               "name": "__Field",
+              "inputFields": null,
               "fields": [
                 {
                   "name": "name",
@@ -1512,6 +1548,7 @@ fn field_args_include_deprecated_filter() {
             },
             {
               "name": "__InputValue",
+              "inputFields": null,
               "fields": [
                 {
                   "name": "name",
@@ -1536,11 +1573,24 @@ fn field_args_include_deprecated_filter() {
                   "withDeprecated": [],
                   "withoutDeprecated": [],
                   "defaultDeprecated": []
+                },
+                {
+                  "name": "isDeprecated",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
+                },
+                {
+                  "name": "deprecationReason",
+                  "withDeprecated": [],
+                  "withoutDeprecated": [],
+                  "defaultDeprecated": []
                 }
               ]
             },
             {
               "name": "__Schema",
+              "inputFields": null,
               "fields": [
                 {
                   "name": "description",
@@ -1582,6 +1632,7 @@ fn field_args_include_deprecated_filter() {
             },
             {
               "name": "__Type",
+              "inputFields": null,
               "fields": [
                 {
                   "name": "kind",
@@ -1683,6 +1734,7 @@ fn field_args_include_deprecated_filter() {
             },
             {
               "name": "__TypeKind",
+              "inputFields": null,
               "fields": null
             }
           ]

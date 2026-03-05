@@ -89,6 +89,8 @@ pub enum __InputValue {
     Description,
     Type,
     DefaultValue,
+    IsDeprecated,
+    DeprecationReason,
 }
 
 #[derive(
@@ -357,6 +359,8 @@ impl GraphBuilder<'_> {
           description: String
           type: __Type!
           defaultValue: String
+          isDeprecated: Boolean!
+          deprecationReason: String
         }
         */
         let mut __input_value = self.insert_object("__InputValue");
@@ -478,6 +482,8 @@ impl GraphBuilder<'_> {
                 ("description", nullable_string, __InputValue::Description),
                 ("defaultValue", nullable_string, __InputValue::DefaultValue),
                 ("type", required__type, __InputValue::Type),
+                ("isDeprecated", required_boolean, __InputValue::IsDeprecated),
+                ("deprecationReason", nullable_string, __InputValue::DeprecationReason),
             ],
         );
 

@@ -304,7 +304,7 @@ fn search_analytics() {
                 json!({"keywords": ["request count", "analytics", "api graph"]}),
             )
             .await;
-        insta::assert_snapshot!(response, @r##"
+        insta::assert_snapshot!(response, @r###"
         # Incomplete fields
         type Query {
           "Get a graph by account slug and slug of the graph itself."
@@ -580,15 +580,12 @@ fn search_analytics() {
           count: Int!
         }
 
-        type Subgraph {
-          createdAt: DateTime!
-          name: String!
-          owners: [Team!]!
-          schema: String!
-          updatedAt: DateTime!
-          url: String
+        type TopOperationsByNameAndHash {
+          orderedByHighestCount: [TopOperationByNameAndHashOrderedByHighestCount!]!
+          orderedByHighestErrorRatio: [TopOperationByNameAndHashOrderedByHighestErrorRatio!]!
+          orderedByHighestLatency: [TopOperationByNameAndHashOrderedByHighestLatency!]!
         }
-        "##);
+        "###);
     });
 }
 

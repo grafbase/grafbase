@@ -391,6 +391,8 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                 __InputValue::Name => target.as_ref().name_id.into(),
                 __InputValue::Description => target.as_ref().description_id.into(),
                 __InputValue::Type => self.__type(target.ty(), field.shape.as_concrete().unwrap()),
+                __InputValue::IsDeprecated => is_deprecated(target.directives()).into(),
+                __InputValue::DeprecationReason => deprecation_reason(target.directives()).into(),
                 __InputValue::DefaultValue => target
                     .as_ref()
                     .default_value_id
