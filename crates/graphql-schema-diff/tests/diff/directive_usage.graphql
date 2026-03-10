@@ -1,0 +1,51 @@
+directive @auth(requires: Role = ADMIN) on OBJECT | FIELD_DEFINITION
+directive @deprecated(reason: String) on FIELD_DEFINITION | ENUM_VALUE
+directive @key(fields: String!) repeatable on OBJECT
+
+type Query {
+  user: User
+  admin: User @auth
+}
+
+type User @key(fields: "id") {
+  id: ID!
+  name: String! @deprecated(reason: "use fullName")
+  role: Role!
+}
+
+enum Role {
+  ADMIN
+  USER @deprecated(reason: "no longer supported")
+}
+
+input PriceArgs {
+  quantity: Int!
+  packaging: String! @deprecated(reason: "no longer supported")
+}
+
+# --- #
+
+directive @auth(requires: Role = ADMIN) on OBJECT | FIELD_DEFINITION
+directive @deprecated(reason: String) on FIELD_DEFINITION | ENUM_VALUE
+directive @key(fields: String!) repeatable on OBJECT
+
+type Query {
+  user: User @auth
+  admin: User
+}
+
+type User @key(fields: "id") @key(fields: "name") {
+  id: ID!
+  name: String!
+  role: Role!
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+input PriceArgs {
+  quantity: Int! @deprecated(reason: "no longer supported")
+  packaging: String!
+}

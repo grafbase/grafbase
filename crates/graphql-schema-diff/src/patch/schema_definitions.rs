@@ -42,7 +42,7 @@ pub(super) fn patch_schema_definition<T: AsRef<str>>(
 
     schema.push_str("schema");
 
-    patch_directives(definition.directives(), schema, paths);
+    patch_directives(definition.directives(), schema, paths, ":schema", None);
 
     let any_root_type_defined = new_query_type.is_some()
         || new_mutation_type.is_some()

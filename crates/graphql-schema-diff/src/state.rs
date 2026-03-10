@@ -13,6 +13,10 @@ pub(crate) struct DiffState<'a> {
     pub(crate) fields_map: DiffMap<[&'a str; 2], (Option<ast::Type<'a>>, Span)>,
     pub(crate) interface_impls: DiffMap<&'a str, Vec<&'a str>>,
     pub(crate) arguments_map: DiffMap<[&'a str; 3], ast::InputValueDefinition<'a>>,
+    /// Directive usages on type definitions. Key: type name. Value: [source directives, target directives].
+    pub(crate) type_directives: HashMap<&'a str, [Vec<ast::Directive<'a>>; 2]>,
+    /// Directive usages on fields (including enum values, input fields). Key: [type name, field name].
+    pub(crate) field_directives: HashMap<[&'a str; 2], [Vec<ast::Directive<'a>>; 2]>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -53,6 +57,8 @@ impl DiffState<'_> {
             fields_map,
             arguments_map,
             interface_impls,
+            type_directives,
+            field_directives,
         } = self;
 
         let mut changes = Vec::new();
@@ -71,6 +77,13 @@ impl DiffState<'_> {
         push_definition_changes(&types_map, &mut push_change);
         push_field_changes(&fields_map, &types_map, &mut push_change);
         push_argument_changes(&fields_map, &arguments_map, &mut push_change);
+        push_directive_usage_changes(
+            &type_directives,
+            &field_directives,
+            &types_map,
+            &fields_map,
+            &mut push_change,
+        );
 
         changes.sort();
 
@@ -305,6 +318,118 @@ fn push_removed_type(name: &str, definition: ast::Definition<'_>, push_change: P
         change_kind,
         definition.span().into(),
     );
+}
+
+fn push_directive_usage_changes(
+    type_directives: &HashMap<&str, [Vec<ast::Directive<'_>>; 2]>,
+    field_directives: &HashMap<[&str; 2], [Vec<ast::Directive<'_>>; 2]>,
+    types_map: &DiffMap<&str, ast::Definition<'_>>,
+    fields_map: &DiffMap<[&str; 2], (Option<ast::Type<'_>>, Span)>,
+    push_change: PushChangeFn<'_>,
+) {
+    for (type_name, [src, target]) in type_directives {
+        // Skip types that were added or removed entirely, or changed kind.
+        match types_map.get(type_name) {
+            Some((Some(a), Some(b))) if DefinitionKind::new(a) == DefinitionKind::new(b) => (),
+            _ => continue,
+        }
+
+        diff_directive_usages(src, target, |name, idx, kind, span| {
+            push_change(
+                path::Path::TypeDefinition(type_name, Some(path::PathInType::InDirective(name, idx))),
+                kind,
+                span,
+            );
+        });
+    }
+
+    for ([type_name, field_name], [src, target]) in field_directives {
+        // Skip if the parent type was added/removed/changed-kind.
+        match types_map.get(type_name) {
+            Some((Some(a), Some(b))) if DefinitionKind::new(a) == DefinitionKind::new(b) => (),
+            _ => continue,
+        }
+        // Skip if the field was added or removed entirely.
+        match fields_map.get(&[*type_name, *field_name]) {
+            Some((Some(_), Some(_))) => (),
+            _ => continue,
+        }
+
+        diff_directive_usages(src, target, |name, idx, kind, span| {
+            push_change(
+                path::Path::TypeDefinition(
+                    type_name,
+                    Some(path::PathInType::InField(
+                        field_name,
+                        Some(path::PathInField::InDirective(name, idx)),
+                    )),
+                ),
+                kind,
+                span,
+            );
+        });
+    }
+}
+
+fn diff_directive_usages<'a>(
+    src: &[ast::Directive<'a>],
+    target: &[ast::Directive<'a>],
+    mut emit: impl FnMut(&'a str, usize, ChangeKind, Span),
+) {
+    // Group by directive name to track per-name indices (repeatable directives can appear multiple times).
+    let src_by_name = group_directives_by_name(src);
+    let target_by_name = group_directives_by_name(target);
+
+    for (&name, src_list) in &src_by_name {
+        let target_list = target_by_name.get(name).map(Vec::as_slice).unwrap_or(&[]);
+        diff_same_name_directives(name, src_list, target_list, &mut emit);
+    }
+
+    for (&name, target_list) in &target_by_name {
+        if !src_by_name.contains_key(name) {
+            diff_same_name_directives(name, &[], target_list, &mut emit);
+        }
+    }
+}
+
+fn diff_same_name_directives<'a>(
+    name: &'a str,
+    src: &[ast::Directive<'a>],
+    target: &[ast::Directive<'a>],
+    emit: &mut impl FnMut(&'a str, usize, ChangeKind, Span),
+) {
+    for i in 0..src.len().max(target.len()) {
+        match (src.get(i), target.get(i)) {
+            (None, Some(d)) => emit(name, i, ChangeKind::AddDirective, directive_usage_span(d)),
+            (Some(_), None) => emit(name, i, ChangeKind::RemoveDirective, Span::empty()),
+            (Some(s), Some(t)) if !directive_args_equal(s, t) => {
+                emit(name, i, ChangeKind::RemoveDirective, Span::empty());
+                emit(name, i, ChangeKind::AddDirective, directive_usage_span(t));
+            }
+            _ => (),
+        }
+    }
+}
+
+fn group_directives_by_name<'a>(directives: &[ast::Directive<'a>]) -> HashMap<&'a str, Vec<ast::Directive<'a>>> {
+    let mut map: HashMap<&'a str, Vec<ast::Directive<'a>>> = HashMap::new();
+    for d in directives {
+        map.entry(d.name()).or_default().push(*d);
+    }
+    map
+}
+
+fn directive_args_equal(a: &ast::Directive<'_>, b: &ast::Directive<'_>) -> bool {
+    let a_args: Vec<_> = a.arguments().map(|arg| (arg.name(), arg.value())).collect();
+    let b_args: Vec<_> = b.arguments().map(|arg| (arg.name(), arg.value())).collect();
+    a_args == b_args
+}
+
+fn directive_usage_span(d: &ast::Directive<'_>) -> Span {
+    let name_span = d.name_span();
+    let args_span = d.arguments_span();
+    // name_span starts at the @ sign and covers the whole name.
+    Span::new(name_span.start, name_span.end.max(args_span.end))
 }
 
 fn push_schema_definition_changes(

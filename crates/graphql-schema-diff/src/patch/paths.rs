@@ -79,6 +79,35 @@ where
             })
             .is_ok()
     }
+
+    /// Iterate directive usage changes (`AddDirective`/`RemoveDirective`) at a specific context.
+    ///
+    /// - Type-level directives: `field_name` is `None`.
+    /// - Field-level directives: `field_name` is `Some(name)`.
+    pub(crate) fn directive_usage_changes_at<'b: 'a>(
+        &'b self,
+        type_name: &'b str,
+        field_name: Option<&'b str>,
+    ) -> impl Iterator<Item = ChangeView<'a, T>> + 'b {
+        self.paths
+            .iter()
+            .filter(move |(change, idx)| {
+                if !matches!(
+                    self.diff[*idx].kind,
+                    ChangeKind::AddDirective | ChangeKind::RemoveDirective
+                ) {
+                    return false;
+                }
+                if change[0] != type_name {
+                    return false;
+                }
+                match field_name {
+                    None => change[1].starts_with('@') && change[2].is_empty(),
+                    Some(field) => change[1] == field && change[2].starts_with('@'),
+                }
+            })
+            .map(move |(_, idx)| ChangeView { paths: self, idx: *idx })
+    }
 }
 
 pub(super) struct ChangeView<'a, T>

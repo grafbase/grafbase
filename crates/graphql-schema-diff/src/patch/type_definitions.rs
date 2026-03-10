@@ -65,7 +65,7 @@ pub(super) fn patch_type_definition<T: AsRef<str>>(
         schema.push_str(&implements.join(" & "));
     }
 
-    patch_directives(ty.directives(), schema, paths);
+    patch_directives(ty.directives(), schema, paths, ty.name(), None);
 
     match ty {
         TypeDefinition::Scalar(_) => (),
@@ -107,6 +107,8 @@ fn patch_input_object<'a, T: AsRef<str>>(
                 schema.push_str(change.resolved_str().trim());
                 schema.push('\n');
             }
+            // Directive usage changes are handled within patch_directives per field/type.
+            ChangeKind::AddDirective | ChangeKind::RemoveDirective => (),
             kind => {
                 debug_assert!(false, "Unhandled change at `{path}`: {kind:?}", path = change.path())
             }
@@ -131,7 +133,7 @@ fn patch_input_object<'a, T: AsRef<str>>(
             schema.push_str(&field.ty().to_string());
         }
 
-        patch_directives(field.directives(), schema, paths);
+        patch_directives(field.directives(), schema, paths, parent, Some(field.name()));
 
         schema.push('\n');
     }
@@ -179,6 +181,8 @@ fn patch_fields<'a, T>(
             ChangeKind::RemoveFieldArgument => {
                 removed_arguments.push(change.second_and_third_level());
             }
+            // Directive usage changes are handled within patch_directives per field/type.
+            ChangeKind::AddDirective | ChangeKind::RemoveDirective => (),
             kind => {
                 debug_assert!(false, "Unhandled change at `{path}`: {kind:?}", path = change.path())
             }
@@ -240,8 +244,6 @@ fn patch_fields<'a, T>(
                     schema.push_str(&paths.source()[span.start..span.end]);
                 }
 
-                patch_directives(argument.directives(), schema, paths);
-
                 if arguments.peek().is_some() {
                     schema.push_str(", ");
                 }
@@ -258,7 +260,7 @@ fn patch_fields<'a, T>(
             schema.push_str(&field.ty().to_string());
         }
 
-        patch_directives(field.directives(), schema, paths);
+        patch_directives(field.directives(), schema, paths, parent, Some(field.name()));
 
         schema.push('\n');
     }
@@ -289,6 +291,8 @@ fn patch_enum_values<'a, T>(
                 let value = change.second_level().expect("RemoveEnumValue without value");
                 removed_enum_values.push(value);
             }
+            // Directive usage changes are handled within patch_directives per value/type.
+            ChangeKind::AddDirective | ChangeKind::RemoveDirective => (),
             kind => {
                 debug_assert!(false, "Unhandled change at `{path}`: {kind:?}", path = change.path())
             }
@@ -305,7 +309,7 @@ fn patch_enum_values<'a, T>(
         schema.push_str(INDENTATION);
         schema.push_str(value.value());
 
-        patch_directives(value.directives(), schema, paths);
+        patch_directives(value.directives(), schema, paths, enum_name, Some(value.value()));
 
         schema.push('\n');
     }

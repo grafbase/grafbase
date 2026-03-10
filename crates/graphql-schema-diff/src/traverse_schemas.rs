@@ -37,11 +37,13 @@ fn traverse_source<'a>(source: &'a ast::TypeSystemDocument, state: &mut DiffStat
                 let type_name = tpe.name();
 
                 match &tpe {
-                    ast::TypeDefinition::Scalar(_) => {
+                    ast::TypeDefinition::Scalar(scalar) => {
                         state.types_map.insert(type_name, (Some(definition), None));
+                        state.type_directives.entry(type_name).or_default()[0].extend(scalar.directives());
                     }
                     ast::TypeDefinition::Object(obj) => {
                         state.types_map.insert(type_name, (Some(definition), None));
+                        state.type_directives.entry(type_name).or_default()[0].extend(obj.directives());
                         insert_source(
                             &mut state.interface_impls,
                             type_name,
@@ -56,6 +58,8 @@ fn traverse_source<'a>(source: &'a ast::TypeSystemDocument, state: &mut DiffStat
                                 [type_name, field_name],
                                 (Some(field.ty()), field.span().into()),
                             );
+                            state.field_directives.entry([type_name, field_name]).or_default()[0]
+                                .extend(field.directives());
 
                             let mut args = field.arguments();
                             fill_args_src(&mut state.arguments_map, type_name, field_name, &mut args);
@@ -63,6 +67,7 @@ fn traverse_source<'a>(source: &'a ast::TypeSystemDocument, state: &mut DiffStat
                     }
                     ast::TypeDefinition::Interface(iface) => {
                         state.types_map.insert(type_name, (Some(definition), None));
+                        state.type_directives.entry(type_name).or_default()[0].extend(iface.directives());
                         insert_source(
                             &mut state.interface_impls,
                             type_name,
@@ -77,12 +82,15 @@ fn traverse_source<'a>(source: &'a ast::TypeSystemDocument, state: &mut DiffStat
                                 [type_name, field_name],
                                 (Some(field.ty()), field.span().into()),
                             );
+                            state.field_directives.entry([type_name, field_name]).or_default()[0]
+                                .extend(field.directives());
 
                             fill_args_src(&mut state.arguments_map, type_name, field_name, &mut field.arguments());
                         }
                     }
                     ast::TypeDefinition::Union(union) => {
                         state.types_map.insert(type_name, (Some(definition), None));
+                        state.type_directives.entry(type_name).or_default()[0].extend(union.directives());
 
                         for member in union.members() {
                             insert_source(
@@ -94,6 +102,7 @@ fn traverse_source<'a>(source: &'a ast::TypeSystemDocument, state: &mut DiffStat
                     }
                     ast::TypeDefinition::Enum(enm) => {
                         state.types_map.insert(type_name, (Some(definition), None));
+                        state.type_directives.entry(type_name).or_default()[0].extend(enm.directives());
 
                         for value in enm.values() {
                             insert_source(
@@ -101,10 +110,13 @@ fn traverse_source<'a>(source: &'a ast::TypeSystemDocument, state: &mut DiffStat
                                 [type_name, value.value()],
                                 (None, value.span().into()),
                             );
+                            state.field_directives.entry([type_name, value.value()]).or_default()[0]
+                                .extend(value.directives());
                         }
                     }
                     ast::TypeDefinition::InputObject(input) => {
                         state.types_map.insert(type_name, (Some(definition), None));
+                        state.type_directives.entry(type_name).or_default()[0].extend(input.directives());
 
                         for field in input.fields() {
                             insert_source(
@@ -112,6 +124,8 @@ fn traverse_source<'a>(source: &'a ast::TypeSystemDocument, state: &mut DiffStat
                                 [type_name, field.name()],
                                 (Some(field.ty()), field.span().into()),
                             );
+                            state.field_directives.entry([type_name, field.name()]).or_default()[0]
+                                .extend(field.directives());
                         }
                     }
                 }
@@ -144,11 +158,13 @@ fn traverse_target<'a>(target: &'a ast::TypeSystemDocument, state: &mut DiffStat
                 let type_name = tpe.name();
 
                 match tpe {
-                    ast::TypeDefinition::Scalar(_) => {
+                    ast::TypeDefinition::Scalar(scalar) => {
                         state.types_map.entry(type_name).or_default().1 = Some(definition);
+                        state.type_directives.entry(type_name).or_default()[1].extend(scalar.directives());
                     }
                     ast::TypeDefinition::Object(obj) => {
                         state.types_map.entry(type_name).or_default().1 = Some(definition);
+                        state.type_directives.entry(type_name).or_default()[1].extend(obj.directives());
                         merge_target(
                             state.interface_impls.entry(type_name),
                             obj.implements_interfaces().collect(),
@@ -159,12 +175,15 @@ fn traverse_target<'a>(target: &'a ast::TypeSystemDocument, state: &mut DiffStat
                                 state.fields_map.entry([type_name, field.name()]),
                                 (Some(field.ty()), field.span().into()),
                             );
+                            state.field_directives.entry([type_name, field.name()]).or_default()[1]
+                                .extend(field.directives());
                             let mut args = field.arguments();
                             args_target(&mut state.arguments_map, type_name, field.name(), &mut args);
                         }
                     }
                     ast::TypeDefinition::Interface(iface) => {
                         state.types_map.entry(type_name).or_default().1 = Some(definition);
+                        state.type_directives.entry(type_name).or_default()[1].extend(iface.directives());
                         merge_target(
                             state.interface_impls.entry(type_name),
                             iface.implements_interfaces().collect(),
@@ -177,11 +196,14 @@ fn traverse_target<'a>(target: &'a ast::TypeSystemDocument, state: &mut DiffStat
                                 state.fields_map.entry([type_name, field_name]),
                                 (Some(field.ty()), field.span().into()),
                             );
+                            state.field_directives.entry([type_name, field_name]).or_default()[1]
+                                .extend(field.directives());
                             args_target(&mut state.arguments_map, type_name, field_name, &mut field.arguments());
                         }
                     }
                     ast::TypeDefinition::Union(union) => {
                         state.types_map.entry(type_name).or_default().1 = Some(definition);
+                        state.type_directives.entry(type_name).or_default()[1].extend(union.directives());
 
                         for member in union.members() {
                             merge_target(
@@ -192,22 +214,28 @@ fn traverse_target<'a>(target: &'a ast::TypeSystemDocument, state: &mut DiffStat
                     }
                     ast::TypeDefinition::Enum(enm) => {
                         state.types_map.entry(type_name).or_default().1 = Some(definition);
+                        state.type_directives.entry(type_name).or_default()[1].extend(enm.directives());
 
                         for value in enm.values() {
                             merge_target(
                                 state.fields_map.entry([type_name, value.value()]),
                                 (None, value.span().into()),
                             );
+                            state.field_directives.entry([type_name, value.value()]).or_default()[1]
+                                .extend(value.directives());
                         }
                     }
                     ast::TypeDefinition::InputObject(input) => {
                         state.types_map.entry(type_name).or_default().1 = Some(definition);
+                        state.type_directives.entry(type_name).or_default()[1].extend(input.directives());
 
                         for field in input.fields() {
                             merge_target(
                                 state.fields_map.entry([type_name, field.name()]),
                                 (Some(field.ty()), field.span().into()),
                             );
+                            state.field_directives.entry([type_name, field.name()]).or_default()[1]
+                                .extend(field.directives());
                         }
                     }
                 }
