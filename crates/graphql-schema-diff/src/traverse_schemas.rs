@@ -63,6 +63,14 @@ fn traverse_source<'a>(source: &'a ast::TypeSystemDocument, state: &mut DiffStat
 
                             let mut args = field.arguments();
                             fill_args_src(&mut state.arguments_map, type_name, field_name, &mut args);
+
+                            for arg in field.arguments() {
+                                state
+                                    .argument_directives
+                                    .entry([type_name, field_name, arg.name()])
+                                    .or_default()[0]
+                                    .extend(arg.directives());
+                            }
                         }
                     }
                     ast::TypeDefinition::Interface(iface) => {
@@ -86,6 +94,14 @@ fn traverse_source<'a>(source: &'a ast::TypeSystemDocument, state: &mut DiffStat
                                 .extend(field.directives());
 
                             fill_args_src(&mut state.arguments_map, type_name, field_name, &mut field.arguments());
+
+                            for arg in field.arguments() {
+                                state
+                                    .argument_directives
+                                    .entry([type_name, field_name, arg.name()])
+                                    .or_default()[0]
+                                    .extend(arg.directives());
+                            }
                         }
                     }
                     ast::TypeDefinition::Union(union) => {
@@ -179,6 +195,14 @@ fn traverse_target<'a>(target: &'a ast::TypeSystemDocument, state: &mut DiffStat
                                 .extend(field.directives());
                             let mut args = field.arguments();
                             args_target(&mut state.arguments_map, type_name, field.name(), &mut args);
+
+                            for arg in field.arguments() {
+                                state
+                                    .argument_directives
+                                    .entry([type_name, field.name(), arg.name()])
+                                    .or_default()[1]
+                                    .extend(arg.directives());
+                            }
                         }
                     }
                     ast::TypeDefinition::Interface(iface) => {
@@ -199,6 +223,14 @@ fn traverse_target<'a>(target: &'a ast::TypeSystemDocument, state: &mut DiffStat
                             state.field_directives.entry([type_name, field_name]).or_default()[1]
                                 .extend(field.directives());
                             args_target(&mut state.arguments_map, type_name, field_name, &mut field.arguments());
+
+                            for arg in field.arguments() {
+                                state
+                                    .argument_directives
+                                    .entry([type_name, field_name, arg.name()])
+                                    .or_default()[1]
+                                    .extend(arg.directives());
+                            }
                         }
                     }
                     ast::TypeDefinition::Union(union) => {

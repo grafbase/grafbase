@@ -10,7 +10,7 @@ pub(super) fn patch_directive_definition<T: AsRef<str>>(
     paths: &Paths<'_, T>,
 ) {
     if paths
-        .iter_exact([directive_definition.name(), "", ""])
+        .iter_exact([directive_definition.name(), "", "", ""])
         .any(|change| matches!(change.kind(), ChangeKind::RemoveDirectiveDefinition))
     {
         return;
@@ -22,19 +22,23 @@ pub(super) fn patch_directive_definition<T: AsRef<str>>(
     schema.push_str("\n\n");
 }
 
-/// Patch directive usages on a type or field.
-///
-/// `field_name` is `None` for type-level directives, or `Some(name)` for field-level ones.
+/// The context in which directive usages are being patched.
+pub(in crate::patch) enum DirectiveContext<'a> {
+    Type(&'a str),
+    Field(&'a str, &'a str),
+    Argument(&'a str, &'a str, &'a str),
+}
+
+/// Patch directive usages on a type, field, or argument.
 pub(in crate::patch) fn patch_directives<'a, T>(
     directives: impl Iterator<Item = Directive<'a>>,
     schema: &mut String,
     paths: &Paths<'_, T>,
-    type_name: &str,
-    field_name: Option<&str>,
+    context: DirectiveContext<'_>,
 ) where
     T: AsRef<str>,
 {
-    let changes: Vec<_> = paths.directive_usage_changes_at(type_name, field_name).collect();
+    let changes: Vec<_> = paths.directive_usage_changes_at(context).collect();
 
     // Collect removed directives as (name, per-name-index) pairs.
     let removed: Vec<(&str, usize)> = changes

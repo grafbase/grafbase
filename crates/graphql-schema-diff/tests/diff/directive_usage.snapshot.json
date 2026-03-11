@@ -12,8 +12,8 @@
       "path": "PriceArgs.quantity.@deprecated[0]",
       "kind": "AddDirective",
       "span": {
-        "start": 405,
-        "end": 447
+        "start": 505,
+        "end": 547
       }
     },
     {
@@ -49,6 +49,22 @@
       }
     },
     {
+      "path": "User.autorized.action.@deprecated[0]",
+      "kind": "RemoveDirective",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
+    },
+    {
+      "path": "User.autorized.newAction.@deprecated[0]",
+      "kind": "AddDirective",
+      "span": {
+        "start": 383,
+        "end": 425
+      }
+    },
+    {
       "path": "User.name.@deprecated[0]",
       "kind": "RemoveDirective",
       "span": {
@@ -62,8 +78,8 @@
       "path": "PriceArgs.packaging.@deprecated[0]",
       "kind": "AddDirective",
       "span": {
-        "start": 482,
-        "end": 524
+        "start": 576,
+        "end": 618
       }
     },
     {
@@ -94,12 +110,28 @@
       "path": "Role.USER.@deprecated[0]",
       "kind": "AddDirective",
       "span": {
-        "start": 380,
-        "end": 422
+        "start": 474,
+        "end": 516
       }
     },
     {
       "path": "User.@key[1]",
+      "kind": "RemoveDirective",
+      "span": {
+        "start": 0,
+        "end": 0
+      }
+    },
+    {
+      "path": "User.autorized.action.@deprecated[0]",
+      "kind": "AddDirective",
+      "span": {
+        "start": 377,
+        "end": 413
+      }
+    },
+    {
+      "path": "User.autorized.newAction.@deprecated[0]",
       "kind": "RemoveDirective",
       "span": {
         "start": 0,

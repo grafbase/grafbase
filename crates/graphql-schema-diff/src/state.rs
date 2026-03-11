@@ -17,6 +17,8 @@ pub(crate) struct DiffState<'a> {
     pub(crate) type_directives: HashMap<&'a str, [Vec<ast::Directive<'a>>; 2]>,
     /// Directive usages on fields (including enum values, input fields). Key: [type name, field name].
     pub(crate) field_directives: HashMap<[&'a str; 2], [Vec<ast::Directive<'a>>; 2]>,
+    /// Directive usages on field arguments. Key: [type name, field name, arg name].
+    pub(crate) argument_directives: HashMap<[&'a str; 3], [Vec<ast::Directive<'a>>; 2]>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -59,6 +61,7 @@ impl DiffState<'_> {
             interface_impls,
             type_directives,
             field_directives,
+            argument_directives,
         } = self;
 
         let mut changes = Vec::new();
@@ -80,6 +83,7 @@ impl DiffState<'_> {
         push_directive_usage_changes(
             &type_directives,
             &field_directives,
+            &argument_directives,
             &types_map,
             &fields_map,
             &mut push_change,
@@ -160,7 +164,7 @@ fn push_argument_changes(
             type_name,
             Some(path::PathInType::InField(
                 field_name,
-                Some(path::PathInField::InArgument(arg_name)),
+                Some(path::PathInField::InArgument(arg_name, None)),
             )),
         );
 
@@ -323,6 +327,7 @@ fn push_removed_type(name: &str, definition: ast::Definition<'_>, push_change: P
 fn push_directive_usage_changes(
     type_directives: &HashMap<&str, [Vec<ast::Directive<'_>>; 2]>,
     field_directives: &HashMap<[&str; 2], [Vec<ast::Directive<'_>>; 2]>,
+    argument_directives: &HashMap<[&str; 3], [Vec<ast::Directive<'_>>; 2]>,
     types_map: &DiffMap<&str, ast::Definition<'_>>,
     fields_map: &DiffMap<[&str; 2], (Option<ast::Type<'_>>, Span)>,
     push_change: PushChangeFn<'_>,
@@ -362,6 +367,36 @@ fn push_directive_usage_changes(
                     Some(path::PathInType::InField(
                         field_name,
                         Some(path::PathInField::InDirective(name, idx)),
+                    )),
+                ),
+                kind,
+                span,
+            );
+        });
+    }
+
+    for ([type_name, field_name, arg_name], [src, target]) in argument_directives {
+        // Skip if parent type was added/removed/changed-kind.
+        match types_map.get(type_name) {
+            Some((Some(a), Some(b))) if DefinitionKind::new(a) == DefinitionKind::new(b) => (),
+            _ => continue,
+        }
+        // Skip if parent field was added or removed entirely.
+        match fields_map.get(&[*type_name, *field_name]) {
+            Some((Some(_), Some(_))) => (),
+            _ => continue,
+        }
+
+        diff_directive_usages(src, target, |name, idx, kind, span| {
+            push_change(
+                path::Path::TypeDefinition(
+                    type_name,
+                    Some(path::PathInType::InField(
+                        field_name,
+                        Some(path::PathInField::InArgument(
+                            arg_name,
+                            Some(path::PathInArgument::InDirective(name, idx)),
+                        )),
                     )),
                 ),
                 kind,

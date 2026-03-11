@@ -11,6 +11,7 @@ type User @key(fields: "id") {
   id: ID!
   name: String! @deprecated(reason: "use fullName")
   role: Role!
+  autorized(action: String @deprecated(reason: "use newAction"), newAction: String): Boolean!
 }
 
 enum Role {
@@ -38,6 +39,7 @@ type User @key(fields: "id") @key(fields: "name") {
   id: ID!
   name: String!
   role: Role!
+  autorized(action: String, newAction: String @deprecated(reason: "no longer supported")): Boolean!
 }
 
 enum Role {
