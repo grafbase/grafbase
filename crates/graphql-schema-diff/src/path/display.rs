@@ -66,11 +66,31 @@ impl fmt::Display for PathInType<'_> {
 impl fmt::Display for PathInField<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            PathInField::InArgument(arg_name) => f.write_str(arg_name),
+            PathInField::InArgument(name, path_in_arg) => {
+                f.write_str(name)?;
+                if let Some(path_in_arg) = path_in_arg {
+                    f.write_str(".")?;
+                    path_in_arg.fmt(f)
+                } else {
+                    Ok(())
+                }
+            }
             PathInField::InDirective(directive_name, directive_idx) => {
                 f.write_str("@")?;
                 f.write_str(directive_name)?;
                 write_index(directive_idx, f)
+            }
+        }
+    }
+}
+
+impl fmt::Display for PathInArgument<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PathInArgument::InDirective(name, idx) => {
+                f.write_str("@")?;
+                f.write_str(name)?;
+                write_index(idx, f)
             }
         }
     }

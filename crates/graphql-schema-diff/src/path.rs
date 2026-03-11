@@ -51,7 +51,12 @@ pub enum PathInType<'a> {
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum PathInField<'a> {
-    InArgument(&'a str),
+    InArgument(&'a str, Option<PathInArgument<'a>>),
+    InDirective(&'a str, usize),
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+pub enum PathInArgument<'a> {
     InDirective(&'a str, usize),
 }
 
@@ -115,6 +120,10 @@ mod tests {
             "@test[0]",
             "myObject.&MyInterface.a",
             "myObject.&MyInterface.",
+            // Argument path errors
+            "myObject._abc1.arg1.",
+            "myObject._abc1.arg1.something",
+            "myObject._abc1.arg1.@requires",
         ] {
             expect_error(case);
         }
@@ -149,6 +158,7 @@ mod tests {
             "myObject._abc1.@requires[0]",
             "myObject._abc1.@requires[100]",
             "myObject._abc1.arg1",
+            "myObject._abc1.arg1.@deprecated[0]",
             "myObject.&MyInterface",
         ] {
             test(case);

@@ -1,0 +1,19 @@
+type Query {
+  user: User
+}
+
+type User {
+  name: String!
+  familyName: String!
+}
+
+# --- #
+
+type Query {
+  user: User
+}
+
+type User {
+  name: String!
+  familyName: String! @deprecated(reason: "use 'name'")
+}

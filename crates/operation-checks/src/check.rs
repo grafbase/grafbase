@@ -135,6 +135,8 @@ fn check_change<T: UsageProvider>(args: CheckArgs<'_, '_, T>) -> Option<CheckDia
         // Directives do not directly affect the shape of the API.
         | ChangeKind::AddDirectiveDefinition
         | ChangeKind::RemoveDirectiveDefinition
+        | ChangeKind::AddDirective
+        | ChangeKind::RemoveDirective
 
         // Adding or changing the default on an argument will not break clients.
         | ChangeKind::AddFieldArgumentDefault
