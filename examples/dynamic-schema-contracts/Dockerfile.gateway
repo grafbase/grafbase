@@ -5,7 +5,7 @@ WORKDIR /build
 RUN apk --no-cache add curl bash musl-dev
 
 RUN curl -fsSL https://grafbase.com/downloads/cli | bash && \
-    mv ~/.grafbase/bin/grafbase /usr/bin/grafbase
+    mv ./grafbase /usr/bin/grafbase
 
 COPY grafbase.toml ./
 COPY grafbase-extensions.lock ./
