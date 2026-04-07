@@ -4,8 +4,8 @@ use schema::{
     EntityDefinition, EnumValue, FieldDefinition, InputValueDefinition, InterfaceDefinition, ListWrapping,
     MutableWrapping, ObjectDefinition, Schema, StringId, Type, TypeDefinition, TypeSystemDirective,
     introspection::{
-        __EnumValue, __InputValue, __Schema, __Type, _Field, IntrospectionField, IntrospectionObject,
-        IntrospectionSubgraph,
+        __Directive, __EnumValue, __InputValue, __Schema, __Type, _Field, IntrospectionDirective, IntrospectionField,
+        IntrospectionObject, IntrospectionSubgraph,
     },
 };
 use walker::{Iter, Walk};
@@ -104,40 +104,44 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
     }
 
     fn __schema(&self, shape_id: ConcreteShapeId) -> ResponseValue {
-        self.object(&self.metadata.__schema, shape_id, |field, __schema| {
-            match __schema {
-                __Schema::Description => self.schema.graph.description_id.into(),
-                __Schema::Types => {
-                    let shape_id = field.shape.as_concrete().unwrap();
-                    let mut values = Vec::with_capacity(self.schema.type_definitions().len());
-                    values.extend(
-                        self.schema
-                            .type_definitions()
-                            .filter(|def| !def.is_inaccessible())
-                            .map(|definition| self.__type_inner(definition, shape_id)),
-                    );
-                    self.response.borrow_mut().data.push_list(values).into()
-                }
-                __Schema::QueryType => self.__type_inner(
-                    TypeDefinition::Object(self.schema.query()),
-                    field.shape.as_concrete().unwrap(),
-                ),
-                __Schema::MutationType => self
-                    .schema
-                    .mutation()
-                    .map(|mutation| {
-                        self.__type_inner(TypeDefinition::Object(mutation), field.shape.as_concrete().unwrap())
-                    })
-                    .unwrap_or_default(),
-                __Schema::SubscriptionType => self
-                    .schema
-                    .subscription()
-                    .map(|subscription| {
-                        self.__type_inner(TypeDefinition::Object(subscription), field.shape.as_concrete().unwrap())
-                    })
-                    .unwrap_or_default(),
-                // TODO: Need to implemented directives...
-                __Schema::Directives => self.response.borrow_mut().data.push_list(Vec::new()).into(),
+        self.object(&self.metadata.__schema, shape_id, |field, __schema| match __schema {
+            __Schema::Description => self.schema.graph.description_id.into(),
+            __Schema::Types => {
+                let shape_id = field.shape.as_concrete().unwrap();
+                let mut values = Vec::with_capacity(self.schema.type_definitions().len());
+                values.extend(
+                    self.schema
+                        .type_definitions()
+                        .filter(|def| !def.is_inaccessible())
+                        .map(|definition| self.__type_inner(definition, shape_id)),
+                );
+                self.response.borrow_mut().data.push_list(values).into()
+            }
+            __Schema::QueryType => self.__type_inner(
+                TypeDefinition::Object(self.schema.query()),
+                field.shape.as_concrete().unwrap(),
+            ),
+            __Schema::MutationType => self
+                .schema
+                .mutation()
+                .map(|mutation| self.__type_inner(TypeDefinition::Object(mutation), field.shape.as_concrete().unwrap()))
+                .unwrap_or_default(),
+            __Schema::SubscriptionType => self
+                .schema
+                .subscription()
+                .map(|subscription| {
+                    self.__type_inner(TypeDefinition::Object(subscription), field.shape.as_concrete().unwrap())
+                })
+                .unwrap_or_default(),
+            __Schema::Directives => {
+                let shape_id = field.shape.as_concrete().unwrap();
+                let values: Vec<ResponseValue> = self
+                    .metadata
+                    .directives
+                    .iter()
+                    .map(|dir| self.__directive_def(dir, shape_id))
+                    .collect();
+                self.response.borrow_mut().data.push_list(values).into()
             }
         })
     }
@@ -401,6 +405,43 @@ impl<'ctx, R: Runtime> IntrospectionWriter<'ctx, R> {
                         self.response.borrow_mut().data.push_string(value)
                     })
                     .into(),
+            },
+        )
+    }
+
+    fn __directive_def(&self, dir: &'ctx IntrospectionDirective, shape_id: ConcreteShapeId) -> ResponseValue {
+        self.object(
+            &self.metadata.__directive,
+            shape_id,
+            |field, __directive| match __directive {
+                __Directive::Name => dir.name_id.into(),
+                __Directive::Description => dir.description_id.into(),
+                __Directive::IsRepeatable => dir.is_repeatable.into(),
+                __Directive::Locations => {
+                    let values: Vec<ResponseValue> =
+                        dir.location_ids.iter().map(|&id| ResponseValue::from(id)).collect();
+                    self.response.borrow_mut().data.push_list(values).into()
+                }
+                __Directive::Args => {
+                    let shape_id = field.shape.as_concrete().unwrap();
+                    let include_deprecated = field
+                        .id
+                        .as_data()
+                        .unwrap()
+                        .walk(&self.ctx)
+                        .arguments()
+                        .get_arg_value_as::<bool>("includeDeprecated", self.ctx.variables());
+                    let mut values = Vec::with_capacity(dir.argument_ids.len());
+                    values.extend(
+                        dir.argument_ids
+                            .walk(self.schema)
+                            .filter(|arg| {
+                                !arg.is_inaccessible() && (!is_deprecated(arg.directives()) || include_deprecated)
+                            })
+                            .map(|arg| self.__input_value(arg, shape_id)),
+                    );
+                    self.response.borrow_mut().data.push_list(values).into()
+                }
             },
         )
     }
