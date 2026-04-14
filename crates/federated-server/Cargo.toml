@@ -45,7 +45,7 @@ mini-moka.workspace = true
 minicbor-serde = { workspace = true, features = ["alloc"] }
 notify.workspace = true
 rand.workspace = true
-reqwest = { workspace = true, features = ["http2", "json", "rustls-tls"] }
+reqwest = { workspace = true, features = ["http2", "json", "rustls"] }
 rolling-logger.workspace = true
 runtime.workspace = true
 runtime-local = { workspace = true, features = ["wasi", "redis"] }

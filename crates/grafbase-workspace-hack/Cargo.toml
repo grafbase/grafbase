@@ -41,7 +41,7 @@ crossbeam-epoch = { version = "0.9" }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest"] }
-cynic-parser = { version = "0.10", features = ["pretty", "report"] }
+cynic-parser = { version = "0.11", features = ["pretty", "report"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.5", features = ["powerfmt", "serde"] }
 digest = { version = "0.10", features = ["mac", "oid", "std"] }
@@ -97,7 +97,8 @@ rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4" }
 regex-syntax = { version = "0.8" }
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls-tls", "rustls-tls-native-roots", "stream", "zstd"] }
+reqwest-594e8ee84c453af0 = { package = "reqwest", version = "0.13", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls", "stream", "zstd"] }
+reqwest-5ef9efb8ec2df382 = { package = "reqwest", version = "0.12", default-features = false, features = ["blocking", "http2", "json", "rustls-tls", "stream"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "aws_lc_rs", "logging", "ring", "std", "tls12"] }
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 sec1 = { version = "0.7", features = ["pem", "serde", "std", "subtle"] }
@@ -163,7 +164,7 @@ crossbeam-epoch = { version = "0.9" }
 crossbeam-utils = { version = "0.8" }
 curve25519-dalek = { version = "4", default-features = false, features = ["alloc", "digest", "precomputed-tables", "zeroize"] }
 cynic = { version = "3", features = ["http-reqwest"] }
-cynic-parser = { version = "0.10", features = ["pretty", "report"] }
+cynic-parser = { version = "0.11", features = ["pretty", "report"] }
 der = { version = "0.7", default-features = false, features = ["oid", "pem", "std"] }
 deranged = { version = "0.5", features = ["powerfmt", "serde"] }
 digest = { version = "0.10", features = ["mac", "oid", "std"] }
@@ -219,7 +220,8 @@ rand_core = { version = "0.6", default-features = false, features = ["std"] }
 regex = { version = "1" }
 regex-automata = { version = "0.4" }
 regex-syntax = { version = "0.8" }
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls-tls", "rustls-tls-native-roots", "stream", "zstd"] }
+reqwest-594e8ee84c453af0 = { package = "reqwest", version = "0.13", default-features = false, features = ["blocking", "brotli", "deflate", "gzip", "hickory-dns", "http2", "json", "multipart", "rustls", "stream", "zstd"] }
+reqwest-5ef9efb8ec2df382 = { package = "reqwest", version = "0.12", default-features = false, features = ["blocking", "http2", "json", "rustls-tls", "stream"] }
 rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs", "aws_lc_rs", "logging", "ring", "std", "tls12"] }
 rustls-webpki = { version = "0.103", default-features = false, features = ["aws-lc-rs", "ring", "std"] }
 sec1 = { version = "0.7", features = ["pem", "serde", "std", "subtle"] }
@@ -268,7 +270,7 @@ addr2line = { version = "0.24", default-features = false, features = ["std"] }
 chrono = { version = "0.4" }
 concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["aws-lc-rs", "http1", "http2", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -279,17 +281,17 @@ object = { version = "0.36", default-features = false, features = ["archive", "r
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
+security-framework-sys = { version = "2" }
 signal-hook = { version = "0.3" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
-tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
+tower-http = { version = "0.6", default-features = false, features = ["decompression-br", "decompression-deflate", "decompression-gzip", "decompression-zstd", "follow-redirect"] }
 
 [target.aarch64-apple-darwin.build-dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
-cc = { version = "1", default-features = false, features = ["parallel"] }
 chrono = { version = "0.4" }
 concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["aws-lc-rs", "http1", "http2", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -300,16 +302,17 @@ object = { version = "0.36", default-features = false, features = ["archive", "r
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
+security-framework-sys = { version = "2" }
 signal-hook = { version = "0.3" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
-tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
+tower-http = { version = "0.6", default-features = false, features = ["decompression-br", "decompression-deflate", "decompression-gzip", "decompression-zstd", "follow-redirect"] }
 
 [target.x86_64-apple-darwin.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 chrono = { version = "0.4" }
 concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["aws-lc-rs", "http1", "http2", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -320,18 +323,18 @@ object = { version = "0.36", default-features = false, features = ["archive", "r
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
+security-framework-sys = { version = "2" }
 signal-hook = { version = "0.3" }
 spin = { version = "0.9" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
-tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
+tower-http = { version = "0.6", default-features = false, features = ["decompression-br", "decompression-deflate", "decompression-gzip", "decompression-zstd", "follow-redirect"] }
 
 [target.x86_64-apple-darwin.build-dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
-cc = { version = "1", default-features = false, features = ["parallel"] }
 chrono = { version = "0.4" }
 concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["aws-lc-rs", "http1", "http2", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -342,42 +345,42 @@ object = { version = "0.36", default-features = false, features = ["archive", "r
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs", "net", "stdio", "termios"] }
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
+security-framework-sys = { version = "2" }
 signal-hook = { version = "0.3" }
 spin = { version = "0.9" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
-tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
+tower-http = { version = "0.6", default-features = false, features = ["decompression-br", "decompression-deflate", "decompression-gzip", "decompression-zstd", "follow-redirect"] }
 
 [target.x86_64-pc-windows-msvc.dependencies]
 chrono = { version = "0.4" }
 concurrent-queue = { version = "2" }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["aws-lc-rs", "http1", "http2", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 moka = { version = "0.12", features = ["future", "sync"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 socket2 = { version = "0.5", default-features = false, features = ["all"] }
 spin = { version = "0.9" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
-tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
+tower-http = { version = "0.6", default-features = false, features = ["decompression-br", "decompression-deflate", "decompression-gzip", "decompression-zstd", "follow-redirect"] }
 winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "winbase", "winerror", "winnt", "winuser"] }
-windows-sys-4db8c43aad08e7ae = { package = "windows-sys", version = "0.60", features = ["Win32_Globalization", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
+windows-sys-4db8c43aad08e7ae = { package = "windows-sys", version = "0.60", features = ["Win32_Globalization", "Win32_Networking_WinSock", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
 windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_Time", "Win32_UI_Shell"] }
 
 [target.x86_64-pc-windows-msvc.build-dependencies]
-cc = { version = "1", default-features = false, features = ["parallel"] }
 chrono = { version = "0.4" }
 concurrent-queue = { version = "2" }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["aws-lc-rs", "http1", "http2", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 moka = { version = "0.12", features = ["future", "sync"] }
 once_cell = { version = "1", default-features = false, features = ["critical-section"] }
 socket2 = { version = "0.5", default-features = false, features = ["all"] }
 spin = { version = "0.9" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
-tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
+tower-http = { version = "0.6", default-features = false, features = ["decompression-br", "decompression-deflate", "decompression-gzip", "decompression-zstd", "follow-redirect"] }
 winapi = { version = "0.3", default-features = false, features = ["consoleapi", "errhandlingapi", "fileapi", "handleapi", "impl-default", "knownfolders", "minwinbase", "minwindef", "objbase", "processenv", "processthreadsapi", "profileapi", "shlobj", "synchapi", "winbase", "winerror", "winnt", "winuser"] }
-windows-sys-4db8c43aad08e7ae = { package = "windows-sys", version = "0.60", features = ["Win32_Globalization", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
+windows-sys-4db8c43aad08e7ae = { package = "windows-sys", version = "0.60", features = ["Win32_Globalization", "Win32_Networking_WinSock", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-73dcd821b1037cfd = { package = "windows-sys", version = "0.59", features = ["Wdk_Foundation", "Wdk_Storage_FileSystem", "Wdk_System_IO", "Win32_Networking_WinSock", "Win32_Security_Authentication_Identity", "Win32_Security_Credentials", "Win32_Security_Cryptography", "Win32_Storage_FileSystem", "Win32_System_Com", "Win32_System_Console", "Win32_System_Diagnostics_Debug", "Win32_System_IO", "Win32_System_Ioctl", "Win32_System_Kernel", "Win32_System_LibraryLoader", "Win32_System_Memory", "Win32_System_Performance", "Win32_System_Pipes", "Win32_System_SystemInformation", "Win32_System_SystemServices", "Win32_System_Threading", "Win32_System_WindowsProgramming", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_Shell"] }
 windows-sys-b21d60becc0929df = { package = "windows-sys", version = "0.52", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Console", "Win32_System_IO", "Win32_System_Threading", "Win32_System_WindowsProgramming"] }
 windows-sys-c8eced492e86ede7 = { package = "windows-sys", version = "0.48", features = ["Win32_Foundation", "Win32_Networking_WinSock", "Win32_Security", "Win32_Storage_FileSystem", "Win32_System_Diagnostics_Debug", "Win32_System_Registry", "Win32_System_Time", "Win32_UI_Shell"] }
@@ -387,7 +390,7 @@ addr2line = { version = "0.24", default-features = false, features = ["std"] }
 chrono = { version = "0.4" }
 concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["aws-lc-rs", "http1", "http2", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -402,15 +405,14 @@ rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["even
 signal-hook = { version = "0.3" }
 spin = { version = "0.9" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
-tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
+tower-http = { version = "0.6", default-features = false, features = ["decompression-br", "decompression-deflate", "decompression-gzip", "decompression-zstd", "follow-redirect"] }
 
 [target.x86_64-unknown-linux-musl.build-dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
-cc = { version = "1", default-features = false, features = ["parallel"] }
 chrono = { version = "0.4" }
 concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["aws-lc-rs", "http1", "http2", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -425,14 +427,14 @@ rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["even
 signal-hook = { version = "0.3" }
 spin = { version = "0.9" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
-tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
+tower-http = { version = "0.6", default-features = false, features = ["decompression-br", "decompression-deflate", "decompression-gzip", "decompression-zstd", "follow-redirect"] }
 
 [target.aarch64-unknown-linux-musl.dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
 chrono = { version = "0.4" }
 concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["aws-lc-rs", "http1", "http2", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -446,15 +448,14 @@ rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 signal-hook = { version = "0.3" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
-tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
+tower-http = { version = "0.6", default-features = false, features = ["decompression-br", "decompression-deflate", "decompression-gzip", "decompression-zstd", "follow-redirect"] }
 
 [target.aarch64-unknown-linux-musl.build-dependencies]
 addr2line = { version = "0.24", default-features = false, features = ["std"] }
-cc = { version = "1", default-features = false, features = ["parallel"] }
 chrono = { version = "0.4" }
 concurrent-queue = { version = "2" }
 gimli = { version = "0.31", default-features = false, features = ["read", "std", "write"] }
-hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "native-tokio", "ring", "tls12", "webpki-tokio"] }
+hyper-rustls = { version = "0.27", default-features = false, features = ["aws-lc-rs", "http1", "http2", "ring", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", default-features = false, features = ["client-proxy"] }
 iana-time-zone = { version = "0.1", default-features = false, features = ["fallback"] }
 libc = { version = "0.2", features = ["extra_traits"] }
@@ -468,6 +469,6 @@ rustix-d585fab2519d2d1 = { package = "rustix", version = "0.38", features = ["fs
 rustix-dff4ba8e3ae991db = { package = "rustix", version = "1", features = ["event", "fs", "mm", "net", "param", "process", "stdio", "termios", "thread", "time"] }
 signal-hook = { version = "0.3" }
 tower = { version = "0.5", default-features = false, features = ["timeout"] }
-tower-http = { version = "0.6", default-features = false, features = ["follow-redirect"] }
+tower-http = { version = "0.6", default-features = false, features = ["decompression-br", "decompression-deflate", "decompression-gzip", "decompression-zstd", "follow-redirect"] }
 
 ### END HAKARI SECTION
