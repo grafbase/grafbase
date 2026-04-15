@@ -64,7 +64,7 @@ base64 = "0.22.1"
 bitflags = "2"
 bitvec = "1"
 blake3 = "1.8.2"
-bytes = "1.10.1"
+bytes = "1.11.1"
 case = "1"
 cfg-if = "1"
 chrono = { version = "0.4.42", default-features = false }
@@ -203,7 +203,7 @@ rstest = "0.26"
 rust_decimal = "1.38.0"
 rustls = { version = "0.23.31", default-features = false }
 rustls-pemfile = { version = "2.2.0", default-features = false }
-rustls-webpki = { version = "0.103.5", default-features = false }
+rustls-webpki = { version = "0.103.12", default-features = false }
 schemars = "1"
 semver = "1"
 serde = { version = "1.0.223", features = ["derive"] }
@@ -235,7 +235,7 @@ temp-env = "0.3"
 tempfile = "3.16"
 thiserror = "2.0.16"
 tikv-jemallocator = "0.6"
-time = "0.3.43"
+time = "0.3.47"
 tokio = "1.47.1"
 tokio-rustls = { version = "0.26.2", default-features = false }
 tokio-stream = "0.1"
