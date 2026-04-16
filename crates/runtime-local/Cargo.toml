@@ -51,7 +51,7 @@ p384 = { workspace = true, features = ["jwk"] }
 postcard.workspace = true
 rapidhash.workspace = true
 redis = { workspace = true, optional = true }
-reqwest = { workspace = true, features = ["json", "rustls-tls", "gzip", "brotli", "deflate", "zstd", "hickory-dns"] }
+reqwest = { workspace = true, features = ["json", "rustls", "gzip", "brotli", "deflate", "zstd", "hickory-dns"] }
 reqwest-eventsource.workspace = true
 runtime.workspace = true
 semver.workspace = true

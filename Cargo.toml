@@ -67,7 +67,7 @@ blake3 = "1.8.2"
 bytes = "1.10.1"
 case = "1"
 cfg-if = "1"
-chrono = { version = "0.4.42", default-features = false }
+chrono = { version = "0.4.44", default-features = false }
 clap = "4"
 clap_complete = "4.5"
 cli-table = { version = "0.5", default-features = false }
@@ -81,11 +81,11 @@ crossbeam = "0.8"
 crossbeam-queue = "0.3"
 crossterm = "0.29"
 ctor = "0.5.0"
-cynic = "3.11"
-cynic-codegen = "3.11"
-cynic-introspection = "3.11"
-cynic-parser = "0.10.0"
-cynic-parser-deser = "0.10.0"
+cynic = "3.13.2"
+cynic-codegen = "3.13.2"
+cynic-introspection = "3.13.2"
+cynic-parser = "0.11.1"
+cynic-parser-deser = "0.11.1"
 dashmap = "6.1"
 datatest-stable = "0.3.2"
 deadpool = { version = "0.12.3", features = ["rt_tokio_1"] }
@@ -188,8 +188,8 @@ redis = { version = "0.32.5", features = [
     "connection-manager",
 ] }
 regex = "1.11.2"
-reqwest = { version = "0.12.23", default-features = false, features = ["http2", "rustls-tls"] }
-reqwest-eventsource = "0.6"
+reqwest = { version = "0.13", default-features = false, features = ["http2", "rustls"] }
+reqwest-eventsource = { package = "aha-reqwest-eventsource", version = "0.1.0" }
 rmcp = { version = "0.6.4", features = [
     "transport-sse-server",
     "transport-streamable-http-server",

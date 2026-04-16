@@ -32,7 +32,7 @@ fn test_default_headers() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -93,7 +93,7 @@ fn test_default_headers_forwarding() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -163,7 +163,7 @@ fn test_subgraph_specific_header_forwarding() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -245,7 +245,7 @@ fn should_not_propagate_blacklisted_headers() {
               },
               {
                 "name": "accept-encoding",
-                "value": "gzip, br, zstd, deflate"
+                "value": "zstd,gzip,deflate,br"
               },
               {
                 "name": "connection",
@@ -303,7 +303,7 @@ fn test_regex_header_forwarding() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -369,7 +369,7 @@ fn test_regex_header_forwarding_should_not_duplicate() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -429,7 +429,7 @@ fn test_header_forwarding_with_rename() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -482,7 +482,7 @@ fn test_header_forwarding_with_default() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -538,7 +538,7 @@ fn test_header_forwarding_with_default_and_existing_header() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -599,7 +599,7 @@ fn test_regex_header_forwarding_then_delete() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -660,7 +660,7 @@ fn test_pattern_is_case_insensitive() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -726,7 +726,7 @@ fn test_regex_header_forwarding_then_delete_with_regex() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -782,7 +782,7 @@ fn test_rename_duplicate_no_default() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "bar",
@@ -843,7 +843,7 @@ fn test_rename_duplicate_default() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "bar",
@@ -901,7 +901,7 @@ fn test_rename_duplicate_default_with_missing_value() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "bar",
@@ -961,7 +961,7 @@ fn regex_header_regex_forwarding_should_forward_duplicates_too() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -1021,7 +1021,7 @@ fn regex_header_forwarding_should_forward_duplicates() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -1082,7 +1082,7 @@ fn regex_header_forwarding_should_forward_duplicates_with_rename() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -1142,7 +1142,7 @@ fn header_remove_should_remove_duplicates() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",
@@ -1194,7 +1194,7 @@ fn header_regex_remove_should_remove_duplicates() {
           },
           {
             "name": "accept-encoding",
-            "value": "gzip, br, zstd, deflate"
+            "value": "zstd,gzip,deflate,br"
           },
           {
             "name": "connection",

@@ -15,5 +15,5 @@ cynic-introspection.workspace = true
 cynic-parser = { workspace = true, features = ["pretty"] }
 grafbase-workspace-hack.workspace = true
 indoc.workspace = true
-reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+reqwest = { workspace = true, features = ["json", "rustls"] }
 serde.workspace = true
