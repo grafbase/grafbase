@@ -64,7 +64,7 @@ base64 = "0.22.1"
 bitflags = "2"
 bitvec = "1"
 blake3 = "1.8.2"
-bytes = "1.10.1"
+bytes = "1.11.1"
 case = "1"
 cfg-if = "1"
 chrono = { version = "0.4.44", default-features = false }
