@@ -303,7 +303,7 @@ fn content_type_with_parameters(#[case] accept: &'static str) {
         {
           "errors": [
             {
-              "message": "unexpected non-variable identifier (e.g. 'x' or 'Foo') token (expected one of , \"{\"query, mutation, subscription, fragment)",
+              "message": "unexpected non-variable identifier (e.g. 'x' or 'Foo') token (expected one of , \"{\"StringLiteral, BlockStringLiteral, query, mutation, subscription, fragment)",
               "locations": [
                 {
                   "line": 1,

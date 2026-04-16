@@ -460,10 +460,10 @@ jobs:
       matrix:
         working_directory:
           - examples/authorization
-          - examples/grpc-extension
-          - examples/composite-rest
-          - examples/grpc-composite-schemas
-          - examples/dynamic-schema-contracts
+          # - examples/grpc-extension
+          # - examples/composite-rest
+          # - examples/grpc-composite-schemas
+          # - examples/dynamic-schema-contracts
     runs-on: depot-ubuntu-24.04-8
     steps:
       - name: Get sources

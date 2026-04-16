@@ -35,7 +35,7 @@ fn unparseable_query() {
         {
           "errors": [
             {
-              "message": "unexpected closing brace ('}') token (expected one of , \"{\"query, mutation, subscription, fragment)",
+              "message": "unexpected closing brace ('}') token (expected one of , \"{\"StringLiteral, BlockStringLiteral, query, mutation, subscription, fragment)",
               "locations": [
                 {
                   "line": 1,

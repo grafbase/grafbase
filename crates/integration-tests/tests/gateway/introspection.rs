@@ -329,7 +329,7 @@ fn can_run_capability_introspection_query() {
 
     assert_eq!(
         response.capabilities().version_supported(),
-        SpecificationVersion::October2021
+        SpecificationVersion::September2025
     );
 }
 

@@ -59,7 +59,7 @@ fn request_error() {
         {
           "errors": [
             {
-              "message": "unexpected non-variable identifier (e.g. 'x' or 'Foo') token (expected one of , \"{\"query, mutation, subscription, fragment)",
+              "message": "unexpected non-variable identifier (e.g. 'x' or 'Foo') token (expected one of , \"{\"StringLiteral, BlockStringLiteral, query, mutation, subscription, fragment)",
               "locations": [
                 {
                   "line": 1,
