@@ -1272,20 +1272,88 @@ fn directive_args_include_deprecated_filter() {
             .await
     });
 
-    // TODO: Need to implemented directives... once this is done, then the schema will resolve correctly
-    // Currently, we have that as part of the introspection, to align with the GraphQL spec, but the `__schema.directives`
-    // resolves into empty.
-    // See crates/engine/src/resolver/introspection/writer.rs
-
-    insta::assert_json_snapshot!(response, @r###"
+    insta::assert_json_snapshot!(response, @r#"
     {
       "data": {
         "__schema": {
-          "directives": []
+          "directives": [
+            {
+              "name": "skip",
+              "withDeprecated": [
+                {
+                  "name": "if"
+                }
+              ],
+              "withoutDeprecated": [
+                {
+                  "name": "if"
+                }
+              ],
+              "defaultDeprecated": [
+                {
+                  "name": "if"
+                }
+              ]
+            },
+            {
+              "name": "include",
+              "withDeprecated": [
+                {
+                  "name": "if"
+                }
+              ],
+              "withoutDeprecated": [
+                {
+                  "name": "if"
+                }
+              ],
+              "defaultDeprecated": [
+                {
+                  "name": "if"
+                }
+              ]
+            },
+            {
+              "name": "deprecated",
+              "withDeprecated": [
+                {
+                  "name": "reason"
+                }
+              ],
+              "withoutDeprecated": [
+                {
+                  "name": "reason"
+                }
+              ],
+              "defaultDeprecated": [
+                {
+                  "name": "reason"
+                }
+              ]
+            },
+            {
+              "name": "specifiedBy",
+              "withDeprecated": [
+                {
+                  "name": "url"
+                }
+              ],
+              "withoutDeprecated": [
+                {
+                  "name": "url"
+                }
+              ],
+              "defaultDeprecated": [
+                {
+                  "name": "url"
+                }
+              ]
+            }
+          ]
         }
       }
     }
-    "###);
+    "#);
 }
 
 #[test]

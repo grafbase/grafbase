@@ -2285,7 +2285,103 @@ expression: response
           "possibleTypes": null
         }
       ],
-      "directives": []
+      "directives": [
+        {
+          "name": "skip",
+          "description": null,
+          "args": [
+            {
+              "name": "if",
+              "description": null,
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "Boolean",
+                  "ofType": null
+                }
+              },
+              "defaultValue": null
+            }
+          ],
+          "locations": [
+            "FIELD",
+            "FRAGMENT_SPREAD",
+            "INLINE_FRAGMENT"
+          ]
+        },
+        {
+          "name": "include",
+          "description": null,
+          "args": [
+            {
+              "name": "if",
+              "description": null,
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "Boolean",
+                  "ofType": null
+                }
+              },
+              "defaultValue": null
+            }
+          ],
+          "locations": [
+            "FIELD",
+            "FRAGMENT_SPREAD",
+            "INLINE_FRAGMENT"
+          ]
+        },
+        {
+          "name": "deprecated",
+          "description": null,
+          "args": [
+            {
+              "name": "reason",
+              "description": null,
+              "type": {
+                "kind": "SCALAR",
+                "name": "String",
+                "ofType": null
+              },
+              "defaultValue": "\"No longer supported\""
+            }
+          ],
+          "locations": [
+            "FIELD_DEFINITION",
+            "ARGUMENT_DEFINITION",
+            "INPUT_FIELD_DEFINITION",
+            "ENUM_VALUE"
+          ]
+        },
+        {
+          "name": "specifiedBy",
+          "description": null,
+          "args": [
+            {
+              "name": "url",
+              "description": null,
+              "type": {
+                "kind": "NON_NULL",
+                "name": null,
+                "ofType": {
+                  "kind": "SCALAR",
+                  "name": "String",
+                  "ofType": null
+                }
+              },
+              "defaultValue": null
+            }
+          ],
+          "locations": [
+            "SCALAR"
+          ]
+        }
+      ]
     }
   }
 }

@@ -1,8 +1,9 @@
 use crate::{
     EntityDefinitionId, EnumDefinitionId, EnumDefinitionRecord, EnumValueId, EnumValueRecord, FieldDefinitionId,
-    FieldDefinitionRecord, IdRange, InputValueDefinitionRecord, ObjectDefinitionId, ObjectDefinitionRecord,
-    ResolverDefinitionId, ResolverDefinitionRecord, ScalarDefinitionId, ScalarType, SchemaInputValueId,
-    SchemaInputValueRecord, StringId, SubgraphId, TypeDefinitionId, TypeRecord, Wrapping, builder::GraphBuilder,
+    FieldDefinitionRecord, IdRange, InputValueDefinitionId, InputValueDefinitionRecord, ObjectDefinitionId,
+    ObjectDefinitionRecord, ResolverDefinitionId, ResolverDefinitionRecord, ScalarDefinitionId, ScalarType,
+    SchemaInputValueId, SchemaInputValueRecord, StringId, SubgraphId, TypeDefinitionId, TypeRecord, Wrapping,
+    builder::GraphBuilder,
 };
 use strum::EnumCount;
 
@@ -138,12 +139,22 @@ pub enum __Directive {
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct IntrospectionDirective {
+    pub name_id: StringId,
+    pub description_id: Option<StringId>,
+    pub location_ids: Vec<StringId>,
+    pub argument_ids: IdRange<InputValueDefinitionId>,
+    pub is_repeatable: bool,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct IntrospectionSubgraph {
     pub resolver_definition_id: ResolverDefinitionId,
     pub meta_fields: [FieldDefinitionId; 2],
     pub meta_objects: [ObjectDefinitionId; 6],
     pub type_kind: TypeKind,
     pub directive_location: DirectiveLocation,
+    pub directives: Vec<IntrospectionDirective>,
     pub __schema: IntrospectionObject<__Schema, { __Schema::COUNT }>,
     pub __type: IntrospectionObject<__Type, { __Type::COUNT }>,
     pub __enum_value: IntrospectionObject<__EnumValue, { __EnumValue::COUNT }>,
@@ -599,6 +610,118 @@ impl GraphBuilder<'_> {
             );
         }
 
+        // Built-in GraphQL directives exposed via __schema.directives.
+        // We use the __Directive.args field as parent for all directive argument definitions.
+        let directive_args_field_id = __directive
+            .fields
+            .iter()
+            .find_map(|(id, tag)| matches!(tag, __Directive::Args).then_some(*id))
+            .expect("__Directive.args field must exist");
+
+        // @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+        let if_name_id = self.ingest_str("if");
+        let skip_args_start = self.graph.input_value_definitions.len();
+        self.graph.input_value_definitions.push(InputValueDefinitionRecord {
+            name_id: if_name_id,
+            description_id: None,
+            ty_record: required_boolean,
+            parent_id: directive_args_field_id.into(),
+            default_value_id: None,
+            directive_ids: Vec::new(),
+            is_internal_in_id: None,
+        });
+        let skip_args = IdRange::from(skip_args_start..self.graph.input_value_definitions.len());
+
+        // @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+        let include_args_start = self.graph.input_value_definitions.len();
+        self.graph.input_value_definitions.push(InputValueDefinitionRecord {
+            name_id: if_name_id,
+            description_id: None,
+            ty_record: required_boolean,
+            parent_id: directive_args_field_id.into(),
+            default_value_id: None,
+            directive_ids: Vec::new(),
+            is_internal_in_id: None,
+        });
+        let include_args = IdRange::from(include_args_start..self.graph.input_value_definitions.len());
+
+        // @deprecated(reason: String = "No longer supported") on FIELD_DEFINITION | ARGUMENT_DEFINITION | INPUT_FIELD_DEFINITION | ENUM_VALUE
+        let no_longer_supported = self.ingest_str("No longer supported");
+        let deprecated_default = self
+            .graph
+            .input_values
+            .push_value(SchemaInputValueRecord::String(no_longer_supported));
+        let reason_name_id = self.ingest_str("reason");
+        let deprecated_args_start = self.graph.input_value_definitions.len();
+        self.graph.input_value_definitions.push(InputValueDefinitionRecord {
+            name_id: reason_name_id,
+            description_id: None,
+            ty_record: nullable_string,
+            parent_id: directive_args_field_id.into(),
+            default_value_id: Some(deprecated_default),
+            directive_ids: Vec::new(),
+            is_internal_in_id: None,
+        });
+        let deprecated_args = IdRange::from(deprecated_args_start..self.graph.input_value_definitions.len());
+
+        // @specifiedBy(url: String!) on SCALAR
+        let url_name_id = self.ingest_str("url");
+        let specified_by_args_start = self.graph.input_value_definitions.len();
+        self.graph.input_value_definitions.push(InputValueDefinitionRecord {
+            name_id: url_name_id,
+            description_id: None,
+            ty_record: required_string,
+            parent_id: directive_args_field_id.into(),
+            default_value_id: None,
+            directive_ids: Vec::new(),
+            is_internal_in_id: None,
+        });
+        let specified_by_args = IdRange::from(specified_by_args_start..self.graph.input_value_definitions.len());
+
+        let directives = vec![
+            IntrospectionDirective {
+                name_id: self.ingest_str("skip"),
+                description_id: None,
+                location_ids: vec![
+                    directive_location.field,
+                    directive_location.fragment_spread,
+                    directive_location.inline_fragment,
+                ],
+                argument_ids: skip_args,
+                is_repeatable: false,
+            },
+            IntrospectionDirective {
+                name_id: self.ingest_str("include"),
+                description_id: None,
+                location_ids: vec![
+                    directive_location.field,
+                    directive_location.fragment_spread,
+                    directive_location.inline_fragment,
+                ],
+                argument_ids: include_args,
+                is_repeatable: false,
+            },
+            IntrospectionDirective {
+                name_id: self.ingest_str("deprecated"),
+                description_id: None,
+                location_ids: vec![
+                    directive_location.field_definition,
+                    directive_location.argument_definition,
+                    directive_location.input_field_definition,
+                    directive_location.enum_value,
+                ],
+                argument_ids: deprecated_args,
+                is_repeatable: false,
+            },
+            IntrospectionDirective {
+                name_id: self.ingest_str("specifiedBy"),
+                description_id: None,
+                location_ids: vec![directive_location.scalar],
+                argument_ids: specified_by_args,
+                is_repeatable: false,
+            },
+        ];
+
         // DataSource
         IntrospectionSubgraph {
             resolver_definition_id,
@@ -613,6 +736,7 @@ impl GraphBuilder<'_> {
             ],
             type_kind,
             directive_location,
+            directives,
             __schema,
             __type,
             __enum_value,
