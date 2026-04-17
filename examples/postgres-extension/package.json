@@ -12,7 +12,7 @@
     "graphql-request": "^7.0.0"
   },
   "devDependencies": {
-    "parcel": "^2.10.3"
+    "parcel": "^2.16.4"
   },
   "browserslist": [
     "last 2 Chrome versions",
