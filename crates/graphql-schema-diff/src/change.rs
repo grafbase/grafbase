@@ -70,6 +70,8 @@ pub enum ChangeKind {
     RemoveFieldArgumentDefault,
     ChangeFieldArgumentDefault,
     ChangeFieldArgumentType,
+    AddDirective,
+    RemoveDirective,
 }
 
 impl ChangeKind {
@@ -114,6 +116,8 @@ impl ChangeKind {
             RemoveFieldArgumentDefault => "RemoveFieldArgumentDefault",
             ChangeFieldArgumentDefault => "ChangeFieldArgumentDefault",
             ChangeFieldArgumentType => "ChangeFieldArgumentType",
+            AddDirective => "AddDirective",
+            RemoveDirective => "RemoveDirective",
         }
     }
 }
@@ -159,6 +163,8 @@ impl std::str::FromStr for ChangeKind {
             "RemoveFieldArgumentDefault" => Self::RemoveFieldArgumentDefault,
             "ChangeFieldArgumentDefault" => Self::ChangeFieldArgumentDefault,
             "ChangeFieldArgumentType" => Self::ChangeFieldArgumentType,
+            "AddDirective" => Self::AddDirective,
+            "RemoveDirective" => Self::RemoveDirective,
             _ => return Err(()),
         })
     }

@@ -93,11 +93,6 @@ impl<'a> Path<'a> {
             None => return Ok(None),
         };
 
-        // To be implemented.
-        if segments.next().is_some() {
-            return Err(ParseError);
-        }
-
         // Is it a directive path?
         if let Some(suffix) = segment.strip_prefix('@') {
             let (name, Some(idx)) = parse_name_and_optional_index(suffix)? else {
@@ -116,7 +111,29 @@ impl<'a> Path<'a> {
             return Err(ParseError);
         }
 
-        Ok(Some(PathInField::InArgument(segment)))
+        Ok(Some(PathInField::InArgument(
+            segment,
+            Self::parse_path_in_argument(segments)?,
+        )))
+    }
+
+    fn parse_path_in_argument(mut segments: impl Iterator<Item = &'a str>) -> ParseResult<Option<PathInArgument<'a>>> {
+        let segment = match segments.next() {
+            Some("") => return Err(ParseError),
+            Some(segment) => segment,
+            None => return Ok(None),
+        };
+
+        if segments.next().is_some() {
+            return Err(ParseError);
+        }
+
+        let suffix = segment.strip_prefix('@').ok_or(ParseError)?;
+        let (name, Some(idx)) = parse_name_and_optional_index(suffix)? else {
+            return Err(ParseError);
+        };
+
+        Ok(Some(PathInArgument::InDirective(name, idx)))
     }
 }
 
