@@ -9,7 +9,7 @@ where
     source: &'a str,
 
     /// All the diff entries, but sorted by path.
-    paths: Vec<([&'a str; 3], usize)>,
+    paths: Vec<([&'a str; 4], usize)>,
 }
 
 impl<'a, T> Paths<'a, T>
@@ -37,7 +37,7 @@ where
     pub(super) fn iter_top_level<'b: 'a>(&'b self) -> impl Iterator<Item = ChangeView<'a, T>> + 'b {
         self.paths
             .iter()
-            .filter(|(change, _)| change[1].is_empty() && change[2].is_empty())
+            .filter(|(change, _)| change[1].is_empty() && change[2].is_empty() && change[3].is_empty())
             .map(|(_, idx)| ChangeView { paths: self, idx: *idx })
     }
 
@@ -48,7 +48,7 @@ where
             .map(|(_, idx)| ChangeView { paths: self, idx: *idx })
     }
 
-    pub(super) fn iter_exact<'b: 'a>(&'b self, path: [&'b str; 3]) -> impl Iterator<Item = ChangeView<'a, T>> + 'b {
+    pub(super) fn iter_exact<'b: 'a>(&'b self, path: [&'b str; 4]) -> impl Iterator<Item = ChangeView<'a, T>> + 'b {
         let first = self.paths.partition_point(|(diff_path, _)| diff_path < &path);
         self.paths[first..]
             .iter()
@@ -61,13 +61,13 @@ where
     }
 
     pub(crate) fn added_interface_impls<'b>(&'b self, prefix: &'b str) -> impl Iterator<Item = &'a str> + 'b {
-        let start = self.paths.partition_point(|([found, _, _], _)| *found < prefix);
+        let start = self.paths.partition_point(|([found, _, _, _], _)| *found < prefix);
 
         self.paths[start..]
             .iter()
-            .take_while(move |([name, _, _], _)| *name == prefix)
+            .take_while(move |([name, _, _, _], _)| *name == prefix)
             .filter(|(_, idx)| matches!(self.diff[*idx].kind, ChangeKind::AddInterfaceImplementation))
-            .map(|([_, interface, _], _)| interface.trim_start_matches('&'))
+            .map(|([_, interface, _, _], _)| interface.trim_start_matches('&'))
     }
 
     pub(crate) fn is_interface_impl_removed(&self, prefix: &str, interface: &str) -> bool {
@@ -78,6 +78,41 @@ where
                     .then(self.diff[*idx].kind.cmp(&ChangeKind::RemoveInterfaceImplementation))
             })
             .is_ok()
+    }
+
+    /// Iterate directive usage changes (`AddDirective`/`RemoveDirective`) at a specific context.
+    pub(crate) fn directive_usage_changes_at<'b: 'a>(
+        &'b self,
+        context: super::directives::DirectiveContext<'b>,
+    ) -> impl Iterator<Item = ChangeView<'a, T>> + 'b {
+        self.paths
+            .iter()
+            .filter(move |(change, idx)| {
+                if !matches!(
+                    self.diff[*idx].kind,
+                    ChangeKind::AddDirective | ChangeKind::RemoveDirective
+                ) {
+                    return false;
+                }
+                match context {
+                    super::directives::DirectiveContext::Type(type_name) => {
+                        change[0] == type_name
+                            && change[1].starts_with('@')
+                            && change[2].is_empty()
+                            && change[3].is_empty()
+                    }
+                    super::directives::DirectiveContext::Field(type_name, field) => {
+                        change[0] == type_name
+                            && change[1] == field
+                            && change[2].starts_with('@')
+                            && change[3].is_empty()
+                    }
+                    super::directives::DirectiveContext::Argument(type_name, field, arg) => {
+                        change[0] == type_name && change[1] == field && change[2] == arg && change[3].starts_with('@')
+                    }
+                }
+            })
+            .map(move |(_, idx)| ChangeView { paths: self, idx: *idx })
     }
 }
 
@@ -114,7 +149,7 @@ where
     }
 
     pub(crate) fn second_and_third_level(self) -> [&'a str; 2] {
-        let [_first, second, third] = split_path(self.path());
+        let [_first, second, third, _fourth] = split_path(self.path());
         debug_assert!(!second.is_empty());
         debug_assert!(!third.is_empty());
         [second, third]
@@ -129,7 +164,7 @@ where
     }
 }
 
-fn split_path(path: &str) -> [&str; 3] {
+fn split_path(path: &str) -> [&str; 4] {
     let mut segments = path.split('.');
     let path = std::array::from_fn(|_| segments.next().unwrap_or(""));
     debug_assert!(segments.next().is_none());

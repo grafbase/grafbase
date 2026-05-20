@@ -2,7 +2,11 @@ use cynic_parser::type_system::SchemaDefinition;
 
 use crate::ChangeKind;
 
-use super::{DefinitionOrExtension, INDENTATION, directives::patch_directives, paths::Paths};
+use super::{
+    DefinitionOrExtension, INDENTATION,
+    directives::{DirectiveContext, patch_directives},
+    paths::Paths,
+};
 
 pub(super) fn patch_schema_definition<T: AsRef<str>>(
     definition: SchemaDefinition<'_>,
@@ -19,7 +23,7 @@ pub(super) fn patch_schema_definition<T: AsRef<str>>(
         DefinitionOrExtension::Definition => ":schema",
     };
 
-    for change in paths.iter_exact([prefix, "", ""]) {
+    for change in paths.iter_exact([prefix, "", "", ""]) {
         match change.kind() {
             ChangeKind::ChangeQueryType => {
                 new_query_type = Some(change.resolved_str());
@@ -42,7 +46,12 @@ pub(super) fn patch_schema_definition<T: AsRef<str>>(
 
     schema.push_str("schema");
 
-    patch_directives(definition.directives(), schema, paths);
+    patch_directives(
+        definition.directives(),
+        schema,
+        paths,
+        DirectiveContext::Type(":schema"),
+    );
 
     let any_root_type_defined = new_query_type.is_some()
         || new_mutation_type.is_some()
