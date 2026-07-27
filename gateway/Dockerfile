@@ -38,11 +38,11 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 #
 FROM cgr.dev/chainguard/wolfi-base:latest
 
-LABEL org.opencontainers.image.url='https://grafbase.com' \
+LABEL org.opencontainers.image.url='https://github.com/pantheon-systems/grafbase' \
     org.opencontainers.image.documentation='https://grafbase.com/docs' \
-    org.opencontainers.image.source='https://github.com/grafbase/grafbase/tree/main/gateway' \
-    org.opencontainers.image.vendor='Grafbase' \
-    org.opencontainers.image.description='The Grafbase GraphQL Federation Gateway' \
+    org.opencontainers.image.source='https://github.com/pantheon-systems/grafbase/tree/main/gateway' \
+    org.opencontainers.image.vendor='Pantheon Systems' \
+    org.opencontainers.image.description='Pantheon fork of the Grafbase GraphQL Federation Gateway' \
     org.opencontainers.image.licenses='MPL-2.0'
 
 WORKDIR /grafbase

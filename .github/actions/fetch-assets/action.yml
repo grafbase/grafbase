@@ -6,8 +6,12 @@ runs:
   steps:
     - name: Download CLI assets
       shell: bash
+      # Assets are mirrored to a Pantheon GCS bucket (grafbase's downloads.grafbase.com is
+      # being shut down). The bucket must be created and seeded — see CI_CD_MIGRATION_PLAN.md.
+      # If the bucket is private, replace the curl with:
+      #   gcloud storage cp gs://pantheon-grafbase-assets/cli-app/cli-app.tar.gz cli-app.tar.gz
       run: |
         CACHE_BREAKER=$(openssl rand -hex 8)
         pushd cli/assets
-        curl --location -H "Cache-Control: must-revalidate, post-check=0, pre-check=0" -o cli-app.tar.gz http://downloads.grafbase.com/cli-app/cli-app.tar.gz?cache=$CACHE_BREAKER
+        curl --location -H "Cache-Control: must-revalidate, post-check=0, pre-check=0" -o cli-app.tar.gz "https://storage.googleapis.com/pantheon-grafbase-assets/cli-app/cli-app.tar.gz?cache=$CACHE_BREAKER"
         popd

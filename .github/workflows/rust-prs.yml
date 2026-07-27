@@ -14,9 +14,6 @@ env:
   CARGO_PROFILE_TEST_DEBUG: 0
   CARGO_TERM_COLOR: 'always'
   RUST_BACKTRACE: 1
-  # Depot project is provisioned per-org; set the DEPOT_PROJECT repo variable in
-  # pantheon-systems/grafbase. See RELEASING.md.
-  DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-rust-pr
@@ -24,7 +21,7 @@ concurrency:
 
 jobs:
   what-changed:
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: sbx-pan-base
     outputs:
       # These 2 are JSON lists
       changed-packages: ${{ steps.rust.outputs.changed-packages }}
@@ -70,7 +67,7 @@ jobs:
   check-licenses:
     needs: [what-changed]
     if: needs.what-changed.outputs.changed-packages != '[]'
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: sbx-pan-base
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/install-rust
@@ -92,7 +89,7 @@ jobs:
   check-format:
     needs: [what-changed]
     if: needs.what-changed.outputs.changed-packages != '[]'
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: sbx-pan-base
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/install-rust
@@ -118,7 +115,7 @@ jobs:
   grafbase-sdk-doc:
     needs: [what-changed]
     if: contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-sdk')
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: sbx-pan-base
     steps:
       - uses: actions/checkout@v5
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
@@ -146,7 +143,7 @@ jobs:
 
   wasm-extensions:
     needs: [what-changed]
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: sbx-pan-base
     if: |
       contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
       || contains(fromJson(needs.what-changed.outputs.changed-packages), 'integration-tests')
@@ -211,12 +208,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # TODO(infra): confirm the Pantheon runner label sized for heavy Rust builds.
         platform:
           [
-            { 'target': 'x86_64-unknown-linux-musl', 'runner': 'depot-ubuntu-24.04-8' },
-            { 'target': 'aarch64-unknown-linux-musl', 'runner': 'depot-ubuntu-24.04-arm-8' },
-            { 'target': 'aarch64-apple-darwin', 'runner': 'depot-macos-latest' },
-            { 'target': 'x86_64-pc-windows-msvc', 'runner': 'depot-windows-2022-8' },
+            { 'target': 'x86_64-unknown-linux-musl', 'runner': 'sbx-pan-base' },
+            { 'target': 'aarch64-unknown-linux-musl', 'runner': 'sbx-pan-base' },
+            { 'target': 'aarch64-apple-darwin', 'runner': 'macos-latest' },
           ]
     runs-on: ${{ matrix.platform.runner }}
     env:
@@ -305,16 +302,9 @@ jobs:
             --target ${{ matrix.platform.target }} \
             ${{ needs.what-changed.outputs.cargo-build-specs }}
 
-      - name: Docker Login
-        env:
-          dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
-        if: env.dockerhub_username != '' && runner.os == 'Linux'
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
+      - name: Set up Docker Buildx
+        if: runner.os == 'Linux'
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Build integration-tests docker compose
         # Will fail if there is nothing to build.
@@ -322,13 +312,8 @@ jobs:
         if: |
           contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
-        uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
-        with:
-          project: ${{ env.DEPOT_PROJECT }}
-          token: ${{ secrets.DEPOT_TOKEN }}
-          workdir: crates/integration-tests
-          load: true
-          pull: true
+        working-directory: crates/integration-tests
+        run: docker buildx bake --load --pull
 
       - name: Build gateway docker compose
         # Will fail if there is nothing to build.
@@ -336,13 +321,8 @@ jobs:
         if: |
           contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
           && matrix.platform.target == 'x86_64-unknown-linux-musl'
-        uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
-        with:
-          project: ${{ env.DEPOT_PROJECT }}
-          token: ${{ secrets.DEPOT_TOKEN }}
-          workdir: gateway
-          load: true
-          pull: true
+        working-directory: gateway
+        run: docker buildx bake --load --pull
 
       - name: Start integration-test docker compose
         if: |
@@ -418,45 +398,37 @@ jobs:
       || contains(fromJson(needs.what-changed.outputs.changed-packages), 'grafbase-gateway')
     env:
       COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
-    runs-on: depot-ubuntu-24.04-8
+      # PR/dev images go to the Pantheon sandbox AR, not the prod internal registry.
+      GATEWAY_SANDBOX_IMAGE: ${{ vars.GATEWAY_SANDBOX_IMAGE || 'us-docker.pkg.dev/pantheon-sandbox/grafbase-gateway-sandbox' }}
+    runs-on: sbx-pan-base
     permissions:
-      packages: write
+      contents: read
+      id-token: write # Required for WIF OIDC token exchange in auth-gar
     steps:
-      - if: env.dockerhub_username != ''
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
-      - name: Login to GitHub Container Registry
-        if: env.dockerhub_username != ''
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Authenticate to Google Artifact Registry
+        uses: pantheon-systems/common-gh/auth-gar@91222b8009f6df264fee51dce8a7d266a84eecbc # main 2025-11-28T13:02:03Z
 
-      - name: Login to Docker Hub
-        if: env.dockerhub_username != ''
-        uses: docker/login-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          driver-opts: |
+            image=us-docker.pkg.dev/pantheon-artifacts/internal/buildkit:buildx-stable-1
 
       - name: Build and push
-        if: env.dockerhub_username != ''
-        uses: depot/build-push-action@v1.16.2
+        uses: docker/build-push-action@v6
         with:
-          project: ${{ env.DEPOT_PROJECT }}
-          token: ${{ secrets.DEPOT_TOKEN }}
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ghcr.io/grafbase/gateway:${{ env.COMMIT_SHA }}
+          tags: ${{ env.GATEWAY_SANDBOX_IMAGE }}:${{ env.COMMIT_SHA }}
           file: ./gateway/Dockerfile
 
   examples:
     needs: [docker-gateway]
     env:
       COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-      dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+      GATEWAY_SANDBOX_IMAGE: ${{ vars.GATEWAY_SANDBOX_IMAGE || 'us-docker.pkg.dev/pantheon-sandbox/grafbase-gateway-sandbox' }}
     strategy:
       fail-fast: false
       matrix:
@@ -466,24 +438,19 @@ jobs:
           # - examples/composite-rest
           # - examples/grpc-composite-schemas
           # - examples/dynamic-schema-contracts
-    runs-on: depot-ubuntu-24.04-8
+    runs-on: sbx-pan-base
+    permissions:
+      contents: read
+      id-token: write # Required for WIF OIDC token exchange in auth-gar
     steps:
       - name: Get sources
         uses: actions/checkout@v5
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Authenticate to Google Artifact Registry
+        uses: pantheon-systems/common-gh/auth-gar@91222b8009f6df264fee51dce8a7d266a84eecbc # main 2025-11-28T13:02:03Z
 
-      - name: Login to Docker Hub
-        if: env.dockerhub_username != ''
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
 
       - name: Download Hurl
         uses: gacts/install-hurl@a6765f7f715286f58a69d3be6061243578781a79 # v1
@@ -491,20 +458,13 @@ jobs:
       - name: Use current image
         working-directory: ${{ matrix.working_directory }}
         run: |
-          sed -i "s/\(FROM ghcr.io\/grafbase\/gateway:\)latest/\1$COMMIT_SHA/" Dockerfile.gateway
-
-      - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
+          sed -i "s|FROM ghcr.io/grafbase/gateway:latest|FROM ${GATEWAY_SANDBOX_IMAGE}:${COMMIT_SHA}|" Dockerfile.gateway
 
       - name: Build docker compose
         # Will fail if there is nothing to build.
         continue-on-error: true
-        uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
-        with:
-          project: ${{ env.DEPOT_PROJECT }}
-          token: ${{ secrets.DEPOT_TOKEN }}
-          workdir: ${{ matrix.working_directory }}
-          load: true
-          pull: true
+        working-directory: ${{ matrix.working_directory }}
+        run: docker buildx bake --load --pull
 
       - name: docker compose up
         working-directory: ${{ matrix.working_directory }}
@@ -516,124 +476,12 @@ jobs:
           ./healthcheck.sh
           hurl --test test.hurl
 
-  extensions:
-    name: extensions SDK (${{ matrix.version.label }})
-    needs: [what-changed]
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [{ 'runner': 'depot-ubuntu-24.04-8' }]
-        version:
-          # From the gateway 0.46 onwards, we dropped support for the native JWT authentication.
-          # So we're skipping authenticated & requires-scopes which are simple enough that we shouldn't have to worry.
-          # grpc fails with a directory not found error.
-          - { label: '0.12.0', ref: 'sdk-0.12.0', args: "--skip 'authenticated,requires-scopes,nats,grpc'" }
-          # Not sure why NATS fails, but it's old enough that it doesn't matter.
-          - { label: '0.14.0', ref: 'sdk-0.14.0', args: "--skip 'authenticated,requires-scopes,nats'" }
-          # NATS test isn't reliable in 0.15
-          - { label: '0.15.7', ref: 'sdk-0.15.7', args: "--skip 'authenticated,requires-scopes,nats'" }
-          - { label: '0.16.1', ref: 'sdk-0.16.1', args: "--skip 'authenticated,requires-scopes'" }
-          - { label: '0.17.5', ref: 'sdk-0.17.5', args: "--skip 'authenticated,requires-scopes'" }
-          - { label: '0.18.2', ref: 'sdk-0.18.2', args: "--skip 'authenticated,requires-scopes'" }
-          - { label: '0.20.0', ref: 'sdk-0.20.0', args: "--skip 'authenticated,requires-scopes'" }
-          - { label: 'latest', ref: 'main' }
-    runs-on: ${{ matrix.platform.runner }}
-    continue-on-error: true
-    if: |
-      needs.what-changed.outputs.changed-packages != '[]'
-            && contains(needs.what-changed.outputs.changed-packages, 'grafbase')
-            && contains(needs.what-changed.outputs.changed-packages, 'grafbase-gateway')
-            && !(cancelled())
-            && !(contains(needs.*.result, 'failure'))
-    steps:
-      - uses: actions/checkout@v5
-      - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-      - uses: ./.github/actions/install-rust
-        with:
-          target: x86_64-unknown-linux-musl
-          components: clippy, rustfmt
-
-      - name: Checkout Extensions
-        uses: actions/checkout@v5
-        with:
-          repository: 'grafbase/extensions'
-          ref: ${{ matrix.version.ref }}
-          path: extensions
-
-      - uses: Swatinem/rust-cache@v2.8.0
-        with:
-          cache-workspace-crates: true
-          prefix-key: cargo-v1-${{ matrix.version.ref }}
-          workspaces: |
-            . -> target
-            extensions -> target
-          cache-directories: |
-            extensions/extensions/*/build/wasm-cache
-
-      - uses: ./.github/actions/fetch-assets
-
-      - name: Install cargo-nextest
-        uses: taiki-e/install-action@d12e869b89167df346dd0ff65da342d1fb1202fb # v2.53.2
-        with:
-          tool: nextest
-
-      - name: Build CLI and Gateway
-        shell: bash
-        env:
-          RUSTC_WRAPPER: 'sccache'
-        run: |
-          cargo build -p grafbase -p grafbase-gateway
-          echo "$(pwd)/target/debug" >> $GITHUB_PATH
-
-      - name: Login to Docker Hub
-        env:
-          dockerhub_username: ${{ secrets.DOCKERHUB_USERNAME }}
-        if: env.dockerhub_username != '' && runner.os == 'Linux'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - uses: depot/setup-action@b0b1ea4f69e92ebf5dea3f8713a1b0c37b2126a5 # v1
-
-      - name: Build docker compose
-        # Will fail if there is nothing to build.
-        continue-on-error: true
-        uses: depot/bake-action@2ae2529115bba41de62b77b345de48d57eca7564 # v1
-        with:
-          project: ${{ env.DEPOT_PROJECT }}
-          token: ${{ secrets.DEPOT_TOKEN }}
-          workdir: extensions
-          load: true
-          pull: true
-
-      - name: Start extensions docker compose
-        working-directory: extensions
-        run: docker compose up -d
-
-      - name: Install Protoc for the gRPC extension
-        uses: arduino/setup-protoc@c65c819552d16ad3c9b72d9dfd5ba5237b9c906b # v3
-
-      - name: Build test matrix
-        working-directory: extensions
-        env:
-          RUSTC_WRAPPER: 'sccache'
-        run: |
-          cargo build -p test-matrix
-
-      - name: Test all extensions
-        working-directory: extensions
-        env:
-          RUSTC_WRAPPER: 'sccache'
-        run: |
-          cargo run -p test-matrix -- -v ${{ matrix.version.args }}
-
   after-build-rust:
     # This job is responsible for reacting to build success or failure. It must
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
-    needs: [check-format, grafbase-sdk-doc, tests, examples, extensions]
-    runs-on: depot-ubuntu-24.04-small
+    needs: [check-format, grafbase-sdk-doc, tests, examples]
+    runs-on: sbx-pan-base
     if: ${{ always() }}
     steps:
       - name: Check that the builds succeeded

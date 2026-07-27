@@ -5,20 +5,20 @@ on:
 
 permissions:
   contents: read
-  packages: write
+  id-token: write # Required for WIF OIDC token exchange in auth-gar
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: true
 
 env:
-  REGISTRY_REPOSITORY: ${{ vars.HELM_REGISTRY_REPOSITORY || 'ghcr.io/pantheon-systems/grafbase-helm-charts' }}
-  REGISTRY_USERNAME: ${{ github.actor }}
+  # Pantheon GCP Artifact Registry helm repo. Override via HELM_REGISTRY_REPOSITORY.
+  REGISTRY_REPOSITORY: ${{ vars.HELM_REGISTRY_REPOSITORY || 'us-docker.pkg.dev/pantheon-artifacts/helm-internal' }}
   CHART_PATH: gateway/helm
 
 jobs:
   detect-change-type:
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: sbx-pan-base
     outputs:
       build: ${{ steps.filter.outputs.build }}
     steps:
@@ -33,7 +33,7 @@ jobs:
 
   gateway-helm-release:
     name: Build gateway helm chart
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: sbx-pan-base
     needs: [detect-change-type]
     steps:
       - uses: actions/checkout@v5
@@ -42,11 +42,8 @@ jobs:
         with:
           version: 'v3.16.2'
 
-      - name: Login to ghcr.io
-        shell: bash
-        run: |
-          echo "Login to ghcr.io with user ${{ env.REGISTRY_USERNAME }}"
-          echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ env.REGISTRY_USERNAME }} --password-stdin
+      - name: Authenticate to Google Artifact Registry
+        uses: pantheon-systems/common-gh/auth-gar@91222b8009f6df264fee51dce8a7d266a84eecbc # main 2025-11-28T13:02:03Z
 
       - name: Publish gateway helm chart
         shell: bash

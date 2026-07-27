@@ -13,12 +13,6 @@ on:
         type: string
         required: true
 
-    secrets:
-      CRATES_ACCESS_TOKEN:
-        required: true
-      NPM_ACCESS_TOKEN:
-        required: true
-
 permissions:
   # Allow login to via OIDC
   id-token: write
@@ -28,7 +22,7 @@ permissions:
 jobs:
   release:
     name: Release grafbase
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: sbx-pan-base
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/install-rust
@@ -47,6 +41,7 @@ jobs:
           notification_title: '({workflow}) grafbase release for ${{ env.VERSION_BUMP }} started'
           footer: '<{run_url}|View Run>'
         env:
+          # Set SLACK_WEBHOOK_URL to the Pantheon/CAT Slack webhook in repo secrets.
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       # This is annoying, but github doesn't pass env vars down to child workflows,
@@ -76,19 +71,12 @@ jobs:
           name: ${{ env.VERSION_BUMP }}-linux-arm
           path: cli/npm/aarch64-unknown-linux-musl
 
-      - name: Download windows artifact
-        uses: actions/download-artifact@v5
-        with:
-          name: ${{ env.VERSION_BUMP }}-x86_64-pc-windows-msvc
-          path: cli/npm/x86_64-pc-windows-msvc
-
       - name: Process artifacts
         shell: bash
         run: |
           cd cli/npm
           mkdir github
           cp aarch64-apple-darwin/grafbase github/grafbase-aarch64-apple-darwin
-          cp x86_64-pc-windows-msvc/grafbase.exe github/grafbase-x86_64-pc-windows-msvc.exe
           cp x86_64-unknown-linux-musl/grafbase github/grafbase-x86_64-unknown-linux-musl
           cp aarch64-unknown-linux-musl/grafbase github/grafbase-aarch64-unknown-linux-musl
 
@@ -118,27 +106,13 @@ jobs:
           files: |
             licenses.html
             cli/npm/github/grafbase-aarch64-apple-darwin
-            cli/npm/github/grafbase-x86_64-pc-windows-msvc.exe
             cli/npm/github/grafbase-x86_64-unknown-linux-musl
             cli/npm/github/grafbase-aarch64-unknown-linux-musl
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-
-      - name: Publish npm
-        shell: bash
-        env:
-          INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
-        run: |
-          npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_ACCESS_TOKEN }}
-          cd cli/npm
-          PUBLISH_ARGUMENTS=()
-          if [[ $INPUT_PRERELEASE != "false" ]]; then
-              echo "Running prerelease: $INPUT_PRERELEASE"
-              PUBLISH_ARGUMENTS+=(--tag next)
-          fi
-          (cd aarch64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd aarch64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
-          (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]}")
+      # npm publishing removed: the fork does not publish to the @grafbase npm scope.
+      # The CLI is distributed via the GitHub Release above (grafbase-gateway downloads the
+      # musl binaries from there). See CI_CD_MIGRATION_PLAN.md.
+      #
+      # TODO(follow-up): publish grafbase-sdk to crates.io when its version is bumped, e.g.
+      #   - run: cargo publish -p grafbase-sdk --token ${{ secrets.CRATES_ACCESS_TOKEN }}
+      # gated on a version-change check. Deferred — needs a bump-detection trigger.

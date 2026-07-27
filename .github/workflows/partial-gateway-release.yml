@@ -22,7 +22,7 @@ permissions:
 jobs:
   release:
     name: Release gateway
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: sbx-pan-base
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/install-rust
@@ -34,6 +34,15 @@ jobs:
           VERSION_BUMP="${{ inputs.tag }}"
           VERSION_BUMP=${VERSION_BUMP//gateway-} # remove the gateway prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
+
+      - name: Announce release attempt on Slack
+        uses: ravsamhq/notify-slack-action@be814b201e233b2dc673608aa46e5447c8ab13f2 # v2
+        with:
+          notification_title: '({workflow}) grafbase-gateway release for ${{ env.VERSION_BUMP }} started'
+          footer: '<{run_url}|View Run>'
+        env:
+          # Set SLACK_WEBHOOK_URL to the Pantheon/CAT Slack webhook in repo secrets.
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Create release directories
         shell: bash

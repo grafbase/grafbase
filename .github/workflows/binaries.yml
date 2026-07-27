@@ -7,6 +7,7 @@ on:
       - 'main'
     tags:
       - 'gateway-*'
+      - 'grafbase-*'
 
 permissions:
   # Allow checks read
@@ -24,11 +25,8 @@ env:
   CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_PROFILE_TEST_DEBUG: 0
   CARGO_TERM_COLOR: 'always'
-  # Depot project is provisioned per-org; set the DEPOT_PROJECT repo variable in
-  # pantheon-systems/grafbase. See RELEASING.md.
-  DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
-  # Pantheon-owned gateway image. Override via the GATEWAY_IMAGE repo variable if needed.
-  GATEWAY_IMAGE: ${{ vars.GATEWAY_IMAGE || 'ghcr.io/pantheon-systems/grafbase-gateway' }}
+  # Pantheon GCP Artifact Registry. Override via the GATEWAY_IMAGE repo variable.
+  GATEWAY_IMAGE: ${{ vars.GATEWAY_IMAGE || 'us-docker.pkg.dev/pantheon-artifacts/internal/grafbase-gateway' }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -36,7 +34,7 @@ concurrency:
 
 jobs:
   detect-change-type:
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: sbx-pan-base
     outputs:
       build: ${{ steps.filter.outputs.build }}
     steps:
@@ -70,27 +68,28 @@ jobs:
   docker-gateway:
     needs: [check, detect-change-type]
     if: ${{ (needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/')) }}
-    runs-on: depot-ubuntu-24.04
+    runs-on: sbx-pan-base
     permissions:
-      packages: write
+      contents: read
+      id-token: write # Required for WIF OIDC token exchange in auth-gar
     env:
       COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v5
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Authenticate to Google Artifact Registry
+        uses: pantheon-systems/common-gh/auth-gar@91222b8009f6df264fee51dce8a7d266a84eecbc # main 2025-11-28T13:02:03Z
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          driver-opts: |
+            image=us-docker.pkg.dev/pantheon-artifacts/internal/buildkit:buildx-stable-1
 
       - name: Build and push tagged image
-        uses: depot/build-push-action@v1.16.2
+        uses: docker/build-push-action@v6
         if: ${{ github.ref == 'refs/heads/main' }}
         with:
-          project: ${{ env.DEPOT_PROJECT }}
-          token: ${{ secrets.DEPOT_TOKEN }}
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.GATEWAY_IMAGE }}:${{ env.COMMIT_SHA }}, ${{ env.GATEWAY_IMAGE }}:latest
@@ -103,11 +102,9 @@ jobs:
           echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
 
       - name: Build and push versioned image
-        uses: depot/build-push-action@v1.16.2
+        uses: docker/build-push-action@v6
         if: ${{ startsWith(github.ref, 'refs/tags') && startsWith(github.ref_name, 'gateway-') }}
         with:
-          project: ${{ env.DEPOT_PROJECT }}
-          token: ${{ secrets.DEPOT_TOKEN }}
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ env.GATEWAY_IMAGE }}:${{ env.RELEASE_VERSION }}
@@ -118,10 +115,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # TODO(infra): confirm the Pantheon runner label sized for heavy Rust builds.
+        # aarch64-musl builds cross-compile on the x86 runner unless an arm sbx runner exists.
         archs:
           [
-            { runner: depot-ubuntu-24.04-8, target: x86_64-unknown-linux-musl, platform: linux },
-            { runner: depot-ubuntu-24.04-arm-8, target: aarch64-unknown-linux-musl, platform: linux-arm },
+            { runner: sbx-pan-base, target: x86_64-unknown-linux-musl, platform: linux },
+            { runner: sbx-pan-base, target: aarch64-unknown-linux-musl, platform: linux-arm },
           ]
     runs-on: ${{ matrix.archs.runner }}
     steps:
@@ -144,16 +143,25 @@ jobs:
           packages: musl musl-tools
           version: 1.0
 
+      - uses: ./.github/actions/fetch-assets
+
       - name: Build releases
         env:
           RUSTC_WRAPPER: 'sccache'
         run: |
-          cargo build --release -p grafbase-gateway --target ${{ matrix.archs.target }} --timings
+          cargo build --release -p grafbase -p grafbase-gateway --target ${{ matrix.archs.target }} --timings
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.archs.platform }}-release-timings.html
           path: target/cargo-timings/cargo-timing.html
+
+      - name: Parse version tag for grafbase
+        if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
+        run: |
+          VERSION_BUMP="${{ github.ref_name }}"
+          VERSION_BUMP=${VERSION_BUMP//grafbase-} # remove the grafbase prefix from the tag
+          echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
       - name: Parse version tag for gateway
         if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
@@ -161,6 +169,14 @@ jobs:
           VERSION_BUMP="${{ github.ref_name }}"
           VERSION_BUMP=${VERSION_BUMP//gateway-} # remove the gateway prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
+
+      - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
+        name: Upload grafbase binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.VERSION_BUMP }}-${{ matrix.archs.platform }}
+          path: |
+            target/${{ matrix.archs.target }}/release/grafbase
 
       - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
         name: Upload gateway binaries
@@ -190,7 +206,7 @@ jobs:
 
   darwin:
     needs: [check]
-    runs-on: depot-macos-latest
+    runs-on: macos-latest
     strategy:
       matrix:
         target:
@@ -209,16 +225,25 @@ jobs:
           cache-workspace-crates: true
           prefix-key: cargo-v1
 
-      - name: Build gateway release
+      - uses: ./.github/actions/fetch-assets
+
+      - name: Build grafbase release
         env:
           RUSTC_WRAPPER: sccache
         run: |
-          cargo build --release --target=${{ matrix.target }} -p grafbase-gateway --timings
+          cargo build --release --target=${{ matrix.target }} -p grafbase-gateway -p grafbase --timings
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}-release-timings.html
           path: target/cargo-timings/cargo-timing.html
+
+      - name: Parse version tag for grafbase
+        if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
+        run: |
+          VERSION_BUMP="${{ github.ref_name }}"
+          VERSION_BUMP=${VERSION_BUMP//grafbase-} # remove the grafbase prefix from the tag
+          echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
       - name: Parse version tag for gateway
         if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
@@ -227,6 +252,13 @@ jobs:
           VERSION_BUMP=${VERSION_BUMP//gateway-} # remove the gateway prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
 
+      - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
+        name: Upload grafbase ${{ matrix.target }} binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.VERSION_BUMP }}-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/grafbase
+
       - if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'gateway-')
         name: Upload gateway ${{ matrix.target }} binary
         uses: actions/upload-artifact@v4
@@ -234,6 +266,16 @@ jobs:
           name: gateway-${{ env.VERSION_BUMP }}-${{ matrix.target }}
           path: |
             target/${{ matrix.target }}/release/grafbase-gateway
+
+  release-grafbase:
+    needs: [linux, darwin]
+    if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-')
+    uses: ./.github/workflows/partial-grafbase-release.yml
+    secrets: inherit
+    with:
+      draft: false
+      tag: ${{ github.ref_name }}
+      prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
 
   release-gateway:
     needs: [linux, darwin]
@@ -250,9 +292,20 @@ jobs:
     # happen after the builds, hence the `needs`. But it must not be skipped
     # when the builds are cancelled or fail (hence the `if: ${{ always() }}`).
     needs: [linux, darwin]
-    runs-on: depot-ubuntu-24.04-small
+    runs-on: sbx-pan-base
     if: ${{ always() }}
     steps:
       - name: Check that the builds succeeded
         run: exit 1
         if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+
+      - name: Report release failures
+        if: ${{ failure() && startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'grafbase-') }}
+        uses: ravsamhq/notify-slack-action@be814b201e233b2dc673608aa46e5447c8ab13f2 # v2
+        with:
+          status: ${{ job.status }}
+          notification_title: '({workflow}) grafbase release failed'
+          message_format: 'Check the link below to see what failed.'
+          footer: '<{run_url}|View Run>'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
