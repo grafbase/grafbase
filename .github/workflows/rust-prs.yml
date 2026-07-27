@@ -14,7 +14,9 @@ env:
   CARGO_PROFILE_TEST_DEBUG: 0
   CARGO_TERM_COLOR: 'always'
   RUST_BACKTRACE: 1
-  DEPOT_PROJECT: lc6t0h7bhh
+  # Depot project is provisioned per-org; set the DEPOT_PROJECT repo variable in
+  # pantheon-systems/grafbase. See RELEASING.md.
+  DEPOT_PROJECT: ${{ vars.DEPOT_PROJECT }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-rust-pr

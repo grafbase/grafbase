@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REGISTRY_REPOSITORY: ghcr.io/grafbase/helm-charts
-  REGISTRY_USERNAME: grafbase
+  REGISTRY_REPOSITORY: ${{ vars.HELM_REGISTRY_REPOSITORY || 'ghcr.io/pantheon-systems/grafbase-helm-charts' }}
+  REGISTRY_USERNAME: ${{ github.actor }}
   CHART_PATH: gateway/helm
 
 jobs:
